@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -24,10 +25,8 @@ const Page = () => {
   const router = useRouter();
 
   // Zustand
-  const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
 
-  // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,7 +35,6 @@ const Page = () => {
     },
   });
 
-  // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await axiosInstance.post("/auth/login", values);
@@ -48,39 +46,80 @@ const Page = () => {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 max-w-md mx-auto">
-        <h2>Login</h2>
-        <div className="w-full max-w-sm p-4 space-y-4">
-          {/* Email */}
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input placeholder="Email:" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+    <div className="min-h-[90vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl bg-white/70 backdrop-blur-md shadow-xl border border-gray-100 p-8 space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
+            <p className="text-gray-500 text-sm mt-1">Login to continue</p>
+          </div>
 
-          {/* Password */}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input placeholder="Password:" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button type="submit">Submit</Button>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-5"
+            >
+              {/* Email */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Email address"
+                        type="email"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Password */}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Password"
+                        type="password"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="cursor-pointer w-full h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow hover:opacity-90 transition"
+              >
+                Login
+              </Button>
+            </form>
+          </Form>
+
+          {/* Dont have an account? */}
+          <div>
+            <p className="text-center text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link
+                href="/auth/register"
+                className="text-indigo-600 hover:text-indigo-700 hover:underline font-medium transition"
+              >
+                Register
+              </Link>
+            </p>
+          </div>
         </div>
-      </form>
-    </Form>
+      </div>
+    </div>
   );
 };
 

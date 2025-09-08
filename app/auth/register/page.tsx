@@ -11,6 +11,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const formSchema = z.object({
   username: z.string().min(2, {
@@ -26,11 +27,8 @@ const formSchema = z.object({
 
 const Page = () => {
   const router = useRouter();
-  // Zustand
-  const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
 
-  // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,69 +38,107 @@ const Page = () => {
     },
   });
 
-  // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await axiosInstance.post("/auth/register", values);
       router.push("/auth/login");
     } catch (error: AxiosError | any) {
       console.log("Registration failed:", error);
-      console.log(error.response.data.message);
+      console.log(error.response?.data?.message);
     }
   }
 
-  console.log(user);
-
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4 max-w-md mx-auto p-4"
-      >
-        <h2>Registration</h2>
-        <div className="w-full max-w-sm p-4 space-y-4">
-          {/* Name */}
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input placeholder="Username:" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+    <div className="min-h-[90vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl bg-white/70 backdrop-blur-md shadow-xl border border-gray-100 p-8 space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Sign up to get started
+            </p>
+          </div>
 
-          {/* Email */}
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input placeholder="Email:" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-5"
+            >
+              {/* Username */}
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Username"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-          {/* Password */}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input placeholder="Password:" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button type="submit">Submit</Button>
+              {/* Email */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Email address"
+                        type="email"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Password */}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Password"
+                        type="password"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow hover:opacity-90 transition"
+              >
+                Register
+              </Button>
+            </form>
+          </Form>
+
+          <div className="text-center text-sm text-gray-500">
+            Already have an account?{" "}
+            <Link
+              href="/auth/login"
+              className="text-indigo-600 font-medium hover:underline"
+            >
+              Login
+            </Link>
+          </div>
         </div>
-      </form>
-    </Form>
+      </div>
+    </div>
   );
 };
 
