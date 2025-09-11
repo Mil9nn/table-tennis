@@ -1,26 +1,28 @@
-import { verifyToken } from "@/lib/jwt";
+import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import cloudinary from "@/lib/cloudinary"
+import cloudinary from "@/lib/cloudinary";
 import { User } from "@/models/user.model";
 
-// GET /api/profile/image - Fetch profile image
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // 1. Get JWT from cookies
-    const token = (await cookies()).get("token")?.value;
+    const token = getTokenFromRequest(request)
     if (!token)
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
 
-    // 2. Verify token
     const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    // 3. Get user profile image
-    const user = await User.findById(decoded?.id).select('profileImage');
-    
+    const user = await User.findById(decoded?.userId).select("profileImage");
+
     if (!user) {
       return NextResponse.json(
         { success: false, message: "User not found" },
@@ -28,11 +30,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      url: user.profileImage || null 
+    return NextResponse.json({
+      success: true,
+      url: user.profileImage || null,
     });
-
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -42,7 +43,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/profile/image - Upload profile image
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -55,18 +55,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Get JWT from cookies
-    const token = (await cookies()).get("token")?.value;
+    const token = getTokenFromRequest(req);
     if (!token)
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
 
-    // 2. Verify token
     const decoded = verifyToken(token);
 
-    // 3. Process file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -76,13 +73,13 @@ export async function POST(req: NextRequest) {
     const uploadResult = await cloudinary.uploader.upload(base64Data, {
       folder: "profile_images",
       resource_type: "image",
-      public_id: `profile_${decoded?.id}`, // Fixed typo: "proflie" -> "profile"
+      public_id: `profile_${decoded?.userId}`,
       overwrite: true,
     });
 
     // 4. Update user
     await User.findOneAndUpdate(
-      { _id: decoded?.id },
+      { _id: decoded?.userId },
       { profileImage: uploadResult.secure_url }
     );
 

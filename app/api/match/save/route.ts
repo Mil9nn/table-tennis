@@ -1,4 +1,4 @@
-import Match from '@/models/Match';
+import Match from '@/models/match.model';
 import { User } from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
 

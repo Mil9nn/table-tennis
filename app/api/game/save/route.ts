@@ -1,25 +1,23 @@
-import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import Game from "@/models/Game";
+import { NextRequest, NextResponse } from "next/server";
+import Game from "@/models/game.model";
 import { verifyToken } from "@/lib/jwt";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("token")?.value; // or however you store it
+    const token = req.cookies.get("token")?.value;
     if (!token) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const user = verifyToken(token); // decode & verify your JWT
-    if (!user?.id) {
+    const decoded = verifyToken(token);
+    if (!decoded?.userId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
     const { player1, player2 } = await req.json();
 
     const game = await Game.create({
-      userId: user.id,
+      userId: decoded.userId,
       player1,
       player2,
     });

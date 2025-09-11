@@ -5,7 +5,6 @@ import {
   Clock,
   Trophy,
   Target,
-  BarChart3,
   ArrowLeft,
   Calendar,
   Airplay,

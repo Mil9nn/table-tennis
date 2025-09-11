@@ -1,3 +1,4 @@
+// FIXED: app/match/create/page.tsx - Compatible with your tennis store structure
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -23,146 +24,198 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTennisStore } from "@/hooks/useTennisStore";
 
+interface FoundUser {
+  _id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  fullName?: string;
+}
+
 export default function CreateMatchPage() {
   const router = useRouter();
-  const { players, addPlayer, removePlayer, setBestOf, bestOf, startNewMatch } =
-    useTennisStore();
+  
+  // FIX: Use the correct store methods that match your tennis store
+  const { 
+    playerUsers, 
+    setPlayerUser, 
+    userSearching, 
+    setUserSearching,
+    userErrors, 
+    setUserErrors,
+    setBestOf, 
+    bestOf, 
+    startNewMatch,
+    resetToSetup 
+  } = useTennisStore();
 
-  // keep local inputs for both players
-  const [usernames, setUsernames] = useState<{ p1: string; p2: string }>({
-    p1: "",
-    p2: "",
-  });
-  const [searching, setSearching] = useState<{ p1: boolean; p2: boolean }>({
-    p1: false,
-    p2: false,
-  });
-  const [errors, setErrors] = useState<{ p1: string; p2: string }>({
-    p1: "",
-    p2: "",
-  });
+  // Local state for input fields
+  const [player1Input, setPlayer1Input] = useState("");
+  const [player2Input, setPlayer2Input] = useState("");
 
-  const matchPlayers = Object.keys(players);
+  // Reset store on component mount
+  useEffect(() => {
+    resetToSetup();
+  }, []);
 
+  // Search function that matches your store structure
   const searchUser = async (username: string, slot: "p1" | "p2") => {
     if (!username.trim()) {
-      setErrors((prev) => ({ ...prev, [slot]: "" }));
+      setPlayerUser(slot, null);
+      setUserErrors({ ...userErrors, [slot]: "" });
       return;
     }
 
-    setSearching((prev) => ({ ...prev, [slot]: true }));
+    setUserSearching({ ...userSearching, [slot]: true });
+    
     try {
       const res = await fetch(
-        `/api/users/search?username=${encodeURIComponent(username)}`
+        `/api/users/search?username=${encodeURIComponent(username.trim())}`
       );
       const data = await res.json();
 
+      console.log(`Search result for ${slot}:`, data);
+
       if (data.success && data.user) {
-        addPlayer({
-          userId: data.user._id,
+        // FIX: Create RegisteredUser object that matches your store interface
+        const registeredUser = {
+          _id: data.user._id,
           username: data.user.username,
-          displayName: data.user.displayName,
-          currentScore: 0,
-          gamesWon: 0,
-          serving: slot === "p1", // first player serves
-          shots: [],
-        });
-        setErrors((prev) => ({ ...prev, [slot]: "" }));
+          displayName: data.user.displayName || data.user.fullName || data.user.username,
+          wins: data.user.wins || 0,
+          losses: data.user.losses || 0,
+          totalMatches: data.user.totalMatches || 0,
+        };
+
+        console.log(`Setting ${slot} user:`, registeredUser);
+        
+        setPlayerUser(slot, registeredUser);
+        setUserErrors({ ...userErrors, [slot]: "" });
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          [slot]:
-            "User not found. Please check username or ask them to register.",
-        }));
-        if (slot === "p1" && matchPlayers[0]) removePlayer(matchPlayers[0]);
-        if (slot === "p2" && matchPlayers[1]) removePlayer(matchPlayers[1]);
+        setPlayerUser(slot, null);
+        setUserErrors({ ...userErrors, [slot]: "User not found. Please check username or ask them to register." });
       }
     } catch (err) {
       console.error("User search error:", err);
-      setErrors((prev) => ({
-        ...prev,
-        [slot]: "Error searching for user. Please try again.",
-      }));
+      setPlayerUser(slot, null);
+      setUserErrors({ ...userErrors, [slot]: "Error searching for user. Please try again." });
     } finally {
-      setSearching((prev) => ({ ...prev, [slot]: false }));
+      setUserSearching({ ...userSearching, [slot]: false });
     }
   };
 
-  // debounce search for player 1
+  // Debounced search effects
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (usernames.p1) searchUser(usernames.p1, "p1");
+    const timer = setTimeout(() => {
+      if (player1Input) {
+        searchUser(player1Input, "p1");
+      } else {
+        setPlayerUser("p1", null);
+        setUserErrors({ ...userErrors, p1: "" });
+      }
     }, 500);
-    return () => clearTimeout(t);
-  }, [usernames.p1]);
+    return () => clearTimeout(timer);
+  }, [player1Input]);
 
-  // debounce search for player 2
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (usernames.p2) searchUser(usernames.p2, "p2");
+    const timer = setTimeout(() => {
+      if (player2Input) {
+        searchUser(player2Input, "p2");
+      } else {
+        setPlayerUser("p2", null);
+        setUserErrors({ ...userErrors, p2: "" });
+      }
     }, 500);
-    return () => clearTimeout(t);
-  }, [usernames.p2]);
+    return () => clearTimeout(timer);
+  }, [player2Input]);
 
+  // FIX: Handle match start using your store's method
   const handleStartMatch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (matchPlayers.length === 2) {
+    
+    console.log("Starting match with playerUsers:", playerUsers);
+
+    // Validate both players are found
+    if (!playerUsers.p1 || !playerUsers.p2) {
+      alert("Both players must be registered users to start a match.");
+      return;
+    }
+
+    // Check for same user
+    if (playerUsers.p1._id === playerUsers.p2._id) {
+      alert("Players cannot play against themselves!");
+      return;
+    }
+
+    try {
+      // FIX: Use the store's startNewMatch method which handles everything
       startNewMatch();
+      
+      console.log("Match started successfully, navigating to play page");
       router.push("/match/play");
+    } catch (error) {
+      console.error("Error starting match:", error);
+      alert("Error starting match. Please try again.");
     }
   };
 
-  const renderPlayerInput = (slot: "p1" | "p2", placeholder: string) => {
-    const player = matchPlayers[slot === "p1" ? 0 : 1]
-      ? players[matchPlayers[slot === "p1" ? 0 : 1]]
-      : null;
-
-    return (
-      <div>
-        <div className="relative">
-          <Input
-            placeholder={placeholder}
-            value={usernames[slot]}
-            onChange={(e) =>
-              setUsernames((prev) => ({ ...prev, [slot]: e.target.value }))
-            }
-            className={
-              errors[slot]
-                ? "border-red-300"
-                : player
-                ? "border-green-300"
-                : ""
-            }
-          />
-          <div className="absolute right-3 top-3">
-            {searching[slot] && <Search className="w-4 h-4 animate-bounce" />}
-            {!searching[slot] && player && (
-              <Check className="w-4 h-4 text-green-500" />
-            )}
-            {!searching[slot] && errors[slot] && (
-              <AlertCircle className="w-4 h-4 text-red-500" />
-            )}
-          </div>
+  const renderPlayerInput = (
+    slot: "p1" | "p2",
+    placeholder: string,
+    inputValue: string,
+    setInputValue: (value: string) => void,
+    foundUser: any
+  ) => (
+    <div className="space-y-2">
+      <div className="relative">
+        <Input
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          className={
+            userErrors[slot]
+              ? "border-red-300"
+              : foundUser
+              ? "border-green-300"
+              : ""
+          }
+        />
+        <div className="absolute right-3 top-3">
+          {userSearching[slot] && <Search className="w-4 h-4 animate-pulse text-blue-500" />}
+          {!userSearching[slot] && foundUser && (
+            <Check className="w-4 h-4 text-green-500" />
+          )}
+          {!userSearching[slot] && userErrors[slot] && (
+            <AlertCircle className="w-4 h-4 text-red-500" />
+          )}
         </div>
-        {player && (
-          <div className="mt-2 p-2 bg-green-50 rounded flex items-center gap-2">
+      </div>
+
+      {foundUser && (
+        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-green-600" />
-            <div className="text-sm">
-              <div className="font-medium">{player.displayName}</div>
+            <div>
+              <div className="font-medium text-green-800">{foundUser.displayName}</div>
+              <div className="text-sm text-green-600">@{foundUser.username}</div>
+              <div className="text-xs text-green-500">
+                {foundUser.totalMatches} matches • {foundUser.wins}W-{foundUser.losses}L
+              </div>
             </div>
           </div>
-        )}
-        {errors[slot] && (
-          <Alert className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              {errors[slot]}
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
-    );
-  };
+        </div>
+      )}
+
+      {userErrors[slot] && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-600">
+            {userErrors[slot]}
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
@@ -179,14 +232,33 @@ export default function CreateMatchPage() {
                 Create a match
               </h2>
               <p className="text-gray-500 text-sm mt-1">
-                Fill in the details below
+                Enter usernames of registered players
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleStartMatch} className="space-y-6 mt-4">
-            {renderPlayerInput("p1", "Player 01 username")}
-            {renderPlayerInput("p2", "Player 02 username")}
+          <form onSubmit={handleStartMatch} className="space-y-6">
+            <div className="space-y-2">
+              <Label>Player 1</Label>
+              {renderPlayerInput(
+                "p1",
+                "Enter player 1 username",
+                player1Input,
+                setPlayer1Input,
+                playerUsers.p1
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Player 2</Label>
+              {renderPlayerInput(
+                "p2",
+                "Enter player 2 username",
+                player2Input,
+                setPlayer2Input,
+                playerUsers.p2
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="bestof">Match Format</Label>
@@ -209,19 +281,20 @@ export default function CreateMatchPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={matchPlayers.length !== 2}
+              disabled={!playerUsers.p1 || !playerUsers.p2 || userSearching.p1 || userSearching.p2}
             >
-              Start Match
+              {(!playerUsers.p1 || !playerUsers.p2) 
+                ? "Enter both players" 
+                : "Start Match"
+              }
             </Button>
 
-            {matchPlayers.length !== 2 && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Both players must be registered users to start a match.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Debug info - remove in production */}
+            <div className="text-xs text-gray-500 space-y-1 border-t pt-2">
+              <div>Player 1: {playerUsers.p1 ? `✅ ${playerUsers.p1.displayName}` : "❌ Not found"}</div>
+              <div>Player 2: {playerUsers.p2 ? `✅ ${playerUsers.p2.displayName}` : "❌ Not found"}</div>
+              <div>Ready to start: {playerUsers.p1 && playerUsers.p2 ? "✅ Yes" : "❌ No"}</div>
+            </div>
           </form>
         </div>
       </div>

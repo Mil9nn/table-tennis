@@ -1,6 +1,4 @@
-// /api/users/search/route.js
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
 import { User } from '@/models/user.model';
 
 export async function GET(request: NextRequest) {
@@ -15,33 +13,28 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    await connectDB();
-    
-    // Simple exact lookup since usernames are unique
     const user = await User.findOne({ 
       username: username.trim() 
-    }).select('username email');
+    }).select('username email fullName');
     
     if (!user) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'User not found' 
-      });
+      return NextResponse.json({ success: false, message: 'User not found' });
     }
     
     return NextResponse.json({ 
       success: true, 
       user: {
         _id: user._id,
+        userId: user._id,
         username: user.username,
         email: user.email,
-        displayName: user.username, // Using username as displayName since your model doesn't have it
-        totalMatches: 0, // Will be calculated from matches
-        wins: 0, // Will be calculated from matches  
-        losses: 0 // Will be calculated from matches
+        displayName: user.fullName,
+        fullName: user.fullName,
+        totalMatches: 0,
+        wins: 0,
+        losses: 0
       }
-    });
-    
+    }); 
   } catch (error) {
     console.error('User search error:', error);
     return NextResponse.json({ 

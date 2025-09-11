@@ -1,7 +1,7 @@
 // app/api/leaderboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import Match from '@/models/Match';
+import Match from '@/models/match.model';
 
 export async function GET(request: NextRequest) {
   try {

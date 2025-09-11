@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import Match from "@/models/Match";
+import Match from "@/models/match.model";
 
 console.log("Route: app/api/matches/[id]/route.ts");
 

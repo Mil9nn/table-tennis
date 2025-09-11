@@ -19,11 +19,12 @@ import Image from "next/image";
 
 export default function PlayMatchPage() {
   const router = useRouter();
+  
   const {
     gameState,
     currentMatch,
-    player1,
-    player2,
+    players,
+    playerOrder,
     deuce,
     shotPicker,
     bestOf,
@@ -34,21 +35,24 @@ export default function PlayMatchPage() {
     setSavedData,
   } = useTennisStore();
 
-  // Update serving logic when scores change
-  useEffect(() => {
-    updateServingLogic();
-  }, [player1.currentScore, player2.currentScore, updateServingLogic]);
+  const player1 = playerOrder && playerOrder[0] ? players[playerOrder[0]] : null;
+  const player2 = playerOrder && playerOrder[1] ? players[playerOrder[1]] : null;
 
-  // Redirect if no match is set
   useEffect(() => {
-    if (gameState === "setup" || !currentMatch) {
+    if (gameState === "playing" && player1 && player2) {
+      updateServingLogic();
+    }
+  }, [player1?.currentScore, player2?.currentScore, updateServingLogic, gameState]);
+
+  useEffect(() => {
+    if (gameState === "setup" || !currentMatch || !player1 || !player2) {
+      console.log("Redirecting to create match page", { gameState, currentMatch, player1, player2 });
       router.push("/match/create");
     }
-  }, [gameState, currentMatch, router]);
+  }, [gameState, currentMatch, player1, player2, router]);
 
-  // Save match
   const saveMatch = async () => {
-    if (!currentMatch || !currentMatch.winner) {
+    if (!currentMatch || !currentMatch.winnerId) {
       alert("❌ No completed match to save");
       return;
     }
@@ -56,26 +60,29 @@ export default function PlayMatchPage() {
     try {
       const cleanMatchData = {
         matchId: currentMatch.id,
-        player1: currentMatch.player1.userId,
-        player2: currentMatch.player2.userId,
-        winner: currentMatch.winner?.userId ?? null,
+        player1: playerOrder[0],
+        player2: playerOrder[1],
+        winner: currentMatch.winnerId,
         bestOf: currentMatch.bestOf,
         startTime: currentMatch.startTime,
-        endTime: currentMatch.endTime,
+        endTime: currentMatch.endTime || Date.now(),
         games: currentMatch.games.map((game) => ({
           gameNumber: game.gameNumber,
-          player1Score: game.player1Score,
-          player2Score: game.player2Score,
-          winner: game.winner ?? null,
+          player1Score: game.scores[playerOrder[0]] || 0,
+          player2Score: game.scores[playerOrder[1]] || 0,
+          winner: game.winnerId,
           startTime: game.startTime,
           endTime: game.endTime,
           shots: game.shots.map((shot) => ({
             shotName: shot.shotName,
-            player: shot.player,
+            player: shot.playerId,
             timestamp: shot.timestamp,
+            pointNumber: 1,
           })),
         })),
       };
+
+      console.log("Saving match data:", cleanMatchData);
 
       const res = await fetch("/api/match/save", {
         method: "POST",
@@ -89,19 +96,11 @@ export default function PlayMatchPage() {
       setSavedData(data);
 
       if (data.success) {
-        const p1Games = currentMatch.games.filter(
-          (g) => g.winner === currentMatch.player1.userId
-        ).length;
-        const p2Games = currentMatch.games.filter(
-          (g) => g.winner === currentMatch.player2.userId
-        ).length;
+        const winnerName = currentMatch.players[currentMatch.winnerId].displayName;
+        const p1Games = currentMatch.games.filter(g => g.winnerId === playerOrder[0]).length;
+        const p2Games = currentMatch.games.filter(g => g.winnerId === playerOrder[1]).length;
 
-        alert(
-          `✅ Match saved! ${currentMatch.winner.displayName} wins ${Math.max(
-            p1Games,
-            p2Games
-          )}-${Math.min(p1Games, p2Games)}`
-        );
+        alert(`✅ Match saved! ${winnerName} wins ${Math.max(p1Games, p2Games)}-${Math.min(p1Games, p2Games)}`);
         router.push("/match");
       } else {
         alert("❌ Failed to save match: " + (data.message || "Unknown error"));
@@ -117,6 +116,18 @@ export default function PlayMatchPage() {
     router.push("/match");
   };
 
+  // Show loading if players are not ready
+  if (!player1 || !player2 || !currentMatch) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading match...</p>
+        </div>
+      </div>
+    );
+  }
+
   // ---------------- PLAYING STATE ----------------
   if (gameState === "playing") {
     const gamesNeededToWin = Math.ceil(bestOf / 2);
@@ -126,7 +137,7 @@ export default function PlayMatchPage() {
         {/* Shot Picker Dialog */}
         <Dialog
           open={shotPicker.open}
-          onOpenChange={(open) => setShotPicker((prev) => ({ ...prev, open }))}
+          onOpenChange={(open) => setShotPicker({ ...shotPicker, open })}
         >
           <DialogContent
             className="max-h-[90vh] overflow-y-auto"
@@ -251,7 +262,7 @@ export default function PlayMatchPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setShotPicker({ player: 1, open: true })}
+                onClick={() => setShotPicker({ playerId: player1.userId, open: true })}
                 className="cursor-pointer py-10 w-full bg-emerald-500 hover:bg-emerald-600 rounded-none"
               >
                 +1 Point
@@ -281,7 +292,7 @@ export default function PlayMatchPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setShotPicker({ player: 2, open: true })}
+                onClick={() => setShotPicker({ playerId: player2.userId, open: true })}
                 className="py-10 bg-rose-500 hover:bg-rose-600 cursor-pointer w-full rounded-none"
               >
                 +1 Point
@@ -297,12 +308,11 @@ export default function PlayMatchPage() {
             <div className="flex gap-2 flex-wrap">
               {currentMatch.games.map((game, idx) => (
                 <div key={idx} className="border rounded p-2 text-sm">
-                  Game {game.gameNumber}: {game.player1Score}-
-                  {game.player2Score}
-                  {game.winner === currentMatch.player1.userId && (
+                  Game {game.gameNumber}: {game.scores[playerOrder[0]]}-{game.scores[playerOrder[1]]}
+                  {game.winnerId === playerOrder[0] && (
                     <span className="text-blue-600 ml-2">✓</span>
                   )}
-                  {game.winner === currentMatch.player2.userId && (
+                  {game.winnerId === playerOrder[1] && (
                     <span className="text-red-600 ml-2">✓</span>
                   )}
                 </div>
@@ -315,17 +325,11 @@ export default function PlayMatchPage() {
   }
 
   // ---------------- FINISHED STATE ----------------
-  if (gameState === "finished" && currentMatch && currentMatch.winner) {
-    const p1Games = currentMatch.games.filter(
-      (g) => g.winner === currentMatch.player1.userId
-    ).length;
-    const p2Games = currentMatch.games.filter(
-      (g) => g.winner === currentMatch.player2.userId
-    ).length;
-    const winnerGames =
-      currentMatch.winner.userId === currentMatch.player1.userId
-        ? p1Games
-        : p2Games;
+  if (gameState === "finished" && currentMatch && currentMatch.winnerId) {
+    const winner = currentMatch.players[currentMatch.winnerId];
+    const p1Games = currentMatch.games.filter(g => g.winnerId === playerOrder[0]).length;
+    const p2Games = currentMatch.games.filter(g => g.winnerId === playerOrder[1]).length;
+    const winnerGames = currentMatch.winnerId === playerOrder[0] ? p1Games : p2Games;
     const loserGames = currentMatch.games.length - winnerGames;
 
     return (
@@ -342,16 +346,13 @@ export default function PlayMatchPage() {
         {/* Winner Card */}
         <div className="bg-green-100 p-6 rounded-lg mb-6">
           <h2 className="text-2xl font-bold text-green-800 mb-2">
-            🏆 {currentMatch.winner.displayName} Wins!
+            🏆 {winner.displayName} Wins!
           </h2>
           <p className="text-lg mb-4">
-            {currentMatch.player1.displayName} vs{" "}
-            {currentMatch.player2.displayName}
+            {player1.displayName} vs {player2.displayName}
           </p>
           <div className="text-gray-600">
-            <p>
-              Games Won: {winnerGames} - {loserGames}
-            </p>
+            <p>Games Won: {winnerGames} - {loserGames}</p>
             <p>Total Games: {currentMatch.games.length}</p>
           </div>
         </div>
@@ -367,12 +368,10 @@ export default function PlayMatchPage() {
               >
                 <span>Game {game.gameNumber}</span>
                 <span className="font-mono">
-                  {game.player1Score} - {game.player2Score}
+                  {game.scores[playerOrder[0]]} - {game.scores[playerOrder[1]]}
                 </span>
                 <span className="font-semibold">
-                  {game.winner === currentMatch.player1.userId
-                    ? currentMatch.player1.displayName
-                    : currentMatch.player2.displayName}
+                  {currentMatch.players[game.winnerId].displayName}
                 </span>
               </div>
             ))}
