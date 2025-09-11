@@ -11,7 +11,13 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    const match = await Match.findById(id).lean();
+    const match = await Match.findById(id)
+      .populate("player1", "username displayName email")
+      .populate("player2", "username displayName email")
+      .populate("winner", "username displayName email")
+      .populate("games.winner", "username displayName email")
+      .populate("games.shots.player", "username displayName email")
+      .lean();
 
     if (!match) {
       return NextResponse.json(

@@ -19,7 +19,7 @@ import Image from "next/image";
 
 export default function PlayMatchPage() {
   const router = useRouter();
-  
+
   const {
     gameState,
     currentMatch,
@@ -35,18 +35,30 @@ export default function PlayMatchPage() {
     setSavedData,
   } = useTennisStore();
 
-  const player1 = playerOrder && playerOrder[0] ? players[playerOrder[0]] : null;
-  const player2 = playerOrder && playerOrder[1] ? players[playerOrder[1]] : null;
+  const player1 =
+    playerOrder && playerOrder[0] ? players[playerOrder[0]] : null;
+  const player2 =
+    playerOrder && playerOrder[1] ? players[playerOrder[1]] : null;
 
   useEffect(() => {
     if (gameState === "playing" && player1 && player2) {
       updateServingLogic();
     }
-  }, [player1?.currentScore, player2?.currentScore, updateServingLogic, gameState]);
+  }, [
+    player1?.currentScore,
+    player2?.currentScore,
+    updateServingLogic,
+    gameState,
+  ]);
 
   useEffect(() => {
     if (gameState === "setup" || !currentMatch || !player1 || !player2) {
-      console.log("Redirecting to create match page", { gameState, currentMatch, player1, player2 });
+      console.log("Redirecting to create match page", {
+        gameState,
+        currentMatch,
+        player1,
+        player2,
+      });
       router.push("/match/create");
     }
   }, [gameState, currentMatch, player1, player2, router]);
@@ -96,11 +108,21 @@ export default function PlayMatchPage() {
       setSavedData(data);
 
       if (data.success) {
-        const winnerName = currentMatch.players[currentMatch.winnerId].displayName;
-        const p1Games = currentMatch.games.filter(g => g.winnerId === playerOrder[0]).length;
-        const p2Games = currentMatch.games.filter(g => g.winnerId === playerOrder[1]).length;
+        const winnerName =
+          currentMatch.players[currentMatch.winnerId].displayName;
+        const p1Games = currentMatch.games.filter(
+          (g) => g.winnerId === playerOrder[0]
+        ).length;
+        const p2Games = currentMatch.games.filter(
+          (g) => g.winnerId === playerOrder[1]
+        ).length;
 
-        alert(`✅ Match saved! ${winnerName} wins ${Math.max(p1Games, p2Games)}-${Math.min(p1Games, p2Games)}`);
+        alert(
+          `✅ Match saved! ${winnerName} wins ${Math.max(
+            p1Games,
+            p2Games
+          )}-${Math.min(p1Games, p2Games)}`
+        );
         router.push("/match");
       } else {
         alert("❌ Failed to save match: " + (data.message || "Unknown error"));
@@ -200,14 +222,15 @@ export default function PlayMatchPage() {
 
         {/* Match Header */}
         <div className="mb-6 p-4">
+          <Link href="/match">
+            <Button variant="outline" size="sm" className="p-2 mr-2">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </Button>
+          </Link>
           <div className="flex items-center mb-2">
-            <Link href="/match">
-              <Button variant="ghost" size="sm" className="p-2 mr-2">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </Link>
             <h1 className="text-2xl font-bold">
-              {player1.displayName} vs {player2.displayName}
+              {player1.username} vs {player2.username}
             </h1>
           </div>
           <div className="flex items-center justify-between">
@@ -246,7 +269,7 @@ export default function PlayMatchPage() {
               <div className="p-4">
                 <h2 className="flex xs:flex-row flex-col space-y-2 xs:items-center justify-between mb-2">
                   <span className="text-xl font-semibold">
-                    @{player1.displayName}
+                    {player1.displayName}
                   </span>
                   {player1.serving && (
                     <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
@@ -262,7 +285,9 @@ export default function PlayMatchPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setShotPicker({ playerId: player1.userId, open: true })}
+                onClick={() =>
+                  setShotPicker({ playerId: player1.userId, open: true })
+                }
                 className="cursor-pointer py-10 w-full bg-emerald-500 hover:bg-emerald-600 rounded-none"
               >
                 +1 Point
@@ -276,7 +301,7 @@ export default function PlayMatchPage() {
               <div className="p-4">
                 <h2 className="flex xs:flex-row flex-col xs:items-center space-y-2 justify-between mb-2">
                   <span className="text-xl font-semibold">
-                    @{player2.displayName}
+                    {player2.displayName}
                   </span>
                   {player2.serving && (
                     <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
@@ -292,7 +317,9 @@ export default function PlayMatchPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setShotPicker({ playerId: player2.userId, open: true })}
+                onClick={() =>
+                  setShotPicker({ playerId: player2.userId, open: true })
+                }
                 className="py-10 bg-rose-500 hover:bg-rose-600 cursor-pointer w-full rounded-none"
               >
                 +1 Point
@@ -308,7 +335,8 @@ export default function PlayMatchPage() {
             <div className="flex gap-2 flex-wrap">
               {currentMatch.games.map((game, idx) => (
                 <div key={idx} className="border rounded p-2 text-sm">
-                  Game {game.gameNumber}: {game.scores[playerOrder[0]]}-{game.scores[playerOrder[1]]}
+                  Game {game.gameNumber}: {game.scores[playerOrder[0]]}-
+                  {game.scores[playerOrder[1]]}
                   {game.winnerId === playerOrder[0] && (
                     <span className="text-blue-600 ml-2">✓</span>
                   )}
@@ -327,9 +355,14 @@ export default function PlayMatchPage() {
   // ---------------- FINISHED STATE ----------------
   if (gameState === "finished" && currentMatch && currentMatch.winnerId) {
     const winner = currentMatch.players[currentMatch.winnerId];
-    const p1Games = currentMatch.games.filter(g => g.winnerId === playerOrder[0]).length;
-    const p2Games = currentMatch.games.filter(g => g.winnerId === playerOrder[1]).length;
-    const winnerGames = currentMatch.winnerId === playerOrder[0] ? p1Games : p2Games;
+    const p1Games = currentMatch.games.filter(
+      (g) => g.winnerId === playerOrder[0]
+    ).length;
+    const p2Games = currentMatch.games.filter(
+      (g) => g.winnerId === playerOrder[1]
+    ).length;
+    const winnerGames =
+      currentMatch.winnerId === playerOrder[0] ? p1Games : p2Games;
     const loserGames = currentMatch.games.length - winnerGames;
 
     return (
@@ -352,7 +385,9 @@ export default function PlayMatchPage() {
             {player1.displayName} vs {player2.displayName}
           </p>
           <div className="text-gray-600">
-            <p>Games Won: {winnerGames} - {loserGames}</p>
+            <p>
+              Games Won: {winnerGames} - {loserGames}
+            </p>
             <p>Total Games: {currentMatch.games.length}</p>
           </div>
         </div>

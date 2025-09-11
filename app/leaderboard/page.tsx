@@ -104,6 +104,8 @@ const EnhancedLeaderboardPage = () => {
     }
   };
 
+  console.log("Leaderboard data:", leaderboard);
+
   const fetchPlayerDetails = async (playerId: string) => {
     setPlayerDetailsLoading(true);
     try {
