@@ -7,10 +7,10 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -21,11 +21,11 @@ const formSchema = z.object({
   }),
 });
 
-const Page = () => {
+const LoginPage = () => {
   const router = useRouter();
 
-  // Zustand
-  const setUser = useAuthStore((state) => state.setUser);
+  const login = useAuthStore((state: any) => state.login); // assuming you add `login` in store
+  const authLoading = useAuthStore((state) => state.authLoading);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,13 +36,8 @@ const Page = () => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      const response = await axiosInstance.post("/auth/login", values);
-      setUser(response.data);
-      router.push("/");
-    } catch (error) {
-      console.log("Login failed:", error);
-    }
+    await login(values);
+    router.push("/");
   }
 
   return (
@@ -100,7 +95,11 @@ const Page = () => {
                 type="submit"
                 className="cursor-pointer w-full h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow hover:opacity-90 transition"
               >
-                Login
+                {authLoading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <span>Login</span>
+                )}
               </Button>
             </form>
           </Form>
@@ -123,4 +122,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default LoginPage;

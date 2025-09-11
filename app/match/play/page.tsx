@@ -2,6 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import {
   Dialog,
@@ -11,10 +14,11 @@ import {
 } from "@/components/ui/dialog";
 
 import { useTennisStore } from "@/hooks/useTennisStore";
-import { enhancedShotCategories } from "@/constants/constants";
+import { shotCategories } from "@/constants/constants";
 import Image from "next/image";
 
-export default function GameInterface() {
+export default function PlayMatchPage() {
+  const router = useRouter();
   const {
     gameState,
     currentMatch,
@@ -35,6 +39,14 @@ export default function GameInterface() {
     updateServingLogic();
   }, [player1.currentScore, player2.currentScore, updateServingLogic]);
 
+  // Redirect if no match is set
+  useEffect(() => {
+    if (gameState === "setup" || !currentMatch) {
+      router.push("/match/create");
+    }
+  }, [gameState, currentMatch, router]);
+
+  // Save match
   const saveMatch = async () => {
     if (!currentMatch || !currentMatch.winner) {
       alert("❌ No completed match to save");
@@ -42,22 +54,47 @@ export default function GameInterface() {
     }
 
     try {
+      const cleanMatchData = {
+        matchId: currentMatch.id,
+        player1: currentMatch.player1.userId,
+        player2: currentMatch.player2.userId,
+        winner: currentMatch.winner?.userId ?? null,
+        bestOf: currentMatch.bestOf,
+        startTime: currentMatch.startTime,
+        endTime: currentMatch.endTime,
+        games: currentMatch.games.map((game) => ({
+          gameNumber: game.gameNumber,
+          player1Score: game.player1Score,
+          player2Score: game.player2Score,
+          winner: game.winner ?? null,
+          startTime: game.startTime,
+          endTime: game.endTime,
+          shots: game.shots.map((shot) => ({
+            shotName: shot.shotName,
+            player: shot.player,
+            timestamp: shot.timestamp,
+          })),
+        })),
+      };
+
       const res = await fetch("/api/match/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentMatch),
+        body: JSON.stringify(cleanMatchData),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
       setSavedData(data);
 
       if (data.success) {
-        const p1Games = currentMatch.games.filter((g) => g.winner === 1).length;
-        const p2Games = currentMatch.games.filter((g) => g.winner === 2).length;
+        const p1Games = currentMatch.games.filter(
+          (g) => g.winner === currentMatch.player1.userId
+        ).length;
+        const p2Games = currentMatch.games.filter(
+          (g) => g.winner === currentMatch.player2.userId
+        ).length;
 
         alert(
           `✅ Match saved! ${currentMatch.winner.displayName} wins ${Math.max(
@@ -65,7 +102,7 @@ export default function GameInterface() {
             p2Games
           )}-${Math.min(p1Games, p2Games)}`
         );
-        resetToSetup();
+        router.push("/match");
       } else {
         alert("❌ Failed to save match: " + (data.message || "Unknown error"));
       }
@@ -75,19 +112,24 @@ export default function GameInterface() {
     }
   };
 
-  // Playing state
+  const handleEndMatch = () => {
+    resetToSetup();
+    router.push("/match");
+  };
+
+  // ---------------- PLAYING STATE ----------------
   if (gameState === "playing") {
     const gamesNeededToWin = Math.ceil(bestOf / 2);
 
     return (
       <div className="xs:p-2 sm:p-6 max-w-4xl mx-auto">
-        {/* Shot Selection Dialog */}
+        {/* Shot Picker Dialog */}
         <Dialog
           open={shotPicker.open}
           onOpenChange={(open) => setShotPicker((prev) => ({ ...prev, open }))}
         >
           <DialogContent
-            className="max-w-2xl max-h-[90vh] overflow-y-auto"
+            className="max-h-[90vh] overflow-y-auto"
             aria-describedby={undefined}
           >
             <DialogHeader>
@@ -95,46 +137,50 @@ export default function GameInterface() {
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Special Situations */}
-              <div>
-                <h3 className="font-semibold mb-2 text-purple-700">
-                  Special Situations
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {enhancedShotCategories.special.map((shot) => (
-                    <Button
-                      key={shot}
-                      variant="outline"
-                      className="justify-start hover:bg-purple-50"
-                      onClick={() => handleShotSelect(shot)}
-                    >
-                      {shot}
-                    </Button>
-                  ))}
-                </div>
+              {/* Special Shots */}
+              <div className="flex items-center gap-6">
+                {shotCategories.special.map((shot) => (
+                  <Button
+                    key={shot}
+                    variant="outline"
+                    className="justify-start hover:bg-purple-50"
+                    onClick={() => handleShotSelect(shot)}
+                  >
+                    {shot}
+                  </Button>
+                ))}
               </div>
 
-              {/* Shots */}
-              <div>
-                <h2 className="font-semibold mb-2 text-gray-700 cursor-pointer">
-                  Shot Type
-                </h2>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {enhancedShotCategories.traditional.map((shot) => (
-                    <button
-                      key={shot}
-                      className="flex flex-col items-center justify-center text-sm hover:shadow-md shadow-black/50 rounded-xl"
-                      onClick={() => handleShotSelect(shot)}
-                    >
-                      <Image
-                        src={`/${shot}.png`}
-                        alt={shot}
-                        width={100}
-                        height={100}
-                      />
-                      {shot}
-                    </button>
-                  ))}
+              {/* Traditional Shots */}
+              <div className="space-y-4">
+                <h2 className="font-semibold mb-2 text-gray-700">Shot Type</h2>
+                <div className="space-y-6">
+                  {Object.entries(shotCategories.traditional).map(
+                    ([section, shots]) => (
+                      <div key={section}>
+                        <h3 className="text-sm font-medium text-purple-700 mb-2">
+                          {section}
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                          {shots.map((shot) => (
+                            <button
+                              key={shot}
+                              className="flex flex-col items-center justify-center text-sm hover:shadow-md shadow-black/50 rounded-xl"
+                              onClick={() => handleShotSelect(shot)}
+                            >
+                              <Image
+                                src={`/${shot}.png`}
+                                alt={shot}
+                                width={100}
+                                height={100}
+                              />
+                              {shot}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </div>
@@ -143,9 +189,16 @@ export default function GameInterface() {
 
         {/* Match Header */}
         <div className="mb-6 p-4">
-          <h1 className="text-2xl font-bold mb-2">
-            {player1.displayName} vs {player2.displayName}
-          </h1>
+          <div className="flex items-center mb-2">
+            <Link href="/match">
+              <Button variant="ghost" size="sm" className="p-2 mr-2">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold">
+              {player1.displayName} vs {player2.displayName}
+            </h1>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600">
@@ -158,16 +211,13 @@ export default function GameInterface() {
                 First to {gamesNeededToWin} games wins
               </p>
             </div>
-            {/* End Match Button */}
-            <div className="text-center">
-              <Button variant={"destructive"} onClick={resetToSetup}>
-                End Match
-              </Button>
-            </div>
+            <Button variant="destructive" onClick={handleEndMatch}>
+              End Match
+            </Button>
           </div>
         </div>
 
-        {/* Deuce Alert */}
+        {/* Deuce */}
         {deuce && (
           <div className="text-center mb-4">
             <p className="text-red-500 text-xl font-bold">DEUCE!</p>
@@ -179,7 +229,7 @@ export default function GameInterface() {
 
         {/* Player Score Cards */}
         <div className="w-full h-full grid grid-cols-2 gap-1 mb-6">
-          {/* Left Side */}
+          {/* Player 1 */}
           <div className="shadow-md shadow-black/40 flex items-center">
             <div className="w-full">
               <div className="p-4">
@@ -187,15 +237,11 @@ export default function GameInterface() {
                   <span className="text-xl font-semibold">
                     @{player1.displayName}
                   </span>
-                  <div className="h-6">
-                    <span
-                      className={`bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold ${
-                        player1.serving ? "" : "hidden"
-                      }`}
-                    >
+                  {player1.serving && (
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                       Serving
                     </span>
-                  </div>
+                  )}
                 </h2>
                 <div className="text-4xl font-bold mb-2 text-blue-600">
                   {player1.currentScore}
@@ -213,7 +259,7 @@ export default function GameInterface() {
             </div>
           </div>
 
-          {/* Right Side */}
+          {/* Player 2 */}
           <div className="shadow-md shadow-black/40 flex items-center">
             <div className="w-full">
               <div className="p-4">
@@ -221,15 +267,11 @@ export default function GameInterface() {
                   <span className="text-xl font-semibold">
                     @{player2.displayName}
                   </span>
-                  <div className="h-6">
-                    <span
-                      className={`bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold ${
-                        player2.serving ? "" : "hidden"
-                      }`}
-                    >
+                  {player2.serving && (
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                       Serving
                     </span>
-                  </div>
+                  )}
                 </h2>
                 <div className="text-4xl font-bold mb-2 text-red-600">
                   {player2.currentScore}
@@ -257,10 +299,10 @@ export default function GameInterface() {
                 <div key={idx} className="border rounded p-2 text-sm">
                   Game {game.gameNumber}: {game.player1Score}-
                   {game.player2Score}
-                  {game.winner === 1 && (
+                  {game.winner === currentMatch.player1.userId && (
                     <span className="text-blue-600 ml-2">✓</span>
                   )}
-                  {game.winner === 2 && (
+                  {game.winner === currentMatch.player2.userId && (
                     <span className="text-red-600 ml-2">✓</span>
                   )}
                 </div>
@@ -272,10 +314,14 @@ export default function GameInterface() {
     );
   }
 
-  // Match Finished State
+  // ---------------- FINISHED STATE ----------------
   if (gameState === "finished" && currentMatch && currentMatch.winner) {
-    const p1Games = currentMatch.games.filter((g) => g.winner === 1).length;
-    const p2Games = currentMatch.games.filter((g) => g.winner === 2).length;
+    const p1Games = currentMatch.games.filter(
+      (g) => g.winner === currentMatch.player1.userId
+    ).length;
+    const p2Games = currentMatch.games.filter(
+      (g) => g.winner === currentMatch.player2.userId
+    ).length;
     const winnerGames =
       currentMatch.winner.userId === currentMatch.player1.userId
         ? p1Games
@@ -284,9 +330,16 @@ export default function GameInterface() {
 
     return (
       <div className="p-6 max-w-2xl mx-auto text-center">
-        <h1 className="text-3xl font-bold mb-4">Match Complete!</h1>
+        <div className="flex items-center justify-center mb-4">
+          <Link href="/match">
+            <Button variant="ghost" size="sm" className="p-2 mr-2">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">Match Complete!</h1>
+        </div>
 
-        {/* Winner Announcement */}
+        {/* Winner Card */}
         <div className="bg-green-100 p-6 rounded-lg mb-6">
           <h2 className="text-2xl font-bold text-green-800 mb-2">
             🏆 {currentMatch.winner.displayName} Wins!
@@ -317,7 +370,7 @@ export default function GameInterface() {
                   {game.player1Score} - {game.player2Score}
                 </span>
                 <span className="font-semibold">
-                  {game.winner === 1
+                  {game.winner === currentMatch.player1.userId
                     ? currentMatch.player1.displayName
                     : currentMatch.player2.displayName}
                 </span>
@@ -326,18 +379,25 @@ export default function GameInterface() {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex gap-4 justify-center">
           <Button onClick={saveMatch} size="lg">
             Save Match
           </Button>
-          <Button onClick={resetToSetup} variant="outline" size="lg">
-            New Match
-          </Button>
+          <Link href="/match/create">
+            <Button variant="outline" size="lg">
+              New Match
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  return null;
+  // ---------------- LOADING ----------------
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Loading...</p>
+    </div>
+  );
 }

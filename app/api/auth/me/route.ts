@@ -1,19 +1,33 @@
-import { withAuth } from '@/lib/auth.js';
+import { NextResponse } from "next/server";
+import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { User } from "@/models/user.model";
 
-const handler = async (req, res) => {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
-  return res.status(200).json({
-    user: {
-      id: req.user._id,
-      email: req.user.email,
-      username: req.user.username,
-      createdAt: req.user.createdAt,
-      updatedAt: req.user.updatedAt
+export async function GET(request: Request) {
+  try {
+    // ✅ get token from cookies
+    const token = getTokenFromRequest(request);
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-  });
-};
 
-export default withAuth(handler);
+    // ✅ verify JWT
+    const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
+
+    // ✅ find user
+    const user = await User.findById(decoded.userId).select("-password -__v");
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user }, { status: 200 });
+  } catch (error) {
+    console.error("Auth Me error:", error);
+    return NextResponse.json(
+      { message: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}

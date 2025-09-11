@@ -7,15 +7,17 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   username: z.string().min(2, {
     message: "Username must be at least 2 characters.",
+  }),
+  fullName: z.string().min(2, {
+    message: "Full name must be at least 2 characters.",
   }),
   email: z.string().email({
     message: "Please enter a valid email address.",
@@ -27,25 +29,23 @@ const formSchema = z.object({
 
 const Page = () => {
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
+
+  const register = useAuthStore((state) => state.register);
+  const authLoading = useAuthStore((state) => state.authLoading);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
+      fullName: "",
       email: "",
       password: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      const response = await axiosInstance.post("/auth/register", values);
-      router.push("/auth/login");
-    } catch (error: AxiosError | any) {
-      console.log("Registration failed:", error);
-      console.log(error.response?.data?.message);
-    }
+    await register(values);
+    router.push("/");
   }
 
   return (
@@ -80,6 +80,23 @@ const Page = () => {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Full name"
+                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
 
               {/* Email */}
               <FormField
@@ -122,7 +139,7 @@ const Page = () => {
                 type="submit"
                 className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow hover:opacity-90 transition"
               >
-                Register
+                {authLoading ? <Loader2 className="animate-spin" /> : <span>Register</span>}
               </Button>
             </form>
           </Form>

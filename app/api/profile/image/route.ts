@@ -2,7 +2,7 @@ import { verifyToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary"
-import { User } from "@/models/user";
+import { User } from "@/models/user.model";
 
 // GET /api/profile/image - Fetch profile image
 export async function GET(req: NextRequest) {

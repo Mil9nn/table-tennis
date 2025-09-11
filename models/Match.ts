@@ -1,40 +1,103 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose from 'mongoose';
 
-const PlayerSchema = new Schema({
-  userId: { type: String, required: true },
-  username: { type: String, required: true },
-  displayName: { type: String, required: true }
+const ShotSchema = new mongoose.Schema({
+  shotName: {
+    type: String,
+    required: true
+  },
+  player: {
+    type: String,        // Simple string ID
+    ref: 'User',         // References User model for population
+    required: true
+  },
+  timestamp: {
+    type: Number,
+    required: true
+  },
+  pointNumber: {
+    type: Number,
+    required: true
+  }
 });
 
-const ShotSchema = new Schema({
-  shotName: String,
-  timestamp: Number,
-  player: Number,
-  scoreP1: Number,
-  scoreP2: Number,
+const GameSchema = new mongoose.Schema({
+  gameNumber: {
+    type: Number,
+    required: true
+  },
+  player1Score: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  player2Score: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  winner: {
+    type: String,        // Simple string ID
+    ref: 'User',         // References User model for population
+    default: null
+  },
+  startTime: {
+    type: Number,
+    required: true
+  },
+  endTime: {
+    type: Number,
+    required: true
+  },
+  shots: [ShotSchema]
 });
 
-const GameSchema = new Schema({
-  gameNumber: Number,
-  player1Score: Number,
-  player2Score: Number,
-  winner: Number,
-  shots: [ShotSchema],
-  startTime: Number,
-  endTime: Number,
-});
-
-const MatchSchema = new Schema({
-  matchId: String, // Add this to store the original match ID
-  player1: PlayerSchema,
-  player2: PlayerSchema,
-  bestOf: Number,
+const MatchSchema = new mongoose.Schema({
+  matchId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  player1: {
+    type: String,        // Simple string ID
+    ref: 'User',         // References User model for population
+    required: true
+  },
+  player2: {
+    type: String,        // Simple string ID  
+    ref: 'User',         // References User model for population
+    required: true
+  },
+  winner: {
+    type: String,        // Simple string ID
+    ref: 'User',         // References User model for population
+    default: null
+  },
+  bestOf: {
+    type: Number,
+    required: true,
+    enum: [1, 3, 5, 7]   // Common tennis match formats
+  },
   games: [GameSchema],
-  winner: PlayerSchema,
-  startTime: Number,
-  endTime: Number,
-  stats: Object,
-  createdAt: { type: Date, default: Date.now },
+  startTime: {
+    type: Number,
+    required: true
+  },
+  endTime: {
+    type: Number,
+    required: true
+  }
+}, {
+  timestamps: true      // Adds createdAt and updatedAt
 });
 
-export default models.Match || model("Match", MatchSchema);
+// Indexes for better query performance
+MatchSchema.index({ player1: 1 });
+MatchSchema.index({ player2: 1 });
+MatchSchema.index({ winner: 1 });
+MatchSchema.index({ createdAt: -1 });
+MatchSchema.index({ matchId: 1 }, { unique: true });
+MatchSchema.index({ player1: 1, player2: 1 });
+
+const Match = mongoose.models.Match || mongoose.model('Match', MatchSchema);
+
+export default Match;

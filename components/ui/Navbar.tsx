@@ -34,7 +34,7 @@ export default function ModernNavbar() {
 
   return (
     <>
-    <header className="w-full bg-white/60 backdrop-blur-md border-b border-gray-200">
+    <header className="w-full fixed bg-white backdrop-blur-md border-b border-gray-200">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}

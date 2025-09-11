@@ -34,7 +34,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ModernNavbar />
-        {children}
+        <div className="pt-16">
+          {children}
+        </div>
       </body>
     </html>
   );

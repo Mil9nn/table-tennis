@@ -1,24 +1,16 @@
-export const enhancedShotCategories = {
+export const shotCategories = {
   special: ["Net Point", "Serve Point"],
 
-  traditional: [
-    "Forehand Drive",
-    "Backhand Drive",
-    "Forehand Topspin",
-    "Backhand Topspin",
-    "Forehand Loop",
-    "Backhand Loop",
-    "Forehand Smash",
-    "Backhand Smash",
-    "Forehand Push",
-    "Backhand Push",
-    "Forehand Chop",
-    "Backhand Chop",
-    "Forehand Flick",
-    "Backhand Flick",
-    "Forehand Block",
-    "Backhand Block",
-    "Forehand Drop",
-    "Backhand Drop",
-  ],
+  traditional: {
+    Drive: ["Forehand Drive", "Backhand Drive"],
+    Topspin: ["Forehand Topspin", "Backhand Topspin"],
+    Loop: ["Forehand Loop", "Backhand Loop"],
+    Smash: ["Forehand Smash", "Backhand Smash"],
+    Push: ["Forehand Push", "Backhand Push"],
+    Chop: ["Forehand Chop", "Backhand Chop"],
+    Flick: ["Forehand Flick", "Backhand Flick"],
+    Block: ["Forehand Block", "Backhand Block"],
+    Drop: ["Forehand Drop", "Backhand Drop"],
+  },
 };
+

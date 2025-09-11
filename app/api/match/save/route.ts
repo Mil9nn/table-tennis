@@ -1,64 +1,38 @@
-import { connectDB } from '@/lib/mongodb';
 import Match from '@/models/Match';
+import { User } from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
 
-interface Shot {
-  shotName: string;
-  timestamp: number;
-  player: number;
-  scoreP1: number;
-  scoreP2: number;
-}
-
-interface Game {
-  gameNumber: number;
-  player1Score: number;
-  player2Score: number;
-  winner: number;
-  shots: Shot[];
-  startTime: number;
-  endTime: number;
-}
-
-interface Player {
-  userId: string;
-  username: string;
-  displayName: string;
-}
-
-interface MatchData {
-  id: string;
-  player1: Player;
-  player2: Player;
+// Clean match data structure with simple IDs
+interface CleanMatchData {
+  matchId: string;
+  player1: string;        // User ID string
+  player2: string;        // User ID string
+  winner: string;         // User ID string
   bestOf: number;
-  games: Game[];
-  winner: Player;
   startTime: number;
   endTime: number;
-}
-
-interface MatchStats {
-  totalPoints: number;
-  totalShots: number;
-  averageGameDuration: number;
-  longestGame: Game | null;
-  shotBreakdown: { [shotName: string]: number };
-  playerStats: {
-    [playerName: string]: {
-      totalPoints: number;
-      gamesWon: number;
-      favoriteShot: string;
-      shotCount: { [shotName: string]: number };
-    };
-  };
+  games: {
+    gameNumber: number;
+    player1Score: number;
+    player2Score: number;
+    winner: string | null; // User ID string
+    startTime: number;
+    endTime: number;
+    shots: {
+      shotName: string;
+      player: string;      // User ID string
+      timestamp: number;
+      pointNumber: number;
+    }[];
+  }[];
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const matchData: MatchData = await request.json();
+    const matchData: CleanMatchData = await request.json();
 
-    // Validate the match data - updated for object structure
-    if (!matchData.id || !matchData.player1 || !matchData.player2) {
+    // Basic validation
+    if (!matchData.matchId || !matchData.player1 || !matchData.player2) {
       return NextResponse.json(
         { success: false, message: 'Missing required match data' },
         { status: 400 }
@@ -72,38 +46,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
+    // Validate that users exist
+    const [player1Exists, player2Exists, winnerExists] = await Promise.all([
+      User.findById(matchData.player1),
+      User.findById(matchData.player2),
+      User.findById(matchData.winner)
+    ]);
 
-    const stats = calculateMatchStats(matchData);
-    
-    // Create match document for the new schema
-    const matchDocument = {
-      matchId: matchData.id,
-      player1: matchData.player1,
-      player2: matchData.player2,
-      winner: matchData.winner,
-      bestOf: matchData.bestOf,
-      games: matchData.games,
-      startTime: matchData.startTime,
-      endTime: matchData.endTime,
-      stats: stats,
-    };
+    if (!player1Exists || !player2Exists || !winnerExists) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid player IDs' },
+        { status: 400 }
+      );
+    }
 
-    const savedMatch = await Match.create(matchDocument);
-
-    // Calculate winner message
-    const winnerGames = matchData.games.filter(g => 
-      g.winner === (matchData.winner.userId === matchData.player1.userId ? 1 : 2)
-    ).length;
-    const loserGames = matchData.games.length - winnerGames;
+    // Save match with simple ID structure - no transformation
+    const savedMatch = await Match.create(matchData);
 
     return NextResponse.json({
       success: true,
-      matchId: matchData.id,
-      message: `Match saved successfully! ${matchData.winner.displayName} wins ${winnerGames}-${loserGames}`,
-      stats: stats,
+      matchId: savedMatch._id,
+      message: 'Match saved successfully!',
     });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error('Error saving match:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error: ' + error.message },
@@ -112,138 +78,66 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function calculateMatchStats(matchData: MatchData): MatchStats {
-  let totalPoints = 0;
-  let totalShots = 0;
-  let totalGameDuration = 0;
-  let longestGame: Game | null = null;
-  let longestGameDuration = 0;
-  const shotBreakdown: { [shotName: string]: number } = {};
-  
-  const playerStats = {
-    [matchData.player1.displayName]: {
-      totalPoints: 0,
-      gamesWon: 0,
-      favoriteShot: '',
-      shotCount: {} as { [shotName: string]: number }
-    },
-    [matchData.player2.displayName]: {
-      totalPoints: 0,
-      gamesWon: 0,
-      favoriteShot: '',
-      shotCount: {} as { [shotName: string]: number }
-    }
-  };
-
-  // Analyze each game
-  matchData.games.forEach(game => {
-    // Points and games
-    totalPoints += game.player1Score + game.player2Score;
-    playerStats[matchData.player1.displayName].totalPoints += game.player1Score;
-    playerStats[matchData.player2.displayName].totalPoints += game.player2Score;
-    
-    if (game.winner === 1) {
-      playerStats[matchData.player1.displayName].gamesWon++;
-    } else {
-      playerStats[matchData.player2.displayName].gamesWon++;
-    }
-
-    // Game duration
-    const gameDuration = game.endTime - game.startTime;
-    totalGameDuration += gameDuration;
-    
-    if (gameDuration > longestGameDuration) {
-      longestGameDuration = gameDuration;
-      longestGame = game;
-    }
-
-    // Shot analysis
-    game.shots.forEach(shot => {
-      totalShots++;
-      
-      // Overall shot breakdown
-      shotBreakdown[shot.shotName] = (shotBreakdown[shot.shotName] || 0) + 1;
-      
-      // Player-specific shot counts
-      const playerName = shot.player === 1 ? matchData.player1.displayName : matchData.player2.displayName;
-      const playerShotCount = playerStats[playerName].shotCount;
-      playerShotCount[shot.shotName] = (playerShotCount[shot.shotName] || 0) + 1;
-    });
-  });
-
-  // Calculate favorite shots for each player
-  Object.keys(playerStats).forEach(playerName => {
-    const shotCounts = playerStats[playerName].shotCount;
-    let maxCount = 0;
-    let favoriteShot = 'None';
-    
-    Object.entries(shotCounts).forEach(([shotName, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        favoriteShot = shotName;
-      }
-    });
-    
-    playerStats[playerName].favoriteShot = favoriteShot;
-  });
-
-  const averageGameDuration = matchData.games.length > 0 ? totalGameDuration / matchData.games.length : 0;
-
-  return {
-    totalPoints,
-    totalShots,
-    averageGameDuration,
-    longestGame,
-    shotBreakdown,
-    playerStats
-  };
-}
-
-function formatDuration(milliseconds: number): string {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${seconds}s`;
-}
-
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-    
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const limit = parseInt(searchParams.get('limit') || '10');
 
+    // Build query for user's matches
     let query = {};
-    
-    // Filter by userId if provided - works with object schema
     if (userId) {
       query = {
         $or: [
-          { 'player1.userId': userId },
-          { 'player2.userId': userId }
+          { player1: userId },
+          { player2: userId }
         ]
       };
     }
 
+    // Get matches and populate user details using the string references
     const matches = await Match.find(query)
+      .populate('player1', 'username displayName email')
+      .populate('player2', 'username displayName email') 
+      .populate('winner', 'username displayName email')
+      .populate('games.winner', 'username displayName email')
+      .populate('games.shots.player', 'username displayName email')
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     return NextResponse.json({
       success: true,
-      matches: matches
+      matches: matches,
+      total: matches.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error retrieving matches:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to retrieve matches' },
+      { success: false, message: 'Failed to retrieve matches: ' + error.message },
       { status: 500 }
     );
+  }
+}
+
+// Optional: Get single match by ID
+export async function GET_SINGLE_MATCH(matchId: string) {
+  try {
+    const match = await Match.findById(matchId)
+      .populate('player1', 'username displayName email')
+      .populate('player2', 'username displayName email')
+      .populate('winner', 'username displayName email')
+      .populate('games.winner', 'username displayName email')
+      .populate('games.shots.player', 'username displayName email')
+      .lean();
+
+    if (!match) {
+      return { success: false, message: 'Match not found' };
+    }
+
+    return { success: true, match };
+  } catch (error: any) {
+    return { success: false, message: error.message };
   }
 }
