@@ -1,29 +1,102 @@
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import cloudinary from "@/lib/cloudinary";
+import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { User } from "@/models/user.model";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = getTokenFromRequest(request)
-    if (!token)
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+    const token = getTokenFromRequest(request);
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
     const decoded = verifyToken(token);
     if (!decoded?.userId) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
+
+    const user = await User.findById(decoded.userId).select("-password -__v");
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      user: {
+        _id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        profileImage: user.profileImage,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    }, { status: 200 });
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return NextResponse.json(
+      { message: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const token = getTokenFromRequest(request);
+    if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const user = await User.findById(decoded?.userId).select("profileImage");
+    const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 }
+      );
+    }
 
-    if (!user) {
+    const { fullName, email } = await request.json();
+
+    // Validate input
+    if (!fullName || !email) {
+      return NextResponse.json(
+        { success: false, message: "Full name and email are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!email.includes('@')) {
+      return NextResponse.json(
+        { success: false, message: "Please provide a valid email address" },
+        { status: 400 }
+      );
+    }
+
+
+    // Check if email is already taken by another user
+    const existingUser = await User.findOne({ 
+      email, 
+      _id: { $ne: decoded.userId } 
+    });
+    
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, message: "Email is already taken by another user" },
+        { status: 400 }
+      );
+    }
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.userId,
+      { fullName, email },
+      { new: true, select: "-password -__v" }
+    );
+
+    if (!updatedUser) {
       return NextResponse.json(
         { success: false, message: "User not found" },
         { status: 404 }
@@ -32,62 +105,88 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      url: user.profileImage || null,
+      message: "Profile updated successfully",
+      user: {
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        profileImage: updatedUser.profileImage,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt
+      }
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error("Update profile error:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to fetch profile image" },
+      { success: false, message: "Something went wrong" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("profileImage") as File;
-
-    if (!file) {
-      return NextResponse.json(
-        { success: false, message: "No file uploaded" },
-        { status: 400 }
-      );
-    }
-
-    const token = getTokenFromRequest(req);
-    if (!token)
+    const token = getTokenFromRequest(request);
+    if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
+    }
 
     const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 }
+      );
+    }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const updateData = await request.json();
+    
+    // Remove sensitive fields that shouldn't be updated via this endpoint
+    delete updateData.password;
+    delete updateData.username;
+    delete updateData._id;
 
-    // Cloudinary Storage
-    const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
+    // If email is being updated, check for duplicates
+    if (updateData.email) {
+      const existingUser = await User.findOne({ 
+        email: updateData.email, 
+        _id: { $ne: decoded.userId } 
+      });
+      
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, message: "Email is already taken by another user" },
+          { status: 400 }
+        );
+      }
+    }
 
-    const uploadResult = await cloudinary.uploader.upload(base64Data, {
-      folder: "profile_images",
-      resource_type: "image",
-      public_id: `profile_${decoded?.userId}`,
-      overwrite: true,
-    });
-
-    // 4. Update user
-    await User.findOneAndUpdate(
-      { _id: decoded?.userId },
-      { profileImage: uploadResult.secure_url }
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.userId,
+      updateData,
+      { new: true, select: "-password -__v" }
     );
 
-    return NextResponse.json({ success: true, url: uploadResult.secure_url });
-  } catch (err) {
-    console.error(err);
+    if (!updatedUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error("Patch profile error:", error);
     return NextResponse.json(
-      { success: false, message: "Upload failed" },
+      { success: false, message: "Something went wrong" },
       { status: 500 }
     );
   }

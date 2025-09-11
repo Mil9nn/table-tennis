@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Match from '@/models/match.model';
-import { User } from '@/models/user.model';
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,7 +66,7 @@ export async function GET(request: NextRequest) {
           }
           
           // Count shots
-          stats.totalShots += game.shots.filter((shot: any) => 
+          stats.totalShots += game.shots.filter((shot: any) =>
             shot.player && shot.player.toString() === playerId
           ).length;
         });

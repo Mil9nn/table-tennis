@@ -72,16 +72,18 @@ export default function PlayMatchPage() {
     try {
       const cleanMatchData = {
         matchId: currentMatch.id,
-        player1: playerOrder[0],
-        player2: playerOrder[1],
+        player1: playerOrder ? playerOrder[0] : null,
+        player2: playerOrder ? playerOrder[1] : null,
         winner: currentMatch.winnerId,
         bestOf: currentMatch.bestOf,
         startTime: currentMatch.startTime,
         endTime: currentMatch.endTime || Date.now(),
         games: currentMatch.games.map((game) => ({
           gameNumber: game.gameNumber,
-          player1Score: game.scores[playerOrder[0]] || 0,
-          player2Score: game.scores[playerOrder[1]] || 0,
+          player1Score:
+            playerOrder && playerOrder[0] ? game.scores[playerOrder[0]] || 0 : 0,
+          player2Score:
+            playerOrder && playerOrder[1] ? game.scores[playerOrder[1]] || 0 : 0,
           winner: game.winnerId,
           startTime: game.startTime,
           endTime: game.endTime,
@@ -111,10 +113,10 @@ export default function PlayMatchPage() {
         const winnerName =
           currentMatch.players[currentMatch.winnerId].displayName;
         const p1Games = currentMatch.games.filter(
-          (g) => g.winnerId === playerOrder[0]
+          (g) => g.winnerId === playerOrder?.[0]
         ).length;
         const p2Games = currentMatch.games.filter(
-          (g) => g.winnerId === playerOrder[1]
+          (g) => g.winnerId === playerOrder?.[1]
         ).length;
 
         alert(
@@ -335,12 +337,12 @@ export default function PlayMatchPage() {
             <div className="flex gap-2 flex-wrap">
               {currentMatch.games.map((game, idx) => (
                 <div key={idx} className="border rounded p-2 text-sm">
-                  Game {game.gameNumber}: {game.scores[playerOrder[0]]}-
-                  {game.scores[playerOrder[1]]}
-                  {game.winnerId === playerOrder[0] && (
+                  Game {game.gameNumber}: {playerOrder ? game.scores[playerOrder[0]] : '0'}-{playerOrder ?
+                    game.scores[playerOrder[1]] : '0'}
+                  {playerOrder && game.winnerId === playerOrder[0] && (
                     <span className="text-blue-600 ml-2">✓</span>
                   )}
-                  {game.winnerId === playerOrder[1] && (
+                  {playerOrder && game.winnerId === playerOrder[1] && (
                     <span className="text-red-600 ml-2">✓</span>
                   )}
                 </div>
@@ -356,17 +358,18 @@ export default function PlayMatchPage() {
   if (gameState === "finished" && currentMatch && currentMatch.winnerId) {
     const winner = currentMatch.players[currentMatch.winnerId];
     const p1Games = currentMatch.games.filter(
-      (g) => g.winnerId === playerOrder[0]
+      (g) => g.winnerId === (playerOrder && playerOrder[0])
     ).length;
     const p2Games = currentMatch.games.filter(
-      (g) => g.winnerId === playerOrder[1]
+      (g) => g.winnerId === (playerOrder ? playerOrder[1] : null)
     ).length;
     const winnerGames =
-      currentMatch.winnerId === playerOrder[0] ? p1Games : p2Games;
+      currentMatch.winnerId === (playerOrder && playerOrder[0]) ? p1Games : p2Games;
     const loserGames = currentMatch.games.length - winnerGames;
 
     return (
       <div className="p-6 max-w-2xl mx-auto text-center">
+        {/* {playerOrder && playerOrder.length > 0 ? ( */}
         <div className="flex items-center justify-center mb-4">
           <Link href="/match">
             <Button variant="ghost" size="sm" className="p-2 mr-2">
@@ -403,7 +406,7 @@ export default function PlayMatchPage() {
               >
                 <span>Game {game.gameNumber}</span>
                 <span className="font-mono">
-                  {game.scores[playerOrder[0]]} - {game.scores[playerOrder[1]]}
+                  {playerOrder ? game.scores[playerOrder[0]] : '0'} - {playerOrder ? game.scores[playerOrder[1]] : '0'}
                 </span>
                 <span className="font-semibold">
                   {currentMatch.players[game.winnerId].displayName}

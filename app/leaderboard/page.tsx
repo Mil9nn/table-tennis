@@ -273,11 +273,11 @@ const EnhancedLeaderboardPage = () => {
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {selectedPlayer.username.charAt(0).toUpperCase()}
+                    {selectedPlayer?.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800">
-                      {selectedPlayer.username}
+                      {selectedPlayer?.username}
                     </h2>
                     <p className="text-gray-500">Player Statistics</p>
                   </div>
@@ -298,7 +298,7 @@ const EnhancedLeaderboardPage = () => {
                       <div>
                         <p className="text-green-100 text-sm">Win Rate</p>
                         <p className="text-2xl font-bold">
-                          {selectedPlayer.winPercentage.toFixed(1)}%
+                          {selectedPlayer?.winPercentage.toFixed(1)}%
                         </p>
                       </div>
                       <Target className="w-8 h-8 text-green-100" />
@@ -310,7 +310,7 @@ const EnhancedLeaderboardPage = () => {
                       <div>
                         <p className="text-blue-100 text-sm">Total Matches</p>
                         <p className="text-2xl font-bold">
-                          {selectedPlayer.totalMatches}
+                          {selectedPlayer?.totalMatches}
                         </p>
                       </div>
                       <Users className="w-8 h-8 text-blue-100" />
@@ -322,7 +322,7 @@ const EnhancedLeaderboardPage = () => {
                       <div>
                         <p className="text-purple-100 text-sm">Total Points</p>
                         <p className="text-2xl font-bold">
-                          {selectedPlayer.totalPoints.toLocaleString()}
+                          {selectedPlayer?.totalPoints.toLocaleString()}
                         </p>
                       </div>
                       <Zap className="w-8 h-8 text-purple-100" />
@@ -334,7 +334,7 @@ const EnhancedLeaderboardPage = () => {
                       <div>
                         <p className="text-orange-100 text-sm">Play Time</p>
                         <p className="text-2xl font-bold">
-                          {formatDuration(selectedPlayer.totalPlayTime)}
+                          {formatDuration(selectedPlayer?.totalPlayTime)}
                         </p>
                       </div>
                       <Clock className="w-8 h-8 text-orange-100" />
@@ -356,7 +356,7 @@ const EnhancedLeaderboardPage = () => {
                           Average Points/Game:
                         </span>
                         <span className="font-semibold">
-                          {selectedPlayer.avgPointsPerGame.toFixed(1)}
+                          {selectedPlayer?.avgPointsPerGame?.toFixed(1)}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -364,13 +364,13 @@ const EnhancedLeaderboardPage = () => {
                           Average Points/Match:
                         </span>
                         <span className="font-semibold">
-                          {selectedPlayer.avgPointsPerMatch.toFixed(1)}
+                          {selectedPlayer?.avgPointsPerMatch?.toFixed(1)}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Games Won:</span>
                         <span className="font-semibold">
-                          {selectedPlayer.gamesWon}/{selectedPlayer.totalGames}
+                          {selectedPlayer?.gamesWon}/{selectedPlayer?.totalGames}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -378,7 +378,7 @@ const EnhancedLeaderboardPage = () => {
                           Average Game Duration:
                         </span>
                         <span className="font-semibold">
-                          {formatDuration(selectedPlayer.avgGameDuration)}
+                          {formatDuration(selectedPlayer?.avgGameDuration)}
                         </span>
                       </div>
                     </div>
@@ -395,18 +395,18 @@ const EnhancedLeaderboardPage = () => {
                         <div className="flex justify-between mb-1">
                           <span className="text-gray-600">Favorite Shot:</span>
                           <span className="font-semibold">
-                            {selectedPlayer.favoriteShot}
+                            {selectedPlayer?.favoriteShot}
                           </span>
                         </div>
                         <div className="text-sm text-gray-500">
-                          Used {selectedPlayer.favoriteShotCount} times
+                          Used {selectedPlayer?.favoriteShotCount} times
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
                           <span className="text-gray-600">Total Shots:</span>
                           <span className="font-semibold">
-                            {selectedPlayer.totalShots.toLocaleString()}
+                            {selectedPlayer?.totalShots?.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -416,11 +416,11 @@ const EnhancedLeaderboardPage = () => {
                             Least Used Shot:
                           </span>
                           <span className="font-semibold">
-                            {selectedPlayer.leastUsedShot}
+                            {selectedPlayer?.leastUsedShot}
                           </span>
                         </div>
                         <div className="text-sm text-gray-500">
-                          Used {selectedPlayer.leastUsedShotCount} times
+                          Used {selectedPlayer?.leastUsedShotCount} times
                         </div>
                       </div>
                     </div>
@@ -432,7 +432,7 @@ const EnhancedLeaderboardPage = () => {
                       Recent Form
                     </h3>
                     <div className="flex gap-1">
-                      {selectedPlayer.recentForm.map((result, index) => (
+                      {selectedPlayer?.recentForm?.map((result, index) => (
                         <div
                           key={index}
                           className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
@@ -455,8 +455,7 @@ const EnhancedLeaderboardPage = () => {
                         <h4 className="font-semibold text-gray-700 mb-2">
                           Best Against:
                         </h4>
-                        {selectedPlayer.bestOpponents
-                          .slice(0, 3)
+                        {selectedPlayer?.bestOpponents?.slice(0, 3)
                           .map((opp, index) => (
                             <div
                               key={index}
@@ -474,8 +473,7 @@ const EnhancedLeaderboardPage = () => {
                         <h4 className="font-semibold text-gray-700 mb-2">
                           Struggles Against:
                         </h4>
-                        {selectedPlayer.worstOpponents
-                          .slice(0, 3)
+                        {selectedPlayer?.worstOpponents?.slice(0, 3)
                           .map((opp, index) => (
                             <div
                               key={index}
@@ -511,8 +509,7 @@ const EnhancedLeaderboardPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedPlayer.matchHistory
-                          .slice(0, 10)
+                        {selectedPlayer?.matchHistory?.slice(0, 10)
                           .map((match, index) => (
                             <tr key={index} className="border-t">
                               <td className="px-4 py-2">{match.opponent}</td>
