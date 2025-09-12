@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock, Target } from "lucide-react";
 
 import {
   Dialog,
@@ -17,8 +17,18 @@ import { useTennisStore } from "@/hooks/useTennisStore";
 import { shotCategories } from "@/constants/constants";
 import Image from "next/image";
 
+// Type for recent shots display
+interface RecentShot {
+  shotName: string;
+  playerName: string;
+  playerId: string;
+  timestamp: number;
+  gameNumber: number;
+}
+
 export default function PlayMatchPage() {
   const router = useRouter();
+  const [recentShots, setRecentShots] = useState<RecentShot[]>([]);
 
   const {
     gameState,
@@ -63,6 +73,57 @@ export default function PlayMatchPage() {
     }
   }, [gameState, currentMatch, player1, player2, router]);
 
+  // Update recent shots when match data changes
+  useEffect(() => {
+    if (currentMatch && currentMatch.games.length > 0) {
+      const allRecentShots: RecentShot[] = [];
+      
+      // Get shots from all games, focusing on recent ones
+      currentMatch.games.forEach((game) => {
+        game.shots.forEach((shot) => {
+          const player = players[shot.playerId];
+          if (player) {
+            allRecentShots.push({
+              shotName: shot.shotName,
+              playerName: player.displayName,
+              playerId: shot.playerId,
+              timestamp: shot.timestamp,
+              gameNumber: game.gameNumber,
+            });
+          }
+        });
+      });
+
+      // Sort by timestamp (newest first) and take last 5
+      const sortedShots = allRecentShots
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 5);
+      
+      setRecentShots(sortedShots);
+    }
+  }, [currentMatch, players]);
+
+  // Enhanced shot select handler
+  const enhancedHandleShotSelect = (shotName: string) => {
+    handleShotSelect(shotName);
+    
+    // Add to recent shots immediately for instant feedback
+    if (shotPicker.playerId) {
+      const player = players[shotPicker.playerId];
+      if (player) {
+        const newShot: RecentShot = {
+          shotName,
+          playerName: player.displayName,
+          playerId: shotPicker.playerId,
+          timestamp: Date.now(),
+          gameNumber: (currentMatch?.games.length || 0) + 1,
+        };
+        
+        setRecentShots(prev => [newShot, ...prev.slice(0, 4)]);
+      }
+    }
+  };
+
   const saveMatch = async () => {
     if (!currentMatch || !currentMatch.winnerId) {
       alert("❌ No completed match to save");
@@ -81,9 +142,13 @@ export default function PlayMatchPage() {
         games: currentMatch.games.map((game) => ({
           gameNumber: game.gameNumber,
           player1Score:
-            playerOrder && playerOrder[0] ? game.scores[playerOrder[0]] || 0 : 0,
+            playerOrder && playerOrder[0]
+              ? game.scores[playerOrder[0]] || 0
+              : 0,
           player2Score:
-            playerOrder && playerOrder[1] ? game.scores[playerOrder[1]] || 0 : 0,
+            playerOrder && playerOrder[1]
+              ? game.scores[playerOrder[1]] || 0
+              : 0,
           winner: game.winnerId,
           startTime: game.startTime,
           endTime: game.endTime,
@@ -140,12 +205,24 @@ export default function PlayMatchPage() {
     router.push("/match");
   };
 
+  // Format timestamp for display
+  const formatTime = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
   // Show loading if players are not ready
   if (!player1 || !player2 || !currentMatch) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-500">Loading match...</p>
         </div>
       </div>
@@ -179,7 +256,7 @@ export default function PlayMatchPage() {
                     key={shot}
                     variant="outline"
                     className="justify-start hover:bg-purple-50"
-                    onClick={() => handleShotSelect(shot)}
+                    onClick={() => enhancedHandleShotSelect(shot)}
                   >
                     {shot}
                   </Button>
@@ -201,7 +278,7 @@ export default function PlayMatchPage() {
                             <button
                               key={shot}
                               className="flex flex-col items-center justify-center text-sm hover:shadow-md shadow-black/50 rounded-xl"
-                              onClick={() => handleShotSelect(shot)}
+                              onClick={() => enhancedHandleShotSelect(shot)}
                             >
                               <Image
                                 src={`/${shot}.png`}
@@ -273,13 +350,15 @@ export default function PlayMatchPage() {
                   <span className="text-xl font-semibold">
                     {player1.displayName}
                   </span>
-                  {player1.serving && (
-                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      Serving
-                    </span>
-                  )}
+                  <span
+                    className={`bg-yellow-500 w-fit text-white px-3 py-1 rounded-full text-xs font-semibold ${
+                      player1.serving ? "" : "invisible"
+                    }`}
+                  >
+                    Serving
+                  </span>
                 </h2>
-                <div className="text-4xl font-bold mb-2 text-blue-600">
+                <div className="text-4xl font-bold mb-2 text-emerald-500">
                   {player1.currentScore}
                 </div>
                 <p className="mb-4 text-gray-600">
@@ -305,11 +384,13 @@ export default function PlayMatchPage() {
                   <span className="text-xl font-semibold">
                     {player2.displayName}
                   </span>
-                  {player2.serving && (
-                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      Serving
-                    </span>
-                  )}
+                  <span
+                    className={`bg-yellow-500 w-fit text-white px-3 py-1 rounded-full text-xs font-semibold ${
+                      player2.serving ? "" : "invisible"
+                    }`}
+                  >
+                    Serving
+                  </span>
                 </h2>
                 <div className="text-4xl font-bold mb-2 text-red-600">
                   {player2.currentScore}
@@ -337,14 +418,60 @@ export default function PlayMatchPage() {
             <div className="flex gap-2 flex-wrap">
               {currentMatch.games.map((game, idx) => (
                 <div key={idx} className="border rounded p-2 text-sm">
-                  Game {game.gameNumber}: {playerOrder ? game.scores[playerOrder[0]] : '0'}-{playerOrder ?
-                    game.scores[playerOrder[1]] : '0'}
+                  Game {game.gameNumber}:{" "}
+                  {playerOrder ? game.scores[playerOrder[0]] : "0"}-
+                  {playerOrder ? game.scores[playerOrder[1]] : "0"}
+
                   {playerOrder && game.winnerId === playerOrder[0] && (
                     <span className="text-blue-600 ml-2">✓</span>
                   )}
                   {playerOrder && game.winnerId === playerOrder[1] && (
                     <span className="text-red-600 ml-2">✓</span>
                   )}
+
+                  
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Shots Display - NEW FEATURE */}
+        {recentShots.length > 0 && (
+          <div className="mb-6 bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="font-semibold text-gray-800">Recent Shots</h3>
+            </div>
+            <div className="space-y-2">
+              {recentShots.map((shot, index) => (
+                <div
+                  key={`${shot.timestamp}-${index}`}
+                  className={`flex items-center justify-between p-2 rounded border-l-4 ${
+                    index === 0 
+                      ? 'bg-blue-50 border-blue-400' 
+                      : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-medium ${
+                      shot.playerId === player1?.userId 
+                        ? 'text-emerald-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {shot.playerName}
+                    </span>
+                    <span className="text-gray-600">•</span>
+                    <span className="font-semibold text-xs text-gray-800">
+                      {shot.shotName}
+                    </span>
+                    <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                      Game {shot.gameNumber}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    {formatTime(shot.timestamp)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -364,7 +491,9 @@ export default function PlayMatchPage() {
       (g) => g.winnerId === (playerOrder ? playerOrder[1] : null)
     ).length;
     const winnerGames =
-      currentMatch.winnerId === (playerOrder && playerOrder[0]) ? p1Games : p2Games;
+      currentMatch.winnerId === (playerOrder && playerOrder[0])
+        ? p1Games
+        : p2Games;
     const loserGames = currentMatch.games.length - winnerGames;
 
     return (
@@ -406,7 +535,8 @@ export default function PlayMatchPage() {
               >
                 <span>Game {game.gameNumber}</span>
                 <span className="font-mono">
-                  {playerOrder ? game.scores[playerOrder[0]] : '0'} - {playerOrder ? game.scores[playerOrder[1]] : '0'}
+                  {playerOrder ? game.scores[playerOrder[0]] : "0"} -{" "}
+                  {playerOrder ? game.scores[playerOrder[1]] : "0"}
                 </span>
                 <span className="font-semibold">
                   {currentMatch.players[game.winnerId].displayName}
@@ -415,6 +545,21 @@ export default function PlayMatchPage() {
             ))}
           </div>
         </div>
+
+        {/* Final Match Shot Summary - NEW FEATURE */}
+        {recentShots.length > 0 && (
+          <div className="mb-6 bg-blue-50 rounded-lg p-4">
+            <h3 className="font-semibold mb-3 text-blue-800">Final Shots Summary</h3>
+            <div className="space-y-1 text-sm">
+              {recentShots.slice(0, 3).map((shot, index) => (
+                <div key={index} className="flex justify-between">
+                  <span>{shot.playerName} - {shot.shotName}</span>
+                  <span className="text-blue-600">Game {shot.gameNumber}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-4 justify-center">

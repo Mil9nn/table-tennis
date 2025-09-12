@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogIn, Trophy, User, Clock, LogOut } from "lucide-react";
+import { LogIn, Trophy, User, Clock, LogOut, Home } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { Button } from "./button";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
 type NavItem = {
   label: string;
@@ -18,7 +26,7 @@ export default function ModernNavbar() {
   const logout = useAuthStore((state) => state.logout);
 
   const navItems: NavItem[] = [
-    { label: "Profile", href: "/profile", icon: User },
+    { label: "Home", href: "/", icon: Home },
     { label: "Recent", href: "/recent", icon: Clock },
     { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
   ];
@@ -39,6 +47,59 @@ export default function ModernNavbar() {
               </div>
               <span className="font-semibold text-gray-800">TennisPro</span>
             </Link>
+
+            <div className="sm:hidden">
+            {/* Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
+                    {user?.profileImage ? (
+                      <img
+                        src={user?.profileImage}
+                        alt="profile-img"
+                        width={200}
+                        height={200}
+                        className="w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-700" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-40">
+                  {user ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/profile"
+                          className="flex items-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => logout()}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/auth/login"
+                        className="flex items-center gap-2"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        Login
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             {/* Desktop Links */}
             <div className="hidden sm:flex items-center gap-6">
@@ -64,23 +125,56 @@ export default function ModernNavbar() {
                 );
               })}
 
-              {user ? (
-                <Button
-                  onClick={() => logout()}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </Button>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Login</span>
-                </Link>
-              )}
+              {/* Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
+                    {user?.profileImage ? (
+                      <img
+                        src={user?.profileImage}
+                        alt="profile-img"
+                        width={200}
+                        height={200}
+                        className="w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-700" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-40">
+                  {user ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/profile"
+                          className="flex items-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => logout()}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/auth/login"
+                        className="flex items-center gap-2"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        Login
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </nav>
@@ -100,7 +194,9 @@ export default function ModernNavbar() {
                 }`}
               >
                 <item.icon
-                  className={`w-6 h-6 ${active ? "text-indigo-600" : "text-gray-400"}`}
+                  className={`w-6 h-6 ${
+                    active ? "text-indigo-600" : "text-gray-400"
+                  }`}
                 />
                 <span className="text-[10px]">{item.label}</span>
               </Link>

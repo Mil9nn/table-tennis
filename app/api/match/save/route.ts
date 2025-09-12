@@ -97,11 +97,11 @@ export async function GET(request: NextRequest) {
 
     // Get matches and populate user details using the string references
     const matches = await Match.find(query)
-      .populate('player1', 'username displayName email')
-      .populate('player2', 'username displayName email') 
-      .populate('winner', 'username displayName email')
-      .populate('games.winner', 'username displayName email')
-      .populate('games.shots.player', 'username displayName email')
+      .populate('player1', 'username fullName email')
+      .populate('player2', 'username fullName email') 
+      .populate('winner', 'username fullName email')
+      .populate('games.winner', 'username fullName email')
+      .populate('games.shots.player', 'username fullName email')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();

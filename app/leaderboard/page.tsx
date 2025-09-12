@@ -147,7 +147,7 @@ const EnhancedLeaderboardPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600">Loading leaderboard...</p>
         </div>
       </div>
@@ -155,29 +155,30 @@ const EnhancedLeaderboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-      <div className="p-2">
+    <div className="min-h-screen">
+      <div>
         {/* Header */}
-        <div className="flex items-center gap-2">
+       <header className="p-2">
+         <div className="flex items-center gap-2">
           <Trophy className="size-10 text-white bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-full" />
           <h1 className="text-xl font-bold text-gray-800 mb-2">Leaderboard</h1>
         </div>
 
         <p className="text-gray-600 my-2">Top performing table tennis players</p>
+       </header>
 
-        <div className="overflow-x-auto rounded-2xl shadow-xl border bg-white">
+        <div className="overflow-x-auto shadow-xl border bg-white">
           <table className="w-full border-collapse">
             <thead className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
               <tr>
-                <th className="px-6 py-4 text-left font-semibold">Rank</th>
-                <th className="px-6 py-4 text-left font-semibold">Player</th>
-                <th className="px-6 py-4 text-left font-semibold">Win Rate</th>
-                <th className="px-6 py-4 text-left font-semibold">Record</th>
-                <th className="px-6 py-4 text-left font-semibold">Matches</th>
-                <th className="px-6 py-4 text-left font-semibold">
+                <th className="px-6 py-2 text-left font-semibold">Rank</th>
+                <th className="px-6 py-2 text-left font-semibold">Player</th>
+                <th className="px-6 py-2 text-left font-semibold">Win Rate</th>
+                <th className="px-6 py-2 text-left font-semibold">Record</th>
+                <th className="px-6 py-2 text-left font-semibold">Matches</th>
+                <th className="px-6 py-2 text-left font-semibold">
                   Total Points
                 </th>
-                <th className="px-6 py-4 text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -208,13 +209,13 @@ const EnhancedLeaderboardPage = () => {
                         {player.displayName.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">
+                        <div className="whitespace-nowrap font-semibold text-gray-800">
                           {player.displayName}
                         </div>
                         <div className="text-gray-500 text-xs">
                           @{player.username}
                         </div>
-                      </div>
+                      </div> 
                     </div>
                   </td>
 
@@ -233,7 +234,7 @@ const EnhancedLeaderboardPage = () => {
                   </td>
 
                   <td className="px-6 py-4">
-                    <div className="text-gray-700 font-medium">
+                    <div className="text-gray-700 font-medium flex gap-1">
                       <span className="text-green-600">{player.wins}W</span> -{" "}
                       <span className="text-red-600">{player.losses}L</span>
                     </div>
@@ -245,19 +246,6 @@ const EnhancedLeaderboardPage = () => {
 
                   <td className="px-6 py-4 font-bold text-gray-800 text-lg">
                     {player.totalPoints.toLocaleString()}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fetchPlayerDetails(player.userId);
-                      }}
-                      disabled={playerDetailsLoading}
-                      className="px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition disabled:opacity-50"
-                    >
-                      {playerDetailsLoading ? "Loading..." : "View Stats"}
-                    </button>
                   </td>
                 </tr>
               ))}

@@ -7,6 +7,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,8 +19,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-connectDB();
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +26,17 @@ export default function RootLayout({
 }>) {
 
   const fetchUser = useAuthStore((state) => state.fetchUser);
+
+  useEffect(() => {
+    async function initDB() {
+      try {
+        await axiosInstance.get("/connect");
+      } catch (error) {
+        console.error("Error connecting to MongoDB:", error);
+      }
+    }
+    initDB();
+  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -38,7 +48,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ModernNavbar />
-        <div className="pt-16">{children}</div>
+        <div className="pt-16 max-sm:pb-10">{children}</div>
         <Toaster
           position="top-center"
           reverseOrder={false}

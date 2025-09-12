@@ -79,7 +79,7 @@ const Page = () => {
     return (
       <div className="min-h-[90vh] bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600">Loading recent matches...</p>
         </div>
       </div>
@@ -108,13 +108,17 @@ const Page = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-      <div className="p-2">
-        <h1 className="text-xl font-bold text-gray-800 mb-2">Recent Matches</h1>
-        <p className="text-gray-600 my-2">
-          Latest match results - click on any match row to see comprehensive
-          match statistics
-        </p>
+    <div className="min-h-screen">
+      <div>
+        <header className="p-2">
+          <h1 className="text-xl font-bold text-gray-800 mb-2">
+            Recent Matches
+          </h1>
+          <p className="text-gray-600 my-2">
+            Latest match results - click on any match row to see comprehensive
+            match statistics
+          </p>
+        </header>
 
         {recentMatches.length === 0 ? (
           // Empty State
@@ -128,11 +132,11 @@ const Page = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl shadow-xl border bg-white">
+          <div className="overflow-x-auto shadow-xl border">
             <table className="w-full border-collapse">
               <thead className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Match #</th>
+                  <th className="px-6 py-4 text-left font-semibold">Match</th>
                   <th className="px-6 py-4 text-left font-semibold">Players</th>
                   <th className="px-6 py-4 text-left font-semibold">Winner</th>
                   <th className="px-6 py-4 text-left font-semibold">

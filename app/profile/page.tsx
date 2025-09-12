@@ -2,31 +2,32 @@
 
 import { useProfileStore } from "@/hooks/useProfileStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { Camera, User, Mail, Calendar, Copy, Check, Edit3, Save, X } from "lucide-react";
+import {
+  Camera,
+  Mail,
+  Calendar,
+  Copy,
+  Check,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Button } from "@/components/ui/button";
 
 const ProfilePage = () => {
-  const { 
-    previewUrl, 
-    setPreviewUrl, 
-    uploadImage, 
+  const {
+    previewUrl,
+    setPreviewUrl,
+    uploadImage,
     fetchProfileImage,
-    profileImage,
     isUploadingProfile,
-    isLoadingProfile
+    isLoadingProfile,
   } = useProfileStore();
 
+
   const { user, fetchUser } = useAuthStore();
+  const profileImage = user?.profileImage || null;
 
   const [file, setFile] = useState<File | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState({
-    fullName: "",
-    email: ""
-  });
 
   // Fetch profile data when component mounts
   useEffect(() => {
@@ -34,27 +35,16 @@ const ProfilePage = () => {
     fetchUser();
   }, [fetchProfileImage, fetchUser]);
 
-  useEffect(() => {
-    if (user) {
-      setEditedUser({
-        fullName: user.fullName || "",
-        email: user.email || ""
-      });
-    }
-  }, [user]);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Validate file size (max 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
       toast.error("Image size should be less than 5MB");
       return;
     }
 
-    // Validate file type
-    if (!selectedFile.type.startsWith('image/')) {
+    if (!selectedFile.type.startsWith("image/")) {
       toast.error("Please select a valid image file");
       return;
     }
@@ -71,13 +61,11 @@ const ProfilePage = () => {
 
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!file) return;
 
     try {
       await uploadImage(file);
       setFile(null);
-      setPreviewUrl(null);
       toast.success("Profile image updated successfully!");
     } catch (error) {
       toast.error("Failed to upload image. Please try again.");
@@ -96,48 +84,19 @@ const ProfilePage = () => {
     }
   };
 
-  const handleEditToggle = () => {
-    if (isEditing) {
-      // Cancel editing - reset to original values
-      if (user) {
-        setEditedUser({
-          fullName: user.fullName || "",
-          email: user.email || ""
-        });
-      }
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      // Here you would typically make an API call to update user info
-      // For now, we'll just show a success message
-      toast.success("Profile updated successfully!");
-      setIsEditing(false);
-      
-      // You should implement an API call here like:
-      // await updateUserProfile(editedUser);
-      // await fetchUser(); // Refresh user data
-    } catch (error) {
-      toast.error("Failed to update profile. Please try again.");
-      console.error("Error updating profile:", error);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
-      day: "numeric"
+      day: "numeric",
     });
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-[90vh] bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -152,23 +111,16 @@ const ProfilePage = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-              <p className="text-gray-600 mt-1">Manage your account settings and information</p>
+              <p className="text-gray-600 mt-1">
+                Manage your account settings and information
+              </p>
             </div>
-            <Button
-              onClick={handleEditToggle}
-              className="bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
-            >
-              {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-              {isEditing ? "Cancel" : "Edit Profile"}
-            </Button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Image Section */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">Profile Picture</h2>
-                
                 <form onSubmit={handleImageSubmit} className="space-y-4">
                   <div className="relative mx-auto w-32 h-32">
                     <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
@@ -177,11 +129,15 @@ const ProfilePage = () => {
                           <Camera className="w-8 h-8 text-gray-400" />
                         </div>
                       ) : (
-                        <img
-                          src={previewUrl || profileImage || '/default-avatar.svg'}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
+                          <img
+                            src={
+                              previewUrl ||
+                              profileImage ||
+                              "/svgs/default-avatar.svg"
+                            }
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
                       )}
                     </div>
                     <label
@@ -196,17 +152,19 @@ const ProfilePage = () => {
                         onChange={handleFileChange}
                         disabled={isUploadingProfile}
                       />
-                      <div className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
-                        isUploadingProfile ? "animate-spin" : ""
-                      }`}>
+                      <div
+                        className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
+                          isUploadingProfile ? "animate-pulse" : ""
+                        }`}
+                      >
                         <Camera className="w-5 h-5" />
                       </div>
                     </label>
                   </div>
 
                   {file && (
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={isUploadingProfile}
                       className="w-full bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -217,7 +175,6 @@ const ProfilePage = () => {
                         </>
                       ) : (
                         <>
-                          <Save className="w-4 h-4" />
                           Update Image
                         </>
                       )}
@@ -227,7 +184,8 @@ const ProfilePage = () => {
 
                 <div className="mt-4 text-center">
                   <p className="text-sm text-gray-500">
-                    Maximum file size: 5MB<br />
+                    Maximum file size: 5MB
+                    <br />
                     Supported formats: JPG, PNG, GIF
                   </p>
                 </div>
@@ -239,16 +197,9 @@ const ProfilePage = () => {
               {/* Personal Information */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">Personal Information</h2>
-                  {isEditing && (
-                    <button
-                      onClick={handleSaveProfile}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                    >
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </button>
-                  )}
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    Personal Information
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -257,19 +208,12 @@ const ProfilePage = () => {
                     <label className="text-sm font-medium text-gray-700">
                       Full Name
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedUser.fullName}
-                        onChange={(e) => setEditedUser(prev => ({ ...prev, fullName: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                        placeholder="Enter your full name"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-between p-2 rounded-lg">
-                        <span className="text-gray-800 font-medium">{user.fullName}</span>
-                      </div>
-                    )}
+
+                    <div className="flex items-center justify-between p-2 rounded-lg">
+                      <span className="text-gray-800 font-medium">
+                        {user.fullName}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Username */}
@@ -278,9 +222,13 @@ const ProfilePage = () => {
                       Username
                     </label>
                     <div className="flex items-center justify-between border-2 p-2 rounded-lg">
-                      <span className="text-gray-800 font-medium">@{user.username}</span>
+                      <span className="text-gray-800 font-medium">
+                        @{user.username}
+                      </span>
                       <button
-                        onClick={() => copyToClipboard(user.username, "Username")}
+                        onClick={() =>
+                          copyToClipboard(user.username, "Username")
+                        }
                         className="cursor-pointer text-gray-400 hover:scale-[1.05] active:scale-[0.95] transition"
                       >
                         {copiedField === "Username" ? (
@@ -298,19 +246,12 @@ const ProfilePage = () => {
                       <Mail className="w-4 h-4" />
                       Email Address
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        value={editedUser.email}
-                        onChange={(e) => setEditedUser(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                        placeholder="Enter your email address"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                        <span className="text-gray-800 font-medium">{user.email}</span>
-                      </div>
-                    )}
+
+                    <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                      <span className="text-gray-800 font-medium">
+                        {user.email}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Member Since */}
@@ -330,25 +271,26 @@ const ProfilePage = () => {
 
               {/* Account Stats */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Account Overview</h2>
-                
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                  Account Overview
+                </h2>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
                     <div className="text-2xl font-bold text-blue-600">0</div>
                     <div className="text-sm text-blue-800">Matches Played</div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
                     <div className="text-2xl font-bold text-green-600">0</div>
                     <div className="text-sm text-green-800">Matches Won</div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
                     <div className="text-2xl font-bold text-purple-600">0%</div>
                     <div className="text-sm text-purple-800">Win Rate</div>
                   </div>
-                  
-                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -356,6 +298,6 @@ const ProfilePage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default ProfilePage;
