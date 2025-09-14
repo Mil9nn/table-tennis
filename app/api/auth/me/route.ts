@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { User } from "@/models/user.model";
+import { User } from "@/models/User";
 
 export async function GET(request: Request) {
   try {

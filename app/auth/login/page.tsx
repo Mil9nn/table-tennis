@@ -50,10 +50,7 @@ const LoginPage = () => {
           </div>
 
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-5"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               {/* Email */}
               <FormField
                 control={form.control}

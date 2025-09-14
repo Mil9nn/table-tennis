@@ -1,638 +1,405 @@
-"use client"
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  AlertCircle, 
-  ArrowLeftCircle, 
-  Users, 
-  User, 
-  MapPin, 
-  Trophy,
-  Plus,
-  X
-} from "lucide-react";
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
-// Mock data - replace with your actual API calls
-const TEAM_FORMATS = [
-  {
-    id: 'format1',
-    name: 'A,B,C,A,B vs X,Y,Z,Y,X',
-    description: '5 Singles Matches',
-    matches: [
-      { matchNumber: 1, type: 'singles', description: 'A vs X' },
-      { matchNumber: 2, type: 'singles', description: 'B vs Y' },
-      { matchNumber: 3, type: 'singles', description: 'C vs Z' },
-      { matchNumber: 4, type: 'singles', description: 'A vs Y' },
-      { matchNumber: 5, type: 'singles', description: 'B vs X' },
-    ]
-  },
-  {
-    id: 'format2',
-    name: 'A, AB, B vs X, XY, Y',
-    description: 'Single-Double-Single',
-    matches: [
-      { matchNumber: 1, type: 'singles', description: 'A vs X' },
-      { matchNumber: 2, type: 'doubles', description: 'AB vs XY' },
-      { matchNumber: 3, type: 'singles', description: 'B vs Y' },
-    ]
-  },
-  {
-    id: 'format3',
-    name: 'A, B, C vs X, Y, Z',
-    description: '3 Singles Matches Only',
-    matches: [
-      { matchNumber: 1, type: 'singles', description: 'A vs X' },
-      { matchNumber: 2, type: 'singles', description: 'B vs Y' },
-      { matchNumber: 3, type: 'singles', description: 'C vs Z' },
-    ]
-  }
-];
+// Simple validation schema
+const matchSchema = z.object({
+  matchCategory: z.enum(['individual', 'team']),
+  matchType: z.string().min(1, 'Please select match type'),
+  numberOfSets: z.enum(['1', '3', '5', '7', '9']),
+  city: z.string().min(1, 'Please enter city/venue'),
+  scorer: z.string().min(1, 'Please enter scorer name'),
+  player1: z.string().optional(),
+  player2: z.string().optional(),
+  player3: z.string().optional(),
+  player4: z.string().optional(),
+  team1Name: z.string().optional(),
+  team2Name: z.string().optional(),
+});
 
-// Mock venues - replace with Google Places API
-const MOCK_VENUES = [
-  { name: 'MA Stadium Jammu', address: 'MA Stadium, Jammu, J&K', placeId: 'mock1' },
-  { name: 'Sports Complex Jammu', address: 'Sports Complex, Jammu, J&K', placeId: 'mock2' },
-  { name: 'University Stadium', address: 'University of Jammu, Jammu, J&K', placeId: 'mock3' },
-];
-
-interface Player {
-  userId: string;
-  username: string;
-  displayName: string;
-}
-
-interface PlayerSearchProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  onPlayerFound: (player: Player | null) => void;
-  error?: string;
-}
-
-const PlayerSearch: React.FC<PlayerSearchProps> = ({ label, value, onChange, onPlayerFound, error }) => {
-  const [searching, setSearching] = useState(false);
-  const [found, setFound] = useState(false);
-
-  const searchUser = async (username: string) => {
-    if (!username.trim()) {
-      onPlayerFound(null);
-      setFound(false);
-      return;
-    }
-
-    setSearching(true);
-    try {
-      // Mock API call - replace with actual API
-      setTimeout(() => {
-        const mockPlayer = { userId: `user_${username}`, username, displayName: `${username} Player` };
-        onPlayerFound(mockPlayer);
-        setFound(true);
-        setSearching(false);
-      }, 500);
-    } catch (error) {
-      onPlayerFound(null);
-      setFound(false);
-      setSearching(false);
-    }
-  };
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      searchUser(value);
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [value]);
-
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Input
-        placeholder={`Enter ${label.toLowerCase()} username`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`${
-          error ? "border-red-500" : found ? "border-green-500" : ""
-        }`}
-      />
-      {searching && <p className="text-sm text-gray-500">Searching...</p>}
-      {error && (
-        <Alert>
-          <AlertCircle className="h-4 w-4 text-red-500" />
-          <AlertDescription className="text-sm text-red-500">{error}</AlertDescription>
-        </Alert>
-      )}
-      {found && !error && <p className="text-sm text-green-600">✓ Player found</p>}
-    </div>
-  );
-};
-
-const EnhancedCreateMatch: React.FC = () => {
-  const [matchCategory, setMatchCategory] = useState<'individual' | 'team'>('individual');
-  const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
-  const [teamFormat, setTeamFormat] = useState<string>('');
-  const [bestOf, setBestOf] = useState<number>(3);
+export default function MatchCreationForm() {
+  const [matchCategory, setMatchCategory] = useState('individual');
+  const [selectedMatchType, setSelectedMatchType] = useState('');
   
-  // Individual match players
-  const [players, setPlayers] = useState({
-    player1: '',
-    player2: '',
-    player3: '',
-    player4: ''
+  const form = useForm({
+    resolver: zodResolver(matchSchema),
+    defaultValues: {
+      matchCategory: 'individual',
+      numberOfSets: '3',
+      matchType: '',
+      city: '',
+      scorer: '',
+      player1: '',
+      player2: '',
+      player3: '',
+      player4: '',
+      team1Name: '',
+      team2Name: '',
+    },
   });
-  const [foundPlayers, setFoundPlayers] = useState<Record<string, Player | null>>({});
-  
-  // Team match players
-  const [team1Name, setTeam1Name] = useState('');
-  const [team2Name, setTeam2Name] = useState('');
-  const [team1Players, setTeam1Players] = useState<string[]>(['', '', '']);
-  const [team2Players, setTeam2Players] = useState<string[]>(['', '', '']);
-  const [foundTeamPlayers, setFoundTeamPlayers] = useState<Record<string, Player | null>>({});
-  
-  // Scorer and venue
-  const [scorer, setScorer] = useState('');
-  const [foundScorer, setFoundScorer] = useState<Player | null>(null);
-  const [selectedVenue, setSelectedVenue] = useState<string>('');
-  const [customVenue, setCustomVenue] = useState({ name: '', address: '' });
-  
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const selectedFormat = TEAM_FORMATS.find(f => f.id === teamFormat);
+  // Individual match types
+  const individualMatchTypes = [
+    { value: 'singles', label: 'Singles 1v1' },
+    { value: 'doubles', label: 'Doubles 2v2' },
+    { value: 'mixed_doubles', label: 'Mixed Doubles' },
+  ];
 
-  const getRequiredPlayersCount = () => {
-    if (matchCategory === 'individual') {
-      return matchType === 'singles' ? 2 : 4;
-    } else {
-      return selectedFormat ? Math.max(...selectedFormat.matches.map(m => m.type === 'doubles' ? 2 : 1)) : 3;
-    }
-  };
+  // Team match formats
+  const teamMatchFormats = [
+    { value: 'five_singles', label: 'A,B,C,A,B vs X,Y,Z,Y,X (5 Singles)' },
+    { value: 'single_double_single', label: 'A, AB, B vs X, XY, Y (Single-Double-Single)' },
+    { value: 'extended_format', label: 'A,B,C,D,E vs 1,2,3,4,5,6 (Extended)' },
+    { value: 'three_singles', label: 'A,B,C vs X,Y,Z (3 Singles)' },
+    { value: 'custom', label: 'Custom Format' },
+  ];
 
-  const updateTeamPlayerCount = (format: string) => {
-    const formatConfig = TEAM_FORMATS.find(f => f.id === format);
-    if (formatConfig) {
-      const maxPlayers = Math.max(
-        ...formatConfig.matches.map(m => m.type === 'doubles' ? 2 : 1)
-      );
-      const playersNeeded = formatConfig.id === 'format1' ? 3 : maxPlayers;
-      
-      setTeam1Players(Array(playersNeeded).fill(''));
-      setTeam2Players(Array(playersNeeded).fill(''));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    const newErrors: Record<string, string> = {};
-    
-    if (!scorer || !foundScorer) {
-      newErrors.scorer = 'Scorer is required';
-    }
-    
-    if (matchCategory === 'individual') {
-      if (!players.player1 || !foundPlayers.player1) newErrors.player1 = 'Player 1 is required';
-      if (!players.player2 || !foundPlayers.player2) newErrors.player2 = 'Player 2 is required';
-      
-      if (matchType === 'doubles') {
-        if (!players.player3 || !foundPlayers.player3) newErrors.player3 = 'Player 3 is required';
-        if (!players.player4 || !foundPlayers.player4) newErrors.player4 = 'Player 4 is required';
-      }
-    } else {
-      if (!teamFormat) newErrors.teamFormat = 'Team format is required';
-      if (!team1Name.trim()) newErrors.team1Name = 'Team 1 name is required';
-      if (!team2Name.trim()) newErrors.team2Name = 'Team 2 name is required';
-      
-      // Check if all required team players are filled
-      const requiredCount = getRequiredPlayersCount();
-      for (let i = 0; i < requiredCount; i++) {
-        if (!team1Players[i] || !foundTeamPlayers[`team1_${i}`]) {
-          newErrors[`team1_${i}`] = `Team 1 Player ${i + 1} is required`;
-        }
-        if (!team2Players[i] || !foundTeamPlayers[`team2_${i}`]) {
-          newErrors[`team2_${i}`] = `Team 2 Player ${i + 1} is required`;
-        }
-      }
-    }
-    
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
-    
-    // Create match data
-    const matchData = {
-      matchCategory,
-      matchType: matchCategory === 'individual' ? matchType : undefined,
-      teamFormat: matchCategory === 'team' ? teamFormat : undefined,
-      bestOf,
-      scorer: foundScorer.userId,
-      venue: selectedVenue ? MOCK_VENUES.find(v => v.name === selectedVenue) : customVenue.name ? customVenue : undefined,
-      
-      // Individual match data
-      ...(matchCategory === 'individual' && {
-        player1: foundPlayers.player1?.userId,
-        player2: foundPlayers.player2?.userId,
-        player3: matchType === 'doubles' ? foundPlayers.player3?.userId : undefined,
-        player4: matchType === 'doubles' ? foundPlayers.player4?.userId : undefined,
-      }),
-      
-      // Team match data
-      ...(matchCategory === 'team' && {
-        team1Name,
-        team2Name,
-        team1Players: team1Players.slice(0, getRequiredPlayersCount()).map((_, i) => foundTeamPlayers[`team1_${i}`]?.userId).filter(Boolean),
-        team2Players: team2Players.slice(0, getRequiredPlayersCount()).map((_, i) => foundTeamPlayers[`team2_${i}`]?.userId).filter(Boolean),
-      })
-    };
-    
-    console.log('Match Data:', matchData);
-    // Here you would call your API to create the match
-    alert('Match created successfully! (This is a demo)');
+  const handleSubmit = (data) => {
+    console.log('Match Data:', data);
+    // Send data to your API endpoint
+    // Example: await fetch('/api/matches', { method: 'POST', body: JSON.stringify(data) })
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-md shadow-xl border border-gray-100 rounded-2xl p-8">
-          
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button variant="ghost" size="sm" className="p-2">
-              <ArrowLeftCircle className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Create Match</h1>
-              <p className="text-gray-600">Set up your table tennis match</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-            
-            {/* Match Category */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5" />
-                  Match Category
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    type="button"
-                    variant={matchCategory === 'individual' ? 'default' : 'outline'}
-                    onClick={() => setMatchCategory('individual')}
-                    className="p-6 h-auto flex-col gap-2"
-                  >
-                    <User className="w-8 h-8" />
-                    <span className="font-semibold">Individual</span>
-                    <span className="text-sm opacity-70">1v1 or 2v2 matches</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={matchCategory === 'team' ? 'default' : 'outline'}
-                    onClick={() => setMatchCategory('team')}
-                    className="p-6 h-auto flex-col gap-2"
-                  >
-                    <Users className="w-8 h-8" />
-                    <span className="font-semibold">Team</span>
-                    <span className="text-sm opacity-70">Multiple matches between teams</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Individual Match Settings */}
-            {matchCategory === 'individual' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Individual Match Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Match Type</Label>
-                      <Select value={matchType} onValueChange={(value: 'singles' | 'doubles') => setMatchType(value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="singles">Singles</SelectItem>
-                          <SelectItem value="doubles">Doubles</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Best Of</Label>
-                      <Select value={bestOf.toString()} onValueChange={(value) => setBestOf(parseInt(value))}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Best of 1</SelectItem>
-                          <SelectItem value="3">Best of 3</SelectItem>
-                          <SelectItem value="5">Best of 5</SelectItem>
-                          <SelectItem value="7">Best of 7</SelectItem>
-                          <SelectItem value="9">Best of 9</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <PlayerSearch
-                      label="Player 1"
-                      value={players.player1}
-                      onChange={(value) => setPlayers(prev => ({ ...prev, player1: value }))}
-                      onPlayerFound={(player) => setFoundPlayers(prev => ({ ...prev, player1: player }))}
-                      error={errors.player1}
-                    />
-                    <PlayerSearch
-                      label="Player 2"
-                      value={players.player2}
-                      onChange={(value) => setPlayers(prev => ({ ...prev, player2: value }))}
-                      onPlayerFound={(player) => setFoundPlayers(prev => ({ ...prev, player2: player }))}
-                      error={errors.player2}
-                    />
-                  </div>
-
-                  {matchType === 'doubles' && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <PlayerSearch
-                        label="Player 3"
-                        value={players.player3}
-                        onChange={(value) => setPlayers(prev => ({ ...prev, player3: value }))}
-                        onPlayerFound={(player) => setFoundPlayers(prev => ({ ...prev, player3: player }))}
-                        error={errors.player3}
-                      />
-                      <PlayerSearch
-                        label="Player 4"
-                        value={players.player4}
-                        onChange={(value) => setPlayers(prev => ({ ...prev, player4: value }))}
-                        onPlayerFound={(player) => setFoundPlayers(prev => ({ ...prev, player4: player }))}
-                        error={errors.player4}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Team Match Settings */}
-            {matchCategory === 'team' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Team Match Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  
-                  {/* Team Format Selection */}
-                  <div>
-                    <Label>Team Format</Label>
-                    <Select 
-                      value={teamFormat} 
+    <div className="w-full max-w-4xl mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Create New Table Tennis Match</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <div className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+              
+              {/* Match Category */}
+              <FormField
+                control={form.control}
+                name="matchCategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Match Category</FormLabel>
+                    <RadioGroup
+                      value={field.value}
                       onValueChange={(value) => {
-                        setTeamFormat(value);
-                        updateTeamPlayerCount(value);
+                        field.onChange(value);
+                        setMatchCategory(value);
                       }}
+                      className="flex gap-6 mt-2"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select team format" />
-                      </SelectTrigger>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="individual" id="individual" />
+                        <Label htmlFor="individual" className="cursor-pointer">Individual</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="team" id="team" />
+                        <Label htmlFor="team" className="cursor-pointer">Team</Label>
+                      </div>
+                    </RadioGroup>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Match Type */}
+              <FormField
+                control={form.control}
+                name="matchType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">
+                      {matchCategory === 'individual' ? 'Match Type' : 'Team Match Format'}
+                    </FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedMatchType(value);
+                      }} 
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select match type" />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent>
-                        {TEAM_FORMATS.map((format) => (
-                          <SelectItem key={format.id} value={format.id}>
-                            <div>
-                              <div className="font-medium">{format.name}</div>
-                              <div className="text-sm text-gray-500">{format.description}</div>
-                            </div>
+                        {matchCategory === 'individual' ? (
+                          individualMatchTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          teamMatchFormats.map((format) => (
+                            <SelectItem key={format.value} value={format.value}>
+                              {format.label}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Number of Sets */}
+              <FormField
+                control={form.control}
+                name="numberOfSets"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Number of Sets</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {['1', '3', '5', '7', '9'].map((num) => (
+                          <SelectItem key={num} value={num}>
+                            {num} {num === '1' ? 'Set' : 'Sets'}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.teamFormat && (
-                      <p className="text-sm text-red-500 mt-1">{errors.teamFormat}</p>
-                    )}
-                  </div>
-
-                  {/* Format Preview */}
-                  {selectedFormat && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-semibold mb-3">Match Structure</h4>
-                      <div className="space-y-2">
-                        {selectedFormat.matches.map((match) => (
-                          <div key={match.matchNumber} className="flex items-center justify-between">
-                            <span className="text-sm">Match {match.matchNumber}</span>
-                            <Badge variant={match.type === 'singles' ? 'default' : 'secondary'}>
-                              {match.type}
-                            </Badge>
-                            <span className="text-sm text-gray-600">{match.description}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Best Of */}
-                  <div>
-                    <Label>Best Of (per individual match)</Label>
-                    <Select value={bestOf.toString()} onValueChange={(value) => setBestOf(parseInt(value))}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Best of 1</SelectItem>
-                        <SelectItem value="3">Best of 3</SelectItem>
-                        <SelectItem value="5">Best of 5</SelectItem>
-                        <SelectItem value="7">Best of 7</SelectItem>
-                        <SelectItem value="9">Best of 9</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Team Names */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Team 1 Name</Label>
-                      <Input
-                        placeholder="Enter team 1 name"
-                        value={team1Name}
-                        onChange={(e) => setTeam1Name(e.target.value)}
-                        className={errors.team1Name ? "border-red-500" : ""}
-                      />
-                      {errors.team1Name && (
-                        <p className="text-sm text-red-500 mt-1">{errors.team1Name}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label>Team 2 Name</Label>
-                      <Input
-                        placeholder="Enter team 2 name"
-                        value={team2Name}
-                        onChange={(e) => setTeam2Name(e.target.value)}
-                        className={errors.team2Name ? "border-red-500" : ""}
-                      />
-                      {errors.team2Name && (
-                        <p className="text-sm text-red-500 mt-1">{errors.team2Name}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Team Players */}
-                  {teamFormat && (
-                    <div className="grid grid-cols-2 gap-6">
-                      {/* Team 1 Players */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-center">Team 1 Players</h4>
-                        {team1Players.slice(0, getRequiredPlayersCount()).map((player, index) => (
-                          <PlayerSearch
-                            key={`team1_${index}`}
-                            label={`Player ${String.fromCharCode(65 + index)}`}
-                            value={team1Players[index]}
-                            onChange={(value) => {
-                              const newPlayers = [...team1Players];
-                              newPlayers[index] = value;
-                              setTeam1Players(newPlayers);
-                            }}
-                            onPlayerFound={(foundPlayer) => {
-                              setFoundTeamPlayers(prev => ({
-                                ...prev,
-                                [`team1_${index}`]: foundPlayer
-                              }));
-                            }}
-                            error={errors[`team1_${index}`]}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Team 2 Players */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-center">Team 2 Players</h4>
-                        {team2Players.slice(0, getRequiredPlayersCount()).map((player, index) => (
-                          <PlayerSearch
-                            key={`team2_${index}`}
-                            label={`Player ${String.fromCharCode(88 + index)}`}
-                            value={team2Players[index]}
-                            onChange={(value) => {
-                              const newPlayers = [...team2Players];
-                              newPlayers[index] = value;
-                              setTeam2Players(newPlayers);
-                            }}
-                            onPlayerFound={(foundPlayer) => {
-                              setFoundTeamPlayers(prev => ({
-                                ...prev,
-                                [`team2_${index}`]: foundPlayer
-                              }));
-                            }}
-                            error={errors[`team2_${index}`]}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Venue Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Venue
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Select Venue</Label>
-                  <Select value={selectedVenue} onValueChange={setSelectedVenue}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a venue or enter custom" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MOCK_VENUES.map((venue) => (
-                        <SelectItem key={venue.placeId} value={venue.name}>
-                          <div>
-                            <div className="font-medium">{venue.name}</div>
-                            <div className="text-sm text-gray-500">{venue.address}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="custom">Custom Venue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedVenue === 'custom' && (
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Venue Name</Label>
-                      <Input
-                        placeholder="Enter venue name"
-                        value={customVenue.name}
-                        onChange={(e) => setCustomVenue(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label>Venue Address</Label>
-                      <Textarea
-                        placeholder="Enter venue address"
-                        value={customVenue.address}
-                        onChange={(e) => setCustomVenue(prev => ({ ...prev, address: e.target.value }))}
-                        rows={2}
-                      />
-                    </div>
-                  </div>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </CardContent>
-            </Card>
+              />
 
-            {/* Scorer Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Scorer</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PlayerSearch
-                  label="Match Scorer"
-                  value={scorer}
-                  onChange={setScorer}
-                  onPlayerFound={setFoundScorer}
-                  error={errors.scorer}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* City/Venue */}
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">City/Venue</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter city or venue" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <p className="text-sm text-gray-500 mt-2">
-                  The scorer will be responsible for recording match details and shots.
-                </p>
-              </CardContent>
-            </Card>
 
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button type="submit" size="lg" className="px-8">
+                {/* Scorer */}
+                <FormField
+                  control={form.control}
+                  name="scorer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">Scorer</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter scorer username" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Individual Match Players */}
+              {matchCategory === 'individual' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Players</h3>
+                  
+                  {/* Singles Players */}
+                  {selectedMatchType === 'singles' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="player1"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Player 1</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter player 1 name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="player2"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Player 2</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter player 2 name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Doubles Players */}
+                  {(selectedMatchType === 'doubles' || selectedMatchType === 'mixed_doubles') && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Team 1</Label>
+                        <FormField
+                          control={form.control}
+                          name="player1"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Player 1A" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="player2"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Player 1B" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Team 2</Label>
+                        <FormField
+                          control={form.control}
+                          name="player3"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Player 2A" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="player4"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Player 2B" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Team Match Setup */}
+              {matchCategory === 'team' && (
+                <TeamMatchSetup form={form} />
+              )}
+
+              <Button 
+                type="button"
+                onClick={form.handleSubmit(handleSubmit)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
                 Create Match
               </Button>
             </div>
-          </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Team Match Setup Component
+function TeamMatchSetup({ form }) {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Team Setup</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Team 1 */}
+        <div className="space-y-3">
+          <Label className="text-base font-medium">Team 1</Label>
+          <FormField
+            control={form.control}
+            name="team1Name"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input placeholder="Team 1 Name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="space-y-2">
+            <Input placeholder="Player A" />
+            <Input placeholder="Player B" />
+            <Input placeholder="Player C" />
+          </div>
+        </div>
+        
+        {/* Team 2 */}
+        <div className="space-y-3">
+          <Label className="text-base font-medium">Team 2</Label>
+          <FormField
+            control={form.control}
+            name="team2Name"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input placeholder="Team 2 Name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="space-y-2">
+            <Input placeholder="Player X" />
+            <Input placeholder="Player Y" />
+            <Input placeholder="Player Z" />
+          </div>
         </div>
       </div>
     </div>
   );
-} 
-
-export default EnhancedCreateMatch;
+}

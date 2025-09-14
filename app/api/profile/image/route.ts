@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { User } from "@/models/user.model";
+import { User } from "@/models/User";
 import cloudinary from "@/lib/cloudinary";
 
 export async function GET(request: NextRequest) {

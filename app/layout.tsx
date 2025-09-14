@@ -1,13 +1,12 @@
-"use client"
+"use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ModernNavbar from "@/components/ui/Navbar";
-import { connectDB } from "@/lib/mongodb";
-import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +23,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
   useEffect(() => {
@@ -48,34 +46,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ModernNavbar />
-        <div className="pt-16 max-sm:pb-10">{children}</div>
-        <Toaster
-          position="top-center"
-          reverseOrder={false}
-          gutter={8}
-          containerClassName=""
-          containerStyle={{}}
-          toasterId="default"
-          toastOptions={{
-            // Define default options
-            className: "",
-            duration: 5000,
-            removeDelay: 1000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-
-            // Default options for specific types
-            success: {
-              duration: 3000,
-              iconTheme: {
-                primary: "green",
-                secondary: "black",
-              },
-            },
-          }}
-        />
+        <div className="pt-16 max-sm:pb-10">
+          {children}
+          <Toaster position="top-right" />
+        </div>
       </body>
     </html>
   );
