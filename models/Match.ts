@@ -26,7 +26,6 @@ const gameSchema = new mongoose.Schema({
 });
 
 const matchSchema = new mongoose.Schema({
-  // Basic Match Info
   matchCategory: {
     type: String,
     enum: ['individual', 'team'],
