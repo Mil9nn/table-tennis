@@ -1,12 +1,9 @@
-import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
+import { NextRequest, NextResponse } from 'next/server';
 import Match from '@/models/Match';
 
 // Update match score and add shot
-export async function POST(request, { params }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    await connectDB();
-    
     const body = await request.json();
     const { 
       gameNumber, 
@@ -16,7 +13,8 @@ export async function POST(request, { params }) {
       gameWinner 
     } = body;
     
-    const match = await Match.findById(params.id);
+    const { id } = await context.params;
+    const match = await Match.findById(id);
     
     if (!match) {
       return NextResponse.json({ error: 'Match not found' }, { status: 404 });

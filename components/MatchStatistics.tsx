@@ -381,7 +381,7 @@ export default function MatchStatistics({ matchId }) {
                     No games completed yet
                   </div>
                 )}
-              </div>
+              </div> 
             </CardContent>
           </Card>
         </TabsContent>
