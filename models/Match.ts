@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
-  player: String,
+  side: { type: String, enum: ["side1", "side2"] },
+  player: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   shotType: {
     type: String,
     enum: [
@@ -37,14 +38,29 @@ const shotSchema = new mongoose.Schema({
 
 const gameSchema = new mongoose.Schema({
   gameNumber: Number,
-  player1Score: { type: Number, default: 0 },
-  player2Score: { type: Number, default: 0 },
+  side1Score: { type: Number, default: 0 },
+  side2Score: { type: Number, default: 0 },
   winner: String,
   shots: [shotSchema],
   duration: Number, // in seconds
   startTime: Date,
   endTime: Date,
+  participants: {
+    team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  }
 });
+
+const tieSchema = new mongoose.Schema({
+  tieNumber: Number,
+  type: { type: String, enum: ["singles", "doubles"]},
+  participants: {
+    team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  },
+  games: [gameSchema],
+  winner: { type: String, enum: ["team1", "team2"] },
+})
 
 const matchSchema = new mongoose.Schema(
   {
@@ -64,52 +80,18 @@ const matchSchema = new mongoose.Schema(
     },
     city: String,
     venue: String,
+
     scorer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
 
-    // Individual Match Fields
-    players: {
-      player1: {
-        id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        name: String,
-      },
-      player2: {
-        id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        name: String,
-      },
-      player3: {
-        id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        name: String,
-      },
-      player4: {
-        id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        name: String,
-      },
-    },
+    // Participants (for singles/doubles matches)
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
-    // Team Match Fields
-    team1: {
-      name: String,
-      players: [
-        {
-          id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          name: String,
-          role: String, // A, B, C etc
-        },
-      ],
-    },
-    team2: {
-      name: String,
-      players: [
-        {
-          id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          name: String,
-          role: String, // X, Y, Z etc
-        },
-      ],
-    },
+    // Teams (for team matches)
+    team1: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+    team2: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
 
     // Match Progress
     status: {
@@ -119,45 +101,92 @@ const matchSchema = new mongoose.Schema(
     },
     currentGame: { type: Number, default: 1 },
 
-    // Games/Sets Data
+    // Games for singles/doubles matches
     games: [gameSchema],
+
+    // Ties for team matches
+    ties: [tieSchema],
 
     // Match Results
     finalScore: {
-      player1Sets: { type: Number, default: 0 },
-      player2Sets: { type: Number, default: 0 },
+      side1Sets: { type: Number, default: 0 },
+      side2Sets: { type: Number, default: 0 },
     },
     winner: String,
-    matchDuration: Number, // total duration in seconds
+    matchDuration: Number,
 
-    // Match Statistics
+    // Enhanced Match Statistics
     statistics: {
       totalShots: { type: Number, default: 0 },
+      totalRallies: { type: Number, default: 0 },
+      averageRallyLength: { type: Number, default: 0 },
       longestRally: { type: Number, default: 0 },
       aces: { type: Number, default: 0 },
       errors: { type: Number, default: 0 },
+
+      // Per-player stats (flexible map: works for singles, doubles, team)
       playerStats: {
-        player1: {
+        type: Map,
+        of: new mongoose.Schema({
           winners: { type: Number, default: 0 },
           errors: { type: Number, default: 0 },
           aces: { type: Number, default: 0 },
-          shotBreakdown: {
-            forehand: { type: Number, default: 0 },
-            backhand: { type: Number, default: 0 },
-            smash: { type: Number, default: 0 },
-            serve: { type: Number, default: 0 },
+          detailedShots: {
+            forehand_drive: { type: Number, default: 0 },
+            backhand_drive: { type: Number, default: 0 },
+            forehand_topspin: { type: Number, default: 0 },
+            backhand_topspin: { type: Number, default: 0 },
+            forehand_loop: { type: Number, default: 0 },
+            backhand_loop: { type: Number, default: 0 },
+            forehand_smash: { type: Number, default: 0 },
+            backhand_smash: { type: Number, default: 0 },
+            forehand_push: { type: Number, default: 0 },
+            backhand_push: { type: Number, default: 0 },
+            forehand_chop: { type: Number, default: 0 },
+            backhand_chop: { type: Number, default: 0 },
+            forehand_flick: { type: Number, default: 0 },
+            backhand_flick: { type: Number, default: 0 },
+            forehand_block: { type: Number, default: 0 },
+            backhand_block: { type: Number, default: 0 },
+            forehand_drop: { type: Number, default: 0 },
+            backhand_drop: { type: Number, default: 0 },
+            net_point: { type: Number, default: 0 },
+            serve_point: { type: Number, default: 0 },
           },
+        }),
+      },
+
+      // Team-specific statistics
+      teamStats: {
+        team1: {
+          gamesWon: { type: Number, default: 0 },
+          gamesLost: { type: Number, default: 0 },
+          // Individual player contributions in team context
+          playerContributions: [
+            {
+              playerName: String,
+              gamesPlayed: { type: Number, default: 0 },
+              gamesWon: { type: Number, default: 0 },
+              shotsPlayed: { type: Number, default: 0 },
+              winners: { type: Number, default: 0 },
+              errors: { type: Number, default: 0 },
+            },
+          ],
         },
-        player2: {
-          winners: { type: Number, default: 0 },
-          errors: { type: Number, default: 0 },
-          aces: { type: Number, default: 0 },
-          shotBreakdown: {
-            forehand: { type: Number, default: 0 },
-            backhand: { type: Number, default: 0 },
-            smash: { type: Number, default: 0 },
-            serve: { type: Number, default: 0 },
-          },
+        team2: {
+          gamesWon: { type: Number, default: 0 },
+          gamesLost: { type: Number, default: 0 },
+          // Individual player contributions in team context
+          playerContributions: [
+            {
+              playerName: String,
+              gamesPlayed: { type: Number, default: 0 },
+              gamesWon: { type: Number, default: 0 },
+              shotsPlayed: { type: Number, default: 0 },
+              winners: { type: Number, default: 0 },
+              errors: { type: Number, default: 0 },
+            },
+          ],
         },
       },
     },
@@ -166,5 +195,25 @@ const matchSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Pre-save middleware to calculate derived statistics
+matchSchema.pre("save", function () {
+  // Calculate average rally length
+  if (this.statistics.totalRallies > 0) {
+    this.statistics.averageRallyLength =
+      this.statistics.totalShots / this.statistics.totalRallies;
+  }
+
+  // Update team statistics for team matches
+  if (this.matchCategory === "team") {
+    const team1Wins = this.games.filter((g) => g.winner === "player1").length;
+    const team2Wins = this.games.filter((g) => g.winner === "player2").length;
+
+    this.statistics.teamStats.team1.gamesWon = team1Wins;
+    this.statistics.teamStats.team1.gamesLost = team2Wins;
+    this.statistics.teamStats.team2.gamesWon = team2Wins;
+    this.statistics.teamStats.team2.gamesLost = team1Wins;
+  }
+});
 
 export default mongoose.models.Match || mongoose.model("Match", matchSchema);

@@ -3,6 +3,7 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,6 +27,9 @@ const ShotSelector = () => {
         <DialogHeader>
           <DialogTitle>Select Shot Type</DialogTitle>
         </DialogHeader>
+        <DialogDescription>
+          Select the type of shot played.
+        </DialogDescription>
 
         <ScrollArea className="h-96">
           <div className="space-y-4">

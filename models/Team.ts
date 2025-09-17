@@ -12,21 +12,19 @@ const teamSchema = new mongoose.Schema({
     required: true
   },
   players: [{
-    player: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    role: String, // captain, player
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String, enum: ["captain", "player"], default: "player" },
     joinedDate: { type: Date, default: Date.now }
   }],
-  description: String,
   city: String,
   stats: {
     totalMatches: { type: Number, default: 0 },
     wins: { type: Number, default: 0 },
     losses: { type: Number, default: 0 },
-    winPercentage: { type: Number, default: 0 }
-  }
+    winPercentage: { type: Number, default: 0 },
+    gamesWon: { type: Number, default: 0 },
+    gamesLost: { type: Number, default: 0 },
+  }, 
 }, {
   timestamps: true
 });
