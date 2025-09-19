@@ -63,14 +63,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Basic required fields
-    if (
-      !body.matchCategory ||
-      !body.matchType ||
-      !body.numberOfSets ||
-      !body.city
-    ) {
+    if (!body.matchCategory || !body.matchType || !body.city) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // For individual matches -> require numberOfSets
+    if (body.matchCategory === "individual" && !body.numberOfSets) {
+      return NextResponse.json(
+        { error: "numberOfSets is required for individual matches" },
+        { status: 400 }
+      );
+    }
+
+    // For team matches -> require setsPerTie
+    if (body.matchCategory === "team" && !body.setsPerTie) {
+      return NextResponse.json(
+        { error: "setsPerTie is required for team matches" },
         { status: 400 }
       );
     }
@@ -78,12 +89,20 @@ export async function POST(request: NextRequest) {
     const matchData: any = {
       matchCategory: body.matchCategory,
       matchType: body.matchType,
-      numberOfSets: Number(body.numberOfSets),
       city: body.city,
       venue: body.venue || body.city,
       scorer: scorer._id,
       status: "scheduled",
     };
+
+    // Clean up so only the right field is saved
+    if (body.matchCategory === "individual") {
+      matchData.numberOfSets = Number(body.numberOfSets);
+      delete matchData.setsPerTie; // ensure not set
+    } else if (body.matchCategory === "team") {
+      matchData.setsPerTie = Number(body.setsPerTie);
+      delete matchData.numberOfSets; // ensure not set
+    }
 
     if (body.matchCategory === "individual") {
       const p = normalizeParticipants(
@@ -167,25 +186,23 @@ export async function POST(request: NextRequest) {
       // Attach refs (ObjectId strings)
       matchData.team1 = team1Doc._id;
       matchData.team2 = team2Doc._id;
-
-      // Optionally: also set team names and players snapshot (useful for quick read)
-      matchData.team1Snapshot = {
-        name: team1Doc.name,
-        players: team1Doc.players ?? [],
-      };
-      matchData.team2Snapshot = {
-        name: team2Doc.name,
-        players: team2Doc.players ?? [],
-      };
     }
 
     const newMatch = new Match(matchData);
     await newMatch.save();
 
     // populate scorer and teams so frontend receives usable objects
-    await newMatch.populate("scorer", "username fullName");
-    await newMatch.populate("team1", "name city players");
-    await newMatch.populate("team2", "name city players");
+    await newMatch.populate([
+      { path: "scorer", select: "username fullName" },
+      {
+        path: "team1",
+        populate: { path: "players.user", select: "username fullName" },
+      },
+      {
+        path: "team2",
+        populate: { path: "players.user", select: "username fullName" },
+      },
+    ]);
 
     return NextResponse.json(
       { success: true, match: newMatch, message: "Match created successfully" },
@@ -229,8 +246,14 @@ export async function GET(request: NextRequest) {
     const matches = await Match.find(query)
       .populate("scorer", "username fullName")
       .populate("participants", "username fullName")
-      .populate("team1", "name city players")
-      .populate("team2", "name city players")
+      .populate({
+        path: "team1",
+        populate: { path: "players.user", select: "username fullName" },
+      })
+      .populate({
+        path: "team2",
+        populate: { path: "players.user", select: "username fullName" },
+      })
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit)

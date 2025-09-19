@@ -20,14 +20,79 @@ import { useState } from "react";
 
 const teamSchema = z.object({
   name: z.string().min(2, "Team name is required"),
-  captain: z.string().min(2, "Captain name is required"),
+  captain: z.string().min(1, "Captain is required"),
   city: z.string().optional(),
   players: z.array(z.string()).min(2, "Add at least 2 players"),
 });
 
+type User = { _id: string; username: string; fullName?: string };
+
+function UserSearchInput({ placeholder, onSelect, clearAfterSelect = false }: {
+  placeholder: string;
+  onSelect: (u: User) => void;
+  clearAfterSelect?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSuggestions = async (val: string) => {
+    setQuery(val);
+    if (val.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/users/search?q=${val}`);
+      const data = await res.json();
+      setSuggestions(data.users || []);
+    } catch (err) {
+      console.error("Error fetching suggestions", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        placeholder={placeholder}
+        value={query}
+        onChange={(e) => fetchSuggestions(e.target.value)}
+      />
+      {loading && (
+        <div className="absolute right-2 top-2 text-xs text-gray-400">
+          loading...
+        </div>
+      )}
+      {suggestions.length > 0 && (
+        <ul className="absolute z-10 bg-white border rounded w-full mt-1 max-h-40 overflow-y-auto shadow">
+          {suggestions.map((u) => (
+            <li
+              key={u._id}
+              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                onSelect(u);
+                if (clearAfterSelect) {
+                  setQuery("");
+                } else {
+                  setQuery(u.username);
+                }
+                setSuggestions([]); // hide list
+              }}
+            >
+              {u.fullName ? `${u.fullName} (${u.username})` : u.username}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function CreateTeamPage() {
   const router = useRouter();
-  const [playerInput, setPlayerInput] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
 
   const form = useForm({
@@ -35,17 +100,16 @@ export default function CreateTeamPage() {
     defaultValues: { name: "", captain: "", city: "", players: [] },
   });
 
-  const addPlayer = () => {
-    if (playerInput.trim() !== "" && !players.includes(playerInput.trim())) {
-      const updated = [...players, playerInput.trim()];
+  const addPlayer = (username: string) => {
+    if (username && !players.includes(username)) {
+      const updated = [...players, username];
       setPlayers(updated);
       form.setValue("players", updated);
-      setPlayerInput("");
     }
   };
 
-  const removePlayer = (p: string) => {
-    const updated = players.filter((x) => x !== p);
+  const removePlayer = (username: string) => {
+    const updated = players.filter((p) => p !== username);
     setPlayers(updated);
     form.setValue("players", updated);
   };
@@ -53,11 +117,11 @@ export default function CreateTeamPage() {
   const onSubmit = async (data: any) => {
     try {
       const payload = { ...data, players };
-      console.log(payload);
       const res = await axiosInstance.post("/teams", payload);
       toast.success("Team created!");
       router.push("/teams");
     } catch (err: any) {
+      console.error("Error creating team:", err);
       toast.error("Failed to create team");
     }
   };
@@ -83,16 +147,17 @@ export default function CreateTeamPage() {
             )}
           />
 
-          {/* Team Captain */}
+          {/* Captain */}
           <FormField
             control={form.control}
             name="captain"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Team Captain</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter captain's name" {...field} />
-                </FormControl>
+                <UserSearchInput
+                  placeholder="Search captain by username"
+                  onSelect={(u) => form.setValue("captain", u.username)}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -119,17 +184,12 @@ export default function CreateTeamPage() {
             name="players"
             render={() => (
               <FormItem>
-                <FormLabel>Players (Usernames)</FormLabel>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter username"
-                    value={playerInput}
-                    onChange={(e) => setPlayerInput(e.target.value)}
-                  />
-                  <Button type="button" onClick={addPlayer}>
-                    Add
-                  </Button>
-                </div>
+                <FormLabel>Players</FormLabel>
+                <UserSearchInput
+                  placeholder="Search player by username"
+                  clearAfterSelect
+                  onSelect={(u) => addPlayer(u.username)}
+                />
 
                 {/* Player List */}
                 <div className="mt-3 space-y-2">

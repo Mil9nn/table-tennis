@@ -122,3 +122,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .btn {
+    @apply flex items-center justify-center rounded-full font-medium px-6 py-3 transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-white text-indigo-600 shadow-md hover:bg-gray-100 hover:scale-105 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply border-2 border-white text-white hover:bg-white/20 hover:scale-105 active:scale-95;
+  }
+}

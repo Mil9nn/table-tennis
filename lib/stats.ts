@@ -1,6 +1,5 @@
 // lib/stats.ts
 import Match from "@/models/Match";
-import dbConnect from "./db";
 
 export async function computeMatchStats(matchId: string) {
   await dbConnect();

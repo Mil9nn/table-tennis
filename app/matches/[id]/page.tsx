@@ -1,11 +1,18 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Play, BarChart3, ArrowLeft, Users, Calendar, MapPin } from 'lucide-react';
-import Link from 'next/link';
+import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Play,
+  BarChart3,
+  ArrowLeft,
+  Users,
+  Calendar,
+  MapPin,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -25,34 +32,41 @@ export default function MatchDetailsPage() {
         setMatch(data.match);
       }
     } catch (error) {
-      console.error('Error fetching match:', error);
+      console.error("Error fetching match:", error);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="container mx-auto py-8 text-center">Loading match...</div>;
+    return (
+      <div className="container mx-auto py-8 text-center">Loading match...</div>
+    );
   }
 
   if (!match) {
-    return <div className="container mx-auto py-8 text-center">Match not found</div>;
+    return (
+      <div className="container mx-auto py-8 text-center">Match not found</div>
+    );
   }
 
   // Resolve display names depending on category
   const side1Name =
-  match.matchCategory === 'individual'
-    ? match.participants?.[0]?.fullName ||
-      match.participants?.[0]?.username ||
-      'Player 1'
-    : match.team1?.name || 'Team 1';
+    match.matchCategory === "individual"
+      ? match.participants?.[0]?.fullName ||
+        match.participants?.[0]?.username ||
+        "Player 1"
+      : match.team1?.name || "Team 1";
 
-const side2Name =
-  match.matchCategory === 'individual'
-    ? match.participants?.[1]?.fullName ||
-      match.participants?.[1]?.username ||
-      'Player 2'
-    : match.team2?.name || 'Team 2';
+  const side2Name =
+    match.matchCategory === "individual"
+      ? match.participants?.[1]?.fullName ||
+        match.participants?.[1]?.username ||
+        "Player 2"
+      : match.team2?.name || "Team 2";
+
+  console.log("Team1 players:", match.team1?.players);
+
 
   return (
     <div className="container mx-auto py-8">
@@ -65,7 +79,9 @@ const side2Name =
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">{side1Name} vs {side2Name}</h1>
+          <h1 className="text-3xl font-bold">
+            {side1Name} vs {side2Name}
+          </h1>
           <p className="text-gray-600">Match Details</p>
         </div>
       </div>
@@ -77,7 +93,11 @@ const side2Name =
           <div className="border rounded-lg p-6 shadow-sm bg-white">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Match Information</h2>
-              <Badge className={match.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}>
+              <Badge
+                className={
+                  match.status === "completed" ? "bg-green-500" : "bg-blue-500"
+                }
+              >
                 {match.status}
               </Badge>
             </div>
@@ -103,25 +123,35 @@ const side2Name =
           {/* Players / Teams */}
           <div className="border rounded-lg p-6 shadow-sm bg-white">
             <h2 className="text-xl font-semibold mb-4">
-              {match.matchCategory === 'individual' ? 'Players' : 'Teams'}
+              {match.matchCategory === "individual" ? "Players" : "Teams"}
             </h2>
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
-                {match.matchCategory === 'team' && match.team1?.players && (
+                {match.team1?.players && (
                   <ul className="space-y-1 text-sm text-gray-600">
                     {match.team1.players.map((player: any, index: number) => (
-                      <li key={index}>{player}</li>
+                      <li key={index}>
+                        {player.user?.fullName ||
+                          player.user?.username ||
+                          "Unnamed"}
+                        {player.role ? ` (${player.role})` : ""}
+                      </li>
                     ))}
                   </ul>
                 )}
               </div>
               <div>
                 <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
-                {match.matchCategory === 'team' && match.team2?.players && (
+                {match.team2?.players && (
                   <ul className="space-y-1 text-sm text-gray-600">
                     {match.team2.players.map((player: any, index: number) => (
-                      <li key={index}>{player}</li>
+                      <li key={index}>
+                        {player.user?.fullName ||
+                          player.user?.username ||
+                          "Unnamed"}
+                        {player.role ? ` (${player.role})` : ""}
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -136,11 +166,14 @@ const side2Name =
           <div className="border rounded-lg p-6 shadow-sm bg-white">
             <h2 className="text-xl font-semibold mb-4">Actions</h2>
             <div className="space-y-3">
-              {(match.status === 'scheduled' || match.status === 'in_progress') && (
+              {(match.status === "scheduled" ||
+                match.status === "in_progress") && (
                 <Button className="w-full gap-2" asChild>
                   <Link href={`/matches/${matchId}/score`}>
                     <Play className="w-4 h-4" />
-                    {match.status === 'scheduled' ? 'Start Match' : 'Continue Match'}
+                    {match.status === "scheduled"
+                      ? "Start Match"
+                      : "Continue Match"}
                   </Link>
                 </Button>
               )}
@@ -177,7 +210,7 @@ const side2Name =
               {match.winner && (
                 <div className="mt-4 text-center">
                   <Badge className="bg-green-500">
-                    Winner: {match.winner === 'team1' ? side1Name : side2Name}
+                    Winner: {match.winner === "team1" ? side1Name : side2Name}
                   </Badge>
                 </div>
               )}

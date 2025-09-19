@@ -14,47 +14,89 @@ export async function POST(
     const match = await Match.findById(id);
     if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
-    // Extract scores
     const side1Score = Number(body.side1Score ?? body.player1Score ?? 0);
     const side2Score = Number(body.side2Score ?? body.player2Score ?? 0);
-    const { gameNumber = 1, shotData, gameWinner } = body;
+    const { tieNumber, gameNumber = 1, shotData, gameWinner } = body;
 
-    // Find or create game
-    let currentGame = match.games.find((g) => Number(g.gameNumber) === Number(gameNumber));
-    if (!currentGame) {
-      currentGame = {
-        gameNumber: Number(gameNumber),
-        side1Score: 0,
-        side2Score: 0,
-        shots: [],
-        startTime: new Date(),
-      };
+    let currentGame: any;
+
+    // 🏓 TEAM MATCH: update inside ties[tieNumber].games[]
+    if (match.matchCategory === "team" && tieNumber) {
+      const tieIndex = Number(tieNumber) - 1;
+      const tie = match.ties?.[tieIndex];
+      if (!tie) {
+        return NextResponse.json({ error: "Invalid tie number" }, { status: 400 });
+      }
+
+      currentGame = tie.games.find((g: any) => Number(g.gameNumber) === Number(gameNumber));
+      if (!currentGame) {
+        currentGame = {
+          gameNumber: Number(gameNumber),
+          side1Score: 0,
+          side2Score: 0,
+          shots: [],
+          startTime: new Date(),
+        };
+
+        if (body.currentPlayers) {
+          const cp = body.currentPlayers;
+          currentGame.participants = {
+            team1: cp.team1 ?? [],
+            team2: cp.team2 ?? [],
+          };
+        }
+
+        tie.games.push(currentGame);
+      }
+
+      currentGame.side1Score = side1Score;
+      currentGame.side2Score = side2Score;
+
+      // optional update of participants
+      if (body.currentPlayers) {
+        const cp = body.currentPlayers;
+        currentGame.participants = {
+          team1: cp.team1 ?? currentGame.participants?.team1 ?? [],
+          team2: cp.team2 ?? currentGame.participants?.team2 ?? [],
+        };
+      }
+
+    } else {
+      // 👤 INDIVIDUAL MATCH: update inside match.games[]
+      currentGame = match.games.find((g: any) => Number(g.gameNumber) === Number(gameNumber));
+      if (!currentGame) {
+        currentGame = {
+          gameNumber: Number(gameNumber),
+          side1Score: 0,
+          side2Score: 0,
+          shots: [],
+          startTime: new Date(),
+        };
+
+        if (body.currentPlayers) {
+          const cp = body.currentPlayers;
+          currentGame.currentPlayers = {
+            side1: cp.side1 ?? cp.player1 ?? cp.team1 ?? "",
+            side2: cp.side2 ?? cp.player2 ?? cp.team2 ?? "",
+          };
+        }
+
+        match.games.push(currentGame);
+      }
+
+      currentGame.side1Score = side1Score;
+      currentGame.side2Score = side2Score;
 
       if (body.currentPlayers) {
         const cp = body.currentPlayers;
         currentGame.currentPlayers = {
-          side1: cp.side1 ?? cp.player1 ?? cp.team1 ?? "",
-          side2: cp.side2 ?? cp.player2 ?? cp.team2 ?? "",
+          side1: cp.side1 ?? currentGame.currentPlayers?.side1 ?? "",
+          side2: cp.side2 ?? currentGame.currentPlayers?.side2 ?? "",
         };
       }
-
-      match.games.push(currentGame);
     }
 
-    // Update scores
-    currentGame.side1Score = side1Score;
-    currentGame.side2Score = side2Score;
-
-    // Update players if provided
-    if (body.currentPlayers) {
-      const cp = body.currentPlayers;
-      currentGame.currentPlayers = {
-        side1: cp.side1 ?? currentGame.currentPlayers?.side1 ?? "",
-        side2: cp.side2 ?? currentGame.currentPlayers?.side2 ?? "",
-      };
-    }
-
-    // Add shot
+    // 🎯 SHOT TRACKING
     if (shotData) {
       const shotEntry: any = {
         shotNumber: (currentGame.shots?.length ?? 0) + 1,
@@ -70,42 +112,39 @@ export async function POST(
 
       currentGame.shots.push(shotEntry);
 
-      // Update statistics
       match.statistics.totalShots = (match.statistics.totalShots || 0) + 1;
 
-      // Track playerStats
       const playerKey = shotData.playerId?.toString() || shotData.playerName || shotEntry.side;
       if (playerKey) {
         if (!match.statistics.playerStats) match.statistics.playerStats = new Map();
         if (!match.statistics.playerStats.get(playerKey)) {
           match.statistics.playerStats.set(playerKey, {
             winners: 0,
-            errors: 0,
+            unForcedErrors: 0,
             aces: 0,
             detailedShots: {},
           });
         }
         const stats = match.statistics.playerStats.get(playerKey);
 
-        // Detailed shot
         if (shotData.shotType) {
           stats.detailedShots[shotData.shotType] =
             (stats.detailedShots[shotData.shotType] || 0) + 1;
         }
         if (shotData.result === "winner") stats.winners++;
-        if (shotData.result === "error") stats.errors++;
+        if (shotData.result === "unforcedError") stats.unforcedError++;
         if (shotData.shotType === "serve_point") stats.aces++;
 
         match.statistics.playerStats.set(playerKey, stats);
       }
     }
 
-    // Handle game winner
+    // 🏆 HANDLE GAME WINNER
     if (gameWinner && !currentGame.winner) {
       let normalizedWinner: "side1" | "side2" | null = null;
       const gw = String(gameWinner).toLowerCase();
-      if (gw === "player1" || gw === "side1" || gw === "team1") normalizedWinner = "side1";
-      if (gw === "player2" || gw === "side2" || gw === "team2") normalizedWinner = "side2";
+      if (["player1", "side1", "team1"].includes(gw)) normalizedWinner = "side1";
+      if (["player2", "side2", "team2"].includes(gw)) normalizedWinner = "side2";
 
       currentGame.winner = normalizedWinner;
       currentGame.endTime = new Date();
@@ -113,11 +152,9 @@ export async function POST(
         ? Math.floor((+currentGame.endTime - +currentGame.startTime) / 1000)
         : undefined;
 
-      // Update match final score
       if (normalizedWinner === "side1") match.finalScore.side1Sets++;
       if (normalizedWinner === "side2") match.finalScore.side2Sets++;
 
-      // Completion check
       const setsToWin = Math.ceil((match.numberOfSets ?? 3) / 2);
       if (match.finalScore.side1Sets >= setsToWin) {
         match.winner = "side1";
@@ -128,21 +165,28 @@ export async function POST(
       }
     }
 
-    // Update match duration
-    if (match.status === "completed" && match.games.length > 0) {
-      const firstGame = match.games[0];
-      const lastGame = match.games[match.games.length - 1];
-      if (firstGame.startTime && lastGame.endTime) {
-        match.matchDuration = Math.floor((+lastGame.endTime - +firstGame.startTime) / 1000);
+    // ⏱️ MATCH DURATION
+    if (match.status === "completed") {
+      const allGames =
+        match.matchCategory === "team"
+          ? match.ties.flatMap((t: any) => t.games)
+          : match.games;
+
+      if (allGames.length > 0) {
+        const firstGame = allGames[0];
+        const lastGame = allGames[allGames.length - 1];
+        if (firstGame.startTime && lastGame.endTime) {
+          match.matchDuration = Math.floor((+lastGame.endTime - +firstGame.startTime) / 1000);
+        }
       }
     }
 
-    // Save and populate
     await match.save();
     await match.populate([
       { path: "scorer", select: "username fullName" },
-      { path: "team1", select: "name city players" },
-      { path: "team2", select: "name city players" },
+      { path: "participants", select: "username fullName" },
+      { path: "team1", populate: { path: "players.user", select: "username fullName" } },
+      { path: "team2", populate: { path: "players.user", select: "username fullName" } },
     ]);
 
     return NextResponse.json({ match, message: "Score updated successfully" });

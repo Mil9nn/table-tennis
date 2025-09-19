@@ -1,38 +1,53 @@
 import { NextResponse } from "next/server";
 import Team from "@/models/Team";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, context: { params: { id: string } }) {
   try {
-    const team = await Team.findById(params.id)
-      .populate("captain", "username name")
-      .populate("players.user", "username name");
+    const { id } = await context.params;
+    const team = await Team.findById(id)
+      .populate("captain", "username fullName")
+      .populate("players.user", "username fullName");
 
     if (!team) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ team });
+    // Merge assignments into players
+    const playersWithAssignments = team.players.map((p: any) => ({
+      ...p.toObject(),
+      assignment: team.assignments.get(p.user._id.toString()) || null,
+    }));
+
+    return NextResponse.json({
+      team: { ...team.toObject(), players: playersWithAssignments },
+    });
   } catch (error: any) {
     console.error("Error fetching team:", error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, context: { params: { id: string } }) {
   try {
     const body = await req.json();
+    const { assignments, ...rest } = body;
 
-    const updatedTeam = await Team.findByIdAndUpdate(params.id, body, {
-      new: true,
-    })
-      .populate("captain", "username name")
-      .populate("players.user", "username name");
+    const { id } = await context.params;
+
+    const updatedTeam = await Team.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...rest,
+          ...(assignments
+            ? { assignments: new Map(Object.entries(assignments)) }
+            : {}),
+        },
+      },
+      { new: true }
+    )
+      .populate("captain", "username fullName")
+      .populate("players.user", "username fullName");
 
     if (!updatedTeam) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });

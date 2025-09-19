@@ -115,7 +115,7 @@ export default function MatchStatistics({ matchId }: { matchId: string }) {
   // Performance (winners / errors / aces)
   const performanceData = [
     { category: 'Winners', [side1Name]: side1Stats.winners || 0, [side2Name]: side2Stats.winners || 0 },
-    { category: 'Errors', [side1Name]: side1Stats.errors || 0, [side2Name]: side2Stats.errors || 0 },
+    { category: 'UnforcedErrors', [side1Name]: side1Stats.unforcedErrors || 0, [side2Name]: side2Stats.unforcedErrors || 0 },
     { category: 'Aces', [side1Name]: side1Stats.aces || 0, [side2Name]: side2Stats.aces || 0 },
   ];
 
@@ -287,7 +287,7 @@ export default function MatchStatistics({ matchId }: { matchId: string }) {
         <TabsContent value="performance" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Winners, Errors, Aces</CardTitle>
+              <CardTitle>Winners, UnforcedErrors, Aces</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -308,11 +308,11 @@ export default function MatchStatistics({ matchId }: { matchId: string }) {
               <CardHeader><CardTitle>{side1Name} Stats</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex justify-between"><span>Winners</span><strong>{side1Stats.winners || 0}</strong></div>
-                <div className="flex justify-between"><span>Errors</span><strong>{side1Stats.errors || 0}</strong></div>
+                <div className="flex justify-between"><span>UnforcedErrors</span><strong>{side1Stats.unforcedErrors || 0}</strong></div>
                 <div className="flex justify-between"><span>Aces</span><strong>{side1Stats.aces || 0}</strong></div>
                 <div className="pt-2">
                   <div className="text-sm text-gray-600 mb-1">Win Percentage</div>
-                  <Progress value={side1Stats.winners ? Math.round((side1Stats.winners / (side1Stats.winners + (side1Stats.errors || 0)))*100) : 0} className="h-2" />
+                  <Progress value={side1Stats.winners ? Math.round((side1Stats.winners / (side1Stats.winners + (side1Stats.unforcedErrors || 0)))*100) : 0} className="h-2" />
                 </div>
               </CardContent>
             </Card>
@@ -321,11 +321,11 @@ export default function MatchStatistics({ matchId }: { matchId: string }) {
               <CardHeader><CardTitle>{side2Name} Stats</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex justify-between"><span>Winners</span><strong>{side2Stats.winners || 0}</strong></div>
-                <div className="flex justify-between"><span>Errors</span><strong>{side2Stats.errors || 0}</strong></div>
+                <div className="flex justify-between"><span>UnforcedErrors</span><strong>{side2Stats.unforcedErrors || 0}</strong></div>
                 <div className="flex justify-between"><span>Aces</span><strong>{side2Stats.aces || 0}</strong></div>
                 <div className="pt-2">
                   <div className="text-sm text-gray-600 mb-1">Win Percentage</div>
-                  <Progress value={side2Stats.winners ? Math.round((side2Stats.winners / (side2Stats.winners + (side2Stats.errors || 0)))*100) : 0} className="h-2" />
+                  <Progress value={side2Stats.winners ? Math.round((side2Stats.winners / (side2Stats.winners + (side2Stats.unforcedErrors || 0)))*100) : 0} className="h-2" />
                 </div>
               </CardContent>
             </Card>

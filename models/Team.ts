@@ -24,7 +24,12 @@ const teamSchema = new mongoose.Schema({
     winPercentage: { type: Number, default: 0 },
     gamesWon: { type: Number, default: 0 },
     gamesLost: { type: Number, default: 0 },
-  }, 
+  },
+  assignments: {
+    type: Map,
+    of: String,
+    default: {}
+  } 
 }, {
   timestamps: true
 });

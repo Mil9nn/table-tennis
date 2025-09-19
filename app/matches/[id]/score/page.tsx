@@ -2,9 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import LiveScorer from '@/components/LiveScorer';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart3 } from 'lucide-react';
 
 export default function MatchScorePage() {
   const params = useParams();

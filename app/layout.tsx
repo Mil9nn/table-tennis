@@ -2,7 +2,7 @@
 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ModernNavbar from "@/components/ui/Navbar";
+import Navbar from "@/components/Navbar";
 import { useEffect } from "react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { axiosInstance } from "@/lib/axiosInstance";
@@ -45,7 +45,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ModernNavbar />
+        <Navbar />
         <div className="pt-16 max-sm:pb-10">
           {children}
           <Toaster position="top-right" />

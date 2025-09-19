@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Plus, Play, BarChart3, Calendar } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 
@@ -24,16 +31,8 @@ type Match = {
   createdAt?: string;
   city?: string;
   participants?: Participant[];
-  // team objects for team matches
-  team1?: {
-    name?: string;
-    players?: TeamPlayer[];
-  };
-  team2?: {
-    name?: string;
-    players?: TeamPlayer[];
-  };
-  // finalScore might use different keys depending on schema version
+  team1?: { name?: string; players?: TeamPlayer[] };
+  team2?: { name?: string; players?: TeamPlayer[] };
   finalScore?: {
     player1Sets?: number;
     player2Sets?: number;
@@ -45,23 +44,17 @@ type Match = {
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMatches();
   }, []);
 
   const fetchMatches = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      // use GET to fetch matches (your API's GET route)
-      const response = await axiosInstance.get("/matches");
-      const data = response.data;
-      setMatches(data.matches || []);
-    } catch (err: any) {
-      console.error("Error fetching matches:", err);
-      setError(err?.message || "Failed to fetch matches");
+      const res = await axiosInstance.get("/matches");
+      setMatches(res.data.matches || []);
+    } catch (err) {
+      console.error("Error fetching matches", err);
     } finally {
       setLoading(false);
     }
@@ -89,14 +82,13 @@ export default function MatchesPage() {
       .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
       .join(" ");
 
-  const getTypeLabel = (m?: Match) => {
-    if (!m) return "";
+  const getTypeLabel = (m: Match) => {
     const map: Record<string, string> = {
       singles: "Singles",
       doubles: "Doubles",
       mixed_doubles: "Mixed Doubles",
       five_singles: "5 Singles",
-      single_double_single: "Single-Double-Single (SDS)",
+      single_double_single: "SDS",
       extended_format: "Extended",
       three_singles: "3 Singles",
       custom: "Custom",
@@ -104,180 +96,110 @@ export default function MatchesPage() {
     return map[m.matchType] ?? humanize(m.matchType);
   };
 
-  const formatDate = (iso?: string) => {
-    if (!iso) return "-";
-    try {
-      return new Date(iso).toLocaleDateString();
-    } catch {
-      return iso;
-    }
-  };
+  const formatDate = (iso?: string) =>
+    iso ? new Date(iso).toLocaleDateString() : "-";
 
   if (loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">Loading matches...</div>
-      </div>
-    );
+    return <div className="p-8 text-center">Loading matches...</div>;
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center space-y-4">
-          <div className="text-red-600 font-medium">Failed to load matches</div>
-          <div className="text-sm text-gray-600">{error}</div>
-          <div>
-            <Button onClick={fetchMatches}>Retry</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (matches.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">No matches yet</h3>
-            <p className="text-gray-600 mb-4">
-              Create your first match to get started
-            </p>
-          </div>
+  return (
+    <div className="py-8">
+      {/* Header */}
+      <header className="px-6 mb-6">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold">All Matches</h1>
           <Link href="/matches/create">
-            <Button size="lg" className="gap-2">
+            <Button className="cursor-pointer gap-2">
               <Plus className="w-4 h-4" />
               Create Match
             </Button>
           </Link>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto py-8">
-      <header className="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between mb-6">
-        {/* Title + Stats */}
-        <div>
-          <h1 className="text-2xl font-bold">All Matches</h1>
-          <p className="text-sm text-gray-500">
-            Total Matches: 124 | Singles: 85 | Doubles: 39
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Search player..."
-            className="border rounded-lg px-3 py-2 text-sm"
-          />
-          <select className="border rounded-lg px-2 py-2 text-sm">
-            <option>All Types</option>
-            <option>Singles</option>
-            <option>Doubles</option>
-          </select>
-          <select className="border rounded-lg px-2 py-2 text-sm">
-            <option>All Status</option>
-            <option>Completed</option>
-            <option>Ongoing</option>
-          </select>
-        </div>
+        <p className="text-sm text-gray-500">Manage and track your matches</p>
       </header>
 
-      {/* Matches Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {matches.map((match) => {
-          const leftLabel =
-            match.matchCategory === "individual"
-              ? match.participants?.[0]?.fullName ||
-                match.participants?.[0]?.username ||
-                "Player 1"
-              : match.team1?.name ?? "Team 1";
+      {/* Table */}
+      <div className="border shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead>Date</TableHead>
+              <TableHead>Match</TableHead>
+              <TableHead>City</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Score</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {matches.map((m) => {
+              const left =
+                m.matchCategory === "individual"
+                  ? m.participants?.[0]?.fullName ||
+                    m.participants?.[0]?.username ||
+                    "Player 1"
+                  : m.team1?.name ?? "Team 1";
 
-          const rightLabel =
-            match.matchCategory === "individual"
-              ? match.participants?.[1]?.fullName ||
-                match.participants?.[1]?.username ||
-                "Player 2"
-              : match.team2?.name ?? "Team 2";
+              const right =
+                m.matchCategory === "individual"
+                  ? m.participants?.[1]?.fullName ||
+                    m.participants?.[1]?.username ||
+                    "Player 2"
+                  : m.team2?.name ?? "Team 2";
 
-          // support both finalScore shapes
-          const side1Sets =
-            match.finalScore?.player1Sets ?? match.finalScore?.side1Sets ?? 0;
-          const side2Sets =
-            match.finalScore?.player2Sets ?? match.finalScore?.side2Sets ?? 0;
+                const side1Sets = m.finalScore?.side1Sets ?? 0;
+                const side2Sets = m.finalScore?.side2Sets ?? 0;
 
-            console.log("Left Label:", leftLabel);
-            console.log("Side 1 Sets:", side1Sets);
 
-          return (
-            <Card key={match._id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">
-                    {leftLabel} vs {rightLabel}
-                  </CardTitle>
-                  <Badge
-                    className={`${getStatusColor(match.status)} text-white`}
-                  >
-                    {match.status ?? "unknown"}
-                  </Badge>
-                </div>
-
-                <div className="text-sm text-gray-600 space-y-1 mt-2">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(match.createdAt)}
-                  </div>
-                  <div>{match.city ?? "-"}</div>
-                  <div className="capitalize">{getTypeLabel(match)}</div>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                {/* Score Display */}
-                <div className="flex justify-center items-center gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {side1Sets}
+              return (
+                <TableRow key={m._id} className="hover:bg-gray-50">
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-gray-400" />
+                      {formatDate(m.createdAt)}
                     </div>
-                    <div className="text-xs text-gray-600">Sets</div>
-                  </div>
-                  <div className="text-xl text-gray-400">-</div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">
-                      {side2Sets}
-                    </div>
-                    <div className="text-xs text-gray-600">Sets</div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 justify-center">
-                  {(match.status === "scheduled" ||
-                    match.status === "in_progress") && (
-                    <Link href={`/matches/${match._id}/score`}>
-                      <Button size="sm" className="gap-1">
-                        <Play className="w-3 h-3" />
-                        {match.status === "scheduled" ? "Start" : "Continue"}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {left} <span className="text-gray-400">vs</span> {right}
+                  </TableCell>
+                  <TableCell>{m.city ?? "-"}</TableCell>
+                  <TableCell>{getTypeLabel(m)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={`${getStatusColor(
+                        m.status
+                      )} text-white text-xs rounded-full`}
+                    >
+                      {humanize(m.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center font-semibold">
+                    {side1Sets} - {side2Sets}
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    {(m.status === "scheduled" ||
+                      m.status === "in_progress") && (
+                      <Link href={`/matches/${m._id}/score`}>
+                        <Button size="sm" className="gap-1">
+                          <Play className="w-3 h-3" />
+                          {m.status === "scheduled" ? "Start" : "Continue"}
+                        </Button>
+                      </Link>
+                    )}
+                    <Link href={`/matches/${m._id}/stats`}>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        <BarChart3 className="w-3 h-3" />
+                        Stats
                       </Button>
                     </Link>
-                  )}
-
-                  <Link href={`/matches/${match._id}/stats`}>
-                    <Button size="sm" variant="outline" className="gap-1">
-                      <BarChart3 className="w-3 h-3" />
-                      Stats
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

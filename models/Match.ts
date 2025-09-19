@@ -48,19 +48,19 @@ const gameSchema = new mongoose.Schema({
   participants: {
     team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  }
+  },
 });
 
 const tieSchema = new mongoose.Schema({
   tieNumber: Number,
-  type: { type: String, enum: ["singles", "doubles"]},
+  type: { type: String, enum: ["singles", "doubles"] },
   participants: {
     team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   games: [gameSchema],
   winner: { type: String, enum: ["team1", "team2"] },
-})
+});
 
 const matchSchema = new mongoose.Schema(
   {
@@ -73,9 +73,16 @@ const matchSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // For individual matches
     numberOfSets: {
       type: Number,
       enum: [1, 3, 5, 7, 9],
+      default: 3,
+    },
+    // For team matches
+    setsPerTie: {
+      type: Number,
+      enum: [1, 3, 5, 7],
       default: 3,
     },
     city: String,
@@ -100,6 +107,7 @@ const matchSchema = new mongoose.Schema(
       default: "scheduled",
     },
     currentGame: { type: Number, default: 1 },
+    currentTie: { type: Number, default: 1 }, // for team matches
 
     // Games for singles/doubles matches
     games: [gameSchema],
@@ -107,10 +115,11 @@ const matchSchema = new mongoose.Schema(
     // Ties for team matches
     ties: [tieSchema],
 
-    // Match Results
     finalScore: {
       side1Sets: { type: Number, default: 0 },
       side2Sets: { type: Number, default: 0 },
+      side1Ties: { type: Number, default: 0 },
+      side2Ties: { type: Number, default: 0 },
     },
     winner: String,
     matchDuration: Number,
@@ -206,14 +215,35 @@ matchSchema.pre("save", function () {
 
   // Update team statistics for team matches
   if (this.matchCategory === "team") {
-    const team1Wins = this.games.filter((g) => g.winner === "player1").length;
-    const team2Wins = this.games.filter((g) => g.winner === "player2").length;
+    let team1Wins = 0;
+    let team2Wins = 0;
+
+    // Count wins from ties, not root-level games
+    this.ties.forEach((tie) => {
+      if (tie.winner === "team1") team1Wins++;
+      if (tie.winner === "team2") team2Wins++;
+    });
 
     this.statistics.teamStats.team1.gamesWon = team1Wins;
     this.statistics.teamStats.team1.gamesLost = team2Wins;
     this.statistics.teamStats.team2.gamesWon = team2Wins;
     this.statistics.teamStats.team2.gamesLost = team1Wins;
   }
+});
+
+tieSchema.pre("save", function (next) {
+  const parentMatch = this.parent();
+  if (
+    parentMatch.matchCategory === "team" &&
+    this.games.length > parentMatch.setsPerTie
+  ) {
+    return next(
+      new Error(
+        `Exceeded max games per tie: allowed = ${parentMatch.setsPerTie}`
+      )
+    );
+  }
+  next();
 });
 
 export default mongoose.models.Match || mongoose.model("Match", matchSchema);

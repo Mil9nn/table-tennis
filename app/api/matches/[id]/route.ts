@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Match from '@/models/Match';
 
-// Get single match
-export async function GET(request: NextRequest, { params }) {
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
     const match = await Match.findById(id)
     .populate('scorer', 'username fullName')
     .populate("participants", "username fullName")
-    .populate('team1', 'name city players')
-    .populate('team2', 'name city players');
+    .populate({ path: "team1", populate: { path: "players.user", select: "username fullName" }})
+    .populate({ path: "team2", populate: { path: "players.user", select: "username fullName" }});
 
     
     if (!match) {
@@ -24,16 +23,17 @@ export async function GET(request: NextRequest, { params }) {
   }
 }
 
-// Update match
-export async function PUT(request: NextRequest, { params }) {
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
-    
     const body = await request.json();
-    const match = await Match.findByIdAndUpdate(params.id, { $set: body }, { new: true })
+
+    const { id } = await context.params;
+
+    const match = await Match.findByIdAndUpdate(id, { $set: body }, { new: true })
     .populate('scorer', 'username fullName')
     .populate("participants", "username fullName")
-    .populate('team1', 'name city players')
-    .populate('team2', 'name city players');
+    .populate({ path: "team1", populate: { path: "players.user", select: "username fullName" }})
+    .populate({ path: "team2", populate: { path: "players.user", select: "username fullName" }});
     
     if (!match) {
       return NextResponse.json({ error: 'Match not found' }, { status: 404 });
