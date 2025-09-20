@@ -12,13 +12,11 @@ interface PlayerCardProps {
   score: number;
   isServer: boolean;
   side: "player1" | "player2";
-  onAddPoint: (payload: {
-    side: "player1" | "player2";
-    playerId?: string;
-  }) => void;
+  onAddPoint: (payload: { side: "player1" | "player2"; playerId?: string }) => void;
   onSubtractPoint: (side: "player1" | "player2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
+  disabled?: boolean;
 }
 
 export default function PlayerCard({
@@ -30,6 +28,7 @@ export default function PlayerCard({
   onSubtractPoint,
   setsWon,
   color = "emerald",
+  disabled = false,
 }: PlayerCardProps) {
   const colors = {
     emerald: {
@@ -70,17 +69,23 @@ export default function PlayerCard({
         {players.map((pl, idx) => (
           <button
             key={idx}
-            onClick={() => onAddPoint({ side, playerId: pl.playerId })}
-            className={`p-4 rounded-md shadow-md ${colors[color].add}`}
-            title={`Add point for ${pl.name}`}
+            onClick={() => !disabled && onAddPoint({ side, playerId: pl.playerId })}
+            disabled={disabled}
+            className={`p-4 rounded-md shadow-md ${colors[color].add} ${
+              disabled ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            title={disabled ? "Match finished" : `Add point for ${pl.name}`}
           >
             <Plus className="w-5 h-5" />
           </button>
         ))}
 
         <button
-          onClick={() => onSubtractPoint(side)}
-          className="bg-gray-200 hover:bg-gray-300 p-4 rounded-md text-gray-700 shadow-md"
+          onClick={() => !disabled && onSubtractPoint(side)}
+          disabled={disabled}
+          className={`bg-gray-200 hover:bg-gray-300 p-4 rounded-md text-gray-700 shadow-md ${
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           <Minus className="w-5 h-5" />
         </button>

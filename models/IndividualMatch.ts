@@ -84,14 +84,14 @@ const IndividualMatchSchema = new mongoose.Schema(
       averageRallyLength: { type: Number, default: 0 },
       longestRally: { type: Number, default: 0 },
       aces: { type: Number, default: 0 },
-      errors: { type: Number, default: 0 },
+      unforcedErrors: { type: Number, default: 0 },
 
       // Per-player stats (flexible map: works for singles, doubles, team)
       playerStats: {
         type: Map,
         of: new mongoose.Schema({
           winners: { type: Number, default: 0 },
-          errors: { type: Number, default: 0 },
+          unforcedErrors: { type: Number, default: 0 },
           aces: { type: Number, default: 0 },
           detailedShots: {
             forehand_drive: { type: Number, default: 0 },
@@ -131,7 +131,7 @@ const IndividualMatchSchema = new mongoose.Schema(
               gamesWon: { type: Number, default: 0 },
               shotsPlayed: { type: Number, default: 0 },
               winners: { type: Number, default: 0 },
-              errors: { type: Number, default: 0 },
+              unforcedErrors: { type: Number, default: 0 },
             },
           ],
         },
@@ -146,7 +146,7 @@ const IndividualMatchSchema = new mongoose.Schema(
               gamesWon: { type: Number, default: 0 },
               shotsPlayed: { type: Number, default: 0 },
               winners: { type: Number, default: 0 },
-              errors: { type: Number, default: 0 },
+              unforcedErrors: { type: Number, default: 0 },
             },
           ],
         },

@@ -2,6 +2,7 @@
 
 import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
+import SetTracker from "@/components/SetTracker";
 
 export default function ScoreBoard({
   match,
@@ -9,7 +10,9 @@ export default function ScoreBoard({
   player2Score,
   isMatchActive,
   currentServer,
-  finalScore,
+  side1Sets,
+  side2Sets,   // ✅ new props from hook
+  status,       // ✅ new prop (in_progress | completed)
   onAddPoint,
   onSubtractPoint,
   onReset,
@@ -33,8 +36,7 @@ export default function ScoreBoard({
               match.participants?.[0]?.username ??
               match.participants?.[0] ??
               "Player 1",
-            playerId:
-              match.participants?.[0]?._id ?? match.participants?.[0],
+            playerId: match.participants?.[0]?._id ?? match.participants?.[0],
           },
         ],
         p2: [
@@ -44,8 +46,7 @@ export default function ScoreBoard({
               match.participants?.[1]?.username ??
               match.participants?.[1] ??
               "Player 2",
-            playerId:
-              match.participants?.[1]?._id ?? match.participants?.[1],
+            playerId: match.participants?.[1]?._id ?? match.participants?.[1],
           },
         ],
       };
@@ -127,6 +128,14 @@ export default function ScoreBoard({
   const serverName = resolveServerName();
 
   return (
+    <div className="space-y-6">
+      <SetTracker
+      bestOf={match.numberOfSets}
+      side1Sets={side1Sets}
+      side2Sets={side2Sets}
+      status={status}
+    />
+
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-center">
       {/* Left Side */}
       <PlayerCard
@@ -140,8 +149,9 @@ export default function ScoreBoard({
         side="player1"
         onAddPoint={onAddPoint}
         onSubtractPoint={onSubtractPoint}
-        setsWon={finalScore?.side1Sets ?? 0}
+        setsWon={side1Sets}
         color="emerald"
+        disabled={status === "completed"}
       />
 
       {/* Center Controls */}
@@ -163,8 +173,9 @@ export default function ScoreBoard({
         side="player2"
         onAddPoint={onAddPoint}
         onSubtractPoint={onSubtractPoint}
-        setsWon={finalScore?.side2Sets ?? 0}
+        setsWon={side2Sets}
         color="rose"
+        disabled={status === "completed"}
       />
 
       {/* ✅ Serving indicator below */}
@@ -175,6 +186,16 @@ export default function ScoreBoard({
           </span>
         </div>
       )}
+
+      {/* ✅ Match finished message (optional) */}
+      {status === "completed" && (
+        <div className="col-span-2 md:col-span-3 text-center mt-4">
+          <span className="text-lg font-bold text-green-600">
+            🏆 Match Completed
+          </span>
+        </div>
+      )}
+    </div>
     </div>
   );
 }

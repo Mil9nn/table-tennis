@@ -1,7 +1,7 @@
-// /hooks/useIndividualMatch.ts
 import { create } from "zustand";
 import { toast } from "sonner";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 export type PlayerKey = "player1" | "player2" | null;
 type ServerKey =
@@ -18,16 +18,19 @@ interface IndividualMatchState {
   currentServer: ServerKey;
   currentGame: number;
   isMatchActive: boolean;
+  side1Sets: number;
+  side2Sets: number;
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
 
-  setIsMatchActive: (active: boolean) => void;
-  resetGame: () => void;
+  setInitialMatch: (match: any) => void;
+  resetGame: (fullReset?: boolean) => Promise<void>;
   updateScore: (
     player: PlayerKey,
     increment: number,
     shotType?: string
   ) => Promise<void>;
   subtractPoint: (player: PlayerKey) => Promise<void>;
-  toggleMatch: () => void;
+  toggleMatch: () => Promise<void>;
 }
 
 export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
@@ -50,7 +53,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       return serveCycle % 2 === 0 ? "player1" : "player2";
     }
 
-    // doubles / mixed_doubles
     const rotation: ServerKey[] = [
       "player1_main",
       "player2_main",
@@ -72,27 +74,72 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     currentServer: "player1",
     currentGame: 1,
     isMatchActive: false,
+    side1Sets: 0,
+    side2Sets: 0,
+    status: "scheduled",
 
-    setIsMatchActive: (active) => set({ isMatchActive: active }),
+    setInitialMatch: (match) => {
+      if (!match) return;
 
-    resetGame: () => {
+      const currentGameNum = match.currentGame ?? 1;
+      const idx = Math.max(0, currentGameNum - 1);
+      const currentGameObj = match.games?.[idx] ?? null;
+
+      const p1 = currentGameObj?.side1Score ?? 0;
+      const p2 = currentGameObj?.side2Score ?? 0;
+
+      const nextServer = computeNextServer(match, p1, p2);
+
       set({
-        player1Score: 0,
-        player2Score: 0,
-        currentServer: "player1",
+        player1Score: p1,
+        player2Score: p2,
+        currentGame: currentGameNum,
+        currentServer: nextServer,
+        side1Sets: match.finalScore?.side1Sets ?? 0,
+        side2Sets: match.finalScore?.side2Sets ?? 0,
+        status: match.status,
+        isMatchActive: match.status === "in_progress",
       });
-      toast.success("Game reset");
+    },
+
+    resetGame: async (fullReset = false) => {
+      const match = useMatchStore.getState().match;
+      if (!match) return;
+
+      const resetType =
+        fullReset || match.status === "completed" ? "match" : "game";
+
+      try {
+        const { data } = await axiosInstance.post(
+          `/matches/individual/${match._id}/reset`,
+          { resetType }
+        );
+
+        if (data?.match) {
+          useMatchStore.getState().setMatch(data.match);
+          get().setInitialMatch(data.match);
+          toast.success(
+            resetType === "match" ? "Match restarted" : "Game reset"
+          );
+        }
+      } catch (err) {
+        console.error("resetGame error", err);
+        toast.error("Failed to reset game");
+      }
     },
 
     updateScore: async (player, increment, shotType) => {
       const match = useMatchStore.getState().match;
-      const pendingPlayer = useMatchStore.getState().pendingPlayer; // ✅ new
-      if (!match) {
-        console.warn("updateScore called but match is null");
+      const pendingPlayer = useMatchStore.getState().pendingPlayer;
+
+      if (!match) return;
+
+      const { player1Score, player2Score, currentGame, isMatchActive } = get();
+      if (!isMatchActive) {
+        toast.error("Start the match first");
         return;
       }
 
-      const { player1Score, player2Score, currentGame } = get();
       const newP1 =
         player === "player1" ? player1Score + increment : player1Score;
       const newP2 =
@@ -109,8 +156,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       const requestBody: any = {
         gameNumber: currentGame,
-        player1Score: newP1,
-        player2Score: newP2,
         side1Score: newP1,
         side2Score: newP2,
         gameWinner,
@@ -119,92 +164,67 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       if (shotType && increment > 0) {
         requestBody.shotData = {
           side: player === "player1" ? "side1" : "side2",
-          player: pendingPlayer?.playerId, // ✅ exact playerId from PlayerCard
+          player: pendingPlayer?.playerId,
           shotType,
           result: "winner",
         };
       }
 
+      // optimistic update
+      set({ player1Score: newP1, player2Score: newP2 });
+      const nextServer = computeNextServer(match, newP1, newP2);
+      set({ currentServer: nextServer });
+
       try {
-        const url = `/api/matches/individual/${match._id}/score`;
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        });
+        const { data } = await axiosInstance.post(
+          `/matches/individual/${match._id}/score`,
+          requestBody
+        );
 
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => "");
-          console.error("score update failed", resp.status, text);
-          throw new Error(`HTTP ${resp.status}: ${text}`);
-        }
-
-        const data = await resp.json();
-
-        // refresh store with updated match
-        try {
-          const fetcher = useMatchStore.getState().fetchIndividualMatch;
-          if (typeof fetcher === "function") {
-            await fetcher(match._id);
-          } else if (data?.match) {
-            useMatchStore.getState().setMatch(data.match);
-          }
-        } catch (e) {
-          if (data?.match) {
-            useMatchStore.getState().setMatch(data.match);
-          }
-        }
-
-        // local state update
-        set({ player1Score: newP1, player2Score: newP2 });
-        const nextServer = computeNextServer(match, newP1, newP2);
-        set({ currentServer: nextServer });
-
-        if (gameWinner) {
-          toast.success(
-            `Game ${currentGame} won by ${
-              gameWinner === "side1"
-                ? match.participants?.[0]?.fullName ?? "Player 1"
-                : match.participants?.[1]?.fullName ?? "Player 2"
-            }`
-          );
-
-          setTimeout(() => {
-            set({
-              currentGame: currentGame + 1,
-              player1Score: 0,
-              player2Score: 0,
-              currentServer:
-                match.matchType === "doubles" ||
-                match.matchType === "mixed_doubles"
-                  ? (() => {
-                      const rotation: ServerKey[] = [
-                        "player1_main",
-                        "player2_main",
-                        "player1_partner",
-                        "player2_partner",
-                      ];
-                      const idx = rotation.indexOf(nextServer as ServerKey);
-                      return rotation[(idx + 1) % rotation.length];
-                    })()
-                  : "player1",
-            });
-          }, 700);
+        if (data?.match) {
+          useMatchStore.getState().setMatch(data.match);
+          get().setInitialMatch(data.match);
         }
       } catch (err) {
         console.error("updateScore error", err);
         toast.error("Failed to update score");
+        set({ player1Score, player2Score }); // rollback
       }
     },
 
     subtractPoint: async (player) => {
+      const { isMatchActive } = get();
+      if (!isMatchActive) {
+        toast.error("Start the match first");
+        return;
+      }
       await get().updateScore(player, -1);
     },
 
-    toggleMatch: () => {
-      const { isMatchActive } = get();
-      set({ isMatchActive: !isMatchActive });
-      toast.success(isMatchActive ? "Match paused" : "🏁 Match started!");
+    toggleMatch: async () => {
+      const match = useMatchStore.getState().match;
+      if (!match) return;
+
+      const nextStatus =
+        get().status === "in_progress" ? "scheduled" : "in_progress";
+
+      try {
+        const { data } = await axiosInstance.post(
+          `/matches/individual/${match._id}/status`,
+          { status: nextStatus }
+        );
+
+        if (data?.match) {
+          useMatchStore.getState().setMatch(data.match);
+          get().setInitialMatch(data.match);
+          toast.success(
+            nextStatus === "in_progress" ? "🏁 Match started!" : "Match paused"
+          );
+        }
+      } catch (err) {
+        console.error("toggleMatch error", err);
+        toast.error("Failed to update match status");
+      }
     },
   };
 });

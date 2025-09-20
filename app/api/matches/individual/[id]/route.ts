@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
   try {
-    const match = await IndividualMatch.findById(params.id)
+    const { id } = await context.params;
+
+    const match = await IndividualMatch.findById(id)
       .populate("scorer", "username fullName")
       .populate("participants", "username fullName");
 
@@ -29,13 +28,15 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const body = await req.json();
 
+    const { id } = await context.params;
+
     const match = await IndividualMatch.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true }
     )
@@ -64,10 +65,11 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const deleted = await IndividualMatch.findByIdAndDelete(params.id);
+    const { id } = await context.params;
+    const deleted = await IndividualMatch.findByIdAndDelete(id);
 
     if (!deleted) {
       return NextResponse.json(

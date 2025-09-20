@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { toast } from "sonner";
 import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import MatchCompletedCard from "../common/MatchCompletedCard";
@@ -14,46 +16,60 @@ export default function SinglesScorer({ match }) {
     currentServer,
     isMatchActive,
     currentGame,
+    side1Sets,
+    side2Sets,
+    status,
     subtractPoint,
     resetGame,
     toggleMatch,
+    setInitialMatch, // added
   } = useIndividualMatch();
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
 
-  const p1Name = match.participants?.[0] ?? "Player 1";
-  const p2Name = match.participants?.[1] ?? "Player 2";
+  // initialize local store from server match whenever prop changes
+  useEffect(() => {
+    if (match) setInitialMatch(match);
+  }, [match?._id]);
 
   return (
     <div className="space-y-6">
-      {/* ✅ Match completed banner */}
-      {match.status === "completed" && <MatchCompletedCard match={match} />}
+      {match.status === "completed" ? (
+        <MatchCompletedCard match={match} />
+      ) : (
+        <>
+          <ScoreBoard
+            match={match}
+            player1Score={player1Score}
+            player2Score={player2Score}
+            isMatchActive={isMatchActive}
+            currentServer={currentServer}
+            side1Sets={side1Sets}
+            side2Sets={side2Sets}
+            status={status}
+            onAddPoint={({ side, playerId }) => {
+              if (!isMatchActive) {
+                toast.error("Start the match first");
+                return;
+              }
+              setPendingPlayer({ side, playerId });
+              setShotDialogOpen(true);
+            }}
+            onSubtractPoint={(side) => subtractPoint(side)}
+            onReset={resetGame}
+            onToggleMatch={toggleMatch}
+          />
 
-      {/* ✅ Pass match into ScoreBoard so serving indicator works */}
-      <ScoreBoard
-        match={match} // <-- important
-        p1={{ name: p1Name }}
-        p2={{ name: p2Name }}
-        player1Score={player1Score}
-        player2Score={player2Score}
-        isMatchActive={isMatchActive}
-        currentServer={currentServer}
-        finalScore={match.finalScore}
-        onAddPoint={(side) => {
-          setPendingPlayer(side);
-          setShotDialogOpen(true);
-        }}
-        onSubtractPoint={(side) => subtractPoint(side)}
-        onReset={resetGame}
-        onToggleMatch={toggleMatch}
-      />
+          <GamesHistory
+            games={match.games}
+            currentGame={currentGame}
+            participants={match.participants}
+          />
 
-      {/* ✅ Games history */}
-      <GamesHistory games={match.games} currentGame={currentGame} />
-
-      {/* ✅ ShotSelector stays mounted */}
-      <ShotSelector />
+          <ShotSelector />
+        </>
+      )}
     </div>
   );
 }

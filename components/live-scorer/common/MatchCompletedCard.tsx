@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function MatchCompletedCard({ match }) {
+  console.log("Rendering MatchCompletedCard with match:", match);
   return (
     <Card className="border-green-200 bg-green-50">
       <CardContent className="p-6 text-center">
@@ -13,9 +14,9 @@ export default function MatchCompletedCard({ match }) {
           <strong>
             Winner:{" "}
             {match.winner === "player1"
-              ? match.participants?.[0] || "Player 1"
+              ? match.participants?.[0]?.fullName || "Player 1"
               : match.winner === "player2"
-              ? match.participants?.[1] || "Player 2"
+              ? match.participants?.[1]?.fullName || "Player 2"
               : "—"}
           </strong>
         </div>

@@ -14,6 +14,7 @@ import Image from "next/image";
 import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
+import { toast } from "sonner";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
@@ -24,15 +25,34 @@ const ShotSelector = () => {
   // ✅ use updateScore from individual match hook (not global store)
   const updateScore = useIndividualMatch((state) => state.updateScore);
 
+  const handleShotSelect = async (shotValue: string) => {
+    try {
+      if (pendingPlayer) {
+        // close immediately
+        setShotDialogOpen(false);
+        
+        // store side safely before clearing
+        const side = pendingPlayer.side;
+        const playerId = pendingPlayer.playerId;
+
+        setPendingPlayer(null);
+
+        // update in background
+        updateScore(side, 1, shotValue);
+      }
+    } catch (error) {
+      console.error("Error updating score:", error);
+      toast.error("Failed to update score");
+    }
+  };
+
   return (
-    <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>
+    <Dialog open={shotDialogOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Select Shot Type</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          Select the type of shot played.
-        </DialogDescription>
+        <DialogDescription>Select the type of shot played.</DialogDescription>
 
         <ScrollArea className="h-96">
           <div className="space-y-4">
@@ -43,19 +63,7 @@ const ShotSelector = () => {
                   {shots.map((shot) => (
                     <button
                       key={shot.value}
-                      onClick={async () => {
-                        if (pendingPlayer) {
-                          // ✅ forward side + playerId + shotType
-                          await updateScore(
-                            pendingPlayer.side,
-                            1,
-                            shot.value
-                          );
-
-                          setPendingPlayer(null);
-                        }
-                        setShotDialogOpen(false);
-                      }}
+                      onClick={() => handleShotSelect(shot.value)}
                       className="flex flex-col items-center border-2 rounded-xl hover:scale-[1.02] active:scale-[0.97] transition ease-in-out"
                     >
                       <Image

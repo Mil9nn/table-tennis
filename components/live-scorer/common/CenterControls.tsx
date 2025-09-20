@@ -13,6 +13,7 @@ export default function CenterControls({
       <div className="text-2xl font-bold text-gray-400">VS</div>
 
       <div className="flex justify-center space-x-2">
+        {/* Play <-> Pause Toggle */}
         <Button
           variant={isMatchActive ? "destructive" : "default"}
           onClick={onToggleMatch}
@@ -28,6 +29,7 @@ export default function CenterControls({
           )}
         </Button>
 
+          {/* Reset Button */}
         <Button variant="outline" onClick={onReset}>
           <RotateCcw className="w-4 h-4 mr-1" /> Reset
         </Button>

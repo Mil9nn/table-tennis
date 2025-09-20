@@ -7,18 +7,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // ✅ Auth check
     const token = getTokenFromRequest(request);
-    if (!token)
-      return NextResponse.json({ error: "Auth required" }, { status: 401 });
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const decoded = verifyToken(token);
-    if (!decoded?.userId)
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    if (!decoded?.userId) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
     const scorer = await User.findById(decoded.userId);
-    if (!scorer)
-      return NextResponse.json({ error: "Invalid scorer" }, { status: 400 });
+    if (!scorer) return NextResponse.json({ error: "Invalid scorer" }, { status: 400 });
 
     // ✅ Validate inputs
     if (

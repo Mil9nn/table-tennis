@@ -6,6 +6,8 @@ import MatchCompletedCard from "../common/MatchCompletedCard";
 import ShotSelector from "@/components/ShotSelector";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function DoublesScorer({ match }) {
   const {
@@ -14,39 +16,61 @@ export default function DoublesScorer({ match }) {
     currentServer,
     isMatchActive,
     currentGame,
+    side1Sets,
+    side2Sets,
+    status,
     subtractPoint,
     resetGame,
     toggleMatch,
+    setInitialMatch,
   } = useIndividualMatch();
+
+  useEffect(() => {
+    if (match) {
+      setInitialMatch(match);
+    }
+  }, [match?._id]);
+
+  const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
+  const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
 
   return (
     <div className="space-y-6">
-      {/* ✅ Match completed banner */}
-      {match.status === "completed" && <MatchCompletedCard match={match} />}
+      {match.status === "completed" ? (
+        <MatchCompletedCard match={match} />
+      ) : (
+        <>
+          <ScoreBoard
+            match={match}
+            player1Score={player1Score}
+            player2Score={player2Score}
+            isMatchActive={isMatchActive}
+            currentServer={currentServer}
+            side1Sets={side1Sets}
+            side2Sets={side2Sets}
+            status={status}
+            onAddPoint={({ side, playerId }) => {
+              if (!isMatchActive) {
+                toast.error("Start the match first");
+                return;
+              }
+              setPendingPlayer({ side, playerId });
+              setShotDialogOpen(true);
+            }}
+            onSubtractPoint={(side) => subtractPoint(side)}
+            onReset={resetGame}
+            onToggleMatch={toggleMatch}
+          />
 
-      {/* ✅ Scoreboard with doubles support */}
-      <ScoreBoard
-        match={match}
-        player1Score={player1Score}
-        player2Score={player2Score}
-        isMatchActive={isMatchActive}
-        currentServer={currentServer}
-        finalScore={match.finalScore}
-        onAddPoint={({ side, playerId }) => {
-          // ✅ open ShotSelector with correct player + side
-          useMatchStore.getState().setPendingPlayer({ side, playerId });
-          useMatchStore.getState().setShotDialogOpen(true);
-        }}
-        onSubtractPoint={(side) => subtractPoint(side)}
-        onReset={resetGame}
-        onToggleMatch={toggleMatch}
-      />
+          <GamesHistory
+            games={match.games}
+            currentGame={currentGame}
+            participants={match.participants}
+          />
 
-      {/* ✅ Games history */}
-      <GamesHistory games={match.games} currentGame={currentGame} />
-
-      {/* ✅ ShotSelector stays mounted */}
-      <ShotSelector />
+          <ShotSelector />
+        </>
+      )}
     </div>
   );
 }

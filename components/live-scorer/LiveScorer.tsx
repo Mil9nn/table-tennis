@@ -4,6 +4,7 @@ import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
+import { Loader, Loader2 } from "lucide-react";
 
 export default function LiveScorer({ matchId }) {
   const match = useMatchStore((s) => s.match);
@@ -14,7 +15,7 @@ export default function LiveScorer({ matchId }) {
     if (matchId) fetchMatch(matchId);
   }, [matchId, fetchMatch]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center w-screen h-[calc(100vh-80px)]"><Loader2 className="animate-spin" /></div>
   if (!match) return <div>Match not found</div>;
 
   if (match.matchCategory === "individual") {

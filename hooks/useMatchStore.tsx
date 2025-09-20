@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 
+export type PlayerKey = "player1" | "player2" | null;
+
 type TeamPlayer = { name: string; role?: string; id?: string };
 
 type NormalTeam = {
@@ -64,6 +66,7 @@ interface MatchStore {
   fetchMatch: (matchId: string) => Promise<void>;
   fetchIndividualMatch: (matchId: string) => Promise<void>;
   fetchTeamMatch: (matchId: string) => Promise<void>;
+  fetchingMatch: boolean; // to avoid duplicate fetches
 }
 
 export const useMatchStore = create<MatchStore>((set, get) => {
@@ -177,6 +180,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
     loading: false,
     updating: false,
+    fetchingMatch: false,
 
     shotDialogOpen: false,
     pendingPlayer: null,
@@ -184,7 +188,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     setPendingPlayer: (p) => set({ pendingPlayer: p }),
 
     fetchIndividualMatch: async (id: string) => {
-      set({ loading: true });
+      set({ fetchingMatch: true })
       try {
         const res = await axiosInstance.get(`/matches/individual/${id}`);
         const normalizedMatch = normalizeMatch(res.data.match);
@@ -194,6 +198,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         console.error("Error fetching individual match:", err);
         set({ loading: false, match: null });
         throw err;
+      } finally {
+        set({ fetchingMatch: false });
       }
     },
 
