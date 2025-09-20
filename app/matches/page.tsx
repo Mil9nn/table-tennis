@@ -49,16 +49,34 @@ export default function MatchesPage() {
     fetchMatches();
   }, []);
 
-  const fetchMatches = async () => {
-    try {
-      const res = await axiosInstance.get("/matches");
-      setMatches(res.data.matches || []);
-    } catch (err) {
-      console.error("Error fetching matches", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // In app/matches/page.tsx, replace the fetchMatches function:
+const fetchMatches = async () => {
+  try {
+    const [individualRes, teamRes] = await Promise.all([
+      axiosInstance.get("/api/matches/individual"),
+      axiosInstance.get("/api/matches/team")
+    ]);
+
+    const individualMatches = (individualRes.data.matches || []).map((m: any) => ({
+      ...m,
+      matchCategory: "individual"
+    }));
+
+    const teamMatches = (teamRes.data.matches || []).map((m: any) => ({
+      ...m,
+      matchCategory: "team"
+    }));
+
+    const allMatches = [...individualMatches, ...teamMatches]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    setMatches(allMatches);
+  } catch (err) {
+    console.error("Error fetching matches", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusColor = (status?: string) => {
     switch (status) {

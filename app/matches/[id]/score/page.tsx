@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import LiveScorer from '@/components/LiveScorer';
+import LiveScorer from '@/components/live-scorer/LiveScorer';
 
 export default function MatchScorePage() {
   const params = useParams();

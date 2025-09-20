@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 import {
@@ -6,20 +7,22 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { ScrollArea, ScrollBar } from "./ui/scroll-area";
 import Image from "next/image";
 import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
   const setShotDialogOpen = useMatchStore((state) => state.setShotDialogOpen);
-  const updateScore = useMatchStore((state) => state.updateScore);
   const pendingPlayer = useMatchStore((state) => state.pendingPlayer);
   const setPendingPlayer = useMatchStore((state) => state.setPendingPlayer);
+
+  // ✅ use updateScore from individual match hook (not global store)
+  const updateScore = useIndividualMatch((state) => state.updateScore);
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>
@@ -40,10 +43,15 @@ const ShotSelector = () => {
                   {shots.map((shot) => (
                     <button
                       key={shot.value}
-                      onClick={() => {
+                      onClick={async () => {
                         if (pendingPlayer) {
-                          // directly call updateScore with shot
-                          updateScore(pendingPlayer, 1, shot.value);
+                          // ✅ forward side + playerId + shotType
+                          await updateScore(
+                            pendingPlayer.side,
+                            1,
+                            shot.value
+                          );
+
                           setPendingPlayer(null);
                         }
                         setShotDialogOpen(false);
@@ -52,7 +60,7 @@ const ShotSelector = () => {
                     >
                       <Image
                         src="/Backhand Block.png"
-                        alt=""
+                        alt={shot.label}
                         width={100}
                         height={100}
                       />

@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     const match = new TeamMatch({
       matchType: body.matchType,
+      matchCategory: "team",
       setsPerTie: Number(body.setsPerTie),
       city: body.city,
       venue: body.venue || body.city,

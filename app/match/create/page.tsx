@@ -85,9 +85,9 @@ export default function CreateMatchPage() {
       {/* Render Selected Form */}
       <div className="mt-8">
         {matchCategory === "individual" ? (
-          <IndividualMatchForm endpoint="/individual" />
+          <IndividualMatchForm endpoint="/matches/individual" />
         ) : (
-          <TeamMatchForm endpoint="/team" />
+          <TeamMatchForm endpoint="/matches/team" />
         )}
       </div>
     </div>

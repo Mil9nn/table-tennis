@@ -20,23 +20,38 @@ export default function MatchDetailsPage() {
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMatch();
-  }, [matchId]);
-
+  // In app/matches/[id]/page.tsx, replace the fetchMatch function:
   const fetchMatch = async () => {
     try {
-      const response = await fetch(`/api/matches/${matchId}`);
+      // Try individual match first
+      let response = await fetch(`/api/matches/individual/${matchId}`);
       if (response.ok) {
         const data = await response.json();
-        setMatch(data.match);
+        setMatch({ ...data.match, matchCategory: "individual" });
+        return;
       }
+
+      // Try team match
+      response = await fetch(`/api/matches/team/${matchId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMatch({ ...data.match, matchCategory: "team" });
+        return;
+      }
+
+      // Neither found
+      setMatch(null);
     } catch (error) {
       console.error("Error fetching match:", error);
+      setMatch(null);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMatch();
+  }, [matchId]);
 
   if (loading) {
     return (
@@ -66,7 +81,6 @@ export default function MatchDetailsPage() {
       : match.team2?.name || "Team 2";
 
   console.log("Team1 players:", match.team1?.players);
-
 
   return (
     <div className="container mx-auto py-8">

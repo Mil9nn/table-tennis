@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     if (!username || !fullName || !email || !password) {
       return new Response(
-        JSON.stringify({ messsage: "All fields are required." }),
+        JSON.stringify({ message: "All fields are required." }),
         { status: 400 }
       );
     }

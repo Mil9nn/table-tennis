@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     const match = new IndividualMatch({
       matchType: body.matchType,
+      matchCategory: "individual",
       numberOfSets: Number(body.numberOfSets),
       city: body.city,
       venue: body.venue || body.city,
