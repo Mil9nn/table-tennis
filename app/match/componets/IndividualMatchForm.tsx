@@ -6,8 +6,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -17,16 +30,15 @@ import UserSearchInput from "./UserSearchInput";
 const schema = z.object({
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   numberOfSets: z.enum(["1", "3", "5", "7", "9"]),
-  city: z.string().min(1),
+  city: z.string().min(1, "City is required"),
   venue: z.string().optional(),
-  player1: z.string().min(1),
-  player2: z.string().min(1),
+  player1: z.string().min(1, "Player 1 is required"),
+  player2: z.string().min(1, "Player 2 is required"),
   player3: z.string().optional(),
   player4: z.string().optional(),
-  scorer: z.string().min(1),
 });
 
-export default function IndividualMatchForm() {
+export default function IndividualMatchForm({ endpoint }: { endpoint: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
@@ -41,33 +53,35 @@ export default function IndividualMatchForm() {
       player2: "",
       player3: "",
       player4: "",
-      scorer: "",
     },
   });
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: z.infer<typeof schema>) => {
     setIsSubmitting(true);
     try {
       const matchData: any = {
-        matchCategory: "individual",
         matchType: data.matchType,
         numberOfSets: Number(data.numberOfSets),
         city: data.city,
         venue: data.venue || data.city,
-        scorer: data.scorer,
       };
 
       if (data.matchType === "singles") {
         matchData.participants = [data.player1, data.player2];
       } else {
-        matchData.participants = [data.player1, data.player2, data.player3, data.player4];
+        matchData.participants = [
+          data.player1,
+          data.player2,
+          data.player3,
+          data.player4,
+        ];
       }
 
-      const response = await axiosInstance.post("/matches", matchData);
-      toast.success("Match created!");
+      const response = await axiosInstance.post(endpoint, matchData);
+      toast.success("✅ Individual match created!");
       router.push(`/matches/${response.data.match._id}`);
     } catch (err: any) {
-      toast.error("Failed to create match");
+      toast.error(err.response?.data?.error || "Failed to create match");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,7 +99,9 @@ export default function IndividualMatchForm() {
               <FormLabel>Match Type</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select match type" />
+                  </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="singles">Singles</SelectItem>
@@ -107,11 +123,15 @@ export default function IndividualMatchForm() {
               <FormLabel>Number of Sets (Best of)</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sets" />
+                  </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {["1", "3", "5", "7", "9"].map((n) => (
-                    <SelectItem key={n} value={n}>Best of {n}</SelectItem>
+                    <SelectItem key={n} value={n}>
+                      Best of {n}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -123,28 +143,39 @@ export default function IndividualMatchForm() {
         {/* Players */}
         {form.watch("matchType") === "singles" ? (
           <div className="grid grid-cols-2 gap-4">
-            <FormField control={form.control} name="player1" render={({ field }) => (
-              <FormItem><FormLabel>Player 1</FormLabel><Input {...field} /></FormItem>
-            )} />
-            <FormField control={form.control} name="player2" render={({ field }) => (
-              <FormItem><FormLabel>Player 2</FormLabel><Input {...field} /></FormItem>
-            )} />
+            <UserSearchInput
+              placeholder="Search Player 1"
+              onSelect={(u) => form.setValue("player1", u._id)}
+            />
+            <UserSearchInput
+              placeholder="Search Player 2"
+              onSelect={(u) => form.setValue("player2", u._id)}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            <Input placeholder="Player 1A" {...form.register("player1")} />
-            <Input placeholder="Player 2A" {...form.register("player3")} />
-            <Input placeholder="Player 1B" {...form.register("player2")} />
-            <Input placeholder="Player 2B" {...form.register("player4")} />
+            <UserSearchInput
+              placeholder="Player 1A"
+              onSelect={(u) => form.setValue("player1", u._id)}
+            />
+            <UserSearchInput
+              placeholder="Player 1B"
+              onSelect={(u) => form.setValue("player2", u._id)}
+            />
+            <UserSearchInput
+              placeholder="Player 2A"
+              onSelect={(u) => form.setValue("player3", u._id)}
+            />
+            <UserSearchInput
+              placeholder="Player 2B"
+              onSelect={(u) => form.setValue("player4", u._id)}
+            />
           </div>
         )}
 
         {/* City & Venue */}
         <Input placeholder="City" {...form.register("city")} />
         <Input placeholder="Venue (optional)" {...form.register("venue")} />
-
-        {/* Scorer */}
-        <UserSearchInput placeholder="Search scorer" onSelect={(u) => form.setValue("scorer", u._id)} />
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : "Create Match"}

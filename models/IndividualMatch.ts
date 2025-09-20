@@ -45,81 +45,34 @@ const gameSchema = new mongoose.Schema({
   duration: Number, // in seconds
   startTime: Date,
   endTime: Date,
-  participants: {
-    team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  },
 });
 
-const tieSchema = new mongoose.Schema({
-  tieNumber: Number,
-  type: { type: String, enum: ["singles", "doubles"] },
-  participants: {
-    team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  },
-  games: [gameSchema],
-  winner: { type: String, enum: ["team1", "team2"] },
-});
-
-const matchSchema = new mongoose.Schema(
+const IndividualMatchSchema = new mongoose.Schema(
   {
     matchCategory: {
       type: String,
       enum: ["individual", "team"],
       required: true,
     },
-    matchType: {
-      type: String,
-      required: true,
-    },
-    // For individual matches
-    numberOfSets: {
-      type: Number,
-      enum: [1, 3, 5, 7, 9],
-      default: 3,
-    },
-    // For team matches
-    setsPerTie: {
-      type: Number,
-      enum: [1, 3, 5, 7],
-      default: 3,
-    },
+
+    matchType: { type: String, enum: ["singles", "doubles", "mixed_doubles"], required: true },
+    numberOfSets: { type: Number, enum: [1, 3, 5, 7, 9], default: 3 },
+
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    
+    scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     city: String,
     venue: String,
 
-    scorer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    // Participants (for singles/doubles matches)
-    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-
-    // Teams (for team matches)
-    team1: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
-    team2: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
-
     // Match Progress
-    status: {
-      type: String,
-      enum: ["scheduled", "in_progress", "completed", "cancelled"],
-      default: "scheduled",
-    },
+    status: { type: String, enum: ["scheduled", "in_progress", "completed", "cancelled"], default: "scheduled" },
     currentGame: { type: Number, default: 1 },
-    currentTie: { type: Number, default: 1 }, // for team matches
 
-    // Games for singles/doubles matches
     games: [gameSchema],
-
-    // Ties for team matches
-    ties: [tieSchema],
 
     finalScore: {
       side1Sets: { type: Number, default: 0 },
       side2Sets: { type: Number, default: 0 },
-      side1Ties: { type: Number, default: 0 },
-      side2Ties: { type: Number, default: 0 },
     },
     winner: String,
     matchDuration: Number,
@@ -200,50 +153,6 @@ const matchSchema = new mongoose.Schema(
       },
     },
   },
-  {
-    timestamps: true,
-  }
 );
 
-// Pre-save middleware to calculate derived statistics
-matchSchema.pre("save", function () {
-  // Calculate average rally length
-  if (this.statistics.totalRallies > 0) {
-    this.statistics.averageRallyLength =
-      this.statistics.totalShots / this.statistics.totalRallies;
-  }
-
-  // Update team statistics for team matches
-  if (this.matchCategory === "team") {
-    let team1Wins = 0;
-    let team2Wins = 0;
-
-    // Count wins from ties, not root-level games
-    this.ties.forEach((tie) => {
-      if (tie.winner === "team1") team1Wins++;
-      if (tie.winner === "team2") team2Wins++;
-    });
-
-    this.statistics.teamStats.team1.gamesWon = team1Wins;
-    this.statistics.teamStats.team1.gamesLost = team2Wins;
-    this.statistics.teamStats.team2.gamesWon = team2Wins;
-    this.statistics.teamStats.team2.gamesLost = team1Wins;
-  }
-});
-
-tieSchema.pre("save", function (next) {
-  const parentMatch = this.parent();
-  if (
-    parentMatch.matchCategory === "team" &&
-    this.games.length > parentMatch.setsPerTie
-  ) {
-    return next(
-      new Error(
-        `Exceeded max games per tie: allowed = ${parentMatch.setsPerTie}`
-      )
-    );
-  }
-  next();
-});
-
-export default mongoose.models.Match || mongoose.model("Match", matchSchema);
+export default mongoose.models.IndividualMatch || mongoose.model("IndividualMatch", IndividualMatchSchema);

@@ -18,10 +18,10 @@ import Link from "next/link";
 import { toast } from "sonner";
 import ShotSelector from "./ShotSelector";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { usePathname } from "next/navigation";
 
 export default function LiveScorer({ matchId }) {
   // store hooks
-  const fetchMatch = useMatchStore((s) => s.fetchMatch);
   const updateScore = useMatchStore((s) => s.updateScore);
   const resetGame = useMatchStore((s) => s.resetGame);
 
@@ -48,9 +48,14 @@ export default function LiveScorer({ matchId }) {
   const p1 = getDetailedPlayerInfo("player1");
   const p2 = getDetailedPlayerInfo("player2");
 
+  const pathname = usePathname();
+  const category = patname.includes("/team/") ? "team" : "individual";
+
+  const fetchMatch = useMatchStore((s) => s.fetchMatch);
+
   useEffect(() => {
-    if (matchId) fetchMatch(matchId);
-  }, [matchId, fetchMatch]);
+    if (matchId) fetchMatch(matchId, category);
+  }, [matchId, category, fetchMatch]);
 
   if (loading) {
     return (

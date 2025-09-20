@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils"; // tailwind helper for conditional classes
+import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -85,9 +85,9 @@ export default function CreateMatchPage() {
       {/* Render Selected Form */}
       <div className="mt-8">
         {matchCategory === "individual" ? (
-          <IndividualMatchForm />
+          <IndividualMatchForm endpoint="/individual" />
         ) : (
-          <TeamMatchForm />
+          <TeamMatchForm endpoint="/team" />
         )}
       </div>
     </div>

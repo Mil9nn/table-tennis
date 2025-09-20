@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import UserSearchInput from "./UserSearchInput";
 
 const schema = z.object({
   matchType: z.string().min(1, "Select a team format"),
@@ -34,15 +33,16 @@ const schema = z.object({
   team2Id: z.string().min(1, "Select Team 2"),
   city: z.string().min(1, "Enter city/venue"),
   venue: z.string().optional(),
-  scorer: z.string().min(1, "Select a scorer"),
 });
 
-export default function TeamMatchForm() {
-  const [teams, setTeams] = useState<any[]>([]);
+type TeamMatchFormValues = z.infer<typeof schema>;
+
+export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
+  const [teams, setTeams] = useState<{ _id: string; name: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const form = useForm({
+  const form = useForm<TeamMatchFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       matchType: "",
@@ -51,7 +51,6 @@ export default function TeamMatchForm() {
       team2Id: "",
       city: "",
       venue: "",
-      scorer: "",
     },
   });
 
@@ -59,51 +58,47 @@ export default function TeamMatchForm() {
     async function fetchTeams() {
       try {
         const res = await axiosInstance.get("/teams");
-        setTeams(res.data.teams);
+        setTeams(res.data.teams || []);
       } catch (err) {
         console.error("Failed to fetch teams", err);
+        toast.error("Failed to load teams");
       }
     }
     fetchTeams();
   }, []);
 
   const teamMatchFormats = [
-    {
-      value: "five_singles",
-      label: "Swaythling Cup [A vs X, B vs Y, C vs Z, A vs Y, B vs X]",
-    },
-    {
-      value: "single_double_single",
-      label: "Single-Double-Single [A vs X, (A+B vs X+Y), B vs Y]",
-    },
-    {
-      value: "extended_format",
-      label: "Extended [A vs W, B vs X, C vs Y, D vs Z, E vs V, A vs X]",
-    },
-    { value: "three_singles", label: "03 Singles [A vs X, B vs Y, C vs Z]" },
+    { value: "five_singles", label: "Swaythling Cup [5 singles]" },
+    { value: "single_double_single", label: "Single-Double-Single" },
+    { value: "extended_format", label: "Extended Format" },
+    { value: "three_singles", label: "3 Singles" },
     { value: "custom", label: "Custom Format" },
   ];
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: TeamMatchFormValues) => {
     setIsSubmitting(true);
     try {
-      const matchData: any = {
-        matchCategory: "team",
+      if (data.team1Id === data.team2Id) {
+        toast.error("❌ Team 1 and Team 2 cannot be the same");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const matchData = {
         matchType: data.matchType,
         setsPerTie: Number(data.setsPerTie),
         city: data.city,
         venue: data.venue || data.city,
-        scorer: data.scorer,
         team1Id: data.team1Id,
         team2Id: data.team2Id,
       };
 
-      const response = await axiosInstance.post("/matches", matchData);
-      toast.success("Team match created!");
+      const response = await axiosInstance.post(endpoint, matchData);
+      toast.success("✅ Team match created!");
       router.push(`/matches/${response.data.match._id}`);
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to create team match");
+      toast.error(err.response?.data?.error || "Failed to create team match");
     } finally {
       setIsSubmitting(false);
     }
@@ -221,13 +216,11 @@ export default function TeamMatchForm() {
         <Input placeholder="City" {...form.register("city")} />
         <Input placeholder="Venue (optional)" {...form.register("venue")} />
 
-        {/* Scorer */}
-        <UserSearchInput
-          placeholder="Search scorer"
-          onSelect={(u) => form.setValue("scorer", u._id)}
-        />
-
-        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin mr-2" />

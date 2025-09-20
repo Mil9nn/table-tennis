@@ -472,13 +472,16 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       };
     },
 
-    fetchMatch: async (id) => {
+    fetchMatch: async (id: string, category?: "individual" | "team") => {
       set({ loading: true });
       try {
-        const res = await axiosInstance.get(`/matches/${id}`);
+        const basePath = category
+          ? `/api/${category}/${id}`
+          : `/api/matches/${id}`;
+
+        const res = await axiosInstance.get(basePath);
         const rawMatch = res.data.match;
 
-        // ✅ normalize
         const normalizedMatch = normalizeMatch(rawMatch);
 
         let teamMatchOrder: string[] = [];
@@ -498,7 +501,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         }
 
         set({
-          match: normalizedMatch, // ✅ use normalized!
+          match: normalizedMatch,
           teamMatchOrder,
           loading: false,
         });
@@ -549,23 +552,25 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       const gameWinner = checkGameWon(newP1, newP2);
 
       try {
-        // Build a request body that includes both shapes for the backend
-        // (ensures compatibility with whichever route expects player1/player2 or side1/side2)
         const requestBody: any = {
           gameNumber: currentGame,
           player1Score: newP1,
           player2Score: newP2,
           side1Score: newP1,
           side2Score: newP2,
-          gameWinner, // could be null
+          gameWinner,
         };
 
         if (match.matchCategory === "team") {
-          // include which players from the teams are playing (readable names)
           requestBody.tieNumber = get().currentTie;
           requestBody.currentPlayers = {
-            player1: currentPlayers.side1,
-            player2: currentPlayers.side2,
+            team1: currentPlayers.side1,
+            team2: currentPlayers.side2,
+          };
+        } else {
+          requestBody.currentPlayers = {
+            side1: currentPlayers.side1,
+            side2: currentPlayers.side2,
           };
         }
 
@@ -581,7 +586,13 @@ export const useMatchStore = create<MatchStore>((set, get) => {
           };
         }
 
-        const resp = await fetch(`/api/matches/${match._id}/score`, {
+        // 🔑 Pick correct endpoint
+        const basePath =
+          match.matchCategory === "team"
+            ? `/api/team/${match._id}/score`
+            : `/api/individual/${match._id}/score`;
+
+        const resp = await fetch(basePath, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody),
@@ -590,7 +601,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         if (!resp.ok) throw new Error("Failed to update score");
         const data = await resp.json();
 
-        // normalize returned match if backend returns a full match doc
         const normalizedReturned = data.match
           ? normalizeMatch(data.match)
           : get().match;
@@ -625,7 +635,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
                   : get().getPlayerName("player2")
               }`
             );
-            // advance to next game after a small pause
             setTimeout(() => {
               const nextGame = currentGame + 1;
               set({
@@ -636,7 +645,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
                 serveCount: 0,
                 isDeuce: false,
               });
-              // move team pair forward
               if (match.matchCategory === "team") {
                 const nextPair = get().getCurrentPlayingPair();
                 set({ currentPlayers: nextPair });
