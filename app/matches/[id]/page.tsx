@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Play,
-  BarChart3,
-  ArrowLeft,
   Users,
   Calendar,
   MapPin,
+  Loader2,
+  ArrowLeftCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,7 +20,6 @@ export default function MatchDetailsPage() {
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // In app/matches/[id]/page.tsx, replace the fetchMatch function:
   const fetchMatch = async () => {
     try {
       // Try individual match first
@@ -55,7 +54,10 @@ export default function MatchDetailsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 text-center">Loading match...</div>
+      <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
+        <Loader2 className="animate-spin size-4" />
+        <span className="text-sm">Loading match</span>
+      </div>
     );
   }
 
@@ -80,37 +82,33 @@ export default function MatchDetailsPage() {
         "Player 2"
       : match.team2?.name || "Team 2";
 
-  console.log("Team1 players:", match.team1?.players);
-
   return (
-    <div className="container mx-auto py-8">
+    <div className="px-4 py-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link href="/matches">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-        </Link>
+        {/* Go Back */}
+      <Link href="/matches" className="flex items-center gap-2 text-sm hover:bg-blue-300 w-fit rounded-full px-3 py-1 bg-blue-100 text-blue-800 transition-all">
+        <ArrowLeftCircle />
+        <span className="font-semibold">Go back</span>
+      </Link>
         <div>
-          <h1 className="text-3xl font-bold">
-            {side1Name} vs {side2Name}
-          </h1>
-          <p className="text-gray-600">Match Details</p>
+          <p className="font-bold">Match Details</p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Match Info + Players */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-4">
           {/* Match Info */}
-          <div className="border rounded-lg p-6 shadow-sm bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Match Information</h2>
+          <div className="sm:border rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold mb-2">Match Information</h2>
               <Badge
-                className={
-                  match.status === "completed" ? "bg-green-500" : "bg-blue-500"
-                }
+                className={`rounded-full border-2 ${
+                  match.status === "completed"
+                    ? "text-green-500 border-green-500 bg-white"
+                    : "bg-blue-500"
+                }`}
               >
                 {match.status}
               </Badge>
@@ -135,49 +133,93 @@ export default function MatchDetailsPage() {
           </div>
 
           {/* Players / Teams */}
-          <div className="border rounded-lg p-6 shadow-sm bg-white">
+          <div className="sm:border rounded-lg p-4">
             <h2 className="text-xl font-semibold mb-4">
               {match.matchCategory === "individual" ? "Players" : "Teams"}
             </h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
-                {match.team1?.players && (
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    {match.team1.players.map((player: any, index: number) => (
-                      <li key={index}>
-                        {player.user?.fullName ||
-                          player.user?.username ||
-                          "Unnamed"}
-                        {player.role ? ` (${player.role})` : ""}
-                      </li>
-                    ))}
+
+            {match.matchCategory === "individual" ? (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <ul className="space-y-1 text-sm font-semibold text-gray-600">
+                    {match.participants
+                      ?.slice(0, 2)
+                      .map((p: any, i: number) => (
+                        <li key={i}>{p.fullName || p.username || "Unknown"}</li>
+                      ))}
                   </ul>
-                )}
+                </div>
+                <div>
+                  <ul className="space-y-1 text-sm font-semibold text-gray-600">
+                    {match.participants
+                      ?.slice(2, 4)
+                      .map((p: any, i: number) => (
+                        <li key={i}>{p.fullName || p.username || "Unknown"}</li>
+                      ))}
+                  </ul>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
-                {match.team2?.players && (
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    {match.team2.players.map((player: any, index: number) => (
-                      <li key={index}>
-                        {player.user?.fullName ||
-                          player.user?.username ||
-                          "Unnamed"}
-                        {player.role ? ` (${player.role})` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+            ) : (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
+                  {match.team1?.players && (
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      {match.team1.players.map((player: any, index: number) => (
+                        <li key={index}>
+                          {player.user?.fullName ||
+                            player.user?.username ||
+                            "Unnamed"}
+                          {player.role ? ` (${player.role})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
+                  {match.team2?.players && (
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      {match.team2.players.map((player: any, index: number) => (
+                        <li key={index}>
+                          {player.user?.fullName ||
+                            player.user?.username ||
+                            "Unnamed"}
+                          {player.role ? ` (${player.role})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Games History */}
+          {match.games?.length > 0 && (
+            <div className="sm:border rounded-lg p-4">
+              <h2 className="text-xl font-semibold mb-4">Games</h2>
+              <div className="space-y-2">
+                {match.games.map((g: any) => (
+                  <div
+                    key={g.gameNumber}
+                    className="flex justify-between text-sm text-gray-700"
+                  >
+                    <span className="font-semibold">Game {g.gameNumber}</span>
+                    <span className="font-medium">
+                      {g.side1Score} - {g.side2Score}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Actions + Score */}
         <div className="space-y-6">
           {/* Actions */}
-          <div className="border rounded-lg p-6 shadow-sm bg-white">
+          {match.status !== "completed" && <div className="sm:border rounded-lg p-4">
             <h2 className="text-xl font-semibold mb-4">Actions</h2>
             <div className="space-y-3">
               {(match.status === "scheduled" ||
@@ -191,43 +233,133 @@ export default function MatchDetailsPage() {
                   </Link>
                 </Button>
               )}
-
-              <Button variant="outline" className="w-full gap-2" asChild>
-                <Link href={`/matches/${matchId}/stats`}>
-                  <BarChart3 className="w-4 h-4" />
-                  View Statistics
-                </Link>
-              </Button>
             </div>
-          </div>
+          </div>}
 
           {/* Current Score */}
           {match.finalScore && (
-            <div className="border rounded-lg p-6 shadow-sm bg-white">
-              <h2 className="text-xl font-semibold mb-4">Current Score</h2>
-              <div className="flex justify-center items-center gap-6">
+            <div className="border rounded-lg p-4">
+              <h2 className="text-xl font-semibold mb-4">Score</h2>
+              <div className="flex justify-center items-center gap-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-blue-600">
                     {match.finalScore.side1Sets}
                   </div>
-                  <div className="text-sm text-gray-600">{side1Name}</div>
                 </div>
                 <div className="text-2xl text-gray-400">-</div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-red-600">
                     {match.finalScore.side2Sets}
                   </div>
-                  <div className="text-sm text-gray-600">{side2Name}</div>
                 </div>
               </div>
 
               {match.winner && (
                 <div className="mt-4 text-center">
                   <Badge className="bg-green-500">
-                    Winner: {match.winner === "team1" ? side1Name : side2Name}
+                    Winner: {match.winner === "side1" ? side1Name : side2Name}
                   </Badge>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Match Summary Stats */}
+          {match.games && match.games.some((g: any) => g.shots?.length) && (
+            <div className="sm:border rounded-lg p-4">
+              <h2 className="text-xl font-semibold mb-4">Match Stats</h2>
+              <div className="grid grid-cols-2 gap-6 text-sm">
+                <div>
+                  <h3 className="font-medium mb-2">{side1Name}</h3>
+                  <ul className="space-y-1 text-gray-600">
+                    <li>
+                      Winners:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side1" && s.outcome === "winner"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                    <li>
+                      Errors:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side1" && s.outcome === "error"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                    <li>
+                      Lets:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side1" && s.outcome === "let"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-2">{side2Name}</h3>
+                  <ul className="space-y-1 text-gray-600">
+                    <li>
+                      Winners:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side2" && s.outcome === "winner"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                    <li>
+                      Errors:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side2" && s.outcome === "error"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                    <li>
+                      Lets:{" "}
+                      {match.games.reduce(
+                        (sum: number, g: any) =>
+                          sum +
+                          g.shots.filter(
+                            (s: any) =>
+                              s.side === "side2" && s.outcome === "let"
+                          ).length,
+                        0
+                      )}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-4 text-center">
+                <Link
+                  href={`/matches/${matchId}/stats`}
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  View full statistics →
+                </Link>
+              </div>
             </div>
           )}
         </div>

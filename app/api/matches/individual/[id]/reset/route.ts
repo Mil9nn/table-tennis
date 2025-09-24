@@ -1,3 +1,4 @@
+// app/api/matches/individual/[id]/reset/route.ts - FIXED VERSION
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 
@@ -6,48 +7,57 @@ export async function POST(
   context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
-    const { resetType } = await req.json(); // "game" | "match"
+    const { id } = await context.params;
+    const { resetType } = await req.json();
 
     const match = await IndividualMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (!["scheduled", "in_progress", "cancelled"].includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-
     if (resetType === "game") {
       const currentGameNum = match.currentGame ?? 1;
-      const idx = Math.max(0, currentGameNum - 1);
+      
+      // ✅ FIXED: Find current game properly
+      const gameIndex = match.games.findIndex((g: any) => g.gameNumber === currentGameNum);
 
-      if (!match.games[idx]) {
-        match.games[idx] = {
+      if (gameIndex >= 0) {
+        // ✅ Reset existing game
+        match.games[gameIndex].side1Score = 0;
+        match.games[gameIndex].side2Score = 0;
+        match.games[gameIndex].winner = undefined;
+        match.games[gameIndex].shots = [];
+      } else {
+        // ✅ Create fresh current game
+        match.games.push({
           gameNumber: currentGameNum,
           side1Score: 0,
           side2Score: 0,
           shots: [],
-        };
-      } else {
-        match.games[idx].side1Score = 0;
-        match.games[idx].side2Score = 0;
-        match.games[idx].winner = undefined;
-        match.games[idx].shots = [];
+          winner: undefined
+        });
       }
 
-      // don’t mark as scheduled if match is ongoing
-      if (match.status !== "completed") {
+      // ✅ FIXED: If match was completed, revert status and recalculate sets
+      if (match.status === "completed") {
         match.status = "in_progress";
+        match.winner = undefined;
+        
+        // Recalculate set scores from completed games only
+        const completedGames = match.games.filter((g: any) => g.winner);
+        match.finalScore.side1Sets = completedGames.filter((g: any) => g.winner === "side1").length;
+        match.finalScore.side2Sets = completedGames.filter((g: any) => g.winner === "side2").length;
       }
+
     } else {
-      // full match reset
+      // ✅ FULL MATCH RESET
       match.games = [
         {
           gameNumber: 1,
           side1Score: 0,
           side2Score: 0,
           shots: [],
+          winner: undefined
         },
       ];
       match.currentGame = 1;
@@ -58,7 +68,9 @@ export async function POST(
     }
 
     await match.save();
-    await match.populate("participants", "username fullName");
+    await match
+    .populate("participants", "username fullName")
+    .populate("games.shots.player", "username fullName fullName");
 
     return NextResponse.json({ match });
   } catch (err) {

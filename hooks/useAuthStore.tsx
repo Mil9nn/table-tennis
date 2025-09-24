@@ -3,7 +3,7 @@ import { create } from "zustand";
 import type { RegisterForm, LoginForm } from "@/types/auth";
 import { AxiosError } from "axios";
 import { User } from "@/types/user";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface AuthState {
     authLoading: boolean;

@@ -1,32 +1,27 @@
 "use client";
 
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Game, Participant } from "@/types/match.type";
 
-export default function GamesHistory({ games, currentGame, participants }) {
+interface GamesHistoryProps {
+  games: Game[];
+  currentGame?: number;
+  participants?: Participant[];
+}
+
+export default function GamesHistory({
+  games,
+  currentGame,
+  participants,
+}: GamesHistoryProps) {
   if (!games || games.length === 0) return null;
 
-  // Filter out placeholder/empty games: show only games that:
-  // - have a winner OR
-  // - have a non-zero score OR
-  // - are earlier than the currentGame (so partial current game can be excluded if empty)
-  const meaningfulGames = (games || []).filter((g) => {
-    const hasScores = (g.side1Score ?? 0) > 0 || (g.side2Score ?? 0) > 0;
-    const hasWinner = !!g.winner;
-    const earlierThanCurrent = g.gameNumber < currentGame;
-    return hasWinner || hasScores || earlierThanCurrent;
-  });
-
-  if (meaningfulGames.length === 0) return null;
-
   return (
-    <Card className="rounded-md">
-      <CardHeader>
-        <CardTitle>Games History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {meaningfulGames.map((game) => {
+    <div className="p-2 space-y-4">
+      <h3 className="font-semibold">Games History</h3>
+      <div>
+        <div className="space-y-2 flex items-center gap-4 flex-wrap">
+          {games.map((game) => {
             const winnerName =
               game.winner === "side1"
                 ? participants?.[0]?.fullName ??
@@ -41,15 +36,15 @@ export default function GamesHistory({ games, currentGame, participants }) {
             return (
               <div
                 key={game.gameNumber}
-                className={`flex justify-between items-center p-3 border rounded ${
+                className={`w-fit flex text-sm items-center justify-between gap-6 p-2 px-4 border-2 rounded-full ${
                   game.gameNumber === currentGame && !game.winner
-                    ? "bg-blue-50 border-blue-200"
+                    ? "border-blue-500"
                     : ""
                 }`}
               >
-                <span className="font-medium">Game {game.gameNumber}</span>
+                <span className="font-medium">Game {game.gameNumber}:</span>
 
-                <span className="font-semibold text-lg">
+                <span>
                   {game.side1Score ?? 0} - {game.side2Score ?? 0}
                 </span>
 
@@ -62,7 +57,7 @@ export default function GamesHistory({ games, currentGame, participants }) {
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

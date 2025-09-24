@@ -71,6 +71,7 @@ export async function GET() {
     const matches = await IndividualMatch.find()
       .populate("participants", "username fullName")
       .populate("scorer", "username fullName")
+      .populate("games.shots.player", "username fullName")
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ matches });

@@ -1,10 +1,12 @@
 "use client";
 
+import { MatchStatus } from "@/types/match.type";
+
 interface SetTrackerProps {
   bestOf: number;
   side1Sets: number;
   side2Sets: number;
-  status: "in_progress" | "completed";
+  status: MatchStatus;
 }
 
 export default function SetTracker({
@@ -18,7 +20,7 @@ export default function SetTracker({
   const currentSet = side1Sets + side2Sets + 1;
 
   return (
-    <div className="flex justify-center gap-2 my-2">
+    <div className="flex justify-center flex-wrap gap-2 py-2">
       {Array.from({ length: totalSets }).map((_, idx) => {
         const setIndex = idx + 1;
 
@@ -43,7 +45,7 @@ export default function SetTracker({
       })}
 
       {/* Info label */}
-      <span className="ml-3 text-sm text-gray-600">
+      <span className="text-sm text-gray-600">
         First to {setsNeeded} sets wins
       </span>
     </div>

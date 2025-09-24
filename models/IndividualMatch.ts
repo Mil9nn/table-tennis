@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 
+// Shot Schema
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
-  side: { type: String, enum: ["side1", "side2"] },
-  player: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  shotType: {
+
+  side: { type: String, enum: ["side1", "side2"], required: true }, // who hit the shot
+  player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+  // Separate stroke vs errors to avoid crashes
+  stroke: {
     type: String,
     enum: [
       "forehand_drive",
@@ -25,47 +29,76 @@ const shotSchema = new mongoose.Schema({
       "backhand_block",
       "forehand_drop",
       "backhand_drop",
-      "net_point",
-      "serve_point",
     ],
+    default: null,
   },
-  result: {
+
+  errorType: {
     type: String,
-    enum: ["winner", "error", "in_play"],
+    enum: ["net", "long", "serve"],
+    default: null, // only used if outcome = "error"
   },
+
+  outcome: {
+    type: String,
+    enum: ["winner", "error", "let"],
+    required: true,
+  },
+
+  // Optional, in case you want to track service analytics later
+  server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
   timestamp: { type: Date, default: Date.now },
 });
 
+// Game Schema
 const gameSchema = new mongoose.Schema({
   gameNumber: Number,
+
   side1Score: { type: Number, default: 0 },
   side2Score: { type: Number, default: 0 },
-  winner: String,
+
+  winnerSide: { type: String, enum: ["side1", "side2"], default: null },
+
+  completed: { type: Boolean, default: false },
+  expedite: { type: Boolean, default: false }, // ITTF expedite system marker
+
   shots: [shotSchema],
-  duration: Number, // in seconds
+
+  duration: Number,
   startTime: Date,
   endTime: Date,
 });
 
+// Match Schema
 const IndividualMatchSchema = new mongoose.Schema(
   {
     matchCategory: {
       type: String,
-      enum: ["individual", "team"],
+      enum: ["individual"],
+      required: true,
+      default: "individual",
+    },
+
+    matchType: {
+      type: String,
+      enum: ["singles", "doubles", "mixed_doubles"],
       required: true,
     },
 
-    matchType: { type: String, enum: ["singles", "doubles", "mixed_doubles"], required: true },
     numberOfSets: { type: Number, enum: [1, 3, 5, 7, 9], default: 3 },
 
-    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
+
     scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     city: String,
     venue: String,
 
-    // Match Progress
-    status: { type: String, enum: ["scheduled", "in_progress", "completed", "cancelled"], default: "scheduled" },
+    status: {
+      type: String,
+      enum: ["scheduled", "in_progress", "completed", "cancelled"],
+      default: "scheduled",
+    },
     currentGame: { type: Number, default: 1 },
 
     games: [gameSchema],
@@ -74,25 +107,28 @@ const IndividualMatchSchema = new mongoose.Schema(
       side1Sets: { type: Number, default: 0 },
       side2Sets: { type: Number, default: 0 },
     },
-    winner: String,
+    winnerSide: { type: String, enum: ["side1", "side2"], default: null },
+
     matchDuration: Number,
 
     // Enhanced Match Statistics
     statistics: {
-      totalShots: { type: Number, default: 0 },
-      totalRallies: { type: Number, default: 0 },
-      averageRallyLength: { type: Number, default: 0 },
-      longestRally: { type: Number, default: 0 },
-      aces: { type: Number, default: 0 },
+      winners: { type: Number, default: 0 },
       unforcedErrors: { type: Number, default: 0 },
+      aces: { type: Number, default: 0 },
+      serveErrors: { type: Number, default: 0 },
+      longestStreak: { type: Number, default: 0 },
+      clutchPointsWon: { type: Number, default: 0 },
 
-      // Per-player stats (flexible map: works for singles, doubles, team)
+      // Per-player stats (works for singles/doubles)
       playerStats: {
         type: Map,
         of: new mongoose.Schema({
           winners: { type: Number, default: 0 },
           unforcedErrors: { type: Number, default: 0 },
           aces: { type: Number, default: 0 },
+          serveErrors: { type: Number, default: 0 },
+
           detailedShots: {
             forehand_drive: { type: Number, default: 0 },
             backhand_drive: { type: Number, default: 0 },
@@ -112,47 +148,44 @@ const IndividualMatchSchema = new mongoose.Schema(
             backhand_block: { type: Number, default: 0 },
             forehand_drop: { type: Number, default: 0 },
             backhand_drop: { type: Number, default: 0 },
-            net_point: { type: Number, default: 0 },
-            serve_point: { type: Number, default: 0 },
+          },
+
+          errorsByType: {
+            net: { type: Number, default: 0 },
+            long: { type: Number, default: 0 },
+            serve: { type: Number, default: 0 },
           },
         }),
       },
-
-      // Team-specific statistics
-      teamStats: {
-        team1: {
-          gamesWon: { type: Number, default: 0 },
-          gamesLost: { type: Number, default: 0 },
-          // Individual player contributions in team context
-          playerContributions: [
-            {
-              playerName: String,
-              gamesPlayed: { type: Number, default: 0 },
-              gamesWon: { type: Number, default: 0 },
-              shotsPlayed: { type: Number, default: 0 },
-              winners: { type: Number, default: 0 },
-              unforcedErrors: { type: Number, default: 0 },
-            },
-          ],
-        },
-        team2: {
-          gamesWon: { type: Number, default: 0 },
-          gamesLost: { type: Number, default: 0 },
-          // Individual player contributions in team context
-          playerContributions: [
-            {
-              playerName: String,
-              gamesPlayed: { type: Number, default: 0 },
-              gamesWon: { type: Number, default: 0 },
-              shotsPlayed: { type: Number, default: 0 },
-              winners: { type: Number, default: 0 },
-              unforcedErrors: { type: Number, default: 0 },
-            },
-          ],
-        },
-      },
     },
   },
+  { timestamps: true }
 );
+
+// VIRTUALS
+IndividualMatchSchema.virtual("statistics.winnerErrorRatio").get(function () {
+  const winners = this.statistics?.winners || 0;
+  const errors = this.statistics?.unforcedErrors || 0;
+  const total = winners + errors;
+  return total > 0 ? (winners / total).toFixed(2) : "0.00";
+});
+
+IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
+  if (!this.statistics?.playerStats) return {};
+
+  const result: Record<string, any> = {};
+  this.statistics.playerStats.forEach((stats: any, playerId: string) => {
+    const winners = stats?.winners || 0;
+    const errors = stats?.unforcedErrors || 0;
+    const total = winners + errors;
+
+    result[playerId] = {
+      ...stats.toObject(),
+      winnerErrorRatio: total > 0 ? winners / total : 0,
+    };
+  });
+
+  return result;
+});
 
 export default mongoose.models.IndividualMatch || mongoose.model("IndividualMatch", IndividualMatchSchema);

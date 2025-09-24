@@ -3,22 +3,52 @@
 import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
 import SetTracker from "@/components/SetTracker";
+import {
+  checkGameWon,
+  getCurrentServerName,
+} from "@/components/live-scorer/individual/helpers";
+import { AddPointPayload, MatchStatus } from "@/types/match.type";
+
+
+interface ScoreBoardProps {
+  match: any;
+  side1Score: number;
+  side2Score: number;
+  isMatchActive: boolean;
+  currentServer: string | null;
+  side1Sets: number;
+  side2Sets: number;
+  status: MatchStatus;
+  onAddPoint: (payload: AddPointPayload) => void;
+  onSubtractPoint: (side: "side1" | "side2") => void;
+  onReset: () => void;
+  onToggleMatch: () => void;
+}
 
 export default function ScoreBoard({
   match,
-  player1Score,
-  player2Score,
+  side1Score,
+  side2Score,
   isMatchActive,
   currentServer,
   side1Sets,
-  side2Sets,   // ✅ new props from hook
-  status,       // ✅ new prop (in_progress | completed)
+  side2Sets,
+  status,
   onAddPoint,
   onSubtractPoint,
   onReset,
   onToggleMatch,
-}) {
-  // ✅ Build player arrays based on singles/doubles
+}: ScoreBoardProps) {
+  const gameWinner = checkGameWon(side1Score, side2Score);
+  const gameWinnerName =
+    gameWinner === "side1"
+      ? "Side 1"
+      : gameWinner === "side2"
+      ? "Side 2"
+      : null;
+
+  const isGameWon = gameWinner !== null;
+
   const buildPlayers = () => {
     if (!match) {
       return {
@@ -95,107 +125,99 @@ export default function ScoreBoard({
 
   const { p1, p2 } = buildPlayers();
 
-  // ✅ Resolve serving indicator
-  const resolveServerName = () => {
-    if (!match) return null;
-
-    if (match.matchType === "singles") {
-      return currentServer === "player1"
-        ? p1[0].name
-        : currentServer === "player2"
-        ? p2[0].name
-        : null;
-    }
-
-    if (match.matchType === "doubles" || match.matchType === "mixed_doubles") {
-      switch (currentServer) {
-        case "player1_main":
-          return p1[0].name;
-        case "player1_partner":
-          return p1[1].name;
-        case "player2_main":
-          return p2[0].name;
-        case "player2_partner":
-          return p2[1].name;
-        default:
-          return null;
-      }
-    }
-
-    return null;
-  };
-
-  const serverName = resolveServerName();
+  const serverName = getCurrentServerName(
+    currentServer as any,
+    match?.participants || [],
+    match?.matchType || "singles"
+  );
 
   return (
     <div className="space-y-6">
+      {/* Set tracker */}
       <SetTracker
-      bestOf={match.numberOfSets}
-      side1Sets={side1Sets}
-      side2Sets={side2Sets}
-      status={status}
-    />
-
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-center">
-      {/* Left Side */}
-      <PlayerCard
-        players={p1}
-        score={player1Score}
-        isServer={
-          currentServer === "player1" ||
-          currentServer === "player1_main" ||
-          currentServer === "player1_partner"
-        }
-        side="player1"
-        onAddPoint={onAddPoint}
-        onSubtractPoint={onSubtractPoint}
-        setsWon={side1Sets}
-        color="emerald"
-        disabled={status === "completed"}
+        bestOf={match.numberOfSets}
+        side1Sets={side1Sets}
+        side2Sets={side2Sets}
+        status={status}
       />
 
-      {/* Center Controls */}
-      <CenterControls
-        isMatchActive={isMatchActive}
-        onToggleMatch={onToggleMatch}
-        onReset={onReset}
-      />
-
-      {/* Right Side */}
-      <PlayerCard
-        players={p2}
-        score={player2Score}
-        isServer={
-          currentServer === "player2" ||
-          currentServer === "player2_main" ||
-          currentServer === "player2_partner"
-        }
-        side="player2"
-        onAddPoint={onAddPoint}
-        onSubtractPoint={onSubtractPoint}
-        setsWon={side2Sets}
-        color="rose"
-        disabled={status === "completed"}
-      />
-
-      {/* ✅ Serving indicator below */}
-      {serverName && (
+      {/* Serving indicator */}
+      {serverName && !isGameWon && (
         <div className="col-span-2 md:col-span-3 text-center mt-2">
-          <span className="text-sm font-medium text-yellow-600">
-            🎾 Serving: {serverName}
-          </span>
+          <p className="text-sm font-medium text-yellow-600">
+            <span>Serving: {serverName}</span>
+          </p>
         </div>
       )}
 
-      {/* ✅ Match finished message (optional) */}
-      {status === "completed" && (
-        <div className="col-span-2 md:col-span-3 text-center mt-4">
-          <span className="text-lg font-bold text-green-600">
-            🏆 Match Completed
-          </span>
+      {/* Players + Controls */}
+      <div className="grid grid-cols-2 sm:gap-6 gap-2 items-center">
+        {/* Left */}
+        <PlayerCard
+          players={p1}
+          score={side1Score}
+          isServer={
+            currentServer === "side1" ||
+            currentServer === "side1_main" ||
+            currentServer === "side1_partner"
+          }
+          side="side1"
+          onAddPoint={onAddPoint}
+          onSubtractPoint={onSubtractPoint}
+          setsWon={side1Sets}
+          color="emerald"
+          disabled={status === "completed" || isGameWon}
+          currentServer={serverName}
+        />
+
+        {/* Right */}
+        <PlayerCard
+          players={p2}
+          score={side2Score}
+          isServer={
+            currentServer === "side2" ||
+            currentServer === "side2_main" ||
+            currentServer === "side2_partner"
+          }
+          side="side2"
+          onAddPoint={onAddPoint}
+          onSubtractPoint={onSubtractPoint}
+          setsWon={side2Sets}
+          color="rose"
+          disabled={status === "completed" || isGameWon}
+          currentServer={serverName}
+        />
+
+        {/* Center controls: below on small, middle on md+ */}
+        <div className="col-span-2 flex justify-center mt-4">
+          <CenterControls
+            isMatchActive={isMatchActive}
+            onToggleMatch={onToggleMatch}
+            onReset={onReset}
+          />
         </div>
-      )}
-    </div>
+
+        {/* Game won */}
+        {isGameWon && status !== "completed" && (
+          <div className="col-span-2 md:col-span-3 text-center mt-4">
+            <span className="text-lg font-bold text-green-600">
+              🏆 Game Won by {gameWinnerName}!
+            </span>
+            <div className="text-sm text-gray-600 mt-1">
+              Starting next game...
+            </div>
+          </div>
+        )}
+
+        {/* Match finished */}
+        {status === "completed" && (
+          <div className="col-span-2 md:col-span-3 text-center mt-4">
+            <span className="text-lg font-bold text-green-600">
+              🏆 Match Completed
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

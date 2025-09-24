@@ -53,57 +53,59 @@ export default function Navbar() {
 
             {/* Mobile Profile Dropdown */}
             <div className="sm:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
-                    {user?.profileImage ? (
-                      <img
-                        src={user?.profileImage}
-                        alt="Profile"
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <User className="w-5 h-5 text-gray-700" />
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
+                      {user?.profileImage ? (
+                        <img
+                          src={user?.profileImage}
+                          alt="Profile"
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="w-5 h-5 text-gray-700" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48" align="end">
+                    {user && (
+                      <>
+                        <div className="px-3 py-2 text-sm text-gray-700 border-b">
+                          <div className="font-medium">
+                            {user.fullName || user.username}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {user.email}
+                          </div>
+                        </div>
+
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/profile"
+                            className="flex items-center gap-2"
+                          >
+                            <User className="w-4 h-4" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                          onClick={() => logout()}
+                          className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </DropdownMenuItem>
+                      </>
                     )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48" align="end">
-                  {user ? (
-                    <>
-                      <div className="px-3 py-2 text-sm text-gray-700 border-b">
-                        <div className="font-medium">{user.fullName || user.username}</div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
-                      </div>
-                      
-                      <DropdownMenuItem asChild>
-                        <Link href="/profile" className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          Profile
-                        </Link>
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuSeparator />
-                      
-                      <DropdownMenuItem
-                        onClick={() => logout()}
-                        className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth/login" className="flex items-center gap-2">
-                        <LogIn className="w-4 h-4" />
-                        Login
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             {/* Desktop Navigation */}
@@ -122,15 +124,14 @@ export default function Navbar() {
                           : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                       }`}
                     >
-                      {item.icon && (<item.icon className="w-4 h-4" />)}
+                      {item.icon && <item.icon className="w-4 h-4" />}
                       <span>{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
 
-              {/* Profile Dropdown */}
-              <DropdownMenu>
+              {user && <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
                     {user?.profileImage ? (
@@ -147,22 +148,29 @@ export default function Navbar() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-48" align="end">
-                  {user ? (
+                  {user && (
                     <>
                       <div className="px-3 py-2 text-sm text-gray-700 border-b">
-                        <div className="font-medium">{user.fullName || user.username}</div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
+                        <div className="font-medium">
+                          {user.fullName || user.username}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {user.email}
+                        </div>
                       </div>
-                      
+
                       <DropdownMenuItem asChild>
-                        <Link href="/profile" className="flex items-center gap-2">
+                        <Link
+                          href="/profile"
+                          className="flex items-center gap-2"
+                        >
                           <User className="w-4 h-4" />
                           Profile
                         </Link>
                       </DropdownMenuItem>
-                      
+
                       <DropdownMenuSeparator />
-                      
+
                       <DropdownMenuItem
                         onClick={() => logout()}
                         className="flex items-center gap-2 text-red-600 focus:text-red-600"
@@ -171,17 +179,14 @@ export default function Navbar() {
                         Logout
                       </DropdownMenuItem>
                     </>
-                  ) : (
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth/login" className="flex items-center gap-2">
-                        <LogIn className="w-4 h-4" />
-                        Login
-                      </Link>
-                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu>}
             </div>
+            {!user && <Link href="/auth/login" className="flex items-center gap-2 bg-purple-500 rounded-full p-2 px-4 text-white font-semibold">
+              <LogIn className="w-4 h-4" />
+              Login
+            </Link>}
           </div>
         </nav>
       </header>
@@ -199,14 +204,14 @@ export default function Navbar() {
                   active ? "text-indigo-600" : "text-gray-500"
                 }`}
               >
-                {item.icon && (<item.icon className="w-6 h-6 mb-1" />)}
+                {item.icon && <item.icon className="w-6 h-6 mb-1" />}
                 <span className={`text-xs ${active ? "font-medium" : ""}`}>
                   {item.label}
                 </span>
               </Link>
             );
           })}
-          
+
           {/* Mobile Create Button */}
           {user && (
             <DropdownMenu>

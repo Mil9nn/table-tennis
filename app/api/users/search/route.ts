@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { User } from "@/models/User";
 
-/**
- * Search users by username or fullName.
- * Returns up to 10 results for autocomplete fields.
- */
+// Returns up to 10 results for autocomplete fields.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

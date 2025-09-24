@@ -8,7 +8,7 @@ export default function MatchScorePage() {
   const matchId = params.id;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
         <LiveScorer matchId={matchId} />
     </div>
   );

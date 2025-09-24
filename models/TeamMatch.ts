@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
 
+interface SubdocWithParent<TParent = any> extends Document {
+  $parent(): TParent;
+}
+
+// Define the Tie document type
+interface TieDoc extends SubdocWithParent<{ setsPerTie?: number }> {
+  games: any[];
+}
+
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
   side: { type: String, enum: ["side1", "side2"] },
@@ -31,7 +40,7 @@ const shotSchema = new mongoose.Schema({
   },
   result: {
     type: String,
-    enum: ["winner", "error", "in_play"],
+    enum: ["winner", "error"],
   },
   timestamp: { type: Date, default: Date.now },
 });
@@ -68,10 +77,16 @@ const TeamMatchSchema = new mongoose.Schema(
 
     matchType: {
       type: String,
-      enum: ["five_singles", "single_double_single", "extended_format", "three_singles", "custom"],
+      enum: [
+        "five_singles",
+        "single_double_single",
+        "extended_format",
+        "three_singles",
+        "custom",
+      ],
       required: true,
     },
-    
+
     setsPerTie: {
       type: Number,
       enum: [1, 3, 5, 7],
@@ -193,34 +208,39 @@ const TeamMatchSchema = new mongoose.Schema(
 
 // Pre-save middleware to calculate derived statistics
 TeamMatchSchema.pre("save", function () {
+  let team1Wins = 0;
+  let team2Wins = 0;
 
-    let team1Wins = 0;
-    let team2Wins = 0;
+  // Count wins from ties, not root-level games
+  this.ties.forEach((tie) => {
+    if (tie.winner === "team1") team1Wins++;
+    if (tie.winner === "team2") team2Wins++;
+  });
 
-    // Count wins from ties, not root-level games
-    this.ties.forEach((tie) => {
-      if (tie.winner === "team1") team1Wins++;
-      if (tie.winner === "team2") team2Wins++;
-    });
-
-    this.statistics.teamStats.team1.gamesWon = team1Wins;
-    this.statistics.teamStats.team1.gamesLost = team2Wins;
-    this.statistics.teamStats.team2.gamesWon = team2Wins;
-    this.statistics.teamStats.team2.gamesLost = team1Wins;
+  this.statistics?.teamStats?.team1 &&
+    (this.statistics.teamStats.team1.gamesWon = team1Wins);
+  this.statistics?.teamStats?.team1 &&
+    (this.statistics.teamStats.team1.gamesLost = team2Wins);
+  this.statistics?.teamStats?.team2 &&
+    (this.statistics.teamStats.team2.gamesWon = team2Wins);
+  this.statistics?.teamStats?.team2 &&
+    (this.statistics.teamStats.team2.gamesLost = team1Wins);
 });
 
 // validate per tie games
-tieSchema.pre("save", function (next) {
-  const parentMatch = this.parent();
-  if (this.games.length > parentMatch.setsPerTie) {
+tieSchema.pre<TieDoc>("save", function (next) {
+  const parentMatch = this.$parent() as mongoose.Document & { setsPerTie?: number };
+
+  if (parentMatch && this.games.length > (parentMatch.setsPerTie ?? 0)) {
     return next(
       new Error(
         `Exceeded max games per tie: allowed = ${parentMatch.setsPerTie}`
       )
     );
   }
+
   next();
 });
 
-
-export default mongoose.models.TeamMatch || mongoose.model("TeamMatch", TeamMatchSchema);
+export default mongoose.models.TeamMatch ||
+  mongoose.model("TeamMatch", TeamMatchSchema);

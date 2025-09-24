@@ -7,7 +7,8 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
 
     const match = await IndividualMatch.findById(id)
       .populate("scorer", "username fullName")
-      .populate("participants", "username fullName");
+      .populate("participants", "username fullName")
+      .populate("games.shots.player", "username fullName");
 
     if (!match) {
       return NextResponse.json(

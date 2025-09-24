@@ -61,7 +61,7 @@ function UserSearchInput({
                 setSuggestions([]); // hide list
               }}
             >
-              {u.fullName ? `${u.fullName} (${u.username})` : u.username}
+              {u.username ? u.username : u.fullName}
             </li>
           ))}
         </ul>

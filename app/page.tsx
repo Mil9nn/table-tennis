@@ -1,23 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import React from "react";
 import { Users, Trophy, BarChart, Smartphone } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
-  const [showAllTeams, setShowAllTeams] = useState(false);
-
-  const teams = [
-    { id: 1, name: "Smash Masters", players: 6, color: "bg-blue-500" },
-    { id: 2, name: "Spin Squad", players: 5, color: "bg-red-500" },
-    { id: 3, name: "Paddle Kings", players: 4, color: "bg-green-500" },
-    { id: 4, name: "Loop Legends", players: 7, color: "bg-purple-500" },
-  ];
-
-  const visibleTeams = showAllTeams ? teams : teams.slice(0, 2);
-
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -25,22 +12,25 @@ export default function HomePage() {
         {/* Left Content */}
         <div className="max-w-xl">
           <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-            Smart, Simple Table Tennis Scoring
+            Quick Table Tennis Scoring
           </h1>
           <p className="text-lg md:text-xl mb-6">
-            Track scores, manage matches, and share results instantly – built
-            for players, coaches, and clubs.
+            Track scores, manage matches, and share results instantly
           </p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/match/create" className="btn btn-primary">Create a match</Link>
-            <Link href="/teams/create" className="btn btn-secondary">Create a team</Link>
+            <Link href="/match/create" className="btn btn-primary">
+              Create a match
+            </Link>
+            <Link href="/teams/create" className="btn btn-secondary">
+              Create a team
+            </Link>
           </div>
         </div>
 
         {/* Right Visual Placeholder */}
         <div className="mt-12 md:mt-0 md:ml-12 flex justify-center">
           <div className="w-72 h-48 bg-white/20 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white text-lg">📱 Scoreboard Preview</span>
+            <span className="text-white text-lg"></span>
           </div>
         </div>
       </section>
@@ -65,37 +55,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Teams Showcase */}
-      <section className="px-8 py-16 bg-white">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          Build and Manage Your Teams
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {visibleTeams.map((team) => (
-            <Card key={team.id} className="shadow-md">
-              <CardContent className="flex items-center gap-4 p-6">
-                <div
-                  className={`w-12 h-12 ${team.color} text-white rounded-full flex items-center justify-center font-bold`}
-                >
-                  {team.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-lg font-semibold">{team.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {team.players} players
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Recent Matches */}
+      <section className="px-8 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Recent Matches</h2>
+          <Link href="/matches" className="text-indigo-600 hover:underline">
+            See all →
+          </Link>
         </div>
 
-        <div className="flex gap-4">
-          <Button onClick={() => setShowAllTeams(!showAllTeams)}>
-            {showAllTeams ? "Show Less" : "View All Teams"}
-          </Button>
-          <Button variant="outline">+ Create a Team</Button>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Example Match Card */}
+          <div className="p-4 border rounded-lg shadow-sm bg-white">
+            <p className="font-semibold">Alice vs Bob</p>
+            <p className="text-sm text-gray-500">Score: 11–8, 9–11, 11–7</p>
+            <p className="text-xs text-gray-400 mt-1">2 days ago</p>
+          </div>
+          <div className="p-4 border rounded-lg shadow-sm bg-white">
+            <p className="font-semibold">Side 1 vs Side 2</p>
+            <p className="text-sm text-gray-500">Score: 3–2</p>
+            <p className="text-xs text-gray-400 mt-1">5 days ago</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Teams */}
+      <section className="px-8 bg-gray-50">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Teams</h2>
+          <Link href="/teams" className="text-indigo-600 hover:underline">
+            See all →
+          </Link>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="p-4 border rounded-lg shadow-sm bg-white">
+            <p className="font-semibold">Smash Masters</p>
+            <p className="text-sm text-gray-500">4 players</p>
+          </div>
+          <div className="p-4 border rounded-lg shadow-sm bg-white">
+            <p className="font-semibold">Spin Kings</p>
+            <p className="text-sm text-gray-500">3 players</p>
+          </div>
         </div>
       </section>
     </div>

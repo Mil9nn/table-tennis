@@ -4,7 +4,6 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,15 +29,13 @@ const ShotSelector = () => {
       if (pendingPlayer) {
         // close immediately
         setShotDialogOpen(false);
-        
-        // store side safely before clearing
+
         const side = pendingPlayer.side;
         const playerId = pendingPlayer.playerId;
+        const isError = shotValue.includes("error");
 
+        updateScore(side, 1, shotValue, playerId);
         setPendingPlayer(null);
-
-        // update in background
-        updateScore(side, 1, shotValue);
       }
     } catch (error) {
       console.error("Error updating score:", error);
@@ -47,40 +44,76 @@ const ShotSelector = () => {
   };
 
   return (
-    <Dialog open={shotDialogOpen}>
+    <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Select Shot Type</DialogTitle>
+          <DialogTitle>
+            {pendingPlayer?.playerId
+              ? "Select Shot Type"
+              : "Who scored the point?"}
+          </DialogTitle>
         </DialogHeader>
-        <DialogDescription>Select the type of shot played.</DialogDescription>
 
-        <ScrollArea className="h-96">
-          <div className="space-y-4">
-            {Object.entries(shotCategories).map(([category, shots]) => (
-              <div key={category}>
-                <h3 className="font-medium capitalize mb-2">{category}</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {shots.map((shot) => (
-                    <button
-                      key={shot.value}
-                      onClick={() => handleShotSelect(shot.value)}
-                      className="flex flex-col items-center border-2 rounded-xl hover:scale-[1.02] active:scale-[0.97] transition ease-in-out"
-                    >
-                      <Image
-                        src="/Backhand Block.png"
-                        alt={shot.label}
-                        width={100}
-                        height={100}
-                      />
-                      {shot.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {!pendingPlayer ? (
+          <p>No player selected</p>
+        ) : !pendingPlayer.playerId ? (
+          // Doubles: ask which teammate
+          <div className="grid grid-cols-2 gap-2">
+            {(pendingPlayer.side === "side1"
+              ? [
+                  useMatchStore.getState().match?.participants[0],
+                  useMatchStore.getState().match?.participants[1],
+                ]
+              : [
+                  useMatchStore.getState().match?.participants[2],
+                  useMatchStore.getState().match?.participants[3],
+                ]
+            ).map((p) => (
+              <button
+                key={p?._id}
+                onClick={() => {
+                  // ✅ set playerId now so we know who scored
+                  setPendingPlayer({
+                    side: pendingPlayer.side,
+                    playerId: p?._id,
+                  });
+                }}
+                className="border p-2 rounded-xl"
+              >
+                {p?.fullName || p?.username}
+              </button>
             ))}
           </div>
-          <ScrollBar orientation="vertical" />
-        </ScrollArea>
+        ) : (
+          // Singles OR doubles after teammate chosen → show shot types
+          <ScrollArea className="h-96">
+            <div className="space-y-4">
+              {Object.entries(shotCategories).map(([category, shots]) => (
+                <div key={category}>
+                  <h3 className="font-medium capitalize mb-2">{category}</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {shots.map((shot) => (
+                      <button
+                        key={shot.value}
+                        onClick={() => handleShotSelect(shot.value)}
+                        className="flex flex-col items-center border-2 rounded-xl hover:scale-[1.02] active:scale-[0.97] transition ease-in-out"
+                      >
+                        <Image
+                          src="/Backhand Block.png"
+                          alt={shot.label}
+                          width={100}
+                          height={100}
+                        />
+                        {shot.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <ScrollBar orientation="vertical" />
+          </ScrollArea>
+        )}
       </DialogContent>
     </Dialog>
   );

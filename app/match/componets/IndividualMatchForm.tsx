@@ -38,7 +38,11 @@ const schema = z.object({
   player4: z.string().optional(),
 });
 
-export default function IndividualMatchForm({ endpoint }: { endpoint: string }) {
+export default function IndividualMatchForm({
+  endpoint,
+}: {
+  endpoint: string;
+}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
@@ -89,7 +93,10 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-6 py-2"
+      >
         {/* Match Type */}
         <FormField
           control={form.control}
@@ -120,7 +127,7 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
           name="numberOfSets"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Number of Sets (Best of)</FormLabel>
+              <FormLabel>Number of Sets</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -142,34 +149,43 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
 
         {/* Players */}
         {form.watch("matchType") === "singles" ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <UserSearchInput
-              placeholder="Search Player 1"
+              placeholder="Player 01 username"
               onSelect={(u) => form.setValue("player1", u._id)}
             />
             <UserSearchInput
-              placeholder="Search Player 2"
+              placeholder="Player 02 username"
               onSelect={(u) => form.setValue("player2", u._id)}
             />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <UserSearchInput
-              placeholder="Player 1A"
-              onSelect={(u) => form.setValue("player1", u._id)}
-            />
-            <UserSearchInput
-              placeholder="Player 1B"
-              onSelect={(u) => form.setValue("player2", u._id)}
-            />
-            <UserSearchInput
-              placeholder="Player 2A"
-              onSelect={(u) => form.setValue("player3", u._id)}
-            />
-            <UserSearchInput
-              placeholder="Player 2B"
-              onSelect={(u) => form.setValue("player4", u._id)}
-            />
+          <div className="flex items-center justify-between gap-2">
+            <div className="space-y-2">
+              <UserSearchInput
+                placeholder="Player A1"
+                onSelect={(u) => form.setValue("player1", u._id)}
+              />
+              <UserSearchInput
+                placeholder="Player A2"
+                onSelect={(u) => form.setValue("player3", u._id)}
+              />
+            </div>
+
+            <span className="relative flex items-center justify-center w-2 h-full min-h-20 bg-black rounded-full">
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm bg-black text-white font-semibold rounded-full p-1">vs</span>
+            </span>
+
+            <div className="space-y-2">
+              <UserSearchInput
+                placeholder="Player B1"
+                onSelect={(u) => form.setValue("player2", u._id)}
+              />
+              <UserSearchInput
+                placeholder="Player B2"
+                onSelect={(u) => form.setValue("player4", u._id)}
+              />
+            </div>
           </div>
         )}
 
@@ -177,7 +193,7 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
         <Input placeholder="City" {...form.register("city")} />
         <Input placeholder="Venue (optional)" {...form.register("venue")} />
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button className="w-full" type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : "Create Match"}
         </Button>
       </form>

@@ -2,8 +2,41 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function MatchCompletedCard({ match }) {
-  console.log("Rendering MatchCompletedCard with match:", match);
+interface MatchCompletedCardProps {
+  match: any; // Replace 'any' with the actual type of 'match'
+}
+
+export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
+  if (!match) return null;
+
+  const renderWinnerName = () => {
+    if (!match.winner) return "—";
+
+    if (match.matchType === "singles") {
+      return match.winner === "side1"
+        ? match.participants?.[0]?.fullName ||
+            match.participants?.[0]?.username ||
+            "Side 1"
+        : match.participants?.[1]?.fullName ||
+            match.participants?.[1]?.username ||
+            "Side 2";
+    }
+
+    // doubles / mixed_doubles
+    if (match.winner === "side1") {
+      return `${match.participants?.[0]?.fullName || "Side 1A"} & ${
+        match.participants?.[1]?.fullName || "Side 1B"
+      }`;
+    }
+    if (match.winner === "side2") {
+      return `${match.participants?.[2]?.fullName || "Side 2A"} & ${
+        match.participants?.[3]?.fullName || "Side 2B"
+      }`;
+    }
+
+    return "—";
+  };
+
   return (
     <Card className="border-green-200 bg-green-50">
       <CardContent className="p-6 text-center">
@@ -11,14 +44,7 @@ export default function MatchCompletedCard({ match }) {
           🏆 MATCH COMPLETED!
         </h2>
         <div className="text-lg">
-          <strong>
-            Winner:{" "}
-            {match.winner === "player1"
-              ? match.participants?.[0]?.fullName || "Player 1"
-              : match.winner === "player2"
-              ? match.participants?.[1]?.fullName || "Player 2"
-              : "—"}
-          </strong>
+          <strong>Winner: {renderWinnerName()}</strong>
         </div>
         <p className="text-gray-600">
           Final Score: {match.finalScore?.side1Sets ?? 0} -{" "}
