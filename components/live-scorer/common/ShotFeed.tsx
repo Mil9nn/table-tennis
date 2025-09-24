@@ -8,9 +8,9 @@ interface ShotFeedProps {
   participants: { _id: string; fullName?: string; username?: string }[];
 }
 
-function formatShotType(shotType?: string | null) {
-  if (!shotType) return "—"; // fallback when no stroke recorded
-  return shotType
+function formatShotType(stroke?: string | null) {
+  if (!stroke) return "—"; // fallback when no stroke recorded
+  return stroke
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
@@ -34,8 +34,8 @@ export default function ShotFeed({
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="font-semibold">Header text</h3>
-      <ul className="space-y-1 max-h-48 overflow-y-auto pr-2">
+      <h3 className="font-semibold">Rally Feed</h3>
+      <ul className="space-y-1 max-h-60 overflow-y-auto pr-2">
         {shots.map((shot, i) => {
           const player = participants.find((p) => p._id === shot.player._id);
           const playerName =
@@ -45,23 +45,31 @@ export default function ShotFeed({
             shot.player.username ||
             "Unknown Player";
 
+          let displayText: string;
+          let outcomeClass = "";
+
+          if (shot.outcome === "error") {
+            displayText = `Error (${shot.errorType || "Unforced"})`;
+            outcomeClass = "text-red-600";
+          } else if (shot.outcome === "winner") {
+            displayText = `Winner (${formatShotType(shot.stroke)})`;
+            outcomeClass = "text-green-600";
+          } else {
+            // Normal rally shot (no direct winner/error yet)
+            displayText = formatShotType(shot.stroke);
+            outcomeClass = "text-gray-600";
+          }
+
           return (
             <li
-              key={shot._id ?? i} // prefer shot._id, fallback to index
-              className="text-sm w-full p-2 flex justify-between items-center"
+              key={shot._id ?? i}
+              className="text-sm w-full p-2 flex justify-between items-center border-b last:border-0"
             >
               <span>
-                <strong>{playerName}</strong> ({shot.side}) →{" "}
-                {formatShotType(shot.shotType)}
+                <strong>{playerName}</strong> ({shot.side}) → {displayText}
               </span>
-              <span
-                className={`font-semibold ${
-                  shot.outcome === "winner"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {shot.outcome === "winner" ? "Winner" : "Error"}
+              <span className={`font-semibold ${outcomeClass}`}>
+                {shot.outcome.charAt(0).toUpperCase() + shot.outcome.slice(1)}
               </span>
             </li>
           );
