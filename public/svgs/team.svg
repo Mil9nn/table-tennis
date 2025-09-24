@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="gTeams" x1="0" x2="1">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  
+  <circle cx="9" cy="10" r="3" stroke="url(#gTeams)" stroke-width="1.8"/>
+  <circle cx="15" cy="10" r="3" stroke="url(#gTeams)" stroke-width="1.8"/>
+  <path d="M5 19c.5-2 2.5-3.5 4.5-3.5h5c2 0 4 1.5 4.5 3.5" stroke="url(#gTeams)" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

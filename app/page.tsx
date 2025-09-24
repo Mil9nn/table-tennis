@@ -71,7 +71,7 @@ export default function HomePage() {
       </section>
 
       {/* Teams Section (still dummy for now) */}
-      <section className="px-8 bg-gray-50">
+      <section className="px-8 py-4 bg-gray-200">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Teams</h2>
           <Link href="/teams" className="text-indigo-600 hover:underline">

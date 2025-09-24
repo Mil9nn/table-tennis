@@ -1,0 +1,39 @@
+<!-- matches-neon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="matchesTitle matchesDesc" width="48" height="48" fill="none" stroke="cyan" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <title id="matchesTitle">All matches</title>
+  <desc id="matchesDesc">Three stacked match rows with a glowing neon effect.</desc>
+
+  <!-- neon glow filter -->
+  <defs>
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#neonGlow)">
+    <!-- outer rounded card -->
+    <rect x="1.5" y="2.2" width="21" height="19.6" rx="2.2" ry="2.2"/>
+
+    <!-- header notch -->
+    <rect x="3.6" y="1.4" width="5.2" height="2.2" rx="0.9" ry="0.9" fill="cyan" fill-opacity="0.1" stroke="none"/>
+
+    <!-- row 1 -->
+    <circle cx="6.2" cy="7.2" r="0.85"/>
+    <path d="M8.1 7.2h8.8"/>
+
+    <!-- row 2 -->
+    <circle cx="6.2" cy="11.6" r="0.85"/>
+    <path d="M8.1 11.6h8.8"/>
+
+    <!-- row 3 -->
+    <circle cx="6.2" cy="16.0" r="0.85"/>
+    <path d="M8.1 16.0h5.6"/>
+
+    <!-- match indicator (ball / status) -->
+    <circle cx="18.6" cy="12.2" r="1.35" stroke-width="1.4"/>
+  </g>
+</svg>
