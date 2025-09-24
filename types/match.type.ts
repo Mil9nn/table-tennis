@@ -1,3 +1,5 @@
+import { Shot } from "./shot.type";
+
 export type MatchStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 
 export type MatchType = "singles" | "doubles" | "mixed_doubles";
@@ -8,14 +10,6 @@ export interface Participant {
   _id: string;
   username: string;
   fullName?: string; 
-}
-
-export interface Shot {
-  _id: string;
-  player: Participant;
-  side: "forehand" | "backhand";
-  shotType?: string | null;
-  result: "winner" | "error";
 }
 
 export interface IndividualGame {

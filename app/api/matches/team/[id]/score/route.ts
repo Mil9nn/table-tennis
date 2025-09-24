@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }>}) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const body = await request.json();
 
     const match = await TeamMatch.findById(id);

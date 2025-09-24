@@ -1,21 +1,11 @@
 "use client";
 
+import { Shot } from "@/types/shot.type";
+
 interface ShotFeedProps {
   games: { gameNumber: number; shots: Shot[] }[];
   currentGame: number;
   participants: { _id: string; fullName?: string; username?: string }[];
-}
-
-interface Shot {
-  _id: string; // add an id for React keys
-  player: {
-    _id: string;
-    fullName?: string;
-    username?: string;
-  };
-  side: "forehand" | "backhand";
-  shotType?: string | null;
-  result: "winner" | "error";
 }
 
 function formatShotType(shotType?: string | null) {
@@ -66,12 +56,12 @@ export default function ShotFeed({
               </span>
               <span
                 className={`font-semibold ${
-                  shot.result === "winner"
+                  shot.outcome === "winner"
                     ? "text-green-600"
                     : "text-red-600"
                 }`}
               >
-                {shot.result === "winner" ? "✔️ Winner" : "❌ Error"}
+                {shot.outcome === "winner" ? "✔️ Winner" : "❌ Error"}
               </span>
             </li>
           );

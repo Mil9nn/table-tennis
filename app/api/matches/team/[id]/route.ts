@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const match = await TeamMatch.findById(params.id)
+    const { id } = await params;
+    const match = await TeamMatch.findById(id)
       .populate("scorer", "username fullName")
       .populate({
         path: "team1",
@@ -25,11 +26,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await req.json();
 
-    const match = await TeamMatch.findByIdAndUpdate(params.id, { $set: body }, { new: true })
+    const { id } = await params;
+
+    const match = await TeamMatch.findByIdAndUpdate(id, { $set: body }, { new: true })
       .populate("scorer", "username fullName")
       .populate({
         path: "team1",

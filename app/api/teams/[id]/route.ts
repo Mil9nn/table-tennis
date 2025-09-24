@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import Team from "@/models/Team";
 
-export async function GET(req: Request, context: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const team = await Team.findById(id)
@@ -27,7 +27,7 @@ export async function GET(req: Request, context: { params: { id: string } }) {
   }
 }
 
-export async function PUT(req: Request, context: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const body = await req.json();
     const { assignments, ...rest } = body;
@@ -61,11 +61,12 @@ export async function PUT(req: Request, context: { params: { id: string } }) {
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deleted = await Team.findByIdAndDelete(params.id);
+    const { id } = await context.params;
+    const deleted = await Team.findByIdAndDelete(id);
 
     if (!deleted) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });

@@ -16,17 +16,18 @@ import {
 } from "recharts";
 import ReactECharts from "echarts-for-react";
 import Link from "next/link";
+import { Shot } from "@/types/shot.type";
 
 // --- 🔥 Shared color palette ---
 const COLORS = {
-  winners: "#10B981", // green
-  errors: "#EF4444", // red
-  lets: "#3B82F6", // blue
+  winners: "#10B981",
+  errors: "#EF4444",
+  lets: "#3B82F6",
   strokes: ["#F59E0B", "#8B5CF6", "#14B8A6", "#6366F1", "#EC4899"],
 };
 
 // --- 🔥 Helper: compute stats for given shots ---
-function computeStats(shots: any[]) {
+function computeStats(shots: Shot[]) {
   const winners = { side1: 0, side2: 0 };
   const errors = { side1: 0, side2: 0 };
   const lets = { side1: 0, side2: 0 };

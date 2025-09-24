@@ -1,11 +1,7 @@
-// app/api/matches/individual/[id]/reset/route.ts - FIXED VERSION
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 
-export async function POST(
-  req: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const { resetType } = await req.json();
@@ -68,9 +64,8 @@ export async function POST(
     }
 
     await match.save();
-    await match
-    .populate("participants", "username fullName")
-    .populate("games.shots.player", "username fullName fullName");
+    await match.populate("participants", "username fullName")
+    .populate("games.shots.player", "username fullName");
 
     return NextResponse.json({ match });
   } catch (err) {

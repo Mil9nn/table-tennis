@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import type { NormalMatch } from "@/hooks/useMatchStore";
+import { IndividualMatch } from "@/types/match.type";
 
 // Utility for status → color
 const statusColors: Record<string, string> = {
@@ -14,7 +14,7 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-white text-red-700 border-red-400",
 };
 
-export default function MatchesList({ matches }: { matches: NormalMatch[] }) {
+export default function MatchesList({ matches }: { matches: IndividualMatch[] }) {
   if (!matches || matches.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -29,9 +29,9 @@ export default function MatchesList({ matches }: { matches: NormalMatch[] }) {
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {matches.map((match) => {
         const winner =
-          match.winner === "side1"
+          match.winnerSide === "side1"
             ? match.participants?.[0]?.fullName || "Side 1"
-            : match.winner === "side2"
+            : match.winnerSide === "side2"
             ? match.participants?.[1]?.fullName || "Side 2"
             : null;
 

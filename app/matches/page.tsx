@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import MatchesList from "@/components/MatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import type { NormalMatch } from "@/hooks/useMatchStore";
 import { Loader2 } from "lucide-react";
+import { IndividualMatch } from "@/types/match.type";
 
 export default function MatchesPage() {
-  const [matches, setMatches] = useState<NormalMatch[]>([]);
+  const [matches, setMatches] = useState<IndividualMatch[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

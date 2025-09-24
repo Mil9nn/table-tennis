@@ -1,10 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Game, Participant } from "@/types/match.type";
+import { IndividualGame, Participant } from "@/types/match.type";
 
 interface GamesHistoryProps {
-  games: Game[];
+  games: IndividualGame[];
   currentGame?: number;
   participants?: Participant[];
 }
@@ -23,11 +23,11 @@ export default function GamesHistory({
         <div className="space-y-2 flex items-center gap-4 flex-wrap">
           {games.map((game) => {
             const winnerName =
-              game.winner === "side1"
+              game.winnerSide === "side1"
                 ? participants?.[0]?.fullName ??
                   participants?.[0]?.username ??
                   "Player 1"
-                : game.winner === "side2"
+                : game.winnerSide === "side2"
                 ? participants?.[1]?.fullName ??
                   participants?.[1]?.username ??
                   "Player 2"
@@ -37,7 +37,7 @@ export default function GamesHistory({
               <div
                 key={game.gameNumber}
                 className={`w-fit flex text-sm items-center justify-between gap-6 p-2 px-4 border-2 rounded-full ${
-                  game.gameNumber === currentGame && !game.winner
+                  game.gameNumber === currentGame && !game.winnerSide
                     ? "border-blue-500"
                     : ""
                 }`}
