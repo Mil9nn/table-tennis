@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
   try {
     const { id } = await context.params;
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const body = await req.json();

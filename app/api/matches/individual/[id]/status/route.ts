@@ -3,7 +3,7 @@ import IndividualMatch from "@/models/IndividualMatch";
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const { id } = await context.params;
