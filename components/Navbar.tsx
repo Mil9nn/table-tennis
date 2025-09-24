@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogIn, User, LogOut, Plus } from "lucide-react";
+import { LogIn, User, LogOut } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 
 import {
@@ -211,18 +211,6 @@ export default function Navbar() {
               </Link>
             );
           })}
-
-          {/* Mobile Create Button */}
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex flex-col items-center justify-center flex-1 py-2 px-1 text-gray-500">
-                  <Plus className="w-6 h-6 mb-1 text-gray-400" />
-                  <span className="text-xs">Create</span>
-                </button>
-              </DropdownMenuTrigger>
-            </DropdownMenu>
-          )}
         </div>
       </div>
     </>

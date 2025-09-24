@@ -1,3 +1,4 @@
+import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { Input } from "@/components/ui/input";
 import { User } from "@/types/user";
 import { useState } from "react";
@@ -41,8 +42,8 @@ function UserSearchInput({
         onChange={(e) => fetchSuggestions(e.target.value)}
       />
       {loading && (
-        <div className="absolute right-2 top-2 text-xs text-gray-400">
-          loading...
+        <div className="absolute right-2 top-2 text-xs">
+          <BlinkingDotsLoader />
         </div>
       )}
       {suggestions.length > 0 && (

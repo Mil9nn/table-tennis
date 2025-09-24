@@ -23,8 +23,6 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
     );
   }
 
-  console.log("Rendering MatchesList with matches:", matches);
-
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {matches.map((match) => {

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 
 import IndividualMatchForm from "../componets/IndividualMatchForm";
 import TeamMatchForm from "../componets/TeamMatchForm";
+import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 
 export default function CreateMatchPage() {
   const [matchCategory, setMatchCategory] = useState<"individual" | "team">(

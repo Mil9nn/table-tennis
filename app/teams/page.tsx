@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Users, Plus, Trophy } from "lucide-react";
+import { Pencil, Trash2, Plus, Trophy, Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 type Team = {
   _id: string;
@@ -51,7 +51,16 @@ export default function TeamsPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading teams...</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-105px)] text-sm">
+        <p className="flex items-center gap-2 text-gray-500">
+          <Loader2 className="animate-spin" />
+          <span>Loading teams...</span>
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 p-2">

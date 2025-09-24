@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // convert to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
     // convert buffer to base64
     const base64Image = `data:${file.type};base64,${buffer.toString("base64")}`;

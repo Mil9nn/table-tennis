@@ -27,8 +27,8 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <p className="flex items-center gap-2 text-gray-500 text-lg">
+      <div className="flex justify-center items-center min-h-[calc(100vh-105px)] text-sm">
+        <p className="flex items-center gap-2 text-gray-500">
           <Loader2 className="animate-spin" />
           <span>Loading matches...</span>
         </p>

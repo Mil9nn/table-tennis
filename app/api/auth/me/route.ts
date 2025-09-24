@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { User } from "@/models/User";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // ✅ get token from cookies
     const token = getTokenFromRequest(request);

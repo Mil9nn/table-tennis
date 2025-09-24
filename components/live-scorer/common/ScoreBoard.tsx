@@ -132,7 +132,7 @@ export default function ScoreBoard({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Set tracker */}
       <SetTracker
         bestOf={match.numberOfSets}
@@ -143,7 +143,7 @@ export default function ScoreBoard({
 
       {/* Serving indicator */}
       {serverName && !isGameWon && (
-        <div className="col-span-2 md:col-span-3 text-center mt-2">
+        <div className="text-center">
           <p className="text-sm font-medium text-yellow-600">
             <span>Serving: {serverName}</span>
           </p>

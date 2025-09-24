@@ -61,7 +61,7 @@ export default function ShotFeed({
                     : "text-red-600"
                 }`}
               >
-                {shot.outcome === "winner" ? "✔️ Winner" : "❌ Error"}
+                {shot.outcome === "winner" ? "Winner" : "Error"}
               </span>
             </li>
           );

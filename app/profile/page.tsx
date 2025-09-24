@@ -2,15 +2,24 @@
 
 import { useProfileStore } from "@/hooks/useProfileStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import {
-  Camera,
-  Mail,
-  Calendar,
-  Copy,
-  Check,
-} from "lucide-react";
+import { Camera, Mail, Calendar, Copy, Check, Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+
+// --- Shared colors for charts ---
+const COLORS = [
+  "#F59E0B", "#8B5CF6", "#14B8A6",
+  "#6366F1", "#EC4899", "#10B981", "#EF4444",
+];
 
 const ProfilePage = () => {
   const {
@@ -22,17 +31,42 @@ const ProfilePage = () => {
     isLoadingProfile,
   } = useProfileStore();
 
-
   const { user, fetchUser } = useAuthStore();
   const profileImage = user?.profileImage || null;
 
   const [file, setFile] = useState<File | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Fetch profile data when component mounts
+  const [stats, setStats] = useState<any>(null);
+  const [shotStats, setShotStats] = useState<any>(null);
+
+  // Fetch profile + stats
   useEffect(() => {
     fetchProfileImage();
     fetchUser();
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/profile/stats");
+        const data = await res.json();
+        if (data.success) setStats(data.stats);
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+      }
+    };
+
+    const fetchShotStats = async () => {
+      try {
+        const res = await fetch("/api/profile/shot-stats");
+        const data = await res.json();
+        if (data.success) setShotStats(data.stats);
+      } catch (err) {
+        console.error("Failed to fetch shot stats:", err);
+      }
+    };
+
+    fetchStats();
+    fetchShotStats();
   }, [fetchProfileImage, fetchUser]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,205 +128,199 @@ const ProfilePage = () => {
 
   if (!user) {
     return (
-      <div className="min-h-[90vh] bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+      <div className="min-h-[calc(100vh-65px)] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="animate-spin text-indigo-500" />
+           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
+  // Format detailed shots for chart
+  const shotData =
+    shotStats?.detailedShots
+      ? Object.entries(shotStats.detailedShots).map(([name, value]) => ({
+          name: name.replaceAll("_", " "),
+          value,
+        }))
+      : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-              <p className="text-gray-600 mt-1">
-                Manage your account settings and information
-              </p>
+      <div className="p-6 max-w-5xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
+            <p className="text-gray-600 mt-1">
+              Manage your account settings and information
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Image Section */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <form onSubmit={handleImageSubmit} className="space-y-4">
+                <div className="relative mx-auto w-32 h-32">
+                  <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
+                    {isLoadingProfile ? (
+                      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                        <Camera className="w-8 h-8 text-gray-400" />
+                      </div>
+                    ) : (
+                      <img
+                        src={
+                          previewUrl ||
+                          profileImage ||
+                          "/svgs/default-avatar.svg"
+                        }
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <label
+                    className="absolute bottom-0 right-0 cursor-pointer"
+                    htmlFor="profileImage"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="profileImage"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      disabled={isUploadingProfile}
+                    />
+                    <div
+                      className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
+                        isUploadingProfile ? "animate-pulse" : ""
+                      }`}
+                    >
+                      <Camera className="w-5 h-5" />
+                    </div>
+                  </label>
+                </div>
+
+                {file && (
+                  <button
+                    type="submit"
+                    disabled={isUploadingProfile}
+                    className="w-full bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isUploadingProfile ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>Update Image</>
+                    )}
+                  </button>
+                )}
+              </form>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Profile Image Section */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <form onSubmit={handleImageSubmit} className="space-y-4">
-                  <div className="relative mx-auto w-32 h-32">
-                    <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
-                      {isLoadingProfile ? (
-                        <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                          <Camera className="w-8 h-8 text-gray-400" />
-                        </div>
-                      ) : (
-                          <img
-                            src={
-                              previewUrl ||
-                              profileImage ||
-                              "/svgs/default-avatar.svg"
-                            }
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                      )}
-                    </div>
-                    <label
-                      className="absolute bottom-0 right-0 cursor-pointer"
-                      htmlFor="profileImage"
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="profileImage"
-                        className="hidden"
-                        onChange={handleFileChange}
-                        disabled={isUploadingProfile}
-                      />
-                      <div
-                        className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
-                          isUploadingProfile ? "animate-pulse" : ""
-                        }`}
-                      >
-                        <Camera className="w-5 h-5" />
-                      </div>
-                    </label>
-                  </div>
-
-                  {file && (
+          {/* Info + Stats */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Personal Info */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Personal Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-700">Full Name</label>
+                  <div className="p-2 font-medium">{user.fullName}</div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Username</label>
+                  <div className="flex items-center justify-between p-2 border rounded-lg">
+                    <span className="font-medium">@{user.username}</span>
                     <button
-                      type="submit"
-                      disabled={isUploadingProfile}
-                      className="w-full bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onClick={() => copyToClipboard(user.username, "Username")}
                     >
-                      {isUploadingProfile ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                          Uploading...
-                        </>
+                      {copiedField === "Username" ? (
+                        <Check className="text-emerald-500" />
                       ) : (
-                        <>
-                          Update Image
-                        </>
+                        <Copy />
                       )}
                     </button>
-                  )}
-                </form>
-
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-500">
-                    Maximum file size: 5MB
-                    <br />
-                    Supported formats: JPG, PNG, GIF
-                  </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Email</label>
+                  <div className="p-2 bg-gray-50 rounded">{user.email}</div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Member Since</label>
+                  <div className="p-2 bg-gray-50 rounded">
+                    {formatDate(user.createdAt || "")}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* User Information Section */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    Personal Information
-                  </h2>
+            {/* Career Stats */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-6">Player Stats</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Matches Played Card */}
+                <div className="text-center p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats?.matchesPlayed ?? 0}
+                  </div>
+                  <div className="text-sm text-blue-800">Matches Played</div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Full Name */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Full Name
-                    </label>
-
-                    <div className="flex items-center justify-between p-2 rounded-lg">
-                      <span className="text-gray-800 font-medium">
-                        {user.fullName}
-                      </span>
-                    </div>
+                {/* Record */}
+                <div className="text-center p-4 bg-gradient-to-r from-white to-green-100 rounded-xl shadow-md">
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats ? `${stats.wins}-${stats.losses}-${stats.draws}` : "0-0-0"}
                   </div>
-
-                  {/* Username */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      Username
-                    </label>
-                    <div className="flex items-center justify-between border-2 p-2 rounded-lg">
-                      <span className="text-gray-800 font-medium">
-                        @{user.username}
-                      </span>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(user.username, "Username")
-                        }
-                        className="cursor-pointer text-gray-400 hover:scale-[1.05] active:scale-[0.95] transition"
-                      >
-                        {copiedField === "Username" ? (
-                          <Check className="text-emerald-500" />
-                        ) : (
-                          <Copy />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email Address
-                    </label>
-
-                    <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                      <span className="text-gray-800 font-medium">
-                        {user.email}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Member Since */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Member Since
-                    </label>
-                    <div className="bg-gray-50 p-2 rounded-lg">
-                      <span className="text-gray-800 font-medium">
-                        {formatDate(user.createdAt || "")}
-                      </span>
-                    </div>
-                  </div>
+                  <div className="text-sm text-green-800">Record (W-L-D)</div>
                 </div>
-              </div>
-
-              {/* Account Stats */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                  Account Overview
-                </h2>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                    <div className="text-2xl font-bold text-blue-600">0</div>
-                    <div className="text-sm text-blue-800">Matches Played</div>
+                {/* Win Rate */}
+                <div className="text-center p-4 bg-gradient-to-r from-white to-purple-100 shadow-md rounded-xl">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {stats?.matchesPlayed
+                      ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(1)}%`
+                      : "0%"}
                   </div>
-
-                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                    <div className="text-2xl font-bold text-green-600">0</div>
-                    <div className="text-sm text-green-800">Matches Won</div>
+                  <div className="text-sm text-purple-800">Win Rate</div>
+                </div>
+                {/* Backhand Drive */}
+                <div className="text-center p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
+                  <div className="font-bold text-yellow-600 capitalize">
+                    {stats?.bestShot ? stats.bestShot.replaceAll("_", " ") : "N/A"}
                   </div>
-
-                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                    <div className="text-2xl font-bold text-purple-600">0%</div>
-                    <div className="text-sm text-purple-800">Win Rate</div>
-                  </div>
+                  <div className="text-sm text-yellow-800">Strength</div>
                 </div>
               </div>
             </div>
+
+            {/* Career Shot Breakdown */}
+            {shotData.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-6">Career Shot Distribution</h2>
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={shotData}>
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value">
+                        {shotData.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -64,10 +64,6 @@ export default function SimpleTeamForm() {
   };
 
   const onSubmit = (data: TeamFormValues) => {
-    console.log("Form submitted:", {
-      ...data,
-      players,
-    });
     alert("Team submitted! Check console.");
   };
 

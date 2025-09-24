@@ -68,17 +68,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       const currentGameNum = match.currentGame ?? 1;
 
-      console.log("🔄 setInitialMatch - currentGame from DB:", currentGameNum);
-      console.log(
-        "🔄 setInitialMatch - games in DB:",
-        match.games?.map((g: IndividualGame) => ({
-          num: g.gameNumber,
-          scores: `${g.side1Score}-${g.side2Score}`,
-          winner: g.winnerSide,
-          completed: g.completed,
-        }))
-      );
-
       let currentGameObj = match.games?.find(
         (g: IndividualGame) => g.gameNumber === currentGameNum && !g.winnerSide && !g.completed
       );
@@ -97,11 +86,9 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       ) {
         p1 = currentGameObj.side1Score ?? 0;
         p2 = currentGameObj.side2Score ?? 0;
-        console.log("🎮 Using active game scores:", p1, "-", p2);
       } else {
         p1 = 0;
         p2 = 0;
-        console.log("🆕 Starting fresh game:", currentGameNum);
       }
 
       const nextServer = computeNextServer(match, p1, p2);
@@ -119,16 +106,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         side2Sets: match.finalScore?.side2Sets ?? 0,
         status: actualStatus,
         isMatchActive: isActive,
-      });
-
-      console.log("✅ Match state initialized:", {
-        currentGame: currentGameNum,
-        scores: `${p1}-${p2}`,
-        status: actualStatus,
-        sets: `${match.finalScore?.side1Sets ?? 0}-${
-          match.finalScore?.side2Sets ?? 0
-        }`,
-        server: nextServer,
       });
     },
 

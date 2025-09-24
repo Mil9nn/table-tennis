@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { axiosInstance } from "@/lib/axiosInstance";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useState } from "react";
 import UserSearchInput from "@/app/match/componets/UserSearchInput";
 

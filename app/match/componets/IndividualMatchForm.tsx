@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
   Form,
   FormField,
@@ -82,7 +82,7 @@ export default function IndividualMatchForm({
       }
 
       const response = await axiosInstance.post(endpoint, matchData);
-      toast.success("✅ Individual match created!");
+      toast.success("Match created!");
       router.push(`/matches/${response.data.match._id}`);
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to create match");
