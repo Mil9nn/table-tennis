@@ -34,7 +34,7 @@ export default function InitialServerDialog({ matchType, participants }: Initial
       ...match,
       serverConfig: {
         firstServer,
-        firstReceiver: matchType !== "singles" ? firstReceiver : undefined,
+        firstReceiver: matchType !== "singles" ? firstReceiver : null,
       },
     };
 

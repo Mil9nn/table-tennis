@@ -1,5 +1,3 @@
-// helpers.ts (replace current file or merge changes into it)
-
 export type PlayerKey = "side1" | "side2";
 
 export type DoublesPlayerKey =
@@ -9,9 +7,8 @@ export type DoublesPlayerKey =
   | "side2_partner";
 
 export type InitialServerConfig = {
-  firstServer?: PlayerKey | DoublesPlayerKey;
-  firstReceiver?: DoublesPlayerKey; // doubles-only
-  // optional explicit rotation if you want to force arbitrary order:
+  firstServer?: PlayerKey | DoublesPlayerKey | null;
+  firstReceiver?: DoublesPlayerKey | null;
   serverOrder?: DoublesPlayerKey[];
 };
 
@@ -33,12 +30,6 @@ type ServerResult = {
   serveCount: number;
 };
 
-/**
- * Public getNextServer - now accepts optional initial config that
- * allows the scorer to pick the initial server / receiver or pass a full serverOrder.
- *
- * If initialConfig is not provided we fall back to the old behavior.
- */
 export const getNextServer = (
   p1: number,
   p2: number,
@@ -51,7 +42,7 @@ export const getNextServer = (
   if (isDoubles) {
     const rotation =
       initialConfig?.serverOrder ||
-      buildDoublesRotation(initialConfig?.firstServer as DoublesPlayerKey | undefined, initialConfig?.firstReceiver);
+      buildDoublesRotation(initialConfig?.firstServer as DoublesPlayerKey, initialConfig?.firstReceiver);
     return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
     const firstServer = (initialConfig?.firstServer as PlayerKey) ?? "side1";
@@ -136,8 +127,8 @@ const getNextServerDoubles = (
  *  2. Rotation = [firstServer, firstReceiver, partnerOf(firstServer), partnerOf(firstReceiver)]
  */
 export const buildDoublesRotation = (
-  firstServer?: DoublesPlayerKey,
-  firstReceiver?: DoublesPlayerKey
+  firstServer?: DoublesPlayerKey | null,
+  firstReceiver?: DoublesPlayerKey | null
 ): DoublesPlayerKey[] => {
   const all: DoublesPlayerKey[] = [
     "side1_main",
