@@ -13,6 +13,7 @@ import {
   ArrowLeftCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -22,15 +23,15 @@ export default function MatchDetailsPage() {
 
   const fetchMatch = async () => {
     try {
-      let response = await fetch(`/api/matches/individual/${matchId}`);
-      if (response.ok) {
-        const data = await response.json();
+      let response = await axiosInstance.get(`/matches/individual/${matchId}`);
+      if (response.status === 200) {
+        const data = await response.data;
         setMatch({ ...data.match, matchCategory: "individual" });
         return;
       }
-      response = await fetch(`/api/matches/team/${matchId}`);
-      if (response.ok) {
-        const data = await response.json();
+      response = await axiosInstance.get(`/matches/team/${matchId}`);
+      if (response.status === 200) {
+        const data = await response.data;
         setMatch({ ...data.match, matchCategory: "team" });
         return;
       }

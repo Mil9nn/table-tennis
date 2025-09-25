@@ -2,29 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import MatchesList from "@/components/MatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Loader2 } from "lucide-react";
 import { IndividualMatch } from "@/types/match.type";
 
 export default function HomePage() {
-  const [matches, setMatches] = useState<IndividualMatch[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMatches = async () => {
-      try {
-        const { data } = await axiosInstance.get("/matches/individual");
-        setMatches(data.matches || []);
-      } catch (err) {
-        console.error("Error fetching matches:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMatches();
-  }, []);
 
   return (
     <div className="flex flex-col space-y-4">
@@ -56,17 +37,6 @@ export default function HomePage() {
             See all →
           </Link>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-6 text-gray-500">
-            <Loader2 className="animate-spin mr-2" />
-            Loading matches...
-          </div>
-        ) : matches.length === 0 ? (
-          <p className="text-gray-500">No recent matches found.</p>
-        ) : (
-          <MatchesList matches={matches.slice(0, 2)} />
-        )}
       </section>
 
       {/* Teams Section (still dummy for now) */}
@@ -76,17 +46,6 @@ export default function HomePage() {
           <Link href="/teams" className="text-indigo-600 hover:underline">
             See all →
           </Link>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="p-4 border rounded-lg shadow-sm bg-white">
-            <p className="font-semibold">Smash Masters</p>
-            <p className="text-sm text-gray-500">4 players</p>
-          </div>
-          <div className="p-4 border rounded-lg shadow-sm bg-white">
-            <p className="font-semibold">Spin Kings</p>
-            <p className="text-sm text-gray-500">3 players</p>
-          </div>
         </div>
       </section>
     </div>

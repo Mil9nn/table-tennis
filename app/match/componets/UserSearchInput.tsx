@@ -1,5 +1,6 @@
 import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { Input } from "@/components/ui/input";
+import { axiosInstance } from "@/lib/axiosInstance";
 import { User } from "@/types/user";
 import { useState } from "react";
 
@@ -24,8 +25,8 @@ function UserSearchInput({
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/users/search?q=${val}`);
-      const data = await res.json();
+      const response = await axiosInstance.get(`/users/searach?q=${val}`);
+      const data = response.data;
       setSuggestions(data.users || []);
     } catch (err) {
       console.error("Error fetching suggestions", err);

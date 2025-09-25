@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 interface MatchStatisticsProps {
   matchId: string;
@@ -18,9 +19,9 @@ export default function MatchStatistics({ matchId }: MatchStatisticsProps) {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/matches/individual/${matchId}/stats`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await axiosInstance.get(`/matches/individual/${matchId}/stats`);
+      if (response.status === 200) {
+        const data = await response.data;
         setStats(data);
       }
     } catch (error) {

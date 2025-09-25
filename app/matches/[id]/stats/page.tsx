@@ -17,6 +17,7 @@ import {
 import ReactECharts from "echarts-for-react";
 import Link from "next/link";
 import { Shot } from "@/types/shot.type";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 // --- 🔥 Shared color palette ---
 const COLORS = {
@@ -63,16 +64,16 @@ export default function MatchStatsPage() {
 
   const fetchMatch = async () => {
     try {
-      let response = await fetch(`/api/matches/individual/${matchId}`);
-      if (response.ok) {
-        const data = await response.json();
+      let response = await axiosInstance.get(`/matches/individual/${matchId}`);
+      if (response.status === 200) {
+        const data = await response.data;
         setMatch({ ...data.match, matchCategory: "individual" });
         return;
       }
 
-      response = await fetch(`/api/matches/team/${matchId}`);
-      if (response.ok) {
-        const data = await response.json();
+      response = await axiosInstance.get(`/matches/team/${matchId}`);
+      if (response.status === 200) {
+        const data = await response.data;
         setMatch({ ...data.match, matchCategory: "team" });
         return;
       }
@@ -182,7 +183,10 @@ export default function MatchStatsPage() {
   return (
     <div className="px-4 py-8 space-y-10">
       {/* Go Back */}
-      <Link href={`/matches/${matchId}`} className="flex items-center gap-2 text-sm hover:bg-blue-300 w-fit rounded-full px-3 py-1 bg-blue-100 text-blue-800 transition-all">
+      <Link
+        href={`/matches/${matchId}`}
+        className="flex items-center gap-2 text-sm hover:bg-blue-300 w-fit rounded-full px-3 py-1 bg-blue-100 text-blue-800 transition-all"
+      >
         <ArrowLeftCircle />
         <span className="font-semibold">Go back</span>
       </Link>

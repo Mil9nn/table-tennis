@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 // --- Shared colors for charts ---
 const COLORS = [
@@ -52,8 +53,8 @@ const ProfilePage = () => {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch("/api/profile/stats");
-        const data = await res.json();
+        const response = await axiosInstance.get("/profile/stats");
+        const data = await response.data;
         if (data.success) setStats(data.stats);
       } catch (err) {
         console.error("Failed to fetch stats:", err);
@@ -62,8 +63,8 @@ const ProfilePage = () => {
 
     const fetchShotStats = async () => {
       try {
-        const res = await fetch("/api/profile/shot-stats");
-        const data = await res.json();
+        const response = await axiosInstance.get("/profile/shot-stats");
+        const data = await response.data;
         if (data.success) setShotStats(data.stats);
       } catch (err) {
         console.error("Failed to fetch shot stats:", err);
