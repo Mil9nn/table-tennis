@@ -78,6 +78,7 @@ export interface TeamMatch {
   numberOfSets: number;
   setsPerTie?: number;
   participants: Participant[];
+  scorer?: Participant;
   team1: Team | null;
   team2: Team | null;
   games: TeamGame[];

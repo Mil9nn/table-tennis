@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
+import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 
 export async function POST(
   request: NextRequest,
@@ -9,9 +10,28 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
+    // --- Auth Check ---
+    const token = getTokenFromRequest(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
     const match = await IndividualMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    // Only scorer is allowed to update the score
+    if (match.scorer?.toString() !== decoded.userId) {
+      return NextResponse.json(
+        { error: "Forbidden only the assigned scorer can update the score" },
+        { status: 403 }
+      );
     }
 
     if (match.status === "completed") {

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
 type NavItem = {
   label: string;
@@ -44,11 +45,11 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16">
             {/* Brand */}
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 p-2 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 p-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
                 <div className="bg-white w-3 h-3 rounded-full animate-bounce shadow-black shadow-md"></div>
               </div>
-              <span className="font-semibold text-gray-800 hidden sm:inline">
-                TennisPro
+              <span className="font-semibold text-gray-800 inline">
+                TTPro
               </span>
             </Link>
 
@@ -57,17 +58,15 @@ export default function Navbar() {
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
+                    <button className="cursor-pointer w-10 h-10 p-1 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
                       {user?.profileImage ? (
                         <img
                           src={user?.profileImage}
                           alt="Profile"
-                          width={40}
-                          height={40}
                           className="w-full h-full object-cover rounded-full"
                         />
                       ) : (
-                        <User className="w-5 h-5 text-gray-700" />
+                        <Image src="/svgs/user.svg" alt="user" width={100} height={100} className="w-10 h-full object-contain" />
                       )}
                     </button>
                   </DropdownMenuTrigger>
@@ -182,43 +181,42 @@ export default function Navbar() {
 
       {/* Mobile Bottom Navigation */}
       <div
-  className="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg z-50"
-  role="navigation"
-  aria-label="Mobile navigation"
->
-  <div className="flex justify-around items-center h-16 px-2">
-    {navItems.map((item) => {
-      const active = isActive(item.href);
-      return (
-        <Link
-          key={item.href}
-          href={item.href}
-          aria-current={active ? "page" : undefined}
-          className={`flex flex-col items-center justify-center transition-transform duration-300 flex-1 py-2 px-1 ${
-            active ? "text-indigo-600" : "text-gray-500"
-          }`}
-        >
-          <div
-            className={`rounded-full p-1 transition-colors ${
-              active
-                ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md shadow-indigo-400"
-                : "bg-white shadow-md"
-            }`}
-          >
-            <img
-              src={item.image}
-              alt={item.label}
-              className="w-6 h-6"
-              loading="lazy"
-            />
-          </div>
-          <span className="hidden">{item.label}</span>
-        </Link>
-      );
-    })}
-  </div>
-</div>
-
+        className="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg z-50"
+        role="navigation"
+        aria-label="Mobile navigation"
+      >
+        <div className="flex justify-around items-center h-16 px-2">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex flex-col items-center justify-center transition-transform duration-300 flex-1 py-2 px-1 ${
+                  active ? "text-indigo-600" : "text-gray-500"
+                }`}
+              >
+                <div
+                  className={`rounded-full p-1 transition-colors ${
+                    active
+                      ? "bg-gradient-to-r from-indigo-500 to-white shadow-md shadow-indigo-400"
+                      : "bg-white shadow-md"
+                  }`}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.label}
+                    className="w-6 h-6"
+                    loading="lazy"
+                  />
+                </div>
+                <span className="hidden">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </>
   );
 }

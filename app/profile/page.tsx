@@ -17,8 +17,13 @@ import {
 
 // --- Shared colors for charts ---
 const COLORS = [
-  "#F59E0B", "#8B5CF6", "#14B8A6",
-  "#6366F1", "#EC4899", "#10B981", "#EF4444",
+  "#F59E0B",
+  "#8B5CF6",
+  "#14B8A6",
+  "#6366F1",
+  "#EC4899",
+  "#10B981",
+  "#EF4444",
 ];
 
 const ProfilePage = () => {
@@ -131,20 +136,19 @@ const ProfilePage = () => {
       <div className="min-h-[calc(100vh-65px)] flex items-center justify-center">
         <div className="flex items-center gap-2">
           <Loader2 className="animate-spin text-indigo-500" />
-           <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   // Format detailed shots for chart
-  const shotData =
-    shotStats?.detailedShots
-      ? Object.entries(shotStats.detailedShots).map(([name, value]) => ({
-          name: name.replaceAll("_", " "),
-          value,
-        }))
-      : [];
+  const shotData = shotStats?.detailedShots
+    ? Object.entries(shotStats.detailedShots).map(([name, value]) => ({
+        name: name.replaceAll("_", " "),
+        value,
+      }))
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -171,15 +175,17 @@ const ProfilePage = () => {
                         <Camera className="w-8 h-8 text-gray-400" />
                       </div>
                     ) : (
-                      <img
-                        src={
-                          previewUrl ||
-                          profileImage ||
-                          "/svgs/default-avatar.svg"
-                        }
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+                      <div
+                        className={`${
+                          !profileImage && !previewUrl ? "p-4 bg-gray-100" : ""
+                        }`}
+                      >
+                        <img
+                          src={previewUrl || profileImage || "/svgs/user.svg"}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     )}
                   </div>
                   <label
@@ -278,7 +284,9 @@ const ProfilePage = () => {
                 {/* Record */}
                 <div className="text-center p-4 bg-gradient-to-r from-white to-green-100 rounded-xl shadow-md">
                   <div className="text-2xl font-bold text-green-600">
-                    {stats ? `${stats.wins}-${stats.losses}-${stats.draws}` : "0-0-0"}
+                    {stats
+                      ? `${stats.wins}-${stats.losses}-${stats.draws}`
+                      : "0-0-0"}
                   </div>
                   <div className="text-sm text-green-800">Record (W-L-D)</div>
                 </div>
@@ -286,7 +294,9 @@ const ProfilePage = () => {
                 <div className="text-center p-4 bg-gradient-to-r from-white to-purple-100 shadow-md rounded-xl">
                   <div className="text-2xl font-bold text-purple-600">
                     {stats?.matchesPlayed
-                      ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(1)}%`
+                      ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(
+                          1
+                        )}%`
                       : "0%"}
                   </div>
                   <div className="text-sm text-purple-800">Win Rate</div>
@@ -294,7 +304,9 @@ const ProfilePage = () => {
                 {/* Backhand Drive */}
                 <div className="text-center p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
                   <div className="font-bold text-yellow-600 capitalize">
-                    {stats?.bestShot ? stats.bestShot.replaceAll("_", " ") : "N/A"}
+                    {stats?.bestShot
+                      ? stats.bestShot.replaceAll("_", " ")
+                      : "N/A"}
                   </div>
                   <div className="text-sm text-yellow-800">Strength</div>
                 </div>
@@ -304,7 +316,9 @@ const ProfilePage = () => {
             {/* Career Shot Breakdown */}
             {shotData.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-6">Career Shot Distribution</h2>
+                <h2 className="text-xl font-semibold mb-6">
+                  Career Shot Distribution
+                </h2>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={shotData}>

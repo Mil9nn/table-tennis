@@ -35,7 +35,7 @@ export default function ShotFeed({
   return (
     <div className="p-4 space-y-4">
       <h3 className="font-semibold">Rally Feed</h3>
-      <ul className="space-y-1 max-h-60 overflow-y-auto pr-2">
+      <ul className="space-y-1 p-2 border-2 max-h-60 overflow-y-auto pr-2">
         {shots.map((shot, i) => {
           const player = participants.find((p) => p._id === shot.player._id);
           const playerName =
@@ -49,11 +49,9 @@ export default function ShotFeed({
           let outcomeClass = "";
 
           if (shot.outcome === "error") {
-            displayText = `Error (${shot.errorType || "Unforced"})`;
-            outcomeClass = "text-red-600";
+            displayText = `${shot.errorType || "Unforced"}`;
           } else if (shot.outcome === "winner") {
-            displayText = `Winner (${formatShotType(shot.stroke)})`;
-            outcomeClass = "text-green-600";
+            displayText = `${formatShotType(shot.stroke)}`;
           } else {
             // Normal rally shot (no direct winner/error yet)
             displayText = formatShotType(shot.stroke);
@@ -65,7 +63,7 @@ export default function ShotFeed({
               key={shot._id ?? i}
               className="text-sm w-full p-2 flex justify-between items-center border-b last:border-0"
             >
-              <span>
+              <span className="">
                 <strong>{playerName}</strong> ({shot.side}) → {displayText}
               </span>
               <span className={`font-semibold ${outcomeClass}`}>
