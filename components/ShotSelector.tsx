@@ -4,6 +4,7 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,7 +33,6 @@ const ShotSelector = () => {
 
         const side = pendingPlayer.side;
         const playerId = pendingPlayer.playerId;
-        const isError = shotValue.includes("error");
 
         updateScore(side, 1, shotValue, playerId);
         setPendingPlayer(null);
@@ -52,6 +52,11 @@ const ShotSelector = () => {
               ? "Select Shot Type"
               : "Who scored the point?"}
           </DialogTitle>
+          <DialogDescription>
+            {pendingPlayer?.playerId
+              ? "Select the type of shot played"
+              : "Select the player who scored the point"}
+          </DialogDescription>
         </DialogHeader>
 
         {!pendingPlayer ? (

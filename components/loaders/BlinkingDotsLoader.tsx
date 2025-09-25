@@ -11,15 +11,15 @@ import React from "react";
    - label: accessible label (aria-label)
  */
 export default function BlinkingDotsLoader({
-  size = 4,
-  color = "currentColor",
-  speed = 1.4,
+  size = 6,
+  color = "gray",
+  speed = 2,
   className = "",
   label = "Loading",
 }) {
   // ensure sensible values
   const dotSize = Math.max(6, Math.round(size));
-  const gap = Math.max(6, Math.round(size * 0.4));
+  const gap = Math.max(3, Math.round(size * 0.4));
 
   const wrapperStyle = {
     display: "inline-flex",
@@ -44,7 +44,7 @@ export default function BlinkingDotsLoader({
       <style>{`
         @keyframes bdl-blink {
           0%, 80%, 100% { opacity: 0.18; transform: translateY(0); }
-          40% { opacity: 1; transform: translateY(-2px); }
+          40% { opacity: 1; transform: translateY(-1px); }
         }
       `}</style>
 

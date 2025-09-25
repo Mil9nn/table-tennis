@@ -10,6 +10,7 @@ import { IndividualMatchState, useIndividualMatch } from "@/hooks/useIndividualM
 import { useMatchStore } from "@/hooks/useMatchStore";
 import ShotFeed from "../common/ShotFeed";
 import { IndividualMatch, MatchStatus } from "@/types/match.type";
+import InitialServerDialog from "@/components/ServerDialog";
 
 interface DoublesScorerProps {
   match: IndividualMatch;
@@ -64,6 +65,14 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
       }
     }
   }, [match._id, match.status, setInitialMatch]);
+
+  useEffect(() => {
+  if (match?.status === "scheduled" && !match.serverConfig) {
+    useMatchStore.getState().setServerDialogOpen(true);
+  }
+}, [match]);
+
+  
 
   if (!match) return <div>Loading match...</div>;
 
@@ -129,6 +138,8 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
               <ShotSelector />
             </>
           )}
+
+          <InitialServerDialog matchType={match.matchType} participants={match.participants} />
         </>
       )}
     </div>

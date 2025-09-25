@@ -9,7 +9,6 @@ import {
 } from "@/components/live-scorer/individual/helpers";
 import { AddPointPayload, MatchStatus } from "@/types/match.type";
 
-
 interface ScoreBoardProps {
   match: any;
   side1Score: number;
@@ -142,11 +141,17 @@ export default function ScoreBoard({
       />
 
       {/* Serving indicator */}
-      {serverName && !isGameWon && (
+      {!isGameWon && (
         <div className="text-center">
-          <p className="text-sm font-medium text-yellow-600">
-            <span>Serving: {serverName}</span>
-          </p>
+          {serverName ? (
+            <p className="text-sm font-medium text-yellow-600">
+              <span>Serving: {serverName}</span>
+            </p>
+          ) : (
+            <p className="text-sm font-medium text-gray-500">
+              ⚠️ Waiting for server selection
+            </p>
+          )}
         </div>
       )}
 

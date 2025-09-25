@@ -25,7 +25,7 @@ function UserSearchInput({
     }
     setLoading(true);
     try {
-      const response = await axiosInstance.get(`/users/searach?q=${val}`);
+      const response = await axiosInstance.get(`/users/search?q=${val}`);
       const data = response.data;
       setSuggestions(data.users || []);
     } catch (err) {

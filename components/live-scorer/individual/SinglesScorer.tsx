@@ -10,6 +10,7 @@ import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import ShotFeed from "../common/ShotFeed";
 import type { AddPointPayload, IndividualMatch, MatchStatus } from "@/types/match.type";
+import InitialServerDialog from "@/components/ServerDialog";
 
 interface SinglesScorerProps {
   match: IndividualMatch;
@@ -54,6 +55,12 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
       lastMatchStatus.current = match.status;
     }
   }, [match, setInitialMatch]);
+
+  useEffect(() => {
+    if (match.status === "scheduled" && !match.serverConfig) {
+      useMatchStore.getState().setServerDialogOpen(true);
+    }
+  }, []);
 
   const handleAddPoint = useCallback(
     ({ side, playerId }: AddPointPayload) => {
@@ -123,6 +130,8 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
           />
 
           <ShotSelector />
+
+          <InitialServerDialog matchType={match.matchType} participants={match.participants} />
         </>
       )}
     </div>

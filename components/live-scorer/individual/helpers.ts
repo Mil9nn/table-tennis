@@ -1,3 +1,5 @@
+// helpers.ts (replace current file or merge changes into it)
+
 export type PlayerKey = "side1" | "side2";
 
 export type DoublesPlayerKey =
@@ -5,6 +7,13 @@ export type DoublesPlayerKey =
   | "side1_partner"
   | "side2_main"
   | "side2_partner";
+
+export type InitialServerConfig = {
+  firstServer?: PlayerKey | DoublesPlayerKey;
+  firstReceiver?: DoublesPlayerKey; // doubles-only
+  // optional explicit rotation if you want to force arbitrary order:
+  serverOrder?: DoublesPlayerKey[];
+};
 
 export const checkGameWon = (side1: number, side2: number): PlayerKey | null => {
   if ((side1 >= 11 || side2 >= 11) && Math.abs(side1 - side2) >= 2) {
@@ -24,56 +33,77 @@ type ServerResult = {
   serveCount: number;
 };
 
+/**
+ * Public getNextServer - now accepts optional initial config that
+ * allows the scorer to pick the initial server / receiver or pass a full serverOrder.
+ *
+ * If initialConfig is not provided we fall back to the old behavior.
+ */
 export const getNextServer = (
   p1: number,
   p2: number,
   isDoubles: boolean,
-  serverOrder?: DoublesPlayerKey[]
+  initialConfig?: InitialServerConfig
 ): ServerResult => {
   const totalPoints = p1 + p2;
   const isDeuce = p1 >= 10 && p2 >= 10;
 
   if (isDoubles) {
-    return getNextServerDoubles(totalPoints, isDeuce, serverOrder);
+    const rotation =
+      initialConfig?.serverOrder ||
+      buildDoublesRotation(initialConfig?.firstServer as DoublesPlayerKey | undefined, initialConfig?.firstReceiver);
+    return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
-    return getNextServerSingles(totalPoints, isDeuce);
+    const firstServer = (initialConfig?.firstServer as PlayerKey) ?? "side1";
+    return getNextServerSingles(totalPoints, isDeuce, firstServer);
   }
 };
 
 const getNextServerSingles = (
   totalPoints: number,
-  isDeuce: boolean
+  isDeuce: boolean,
+  firstServer: PlayerKey
 ): ServerResult => {
+  const servers: PlayerKey[] =
+    firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
+
   if (isDeuce) {
+    // alternate every point, starting from firstServer at totalPoints===0
+    const server = servers[totalPoints % 2];
     return {
-      server: totalPoints % 2 === 0 ? "side1" : "side2",
+      server,
       isDeuce,
-      serveCount: totalPoints % 2,
+      serveCount: 0,
     };
   }
 
-  const serveCycle = Math.floor(totalPoints / 2);
+  const serveCycle = Math.floor(totalPoints / 2); // each server serves 2 points
+  const server = servers[serveCycle % 2];
+
   return {
-    server: serveCycle % 2 === 0 ? "side1" : "side2",
+    server,
     isDeuce,
     serveCount: totalPoints % 2,
   };
 };
 
+const defaultDoublesOrder: DoublesPlayerKey[] = [
+  "side1_main",
+  "side2_main",
+  "side1_partner",
+  "side2_partner",
+];
+
 const getNextServerDoubles = (
   totalPoints: number,
   isDeuce: boolean,
-  serverOrder?: DoublesPlayerKey[]
+  rotation: DoublesPlayerKey[] = defaultDoublesOrder
 ): ServerResult => {
-  const defaultOrder: DoublesPlayerKey[] = [
-    "side1_main",
-    "side2_main",
-    "side1_partner",
-    "side2_partner",
-  ];
-  const rotation = serverOrder || defaultOrder;
+  // rotation must be length 4 (safe fallback to default if not)
+  if (!rotation || rotation.length !== 4) rotation = defaultDoublesOrder;
 
   if (isDeuce) {
+    // alternate every point following the established rotation
     const serverIndex = totalPoints % rotation.length;
     return {
       server: rotation[serverIndex],
@@ -82,7 +112,7 @@ const getNextServerDoubles = (
     };
   }
 
-  const serveCycle = Math.floor(totalPoints / 2);
+  const serveCycle = Math.floor(totalPoints / 2); // each server serves 2 points
   const serverIndex = serveCycle % rotation.length;
 
   return {
@@ -92,68 +122,78 @@ const getNextServerDoubles = (
   };
 };
 
-export const checkSetWon = (
-  side1Games: number,
-  side2Games: number
-): PlayerKey | null => {
-  if (side1Games > side2Games) return "side1";
-  if (side2Games > side1Games) return "side2";
-  return null;
-};
+/**
+ * Build doubles rotation given a scorer-picked first server and first receiver.
+ *
+ * Expected behavior (example):
+ *  - scorer picks side1_main as firstServer and side2_main as firstReceiver
+ *  Rotation should be:
+ *    [side1_main, side2_main, side1_partner, side2_partner]
+ *
+ * Algorithm:
+ *  1. Validate that firstReceiver is on the opposite side of firstServer. If it's not, try to
+ *     infer a sensible receiver (opposite main).
+ *  2. Rotation = [firstServer, firstReceiver, partnerOf(firstServer), partnerOf(firstReceiver)]
+ */
+export const buildDoublesRotation = (
+  firstServer?: DoublesPlayerKey,
+  firstReceiver?: DoublesPlayerKey
+): DoublesPlayerKey[] => {
+  const all: DoublesPlayerKey[] = [
+    "side1_main",
+    "side1_partner",
+    "side2_main",
+    "side2_partner",
+  ];
 
-export const checkMatchWon = (
-  side1Sets: number,
-  side2Sets: number,
-  bestOf: number
-): PlayerKey | null => {
-  const targetSets = Math.floor(bestOf / 2) + 1;
-  if (side1Sets >= targetSets) return "side1";
-  if (side2Sets >= targetSets) return "side2";
-  return null;
-};
+  // helper to get side and role
+  const parse = (k: DoublesPlayerKey) => {
+    const [side, role] = k.split("_");
+    return { side, role };
+  };
 
-export const getCurrentServerName = (
-  server: ServerResult["server"],
-  participants: any[],
-  matchType: string
-): string | null => {
-  if (!server || !participants) return null;
-
-  if (matchType === "singles") {
-    switch (server) {
-      case "side1":
-        return (
-          participants[0]?.fullName || participants[0]?.username || "Player 1"
-        );
-      case "side2":
-        return (
-          participants[1]?.fullName || participants[1]?.username || "Player 2"
-        );
-      default:
-        return null;
+  const partnerOf = (k: DoublesPlayerKey): DoublesPlayerKey => {
+    if (k.startsWith("side1")) {
+      return k.endsWith("_main") ? "side1_partner" : "side1_main";
     }
+    return k.endsWith("_main") ? "side2_partner" : "side2_main";
+  };
+
+  // fallback defaults
+  const fallback = defaultDoublesOrder.slice();
+
+  // If firstServer not provided, return fallback
+  if (!firstServer) return fallback;
+
+  // Ensure firstServer is valid
+  if (!all.includes(firstServer)) return fallback;
+
+  // If no receiver provided, pick the main on opposite side by default
+  let receiver = firstReceiver;
+  if (!receiver) {
+    // choose the "main" on the opposite side
+    const serverSide = firstServer.startsWith("side1") ? "side1" : "side2";
+    receiver = serverSide === "side1" ? "side2_main" : "side1_main";
   }
 
-  switch (server) {
-    case "side1_main":
-      return (
-        participants[0]?.fullName || participants[0]?.username || "Player 1A"
-      );
-    case "side1_partner":
-      return (
-        participants[1]?.fullName || participants[1]?.username || "Player 1B"
-      );
-    case "side2_main":
-      return (
-        participants[2]?.fullName || participants[2]?.username || "Player 2A"
-      );
-    case "side2_partner":
-      return (
-        participants[3]?.fullName || participants[3]?.username || "Player 2B"
-      );
-    default:
-      return null;
+  // Ensure receiver is valid and on the opposite side. If not, attempt to fix.
+  if (!all.includes(receiver) || receiver.split("_")[0] === firstServer.split("_")[0]) {
+    // receiver is on same side — pick opposite main
+    receiver = firstServer.startsWith("side1") ? "side2_main" : "side1_main";
   }
+
+  const rotation: DoublesPlayerKey[] = [
+    firstServer,
+    receiver,
+    partnerOf(firstServer),
+    partnerOf(receiver),
+  ];
+
+  // final safety: if rotation duplicates or missing items, return fallback
+  const unique = Array.from(new Set(rotation));
+  if (unique.length !== 4) return fallback;
+
+  return rotation;
 };
 
 export const formatScore = (side1: number, side2: number): string =>
@@ -206,4 +246,37 @@ export const getPointsNeeded = (
     return opponentScore + 2 - currentScore;
   }
   return Math.max(0, 11 - currentScore);
+};
+
+export const getCurrentServerName = (
+  server: PlayerKey | DoublesPlayerKey | null,
+  participants: any[],
+  matchType: string
+): string | null => {
+  if (!server || !participants) return null;
+
+  if (matchType === "singles") {
+    switch (server) {
+      case "side1":
+        return participants[0]?.fullName || participants[0]?.username || "Player 1";
+      case "side2":
+        return participants[1]?.fullName || participants[1]?.username || "Player 2";
+      default:
+        return null;
+    }
+  }
+
+  // doubles / mixed_doubles
+  switch (server) {
+    case "side1_main":
+      return participants[0]?.fullName || participants[0]?.username || "Player 1A";
+    case "side1_partner":
+      return participants[1]?.fullName || participants[1]?.username || "Player 1B";
+    case "side2_main":
+      return participants[2]?.fullName || participants[2]?.username || "Player 2A";
+    case "side2_partner":
+      return participants[3]?.fullName || participants[3]?.username || "Player 2B";
+    default:
+      return null;
+  }
 };

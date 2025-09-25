@@ -32,6 +32,9 @@ interface MatchStore {
 
   setupDialogOpen: boolean;
   setSetupDialogOpen: (open: boolean) => void;
+
+  serverDialogOpen: boolean;
+  setServerDialogOpen: (open: boolean) => void;
 }
 
 export const useMatchStore = create<MatchStore>((set, get) => {
@@ -167,6 +170,9 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     setPendingPlayer: (p) => set({ pendingPlayer: p }),
     setupDialogOpen: false,
     setSetupDialogOpen: (open) => set({ setupDialogOpen: open }),
+
+    serverDialogOpen: false,
+    setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
     fetchIndividualMatch: async (id: string) => {
       set({ fetchingMatch: true });

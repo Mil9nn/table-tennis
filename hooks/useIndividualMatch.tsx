@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toast } from "sonner";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { checkGameWon, getNextServer } from "@/components/live-scorer/individual/helpers";
+import { checkGameWon, getNextServer, InitialServerConfig } from "@/components/live-scorer/individual/helpers";
 import { IndividualMatch, MatchStatus, IndividualGame } from "@/types/match.type";
 
 export type PlayerKey = "side1" | "side2" | null;
@@ -12,7 +12,8 @@ type ServerKey =
   | "side1_main"
   | "side1_partner"
   | "side2_main"
-  | "side2_partner";
+  | "side2_partner"
+  | null;
 
 export interface IndividualMatchState {
   match?: IndividualMatch | null;
@@ -41,20 +42,38 @@ export interface IndividualMatchState {
 export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
   // compute next server based on match type + current score
   const computeNextServer = (match: IndividualMatch, p1: number, p2: number): ServerKey => {
-    if (!match) return "side1_main";
+  if (!match) return "side1_main";
 
-    const isDoubles =
-      match.matchType === "doubles" || match.matchType === "mixed_doubles";
-    const serverResult = getNextServer(p1, p2, isDoubles);
+  const isDoubles =
+    match.matchType === "doubles" || match.matchType === "mixed_doubles";
 
-    return serverResult.server as ServerKey;
+  // Try to read server config from a few possible locations for flexibility/compatibility
+  const serverConfigFromMatch: InitialServerConfig = {
+    firstServer:
+      // prefer explicit serverConfig object
+      (match as any)?.serverConfig?.firstServer ??
+      // older naming: initialServer
+      (match as any)?.initialServer ??
+      // or fallback to a flat prop
+      (match as any)?.firstServer,
+    firstReceiver:
+      (match as any)?.serverConfig?.firstReceiver ??
+      (match as any)?.initialReceiver ??
+      (match as any)?.firstReceiver,
+    serverOrder:
+      (match as any)?.serverConfig?.serverOrder ?? (match as any)?.serverOrder,
   };
+
+  const serverResult = getNextServer(p1, p2, isDoubles, serverConfigFromMatch);
+
+  return serverResult.server as ServerKey;
+};
 
   return {
     // initial UI state
     side1Score: 0,
     side2Score: 0,
-    currentServer: "side1",
+    currentServer: null,
     currentGame: 1,
     isMatchActive: false,
     side1Sets: 0,

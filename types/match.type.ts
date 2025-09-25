@@ -1,3 +1,4 @@
+import { InitialServerConfig } from "@/components/live-scorer/individual/helpers";
 import { Shot } from "./shot.type";
 
 export type MatchStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -45,6 +46,7 @@ export interface IndividualMatch {
   matchDuration?: number;
   createdAt?: string;
   updatedAt?: string;
+  serverConfig?: InitialServerConfig;
 }
 
 // Team Match Schema
