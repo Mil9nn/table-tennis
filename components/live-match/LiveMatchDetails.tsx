@@ -24,7 +24,12 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
       </div>
     );
 
-  if (!match) return <div className="p-6 text-center">Match not found</div>;
+  if (!match)
+    return (
+      <div className="flex items-center justify-center w-full h-[calc(100vh-65px)]">
+        <p className="text-gray-500 italic">No match data available.</p>
+      </div>
+    );
 
   const individualMatch = match as IndividualMatch;
 

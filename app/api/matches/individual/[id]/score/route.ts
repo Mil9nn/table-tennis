@@ -2,6 +2,97 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 
+// --- Helpers to adjust stats ---
+function applyShotToStats(match: any, shot: any) {
+  const stats = match.statistics || {};
+  const playerId = shot.player.toString();
+
+  if (!stats.playerStats) stats.playerStats = new Map();
+  if (!stats.playerStats.get(playerId)) {
+    stats.playerStats.set(playerId, {
+      winners: 0,
+      unforcedErrors: 0,
+      aces: 0,
+      serveErrors: 0,
+      detailedShots: {},
+      errorsByType: {},
+    });
+  }
+
+  const ps = stats.playerStats.get(playerId);
+
+  if (shot.outcome === "winner") {
+    stats.winners = (stats.winners || 0) + 1;
+    ps.winners += 1;
+
+    if (shot.stroke?.includes("serve")) {
+      stats.aces = (stats.aces || 0) + 1;
+      ps.aces += 1;
+    }
+
+    if (shot.stroke) {
+      ps.detailedShots[shot.stroke] = (ps.detailedShots[shot.stroke] || 0) + 1;
+    }
+  }
+
+  if (shot.outcome === "error" && shot.errorType) {
+    stats.unforcedErrors = (stats.unforcedErrors || 0) + 1;
+    ps.unforcedErrors += 1;
+
+    if (shot.errorType === "serve") {
+      stats.serveErrors = (stats.serveErrors || 0) + 1;
+      ps.serveErrors += 1;
+    }
+
+    ps.errorsByType[shot.errorType] = (ps.errorsByType[shot.errorType] || 0) + 1;
+  }
+
+  match.statistics = stats;
+}
+
+function removeShotFromStats(match: any, shot: any) {
+  const stats = match.statistics || {};
+  const playerId = shot.player.toString();
+
+  if (!stats.playerStats || !stats.playerStats.get(playerId)) return;
+
+  const ps = stats.playerStats.get(playerId);
+
+  if (shot.outcome === "winner") {
+    stats.winners = Math.max(0, (stats.winners || 0) - 1);
+    ps.winners = Math.max(0, ps.winners - 1);
+
+    if (shot.stroke?.includes("serve")) {
+      stats.aces = Math.max(0, (stats.aces || 0) - 1);
+      ps.aces = Math.max(0, ps.aces - 1);
+    }
+
+    if (shot.stroke) {
+      ps.detailedShots[shot.stroke] = Math.max(
+        0,
+        (ps.detailedShots[shot.stroke] || 0) - 1
+      );
+    }
+  }
+
+  if (shot.outcome === "error" && shot.errorType) {
+    stats.unforcedErrors = Math.max(0, (stats.unforcedErrors || 0) - 1);
+    ps.unforcedErrors = Math.max(0, ps.unforcedErrors - 1);
+
+    if (shot.errorType === "serve") {
+      stats.serveErrors = Math.max(0, (stats.serveErrors || 0) - 1);
+      ps.serveErrors = Math.max(0, ps.serveErrors - 1);
+    }
+
+    ps.errorsByType[shot.errorType] = Math.max(
+      0,
+      (ps.errorsByType[shot.errorType] || 0) - 1
+    );
+  }
+
+  match.statistics = stats;
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -26,7 +117,7 @@ export async function POST(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Only scorer is allowed to update the score
+    // Only scorer can update
     if (match.scorer?.toString() !== decoded.userId) {
       return NextResponse.json(
         { error: "Forbidden only the assigned scorer can update the score" },
@@ -41,10 +132,7 @@ export async function POST(
       );
     }
 
-    const side1Score = Number(body.side1Score ?? 0);
-    const side2Score = Number(body.side2Score ?? 0);
     const gameNumber = Number(body.gameNumber ?? match.currentGame ?? 1);
-
     let currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
     if (!currentGame) {
       currentGame = {
@@ -59,47 +147,39 @@ export async function POST(
       match.games.push(currentGame);
     }
 
-    currentGame.side1Score = side1Score;
-    currentGame.side2Score = side2Score;
-
-    // --- Handle game winner ---
-    if (body.gameWinner && !currentGame.winnerSide) {
-      currentGame.winnerSide = body.gameWinner;
-      currentGame.completed = true;
-
-      if (body.gameWinner === "side1") {
-        match.finalScore.side1Sets += 1;
-      } else if (body.gameWinner === "side2") {
-        match.finalScore.side2Sets += 1;
+    // --- Subtract flow ---
+    if (body.action === "subtract" && body.side) {
+      if (body.side === "side1" && currentGame.side1Score > 0) {
+        currentGame.side1Score -= 1;
+      }
+      if (body.side === "side2" && currentGame.side2Score > 0) {
+        currentGame.side2Score -= 1;
       }
 
-      const targetSets = Math.floor(match.numberOfSets / 2) + 1;
-      if (
-        match.finalScore.side1Sets >= targetSets ||
-        match.finalScore.side2Sets >= targetSets
-      ) {
-        match.status = "completed";
-        match.winnerSide =
-          match.finalScore.side1Sets > match.finalScore.side2Sets
-            ? "side1"
-            : "side2";
-      } else {
-        match.currentGame = gameNumber + 1;
-        if (!match.games.some((g: any) => g.gameNumber === match.currentGame)) {
-          match.games.push({
-            gameNumber: match.currentGame,
-            side1Score: 0,
-            side2Score: 0,
-            shots: [],
-            winnerSide: null,
-            completed: false,
-            expedite: false,
-          });
-        }
+      const lastIndex = currentGame.shots
+        .map((s: any, i: number) => ({ ...s, i }))
+        .reverse()
+        .find((s: any) => s.side === body.side)?.i;
+
+      if (typeof lastIndex === "number") {
+        const removedShot = currentGame.shots[lastIndex];
+        currentGame.shots.splice(lastIndex, 1);
+
+        // ✅ Adjust stats
+        removeShotFromStats(match, removedShot);
       }
     }
 
-    // --- Add shot data ---
+    // --- Normal score update (+ point) ---
+    if (
+      typeof body.side1Score === "number" &&
+      typeof body.side2Score === "number"
+    ) {
+      currentGame.side1Score = body.side1Score;
+      currentGame.side2Score = body.side2Score;
+    }
+
+    // --- Add shot (on + point) ---
     if (body.shotData?.player) {
       const shot = {
         shotNumber: currentGame.shots.length + 1,
@@ -114,54 +194,11 @@ export async function POST(
 
       currentGame.shots.push(shot);
 
-      // ---- Update statistics ----
-      const stats = match.statistics || {};
-      const playerId = body.shotData.player.toString();
-
-      if (!stats.playerStats) stats.playerStats = new Map();
-      if (!stats.playerStats.get(playerId)) {
-        stats.playerStats.set(playerId, {
-          winners: 0,
-          unforcedErrors: 0,
-          aces: 0,
-          serveErrors: 0,
-          detailedShots: {},
-          errorsByType: {},
-        });
-      }
-      const playerStats = stats.playerStats.get(playerId);
-
-      if (shot.outcome === "winner") {
-        stats.winners = (stats.winners || 0) + 1;
-        playerStats.winners += 1;
-
-        if (shot.stroke?.includes("serve")) {
-          stats.aces = (stats.aces || 0) + 1;
-          playerStats.aces += 1;
-        }
-
-        if (shot.stroke) {
-          playerStats.detailedShots[shot.stroke] =
-            (playerStats.detailedShots[shot.stroke] || 0) + 1;
-        }
-      }
-
-      if (shot.outcome === "error" && shot.errorType) {
-        stats.unforcedErrors = (stats.unforcedErrors || 0) + 1;
-        playerStats.unforcedErrors += 1;
-
-        if (shot.errorType === "serve") {
-          stats.serveErrors = (stats.serveErrors || 0) + 1;
-          playerStats.serveErrors += 1;
-        }
-
-        playerStats.errorsByType[shot.errorType] =
-          (playerStats.errorsByType[shot.errorType] || 0) + 1;
-      }
+      // ✅ Update stats
+      applyShotToStats(match, shot);
     }
 
     await match.save();
-
     await match.populate([
       { path: "participants", select: "username fullName" },
       { path: "games.shots.player", select: "username fullName" },

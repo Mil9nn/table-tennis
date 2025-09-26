@@ -279,21 +279,50 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     },
 
     // subtract point (wrapper)
-    subtractPoint: async (player) => {
-      const { isMatchActive, status } = get();
+    // subtract point (backend-driven)
+subtractPoint: async (player) => {
+  const { isMatchActive, status, currentGame, match } = get();
 
-      if (status === "completed") {
-        toast.error("⛔ Match is completed!");
-        return;
+  if (status === "completed") {
+    toast.error("⛔ Match is completed!");
+    return;
+  }
+
+  if (!isMatchActive) {
+    toast.error("Start the match first");
+    return;
+  }
+
+  if (!match) return;
+
+  try {
+    const { data } = await axiosInstance.post(
+      `/matches/individual/${match._id}/score`,
+      {
+        action: "subtract",
+        side: player,
+        gameNumber: currentGame,
       }
+    );
 
-      if (!isMatchActive) {
-        toast.error("Start the match first");
-        return;
+    if (data?.match) {
+      useMatchStore.getState().setMatch(data.match);
+
+      // update local score from returned match
+      const game = data.match.games.find((g: any) => g.gameNumber === currentGame);
+      if (game) {
+        set({
+          side1Score: game.side1Score,
+          side2Score: game.side2Score,
+        });
       }
+    }
+  } catch (err) {
+    console.error("subtractPoint error", err);
+    toast.error("❌ Failed to subtract point");
+  }
+},
 
-      await get().updateScore(player, -1);
-    },
 
     // toggle match start/pause
     toggleMatch: async () => {
@@ -324,7 +353,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           });
 
           toast.success(
-            nextStatus === "in_progress" ? "🏁 Match started!" : "⏸️ Match paused"
+            nextStatus === "in_progress" ? "🏁 Match started!" : "Match paused"
           );
 
           if (

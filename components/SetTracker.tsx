@@ -25,19 +25,19 @@ export default function SetTracker({
         const setIndex = idx + 1;
 
         // decide circle color
-        let bg = "bg-gray-200";
+        let bg = "bg-zinc-300";
         if (setIndex <= side1Sets) {
           bg = "bg-emerald-500"; // ✅ player1 won this set
         } else if (setIndex <= side1Sets + side2Sets) {
           bg = "bg-rose-500"; // ✅ player2 won this set
         } else if (status !== "completed" && setIndex === currentSet) {
-          bg = "bg-blue-400 animate-pulse"; // 🔵 current set in progress
+          bg = "bg-blue-500 animate-pulse"; // 🔵 current set in progress
         }
 
         return (
           <div
             key={setIndex}
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${bg}`}
+            className={`w-6 h-6 font-extrabold rounded-full flex items-center justify-center text-white text-xs ${bg}`}
           >
             {setIndex}
           </div>
@@ -45,7 +45,7 @@ export default function SetTracker({
       })}
 
       {/* Info label */}
-      <span className="text-sm text-gray-600">
+      <span className="text-sm text-gray-600 font-semibold">
         First to {setsNeeded} sets wins
       </span>
     </div>

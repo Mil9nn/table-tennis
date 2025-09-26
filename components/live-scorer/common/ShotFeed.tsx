@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Shot } from "@/types/shot.type";
+import Image from "next/image";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface ShotFeedProps {
   games: { gameNumber: number; shots: Shot[] }[];
@@ -34,15 +36,16 @@ export default function ShotFeed({
 
   if (!games?.length) {
     return (
-      <div className="text-center text-gray-500 italic mt-6">
-        No rallies recorded yet...
+      <div className="relative flex flex-col items-center justify-center text-gray-500 italic">
+        <Image src="/EmptyShotState.png" alt="No shots" width={200} height={200} className="inline-block" />
+        <span className="absolute bottom-0">No shots recorded yet...</span>
       </div>
     );
   }
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="font-semibold">Rally Feed</h3>
+      <h3 className="font-semibold">Shot Feed</h3>
 
       {games.map((game) => {
         const isExpanded = expandedGames.includes(game.gameNumber);
@@ -63,7 +66,7 @@ export default function ShotFeed({
                 Game {game.gameNumber}{" "}
                 {game.gameNumber === currentGame && "(In Progress)"}
               </span>
-              <span>{isExpanded ? "▲" : "▼"}</span>
+              <span>{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
             </button>
 
             {/* Game Shots */}
@@ -112,8 +115,9 @@ export default function ShotFeed({
                     );
                   })
                 ) : (
-                  <li className="text-sm text-gray-500 italic p-2">
-                    No rallies recorded in this game.
+                  <li className="flex items-center gap-2 text-sm text-gray-500 italic p-2">
+                    <span className="bg-gray-300 p-2 rounded-full w-5 h-5 shadow-md shadow-black" />
+                    <span>No shots recorded yet...</span>
                   </li>
                 )}
               </ul>

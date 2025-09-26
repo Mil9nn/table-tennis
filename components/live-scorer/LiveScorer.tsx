@@ -53,10 +53,17 @@ export default function LiveScorer({ matchId }: { matchId: string }) {
     }
     // else: user is scorer -> allow to stay
   }, [authLoading, loading, match, user, router]);
-  
 
-  if (loading || authLoading) return <div className="flex items-center justify-center w-full h-[calc(100vh-65px)]"><Loader2 className="animate-spin" /></div>
-  if (!match) return <div>Match not found</div>;
+  if (loading || authLoading)
+    return (
+      <div className="flex items-center justify-center w-full h-[calc(100vh-65px)]">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+
+  if (!match) return <div>
+    <p className="p-6 text-center">Match not found</p>
+  </div>;
 
   if (match.matchCategory === "individual") {
     const individualMatch = match as IndividualMatch;
@@ -65,11 +72,13 @@ export default function LiveScorer({ matchId }: { matchId: string }) {
       return <SinglesScorer match={individualMatch} />;
     }
 
-    if (individualMatch.matchType === "doubles" || individualMatch.matchType === "mixed_doubles") {
+    if (
+      individualMatch.matchType === "doubles" ||
+      individualMatch.matchType === "mixed_doubles"
+    ) {
       return <DoublesScorer match={individualMatch} />;
     }
   }
 
   return <div>Unsupported match type</div>;
 }
-

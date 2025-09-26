@@ -215,7 +215,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         try {
           await get().fetchTeamMatch(id);
         } catch {
-          toast.error("❌ Match not found");
+          toast.error("Match not found");
           set({ match: null, loading: false });
         }
       }
