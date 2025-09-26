@@ -6,8 +6,10 @@ export type DoublesPlayerKey =
   | "side2_main"
   | "side2_partner";
 
+export type ServerKey = PlayerKey | DoublesPlayerKey;
+
 export type InitialServerConfig = {
-  firstServer?: PlayerKey | DoublesPlayerKey | null;
+  firstServer?: ServerKey | null;
   firstReceiver?: DoublesPlayerKey | null;
   serverOrder?: DoublesPlayerKey[];
 };
@@ -113,19 +115,6 @@ const getNextServerDoubles = (
   };
 };
 
-/**
- * Build doubles rotation given a scorer-picked first server and first receiver.
- *
- * Expected behavior (example):
- *  - scorer picks side1_main as firstServer and side2_main as firstReceiver
- *  Rotation should be:
- *    [side1_main, side2_main, side1_partner, side2_partner]
- *
- * Algorithm:
- *  1. Validate that firstReceiver is on the opposite side of firstServer. If it's not, try to
- *     infer a sensible receiver (opposite main).
- *  2. Rotation = [firstServer, firstReceiver, partnerOf(firstServer), partnerOf(firstReceiver)]
- */
 export const buildDoublesRotation = (
   firstServer?: DoublesPlayerKey | null,
   firstReceiver?: DoublesPlayerKey | null
@@ -240,7 +229,7 @@ export const getPointsNeeded = (
 };
 
 export const getCurrentServerName = (
-  server: PlayerKey | DoublesPlayerKey | null,
+  server: ServerKey | null,
   participants: any[],
   matchType: string
 ): string | null => {

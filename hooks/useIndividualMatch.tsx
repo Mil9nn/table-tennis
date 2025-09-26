@@ -51,11 +51,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
   const serverConfigFromMatch: InitialServerConfig = {
     firstServer:
       // prefer explicit serverConfig object
-      (match as any)?.serverConfig?.firstServer ??
-      // older naming: initialServer
-      (match as any)?.initialServer ??
-      // or fallback to a flat prop
-      (match as any)?.firstServer,
+      (match as any)?.serverConfig?.firstServer,
     firstReceiver:
       (match as any)?.serverConfig?.firstReceiver ??
       (match as any)?.initialReceiver ??
