@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Minus } from "lucide-react";
+import { Minus } from "lucide-react";
 
 type PlayerInfo = {
   name: string;
@@ -8,14 +8,10 @@ type PlayerInfo = {
 };
 
 interface PlayerCardProps {
-  players: PlayerInfo[]; // ✅ can be 1 (singles) or 2 (doubles)
+  players: PlayerInfo[];
   score: number;
-  isServer: boolean;
   side: "side1" | "side2";
-  onAddPoint: (payload: {
-    side: "side1" | "side2";
-    playerId?: string;
-  }) => void;
+  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
@@ -36,25 +32,34 @@ export default function PlayerCard({
 }: PlayerCardProps) {
   const colors = {
     emerald: {
-      score: "text-emerald-500",
-      add: "bg-emerald-500 hover:bg-emerald-600 text-white",
+      bg: "from-emerald-400 to-emerald-600",
+      score: "text-emerald-700",
     },
     rose: {
-      score: "text-rose-500",
-      add: "bg-rose-500 hover:bg-rose-600 text-white",
+      bg: "from-rose-400 to-rose-600",
+      score: "text-rose-700",
     },
   };
 
   return (
-    <section className="text-center bg-white p-6 shadow-sm">
+    <section
+      onClick={() =>
+        !disabled && onAddPoint({ side, playerId: players[0]?.playerId })
+      }
+      className={`relative flex flex-col justify-between items-center text-center 
+        p-8 shadow-lg cursor-pointer select-none
+        bg-gradient-to-br ${colors[color].bg} transition
+        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+      `}
+    >
       {/* Player Names */}
-      <div className="flex flex-col items-center mb-3">
+      <div className="flex flex-col items-center mb-4 text-white">
         {players.map((pl, idx) => (
-          <div key={idx} className="flex items-center">
-            <h2 className="text-sm font-semibold text-gray-800">{pl.name}</h2>
+          <div key={idx} className="flex items-center whitespace-nowrap text-lg font-semibold">
+            {pl.name}
             {currentServer === pl.name && (
               <span
-                className="ml-2 w-3 h-3 bg-yellow-500 rounded-full animate-pulse"
+                className="ml-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"
                 title="Serving"
               />
             )}
@@ -64,37 +69,29 @@ export default function PlayerCard({
 
       {/* Score */}
       <div
-        className={`mb-4 font-extrabold tracking-tight ${colors[color].score} text-7xl md:text-8xl`}
+        className={`font-extrabold tracking-tight ${colors[color].score} 
+        text-[5rem] md:text-[7rem]`}
       >
         {score}
       </div>
 
-      {/* Controls */}
-      <div className="flex justify-center gap-3 mb-4">
-        <button
-          onClick={() =>
-            !disabled && onAddPoint({ side, playerId: players[0]?.playerId })
-          }
-          disabled={disabled}
-          className={`p-4 rounded-lg shadow-md ${colors[color].add} ${
-            disabled ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+      {/* Sets Won */}
+      <div className="mt-4 text-white/80 text-sm">Sets Won: {setsWon}</div>
 
-        <button
-          onClick={() => !disabled && onSubtractPoint(side)}
-          disabled={disabled}
-          className={`bg-gray-200 hover:bg-gray-300 p-4 rounded-lg text-gray-700 shadow-md ${
-            disabled ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          <Minus className="w-6 h-6" />
-        </button>
-      </div>
-
-      <div className="text-sm text-gray-500">Sets Won: {setsWon}</div>
+      {/* Subtract Button (floating in corner) */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // prevent triggering add
+          !disabled && onSubtractPoint(side);
+        }}
+        disabled={disabled}
+        className={`absolute top-1/2 -translate-y-16 right-3 bg-white/80 hover:bg-white text-gray-800 
+          rounded-full p-2 shadow-md transition 
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+        `}
+      >
+        <Minus className="w-5 h-5" />
+      </button>
     </section>
   );
 }
