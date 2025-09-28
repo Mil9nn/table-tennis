@@ -11,15 +11,32 @@ import {
   MapPin,
   Loader2,
   ArrowLeftCircle,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 export default function MatchDetailsPage() {
   const params = useParams();
   const matchId = params.id;
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+
+  useEffect(() => {
+    try {
+      fetchUser();
+      const user = useAuthStore.getState().user;
+      setCurrentUserId(user?._id || null);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      setCurrentUserId(null);
+    }
+  }, []);
 
   const fetchMatch = async () => {
     try {
@@ -204,22 +221,43 @@ export default function MatchDetailsPage() {
         {/* Actions + Score */}
         <div className="space-y-6">
           {/* Actions */}
-          {match.status !== "completed" && (
+          {/* Actions */}
             <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
+
               {(match.status === "scheduled" ||
                 match.status === "in_progress") && (
                 <Button className="w-full gap-2 text-base py-6" asChild>
-                  <Link href={`/matches/${matchId}/score`}>
-                    <Play className="w-4 h-4" />
-                    {match.status === "scheduled"
-                      ? "Start Match"
-                      : "Continue Match"}
+                  <Link
+                    href={
+                      match.scorer?._id === currentUserId
+                        ? `/matches/${matchId}/score`
+                        : `/matches/${matchId}/live`
+                    }
+                  >
+                    {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye />}
+                    {match.scorer?._id === currentUserId
+                      ? match.status === "scheduled"
+                        ? "Start Match"
+                        : "Continue Match"
+                      : "View Live Match"}
+                  </Link>
+                </Button>
+              )}
+
+              {/* Stats button (moved here) */}
+              {match.games && match.games.some((g: any) => g.shots?.length) && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 text-base py-6 mt-3"
+                  asChild
+                >
+                  <Link href={`/matches/${matchId}/stats`}>
+                    View Statistics
                   </Link>
                 </Button>
               )}
             </div>
-          )}
 
           {/* Score */}
           {match.finalScore && (
@@ -260,8 +298,7 @@ export default function MatchDetailsPage() {
                             sum +
                             g.shots.filter(
                               (s: any) =>
-                                s.side ===
-                                  (idx === 0 ? "side1" : "side2") &&
+                                s.side === (idx === 0 ? "side1" : "side2") &&
                                 s.outcome === "winner"
                             ).length,
                           0
@@ -274,8 +311,7 @@ export default function MatchDetailsPage() {
                             sum +
                             g.shots.filter(
                               (s: any) =>
-                                s.side ===
-                                  (idx === 0 ? "side1" : "side2") &&
+                                s.side === (idx === 0 ? "side1" : "side2") &&
                                 s.outcome === "error"
                             ).length,
                           0
@@ -288,8 +324,7 @@ export default function MatchDetailsPage() {
                             sum +
                             g.shots.filter(
                               (s: any) =>
-                                s.side ===
-                                  (idx === 0 ? "side1" : "side2") &&
+                                s.side === (idx === 0 ? "side1" : "side2") &&
                                 s.outcome === "let"
                             ).length,
                           0
@@ -298,14 +333,6 @@ export default function MatchDetailsPage() {
                     </ul>
                   </div>
                 ))}
-              </div>
-              <div className="mt-6 text-center">
-                <Link
-                  href={`/matches/${matchId}/stats`}
-                  className="text-blue-600 hover:underline text-sm font-medium"
-                >
-                  View full statistics →
-                </Link>
               </div>
             </div>
           )}

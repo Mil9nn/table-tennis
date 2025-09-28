@@ -37,7 +37,13 @@ export default function ShotFeed({
   if (!games?.length) {
     return (
       <div className="relative flex flex-col items-center justify-center text-gray-500 italic">
-        <Image src="/EmptyShotState.png" alt="No shots" width={200} height={200} className="inline-block" />
+        <Image
+          src="/EmptyShotState.png"
+          alt="No shots"
+          width={200}
+          height={200}
+          className="inline-block"
+        />
         <span className="absolute bottom-0">No shots recorded yet...</span>
       </div>
     );
@@ -71,7 +77,7 @@ export default function ShotFeed({
 
             {/* Game Shots */}
             {isExpanded && (
-              <ul className="space-y-1 p-2 border-t max-h-60 overflow-y-auto pr-2">
+              <ul className="space-y-1 p-2 border-t pr-2">
                 {shots.length ? (
                   shots.map((shot, i) => {
                     const player = participants.find(
@@ -101,16 +107,21 @@ export default function ShotFeed({
                     return (
                       <li
                         key={shot._id ?? i}
-                        className="text-sm w-full p-2 flex justify-between items-center border-b last:border-0"
+                        className="text-xs w-full p-2 flex items-center gap-2 border-b last:border-0"
                       >
-                        <span>
-                          <strong>{playerName}</strong> ({shot.side}) →{" "}
-                          {displayText}
-                        </span>
-                        <span className={`font-semibold ${outcomeClass}`}>
-                          {shot.outcome.charAt(0).toUpperCase() +
-                            shot.outcome.slice(1)}
-                        </span>
+                        <span>{i + 1}.</span>
+                        <div className="w-full flex items-center justify-between gap-2">
+                          <span className="whitespace-nowrap">
+                            <strong>{playerName}</strong> ({shot.side}) →{" "}
+                            {displayText}
+                          </span>
+                          <span
+                            className={`font-semibold text-xs ${outcomeClass}`}
+                          >
+                            {shot.outcome.charAt(0).toUpperCase() +
+                              shot.outcome.slice(0, 0)}
+                          </span>
+                        </div>
                       </li>
                     );
                   })

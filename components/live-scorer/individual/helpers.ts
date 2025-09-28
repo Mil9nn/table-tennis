@@ -47,8 +47,10 @@ export const getNextServer = (
       buildDoublesRotation(initialConfig?.firstServer as DoublesPlayerKey, initialConfig?.firstReceiver);
     return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
-    const firstServer = (initialConfig?.firstServer as PlayerKey) ?? "side1";
-    return getNextServerSingles(totalPoints, isDeuce, firstServer);
+    const firstServer: PlayerKey =
+  (initialConfig?.firstServer as PlayerKey) || "side1"; // only fallback if nothing selected
+return getNextServerSingles(totalPoints, isDeuce, firstServer);
+
   }
 };
 
@@ -259,4 +261,15 @@ export const getCurrentServerName = (
     default:
       return null;
   }
+};
+
+export const checkMatchWonBySets = (
+  side1Sets: number,
+  side2Sets: number,
+  numberOfSets: number
+): PlayerKey | null => {
+  const needed = Math.ceil(numberOfSets / 2);
+  if (side1Sets >= needed) return "side1";
+  if (side2Sets >= needed) return "side2";
+  return null;
 };

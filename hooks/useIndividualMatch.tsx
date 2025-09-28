@@ -2,8 +2,17 @@ import { create } from "zustand";
 import { toast } from "sonner";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { checkGameWon, getNextServer, InitialServerConfig } from "@/components/live-scorer/individual/helpers";
-import { IndividualMatch, MatchStatus, IndividualGame } from "@/types/match.type";
+import {
+  checkGameWon,
+  checkMatchWonBySets,
+  getNextServer,
+  InitialServerConfig,
+} from "@/components/live-scorer/individual/helpers";
+import {
+  IndividualMatch,
+  MatchStatus,
+  IndividualGame,
+} from "@/types/match.type";
 
 export type PlayerKey = "side1" | "side2" | null;
 type ServerKey =
@@ -41,29 +50,32 @@ export interface IndividualMatchState {
 
 export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
   // compute next server based on match type + current score
-  const computeNextServer = (match: IndividualMatch, p1: number, p2: number): ServerKey => {
-  if (!match) return "side1_main";
+  const computeNextServer = (
+    match: IndividualMatch,
+    p1: number,
+    p2: number
+  ): ServerKey => {
+    if (!match) return "side1_main";
 
-  const isDoubles =
-    match.matchType === "doubles" || match.matchType === "mixed_doubles";
+    const isDoubles =
+      match.matchType === "doubles" || match.matchType === "mixed_doubles";
 
-  // Try to read server config from a few possible locations for flexibility/compatibility
-  const serverConfigFromMatch: InitialServerConfig = {
-    firstServer:
-      // prefer explicit serverConfig object
-      (match as any)?.serverConfig?.firstServer,
-    firstReceiver:
-      (match as any)?.serverConfig?.firstReceiver ??
-      (match as any)?.initialReceiver ??
-      (match as any)?.firstReceiver,
-    serverOrder:
-      (match as any)?.serverConfig?.serverOrder ?? (match as any)?.serverOrder,
+    // Try to read server config from a few possible locations for flexibility/compatibility
+    const serverConfigFromMatch: InitialServerConfig = {
+      firstServer: (match as any)?.serverConfig?.firstServer || null,
+      firstReceiver: (match as any)?.serverConfig?.firstReceiver || null,
+      serverOrder: (match as any)?.serverConfig?.serverOrder || null,
+    };
+
+    const serverResult = getNextServer(
+      p1,
+      p2,
+      isDoubles,
+      serverConfigFromMatch
+    );
+
+    return serverResult.server as ServerKey;
   };
-
-  const serverResult = getNextServer(p1, p2, isDoubles, serverConfigFromMatch);
-
-  return serverResult.server as ServerKey;
-};
 
   return {
     // initial UI state
@@ -84,7 +96,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const currentGameNum = match.currentGame ?? 1;
 
       let currentGameObj = match.games?.find(
-        (g: IndividualGame) => g.gameNumber === currentGameNum && !g.winnerSide && !g.completed
+        (g: IndividualGame) =>
+          g.gameNumber === currentGameNum && !g.winnerSide && !g.completed
       );
 
       if (!currentGameObj) {
@@ -106,13 +119,23 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         p2 = 0;
       }
 
-      const nextServer = computeNextServer(match, p1, p2);
+      const nextServer = computeNextServer(
+        {
+          ...match,
+          serverConfig: match.serverConfig || {},
+        } as IndividualMatch,
+        p1,
+        p2
+      );
 
       const actualStatus: MatchStatus = match.status;
       const isActive = actualStatus === "in_progress";
 
       set({
-        match,
+        match: {
+          ...match,
+          serverConfig: match.serverConfig || {},
+        },
         side1Score: p1,
         side2Score: p2,
         currentGame: currentGameNum,
@@ -129,7 +152,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const match = useMatchStore.getState().match as IndividualMatch | null;
       if (!match) return;
 
-      const resetType = fullReset || match.status === "completed" ? "match" : "game";
+      const resetType =
+        fullReset || match.status === "completed" ? "match" : "game";
 
       try {
         const { data } = await axiosInstance.post(
@@ -187,12 +211,16 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         gameWinner: gameWinnerSide,
       };
 
-      // Shot Data (if provided) — simplified logic (no rally tracking)
-      if (shotType && increment > 0) {
-        let shotPlayerId: string | undefined = playerId || pendingPlayer?.playerId;
+      // Shot Data
+      if (increment > 0) {
+        let shotPlayerId: string | undefined =
+          playerId || pendingPlayer?.playerId;
 
         if (!shotPlayerId) {
-          if (match.matchType === "doubles" || match.matchType === "mixed_doubles") {
+          if (
+            match.matchType === "doubles" ||
+            match.matchType === "mixed_doubles"
+          ) {
             // conservative default: first player of side1 is index 0, side2 main at index 2
             const idx = player === "side1" ? 0 : 2;
             shotPlayerId = match.participants?.[idx]?._id;
@@ -204,15 +232,20 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
         if (!shotPlayerId) {
           // last-resort fallback to any available participant id
-          shotPlayerId = match.participants?.[0]?._id ?? match.participants?.[1]?._id;
+          shotPlayerId =
+            match.participants?.[0]?._id ?? match.participants?.[1]?._id;
         }
 
         const isError = shotType?.endsWith("_error");
-        const outcome: "winner" | "error" | "let" = isError ? "error" : shotType === "let" ? "let" : "winner";
+        const outcome: "winner" | "error" = isError ? "error" : "winner";
         const errorType: "net" | "long" | "serve" | null =
-          shotType === "net_error" ? "net" :
-          shotType === "long_error" ? "long" :
-          shotType === "serve_error" ? "serve" : null;
+          shotType === "net_error"
+            ? "net"
+            : shotType === "long_error"
+            ? "long"
+            : shotType === "serve_error"
+            ? "serve"
+            : null;
 
         requestBody.shotData = {
           side: player,
@@ -235,17 +268,33 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           // if game winner, either complete match or advance to next game
           if (gameWinnerSide) {
             if (data.match.status === "completed") {
-              set({
-                status: "completed" as MatchStatus,
-                side1Sets: data.match.finalScore?.side1Sets ?? 0,
-                side2Sets: data.match.finalScore?.side2Sets ?? 0,
-              });
+              const newSide1Sets = data.match.finalScore?.side1Sets ?? 0;
+              const newSide2Sets = data.match.finalScore?.side2Sets ?? 0;
+
+              // check locally if match is done.
+              const matchWinner = checkMatchWonBySets(
+                newSide1Sets,
+                newSide2Sets,
+                match.numberOfSets
+              );
+
+              if (matchWinner) {
+                set({
+                  status: "completed",
+                  side1Sets: newSide1Sets,
+                  side2Sets: newSide2Sets,
+                });
+              }
               toast.success("🏆 MATCH COMPLETED!");
             } else {
               const nextGameNum = currentGame + 1;
               // compute next server from server's authoritative match if available
               const serverSource = (data.match as IndividualMatch) || match;
-              const nextServer = computeNextServer(serverSource as IndividualMatch, 0, 0);
+              const nextServer = computeNextServer(
+                serverSource as IndividualMatch,
+                0,
+                0
+              );
 
               set({
                 currentGame: nextGameNum,
@@ -255,12 +304,18 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
                 side1Sets: data.match.finalScore?.side1Sets ?? 0,
                 side2Sets: data.match.finalScore?.side2Sets ?? 0,
               });
-              toast.success(`Game ${currentGame} won! Starting Game ${nextGameNum}`);
+              toast.success(
+                `Game ${currentGame} won! Starting Game ${nextGameNum}`
+              );
             }
           } else {
             // no game-winner, just update scores & server locally using authoritative match if provided
             const serverSource = (data.match as IndividualMatch) || match;
-            const nextServer = computeNextServer(serverSource as IndividualMatch, newP1, newP2);
+            const nextServer = computeNextServer(
+              serverSource as IndividualMatch,
+              newP1,
+              newP2
+            );
             set({
               side1Score: newP1,
               side2Score: newP2,
@@ -276,49 +331,50 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
     // subtract point (wrapper)
     // subtract point (backend-driven)
-subtractPoint: async (player) => {
-  const { isMatchActive, status, currentGame, match } = get();
+    subtractPoint: async (player) => {
+      const { isMatchActive, status, currentGame, match } = get();
 
-  if (status === "completed") {
-    toast.error("⛔ Match is completed!");
-    return;
-  }
-
-  if (!isMatchActive) {
-    toast.error("Start the match first");
-    return;
-  }
-
-  if (!match) return;
-
-  try {
-    const { data } = await axiosInstance.post(
-      `/matches/individual/${match._id}/score`,
-      {
-        action: "subtract",
-        side: player,
-        gameNumber: currentGame,
+      if (status === "completed") {
+        toast.error("⛔ Match is completed!");
+        return;
       }
-    );
 
-    if (data?.match) {
-      useMatchStore.getState().setMatch(data.match);
-
-      // update local score from returned match
-      const game = data.match.games.find((g: any) => g.gameNumber === currentGame);
-      if (game) {
-        set({
-          side1Score: game.side1Score,
-          side2Score: game.side2Score,
-        });
+      if (!isMatchActive) {
+        toast.error("Start the match first");
+        return;
       }
-    }
-  } catch (err) {
-    console.error("subtractPoint error", err);
-    toast.error("❌ Failed to subtract point");
-  }
-},
 
+      if (!match) return;
+
+      try {
+        const { data } = await axiosInstance.post(
+          `/matches/individual/${match._id}/score`,
+          {
+            action: "subtract",
+            side: player,
+            gameNumber: currentGame,
+          }
+        );
+
+        if (data?.match) {
+          useMatchStore.getState().setMatch(data.match);
+
+          // update local score from returned match
+          const game = data.match.games.find(
+            (g: any) => g.gameNumber === currentGame
+          );
+          if (game) {
+            set({
+              side1Score: game.side1Score,
+              side2Score: game.side2Score,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("subtractPoint error", err);
+        toast.error("❌ Failed to subtract point");
+      }
+    },
 
     // toggle match start/pause
     toggleMatch: async () => {
@@ -332,7 +388,8 @@ subtractPoint: async (player) => {
         return;
       }
 
-      const nextStatus: MatchStatus = currentStatus === "in_progress" ? "scheduled" : "in_progress";
+      const nextStatus: MatchStatus =
+        currentStatus === "in_progress" ? "scheduled" : "in_progress";
 
       set({ isStartingMatch: true });
       try {
@@ -354,7 +411,8 @@ subtractPoint: async (player) => {
 
           if (
             nextStatus === "in_progress" &&
-            (match.matchType === "doubles" || match.matchType === "mixed_doubles")
+            (match.matchType === "doubles" ||
+              match.matchType === "mixed_doubles")
           ) {
             useMatchStore.getState().setSetupDialogOpen(true);
           }

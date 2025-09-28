@@ -82,8 +82,8 @@ export default function IndividualMatchForm({
       }
 
       const response = await axiosInstance.post(endpoint, matchData);
-      toast.success("Match created!");
       router.push(`/matches/${response.data.match._id}`);
+      toast.success("Match created!");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to create match");
     } finally {
@@ -149,7 +149,7 @@ export default function IndividualMatchForm({
 
         {/* Players */}
         {form.watch("matchType") === "singles" ? (
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="space-y-4">
             <UserSearchInput
               placeholder="Player 01 username"
               onSelect={(u) => form.setValue("player1", u._id)}
@@ -160,29 +160,27 @@ export default function IndividualMatchForm({
             />
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2">
+          <div className="space-y-4">
             <div className="space-y-2">
               <UserSearchInput
-                placeholder="Player A1"
+                placeholder="Player A"
                 onSelect={(u) => form.setValue("player1", u._id)}
               />
               <UserSearchInput
-                placeholder="Player A2"
-                onSelect={(u) => form.setValue("player3", u._id)}
+                placeholder="Partner A"
+                onSelect={(u) => form.setValue("player2", u._id)}
               />
             </div>
 
-            <span className="relative flex items-center justify-center w-2 h-full min-h-20 bg-black rounded-full">
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm bg-black text-white font-semibold rounded-full p-1">vs</span>
-            </span>
+            <span className="bg-gradient-to-r from-purple-500 to-indigo-500 block w-full h-1 rounded-full" />
 
             <div className="space-y-2">
               <UserSearchInput
-                placeholder="Player B1"
-                onSelect={(u) => form.setValue("player2", u._id)}
+                placeholder="Player B"
+                onSelect={(u) => form.setValue("player3", u._id)}
               />
               <UserSearchInput
-                placeholder="Player B2"
+                placeholder="Partner B"
                 onSelect={(u) => form.setValue("player4", u._id)}
               />
             </div>

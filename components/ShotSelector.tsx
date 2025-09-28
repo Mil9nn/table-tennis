@@ -83,7 +83,7 @@ const ShotSelector = () => {
                     playerId: p?._id,
                   });
                 }}
-                className="border p-2 rounded-xl"
+                className="border p-2 text-sm rounded-xl"
               >
                 {p?.fullName || p?.username}
               </button>
@@ -101,14 +101,8 @@ const ShotSelector = () => {
                       <button
                         key={shot.value}
                         onClick={() => handleShotSelect(shot.value)}
-                        className="flex flex-col items-center border-2 rounded-xl hover:scale-[1.02] active:scale-[0.97] transition ease-in-out"
+                        className="border-2 rounded-xl hover:scale-[1.02] active:scale-[0.97] transition ease-in-out"
                       >
-                        <Image
-                          src="/Backhand Block.png"
-                          alt={shot.label}
-                          width={100}
-                          height={100}
-                        />
                         {shot.label}
                       </button>
                     ))}

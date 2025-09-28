@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const generateToken = (userId: string) => {
@@ -22,7 +21,7 @@ export const setAuthCookie = (response: NextResponse, token: string) => {
   response.cookies.set("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "none",
     path: "/",
     maxAge: 7 * 24 * 60 * 60, // 7 days
   });

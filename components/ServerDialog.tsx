@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import type { PlayerKey, DoublesPlayerKey } from "@/components/live-scorer/individual/helpers";
+import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
 interface InitialServerDialogProps {
   matchType: "singles" | "doubles" | "mixed_doubles";
@@ -40,6 +41,8 @@ export default function InitialServerDialog({ matchType, participants }: Initial
 
     setMatch(updatedMatch);
     setOpen(false);
+
+    useIndividualMatch.setState({ currentServer: firstServer });
   };
 
   const getLabel = (i: number) =>

@@ -8,10 +8,14 @@ type PlayerInfo = {
 };
 
 interface PlayerCardProps {
-  players: PlayerInfo[];
+  players: PlayerInfo[]; // ✅ can be 1 (singles) or 2 (doubles)
   score: number;
+  isServer: boolean;
   side: "side1" | "side2";
-  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
+  onAddPoint: (payload: {
+    side: "side1" | "side2";
+    playerId?: string;
+  }) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
@@ -29,7 +33,7 @@ export default function PlayerCard({
   color = "emerald",
   disabled = false,
   currentServer,
-}: PlayerCardProps) {
+}: PlayerCardProps) {     
   const colors = {
     emerald: {
       bg: "from-emerald-400 to-emerald-600",
@@ -46,7 +50,7 @@ export default function PlayerCard({
       onClick={() =>
         !disabled && onAddPoint({ side, playerId: players[0]?.playerId })
       }
-      className={`relative flex flex-col justify-between items-center text-center 
+      className={`relative flex flex-col justify-between items-center
         p-8 shadow-lg cursor-pointer select-none
         bg-gradient-to-br ${colors[color].bg} transition
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
@@ -55,7 +59,7 @@ export default function PlayerCard({
       {/* Player Names */}
       <div className="flex flex-col items-center mb-4 text-white">
         {players.map((pl, idx) => (
-          <div key={idx} className="flex items-center whitespace-nowrap text-lg font-semibold">
+          <div key={idx} className="flex items-center whitespace-nowrap text-sm font-semibold">
             {pl.name}
             {currentServer === pl.name && (
               <span
@@ -85,8 +89,8 @@ export default function PlayerCard({
           !disabled && onSubtractPoint(side);
         }}
         disabled={disabled}
-        className={`absolute top-1/2 -translate-y-16 right-3 bg-white/80 hover:bg-white text-gray-800 
-          rounded-full p-2 shadow-md transition 
+        className={`absolute top-0 right-0 bg-white/80 hover:bg-white text-gray-800 
+          rounded-full p-2 shadow-md transition
           ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         `}
       >

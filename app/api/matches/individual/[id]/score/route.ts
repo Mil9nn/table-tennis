@@ -43,9 +43,11 @@ export async function POST(
 
     const gameNumber = Number(body.gameNumber ?? match.currentGame ?? 1);
 
+    // find or create the current game subdoc
     let currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
     if (!currentGame) {
-      currentGame = {
+      // push as plain object first (same as before)
+      match.games.push({
         gameNumber,
         side1Score: 0,
         side2Score: 0,
@@ -53,8 +55,10 @@ export async function POST(
         winnerSide: null,
         completed: false,
         expedite: false,
-      };
-      match.games.push(currentGame);
+      });
+
+      // IMPORTANT: re-read the subdoc so currentGame becomes the Mongoose subdoc
+      currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
     }
 
     // --- Handle subtract (undo last point) ---
@@ -67,25 +71,32 @@ export async function POST(
       }
 
       // remove last shot for that side
-      const lastIndex = [...currentGame.shots]
+      const lastIndex = [...(currentGame.shots || [])]
         .reverse()
         .findIndex((s: any) => s.side === body.side);
 
       if (lastIndex !== -1) {
-        currentGame.shots.splice(currentGame.shots.length - 1 - lastIndex, 1);
+        currentGame.shots.splice(
+          (currentGame.shots?.length || 0) - 1 - lastIndex,
+          1
+        );
       }
     }
 
     // --- Handle normal score update (+ point) ---
-    if (typeof body.side1Score === "number" && typeof body.side2Score === "number") {
+    if (
+      typeof body.side1Score === "number" &&
+      typeof body.side2Score === "number"
+    ) {
       currentGame.side1Score = body.side1Score;
       currentGame.side2Score = body.side2Score;
     }
 
     // --- Add single shot if provided (frontend "plus" action) ---
+    // Keep the same `player` usage you had (no name manipulation).
     if (body.shotData?.player) {
       const shot = {
-        shotNumber: currentGame.shots.length + 1,
+        shotNumber: (currentGame.shots?.length || 0) + 1,
         side: body.shotData.side,
         player: body.shotData.player,
         stroke: body.shotData.stroke || null,
@@ -95,6 +106,7 @@ export async function POST(
         timestamp: new Date(),
       };
 
+      currentGame.shots = currentGame.shots || [];
       currentGame.shots.push(shot);
 
       // ---- Update statistics ----
@@ -143,6 +155,25 @@ export async function POST(
       }
 
       match.statistics = stats;
+
+      // ensure Mongoose notices the nested changes
+      // mark modified for games (we mutated shots) and statistics (we mutated nested map/object)
+      try {
+        match.markModified("games");
+        match.markModified("statistics");
+      } catch (e) {
+        // markModified can throw on some lean objects; ignore safely
+        console.warn("markModified warning", e);
+      }
+
+      // small debug to help you verify first-shot payload server-side
+      // remove or toggle in production
+      console.debug("[score route] pushed shot:", {
+        matchId: match._id,
+        gameNumber,
+        shot,
+        currentShotsCount: currentGame.shots?.length || 0,
+      });
     }
 
     await match.save();
@@ -156,7 +187,7 @@ export async function POST(
   } catch (err) {
     console.error("Score update error:", err);
     return NextResponse.json(
-      { error: "Failed to update score" },
+      { error: "Failed to update score", details: (err as Error).message },
       { status: 500 }
     );
   }

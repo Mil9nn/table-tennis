@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { RotateCcw, Play, Pause } from "lucide-react";
-import Link from "next/link";
 
 interface CenterControlsProps {
   isMatchActive: boolean;
@@ -40,7 +39,7 @@ export default function CenterControls({
         </Button>
 
         {/* Reset Button */}
-        <Button onClick={onReset} className="cursor-pointr text-gray-200 py-6">
+        <Button onClick={onReset} className="cursor-pointer text-gray-200 py-6">
           <RotateCcw className="w-4 h-4" />
           Reset
         </Button>
