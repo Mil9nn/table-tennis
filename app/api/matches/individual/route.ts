@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { User } from "@/models/User";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
     const body = await request.json();
 
     const token = getTokenFromRequest(request);
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    await connectDB();
     const matches = await IndividualMatch.find()
       .populate("participants", "username fullName")
       .populate("scorer", "username fullName")

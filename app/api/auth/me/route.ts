@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { User } from "@/models/User";
+import { connectDB } from "@/lib/mongodb";
 
 export async function GET(request: NextRequest) {
   try {
+    await connectDB();
     // ✅ get token from cookies
     const token = getTokenFromRequest(request);
     if (!token) {

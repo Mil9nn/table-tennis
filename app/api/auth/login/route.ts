@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { generateToken, setAuthCookie } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
     const { email, password } = await request.json();
 
     if (!email || !password) {

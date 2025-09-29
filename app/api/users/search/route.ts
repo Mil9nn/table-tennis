@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { User } from "@/models/User";
+import { connectDB } from "@/lib/mongodb";
 
 // Returns up to 10 results for autocomplete fields.
 export async function GET(req: NextRequest) {
   try {
+    await connectDB();
+    
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") || "").trim();
 

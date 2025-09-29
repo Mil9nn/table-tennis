@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
+import { connectDB } from "@/lib/mongodb";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB();
     const { id } = await context.params;
 
     const match = await IndividualMatch.findById(id)
