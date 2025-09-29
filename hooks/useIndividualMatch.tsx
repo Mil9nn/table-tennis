@@ -146,9 +146,9 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       let nextServer: ServerKey;
       if (match.serverConfig?.firstServer) {
-        nextServer = computeNextServer(match, p1, p2) || match.serverConfig.firstServer as ServerKey;
-      } else {
         nextServer = computeNextServer(match, p1, p2);
+      } else {
+        nextServer = null;
       }
 
       const actualStatus: MatchStatus = match.status;

@@ -48,23 +48,28 @@ export default function InitialServerDialog({ matchType, participants }: Initial
     try {
       let serverOrder: string[] | undefined = undefined;
       
-      if (isDoubles) {
+      if (isDoubles && selectedFirstServer && selectedFirstReceiver) {
         serverOrder = buildDoublesRotation(
           selectedFirstServer as any,
           selectedFirstReceiver as any
         );
       }
 
+
+      // Validate rotation
+      if (!serverOrder || serverOrder.length !== 4) {
+        toast.error("Failed to build server rotation");
+        setLoading(false);
+        return;
+      }
+
       const serverConfig = {
         firstServer: selectedFirstServer,
-        firstReceiver: selectedFirstReceiver,
-        serverOrder,
+        firstReceiver: isDoubles ? selectedFirstReceiver : null,
+        serverOrder: isDoubles ? serverOrder : undefined,
       };
 
-      const { data } = await axiosInstance.post(
-        `/matches/individual/${match._id}/server-config`,
-        serverConfig
-      );
+      const { data } = await axiosInstance.post(`/matches/individual/${match._id}/server-config`, serverConfig);
 
       if (data?.match) {
         setMatch(data.match);

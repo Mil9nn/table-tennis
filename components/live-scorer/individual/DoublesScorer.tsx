@@ -54,12 +54,16 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
     }
   }, [match._id, match.status, setInitialMatch]);
 
-  // Show server dialog when match starts and no server config exists
   useEffect(() => {
-    if (match.status === "in_progress" && !match.serverConfig?.firstServer) {
-      setServerDialogOpen(true);
-    }
-  }, [match.status, match.serverConfig?.firstServer]);
+  if (!match) return;
+
+  const hasServer = Boolean(match.serverConfig?.firstServer);
+  const isStarting = match.status === "in_progress" && lastMatchStatus.current === "scheduled";
+
+  if (isStarting && !hasServer) {
+    setServerDialogOpen(true);
+  }
+}, [match?.status, match?.serverConfig?.firstServer, setServerDialogOpen]);
 
   
 

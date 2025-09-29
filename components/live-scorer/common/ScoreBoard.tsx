@@ -66,6 +66,7 @@ export default function ScoreBoard({
               match.participants?.[0] ??
               "Player 1",
             playerId: match.participants?.[0]?._id ?? match.participants?.[0],
+            serverKey: "side1",
           },
         ],
         p2: [
@@ -76,6 +77,7 @@ export default function ScoreBoard({
               match.participants?.[1] ??
               "Player 2",
             playerId: match.participants?.[1]?._id ?? match.participants?.[1],
+            serverKey: "side2",
           },
         ],
       };
@@ -91,6 +93,7 @@ export default function ScoreBoard({
             match.participants?.[0] ??
             "Player 1",
           playerId: match.participants?.[0]?._id ?? match.participants?.[0],
+          serverKey: "side1_main",
         },
         {
           name:
@@ -99,6 +102,7 @@ export default function ScoreBoard({
             match.participants?.[1] ??
             "Partner 1",
           playerId: match.participants?.[1]?._id ?? match.participants?.[1],
+          serverKey: "side1_partner",
         },
       ],
       p2: [
@@ -109,6 +113,7 @@ export default function ScoreBoard({
             match.participants?.[2] ??
             "Player 2",
           playerId: match.participants?.[2]?._id ?? match.participants?.[2],
+          serverKey: "side2_main",
         },
         {
           name:
@@ -117,6 +122,7 @@ export default function ScoreBoard({
             match.participants?.[3] ??
             "Partner 2",
           playerId: match.participants?.[3]?._id ?? match.participants?.[3],
+          serverKey: "side2_partner",
         },
       ],
     };
@@ -167,11 +173,7 @@ export default function ScoreBoard({
           setsWon={side1Sets}
           color="emerald"
           disabled={status === "completed" || isGameWon}
-          isServer={
-            currentServer === "side1" ||
-            currentServer === "side1_main" ||
-            currentServer === "side1_partner"
-          }
+          currentServer={currentServer}
         />
 
         {/* Right */}
@@ -184,11 +186,7 @@ export default function ScoreBoard({
           setsWon={side2Sets}
           color="rose"
           disabled={status === "completed" || isGameWon}
-          isServer={
-            currentServer === "side2" ||
-            currentServer === "side2_main" ||
-            currentServer === "side2_partner"
-          }
+          currentServer={currentServer}
         />
 
         {/* Center controls */}

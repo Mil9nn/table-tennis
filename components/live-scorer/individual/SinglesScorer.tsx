@@ -57,11 +57,12 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
     if (!match) return;
 
     const hasServer = Boolean(match.serverConfig?.firstServer);
+    const isStarting = match.status === "in_progress" && lastMatchStatus.current === "scheduled";
 
-    if (match.status === "in_progress" && !hasServer) {
+    if (isStarting && !hasServer) {
       setServerDialogOpen(true);
     }
-  }, [match]);
+  }, [match?.status, match?.serverConfig?.firstServer, setServerDialogOpen]);
 
   const handleAddPoint = useCallback(
     ({ side, playerId }: AddPointPayload) => {

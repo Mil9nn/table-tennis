@@ -5,19 +5,22 @@ import { Minus } from "lucide-react";
 type PlayerInfo = {
   name: string;
   playerId?: string;
-  key?: string; // optional server key for doubles
+  serverKey?: string; // e.g., "side1", "side1_main", "side1_partner", etc.
 };
 
 interface PlayerCardProps {
   players: PlayerInfo[];
   score: number;
   side: "side1" | "side2";
-  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
+  onAddPoint: (payload: {
+    side: "side1" | "side2";
+    playerId?: string;
+  }) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
   disabled?: boolean;
-  isServer: boolean; // ✅ simplified: comes from ScoreBoard
+  currentServer: string | null; // e.g., "side1", "side1_main", "side2_partner", etc.
 }
 
 export default function PlayerCard({
@@ -29,7 +32,7 @@ export default function PlayerCard({
   setsWon,
   color = "emerald",
   disabled = false,
-  isServer,
+  currentServer,
 }: PlayerCardProps) {
   const colors = {
     emerald: {
@@ -40,6 +43,12 @@ export default function PlayerCard({
       bg: "from-rose-400 to-rose-600",
       score: "text-rose-700",
     },
+  };
+
+  // Helper to check if this player is currently serving
+  const isPlayerServing = (player: PlayerInfo) => {
+    if (!currentServer || !player.serverKey) return false;
+    return currentServer === player.serverKey;
   };
 
   return (
@@ -54,21 +63,21 @@ export default function PlayerCard({
       `}
     >
       {/* Player Names */}
-      <div className="flex flex-col items-center mb-4 text-white">
+      <div className="flex flex-col items-center mb-4 text-white gap-1">
         {players.map((pl, idx) => (
           <div
             key={idx}
-            className="flex items-center whitespace-nowrap text-sm font-semibold"
+            className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold"
           >
-            {pl.name}
+            <span>{pl.name}</span>
+            {isPlayerServing(pl) && (
+              <span
+                className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse shadow-lg"
+                title="Serving"
+              />
+            )}
           </div>
         ))}
-        {isServer && (
-          <span
-            className="mt-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"
-            title="Serving"
-          />
-        )}
       </div>
 
       {/* Score */}

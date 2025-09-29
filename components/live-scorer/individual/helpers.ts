@@ -64,7 +64,7 @@ const getNextServerSingles = (
     const serverIndex = totalPoints % 2;
     const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
     return {
-      server: servers[serverIndex] as PlayerKey,
+      server: servers[serverIndex],
       isDeuce: true,
       serveCount: 0,
     };
@@ -76,7 +76,7 @@ const getNextServerSingles = (
   const currentServerIndex = serveCycle % 2;
 
   return {
-    server: servers[currentServerIndex] as PlayerKey,
+    server: servers[currentServerIndex],
     isDeuce: false,
     serveCount: totalPoints % 2,
   };
@@ -128,12 +128,6 @@ export const buildDoublesRotation = (
     "side2_partner",
   ];
 
-  // helper to get side and role
-  const parse = (k: DoublesPlayerKey) => {
-    const [side, role] = k.split("_");
-    return { side, role };
-  };
-
   const partnerOf = (k: DoublesPlayerKey): DoublesPlayerKey => {
     if (k.startsWith("side1")) {
       return k.endsWith("_main") ? "side1_partner" : "side1_main";
@@ -141,42 +135,40 @@ export const buildDoublesRotation = (
     return k.endsWith("_main") ? "side2_partner" : "side2_main";
   };
 
-  // fallback defaults
   const fallback = defaultDoublesOrder.slice();
 
-  // If firstServer not provided, return fallback
-  if (!firstServer) return fallback;
-
-  // Ensure firstServer is valid
-  if (!all.includes(firstServer)) return fallback;
-
-  // If no receiver provided, pick the main on opposite side by default
-  let receiver = firstReceiver;
-  if (!receiver) {
-    // choose the "main" on the opposite side
-    const serverSide = firstServer.startsWith("side1") ? "side1" : "side2";
-    receiver = serverSide === "side1" ? "side2_main" : "side1_main";
+  if (!firstServer || !all.includes(firstServer)) {
+    console.warn("Invalid firstServer, using fallback");
+    return fallback;
   }
 
-  // Ensure receiver is valid and on the opposite side. If not, attempt to fix.
-  if (
-    !all.includes(receiver) ||
-    receiver.split("_")[0] === firstServer.split("_")[0]
-  ) {
-    // receiver is on same side — pick opposite main
-    receiver = firstServer.startsWith("side1") ? "side2_main" : "side1_main";
+  if (!firstReceiver || !all.includes(firstReceiver)) {
+    console.warn("Invalid firstReceiver, using fallback");
+    return fallback;
+  }
+
+  // Validate server and receiver are on opposite sides
+  const serverSide = firstServer.split("_")[0];
+  const receiverSide = firstReceiver.split("_")[0];
+  
+  if (serverSide === receiverSide) {
+    console.error("Server and receiver must be on opposite sides");
+    return fallback;
   }
 
   const rotation: DoublesPlayerKey[] = [
     firstServer,
-    receiver,
+    firstReceiver,
     partnerOf(firstServer),
-    partnerOf(receiver),
+    partnerOf(firstReceiver),
   ];
 
-  // final safety: if rotation duplicates or missing items, return fallback
+  // Validate no duplicates
   const unique = Array.from(new Set(rotation));
-  if (unique.length !== 4) return fallback;
+  if (unique.length !== 4) {
+    console.error("Rotation has duplicates, using fallback");
+    return fallback;
+  }
 
   return rotation;
 };
