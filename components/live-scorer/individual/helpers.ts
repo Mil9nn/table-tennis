@@ -11,7 +11,7 @@ export type ServerKey = PlayerKey | DoublesPlayerKey;
 export type InitialServerConfig = {
   firstServer?: ServerKey | null;
   firstReceiver?: DoublesPlayerKey | null;
-  serverOrder?: DoublesPlayerKey[] | null;
+  serverOrder?: DoublesPlayerKey[];
 };
 
 export const checkGameWon = (
@@ -62,9 +62,9 @@ const getNextServerSingles = (
   if (isDeuce) {
     // In deuce, alternate every point
     const serverIndex = totalPoints % 2;
-    const servers: PlayerKey[] = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
+    const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
     return {
-      server: servers[serverIndex],
+      server: servers[serverIndex] as PlayerKey,
       isDeuce: true,
       serveCount: 0,
     };
@@ -72,11 +72,11 @@ const getNextServerSingles = (
 
   // Normal serving: 2 serves each
   const serveCycle = Math.floor(totalPoints / 2);
-  const servers: PlayerKey[] = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
+  const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
   const currentServerIndex = serveCycle % 2;
 
   return {
-    server: servers[currentServerIndex],
+    server: servers[currentServerIndex] as PlayerKey,
     isDeuce: false,
     serveCount: totalPoints % 2,
   };
@@ -236,7 +236,7 @@ export const getCurrentServerName = (
   server: ServerKey | null,
   participants: any[],
   matchType: string
-) => {
+): string | null => {
   if (!server || !participants) return null;
 
   if (matchType === "singles") {
@@ -286,4 +286,4 @@ export const checkMatchWonBySets = (
   if (side1Sets >= setsNeeded) return "side1";
   if (side2Sets >= setsNeeded) return "side2";
   return null;
-};  
+};

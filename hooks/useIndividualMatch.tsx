@@ -66,7 +66,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         match.serverConfig?.firstServer || (isDoubles ? "side1_main" : "side1"),
       firstReceiver:
         match.serverConfig?.firstReceiver || (isDoubles ? "side2_main" : null),
-      serverOrder: match.serverConfig?.serverOrder || null,
+      serverOrder: match.serverConfig?.serverOrder || undefined,
     };
 
     const serverResult = getNextServer(p1, p2, isDoubles, serverConfig);
@@ -144,7 +144,12 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const p1 = currentGameObj?.side1Score ?? 0;
       const p2 = currentGameObj?.side2Score ?? 0;
 
-      const nextServer = computeNextServer(match, p1, p2);
+      let nextServer: ServerKey;
+      if (match.serverConfig?.firstServer) {
+        nextServer = computeNextServer(match, p1, p2) || match.serverConfig.firstServer as ServerKey;
+      } else {
+        nextServer = computeNextServer(match, p1, p2);
+      }
 
       const actualStatus: MatchStatus = match.status;
 

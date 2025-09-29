@@ -5,22 +5,19 @@ import { Minus } from "lucide-react";
 type PlayerInfo = {
   name: string;
   playerId?: string;
+  key?: string; // optional server key for doubles
 };
 
 interface PlayerCardProps {
-  players: PlayerInfo[]; // ✅ can be 1 (singles) or 2 (doubles)
+  players: PlayerInfo[];
   score: number;
-  isServer: boolean;
   side: "side1" | "side2";
-  onAddPoint: (payload: {
-    side: "side1" | "side2";
-    playerId?: string;
-  }) => void;
+  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
   disabled?: boolean;
-  currentServer: string | null;
+  isServer: boolean; // ✅ simplified: comes from ScoreBoard
 }
 
 export default function PlayerCard({
@@ -32,8 +29,8 @@ export default function PlayerCard({
   setsWon,
   color = "emerald",
   disabled = false,
-  currentServer,
-}: PlayerCardProps) {     
+  isServer,
+}: PlayerCardProps) {
   const colors = {
     emerald: {
       bg: "from-emerald-400 to-emerald-600",
@@ -59,16 +56,19 @@ export default function PlayerCard({
       {/* Player Names */}
       <div className="flex flex-col items-center mb-4 text-white">
         {players.map((pl, idx) => (
-          <div key={idx} className="flex items-center whitespace-nowrap text-sm font-semibold">
+          <div
+            key={idx}
+            className="flex items-center whitespace-nowrap text-sm font-semibold"
+          >
             {pl.name}
-            {currentServer === pl.name && (
-              <span
-                className="ml-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"
-                title="Serving"
-              />
-            )}
           </div>
         ))}
+        {isServer && (
+          <span
+            className="mt-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"
+            title="Serving"
+          />
+        )}
       </div>
 
       {/* Score */}
@@ -82,10 +82,10 @@ export default function PlayerCard({
       {/* Sets Won */}
       <div className="mt-4 text-white/80 text-sm">Sets Won: {setsWon}</div>
 
-      {/* Subtract Button (floating in corner) */}
+      {/* Subtract Button */}
       <button
         onClick={(e) => {
-          e.stopPropagation(); // prevent triggering add
+          e.stopPropagation();
           !disabled && onSubtractPoint(side);
         }}
         disabled={disabled}

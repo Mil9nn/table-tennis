@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,6 +13,7 @@ import { useMatchStore } from "@/hooks/useMatchStore";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { buildDoublesRotation } from "./live-scorer/individual/helpers";
+import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
 interface InitialServerDialogProps {
   matchType: string;
@@ -44,7 +46,7 @@ export default function InitialServerDialog({ matchType, participants }: Initial
 
     setLoading(true);
     try {
-      let serverOrder: string[] = [];
+      let serverOrder: string[] | undefined = undefined;
       
       if (isDoubles) {
         serverOrder = buildDoublesRotation(
@@ -56,7 +58,7 @@ export default function InitialServerDialog({ matchType, participants }: Initial
       const serverConfig = {
         firstServer: selectedFirstServer,
         firstReceiver: selectedFirstReceiver,
-        serverOrder: serverOrder.length > 0 ? serverOrder : undefined,
+        serverOrder,
       };
 
       const { data } = await axiosInstance.post(
@@ -66,6 +68,7 @@ export default function InitialServerDialog({ matchType, participants }: Initial
 
       if (data?.match) {
         setMatch(data.match);
+        useIndividualMatch.getState().setInitialMatch(data.match);
         toast.success("Server configuration saved!");
         setOpen(false);
       }
@@ -120,6 +123,9 @@ export default function InitialServerDialog({ matchType, participants }: Initial
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select First Server</DialogTitle>
+          <DialogDescription>
+            Choose who will serve first in the match.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

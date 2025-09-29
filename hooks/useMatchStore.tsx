@@ -114,7 +114,13 @@ export const useMatchStore = create<MatchStore>((set, get) => {
           side1Ties: raw.finalScore?.side1Ties ?? 0,
           side2Ties: raw.finalScore?.side2Ties ?? 0,
         },
-        winner: raw.winner ?? null,
+        winnerSide: raw.winnerSide ?? null,
+        matchDuration: raw.matchDuration,
+        serverConfig: raw.serverConfig ? {
+          firstServer: raw.serverConfig.firstServer ?? null,
+          firstReceiver: raw.serverConfig.firstReceiver ?? null,
+          serverOrder: Array.isArray(raw.serverConfig.serverOrder) ? raw.serverConfig.serverOrder : [],
+        } : null,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       } as TeamMatch;

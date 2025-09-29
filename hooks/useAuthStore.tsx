@@ -12,11 +12,14 @@ interface AuthState {
     login: (formData: LoginForm) => Promise<void>;
     logout: () => Promise<void>;
     user: User | null;
+    setUser: (user: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
     authLoading: false,
     user: null,
+
+    setUser: (user) => set({ user }),
 
     async fetchUser() {
         set({ authLoading: true });

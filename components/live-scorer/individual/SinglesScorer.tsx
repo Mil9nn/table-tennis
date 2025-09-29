@@ -54,10 +54,14 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
 
   // Show server dialog only when match starts (not on load)
   useEffect(() => {
-    if (match.status === "in_progress" && !match.serverConfig?.firstServer) {
+    if (!match) return;
+
+    const hasServer = Boolean(match.serverConfig?.firstServer);
+
+    if (match.status === "in_progress" && !hasServer) {
       setServerDialogOpen(true);
     }
-  }, [match.status, match.serverConfig?.firstServer]);
+  }, [match]);
 
   const handleAddPoint = useCallback(
     ({ side, playerId }: AddPointPayload) => {

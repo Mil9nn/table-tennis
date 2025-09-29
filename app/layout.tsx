@@ -1,12 +1,12 @@
-"use client";
-
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { useEffect } from "react";
-import { useAuthStore } from "@/hooks/useAuthStore";
-import { axiosInstance } from "@/lib/axiosInstance";
 import { Toaster } from "sonner";
+import { verifyToken } from "@/lib/jwt";
+import { cookies } from "next/headers";
+import { User } from "@/models/User";
+import { connectDB } from "@/lib/mongodb";
+import AuthProvider from "./providers/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,38 +18,38 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const fetchUser = useAuthStore((state) => state.fetchUser);
 
-  useEffect(() => {
-    async function initDB() {
-      try {
-        await axiosInstance.get("/connect");
-      } catch (error) {
-        console.error("Error connecting to MongoDB:", error);
-      }
+  await connectDB();
+
+  const cookieStore = await cookies();
+
+  const token = cookieStore.get("token")?.value;
+  let user = null;
+
+  if (token) {
+    const decoded = verifyToken(token);
+    if (decoded?.userId) {
+      user = await User.findById(decoded.userId).select("-password");
     }
-    initDB();
-  }, []);
+  }
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const plainUser = JSON.parse(JSON.stringify(user));
 
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar />
-        <div className="pt-16 max-sm:pb-20">
-          {children}
-          <Toaster position="top-right" />
-        </div>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <AuthProvider user={plainUser}>
+          <Navbar />
+          <div className="pt-16 max-sm:pb-20">
+            {children}
+            <Toaster position="top-right" />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

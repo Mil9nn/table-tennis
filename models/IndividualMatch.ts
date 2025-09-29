@@ -95,10 +95,17 @@ const serverConfigSchema = new mongoose.Schema({
     ],
     default: null,
   },
-  serverOrder: {
-    type: String,
-    enum: [ "side1_main", "side1_partner", "side2_main", "side2_partner"  ],
-  }
+  serverOrder: [
+    {
+      type: String,
+      enum: [
+        "side1_main",
+        "side1_partner",
+        "side2_main",
+        "side2_partner",
+      ]
+    }
+  ]
 });
 
 // Match Schema
@@ -144,7 +151,7 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     serverConfig: {
       type: serverConfigSchema,
-      default: {},
+      default: null,
     },
 
     matchDuration: Number,

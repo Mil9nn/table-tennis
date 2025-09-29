@@ -33,11 +33,11 @@ export async function POST(
     }
 
     // Update server configuration
-    match.serverConfig = {
-      firstServer: serverConfig.firstServer,
-      firstReceiver: serverConfig.firstReceiver,
-      serverOrder: serverConfig.serverOrder,
-    };
+    match.serverConfig ??= {}; // ensure it exists
+
+    match.serverConfig.firstServer = serverConfig.firstServer;
+    match.serverConfig.firstReceiver = serverConfig.firstReceiver;
+    match.serverConfig.serverOrder = serverConfig.serverOrder ?? [];
 
     await match.save();
     await match.populate([

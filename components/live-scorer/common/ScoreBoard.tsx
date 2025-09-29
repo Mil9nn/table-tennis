@@ -14,7 +14,7 @@ interface ScoreBoardProps {
   side1Score: number;
   side2Score: number;
   isMatchActive: boolean;
-  currentServer: string | null;
+  currentServer: string | null; // serverKey from helpers
   side1Sets: number;
   side2Sets: number;
   status: MatchStatus;
@@ -161,39 +161,37 @@ export default function ScoreBoard({
         <PlayerCard
           players={p1}
           score={side1Score}
-          isServer={
-            currentServer === "side1" ||
-            currentServer === "side1_main" ||
-            currentServer === "side1_partner"
-          }
           side="side1"
           onAddPoint={onAddPoint}
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
           disabled={status === "completed" || isGameWon}
-          currentServer={serverName}
+          isServer={
+            currentServer === "side1" ||
+            currentServer === "side1_main" ||
+            currentServer === "side1_partner"
+          }
         />
 
         {/* Right */}
         <PlayerCard
           players={p2}
           score={side2Score}
-          isServer={
-            currentServer === "side2" ||
-            currentServer === "side2_main" ||
-            currentServer === "side2_partner"
-          }
           side="side2"
           onAddPoint={onAddPoint}
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
           disabled={status === "completed" || isGameWon}
-          currentServer={serverName}
+          isServer={
+            currentServer === "side2" ||
+            currentServer === "side2_main" ||
+            currentServer === "side2_partner"
+          }
         />
 
-        {/* Center controls: below on small, middle on md+ */}
+        {/* Center controls */}
         <div className="col-span-2 flex justify-center mt-4">
           <CenterControls
             isMatchActive={isMatchActive}
