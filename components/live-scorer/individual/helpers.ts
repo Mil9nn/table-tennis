@@ -11,10 +11,13 @@ export type ServerKey = PlayerKey | DoublesPlayerKey;
 export type InitialServerConfig = {
   firstServer?: ServerKey | null;
   firstReceiver?: DoublesPlayerKey | null;
-  serverOrder?: DoublesPlayerKey[];
+  serverOrder?: DoublesPlayerKey[] | null;
 };
 
-export const checkGameWon = (side1: number, side2: number): PlayerKey | null => {
+export const checkGameWon = (
+  side1: number,
+  side2: number
+): PlayerKey | null => {
   if ((side1 >= 11 || side2 >= 11) && Math.abs(side1 - side2) >= 2) {
     return side1 > side2 ? "side1" : "side2";
   }
@@ -22,12 +25,7 @@ export const checkGameWon = (side1: number, side2: number): PlayerKey | null => 
 };
 
 type ServerResult = {
-  server:
-    | PlayerKey
-    | "side1_main"
-    | "side1_partner"
-    | "side2_main"
-    | "side2_partner";
+  server: ServerKey;
   isDeuce: boolean;
   serveCount: number;
 };
@@ -44,13 +42,15 @@ export const getNextServer = (
   if (isDoubles) {
     const rotation =
       initialConfig?.serverOrder ||
-      buildDoublesRotation(initialConfig?.firstServer as DoublesPlayerKey, initialConfig?.firstReceiver);
+      buildDoublesRotation(
+        initialConfig?.firstServer as DoublesPlayerKey,
+        initialConfig?.firstReceiver
+      );
     return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
     const firstServer: PlayerKey =
-  (initialConfig?.firstServer as PlayerKey) || "side1"; // only fallback if nothing selected
-return getNextServerSingles(totalPoints, isDeuce, firstServer);
-
+      (initialConfig?.firstServer as PlayerKey) || "side1"; // only fallback if nothing selected
+    return getNextServerSingles(totalPoints, isDeuce, firstServer);
   }
 };
 
@@ -59,25 +59,25 @@ const getNextServerSingles = (
   isDeuce: boolean,
   firstServer: PlayerKey
 ): ServerResult => {
-  const servers: PlayerKey[] =
-    firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
-
   if (isDeuce) {
-    // alternate every point, starting from firstServer at totalPoints===0
-    const server = servers[totalPoints % 2];
+    // In deuce, alternate every point
+    const serverIndex = totalPoints % 2;
+    const servers: PlayerKey[] = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
     return {
-      server,
-      isDeuce,
+      server: servers[serverIndex],
+      isDeuce: true,
       serveCount: 0,
     };
   }
 
-  const serveCycle = Math.floor(totalPoints / 2); // each server serves 2 points
-  const server = servers[serveCycle % 2];
+  // Normal serving: 2 serves each
+  const serveCycle = Math.floor(totalPoints / 2);
+  const servers: PlayerKey[] = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
+  const currentServerIndex = serveCycle % 2;
 
   return {
-    server,
-    isDeuce,
+    server: servers[currentServerIndex],
+    isDeuce: false,
     serveCount: totalPoints % 2,
   };
 };
@@ -159,7 +159,10 @@ export const buildDoublesRotation = (
   }
 
   // Ensure receiver is valid and on the opposite side. If not, attempt to fix.
-  if (!all.includes(receiver) || receiver.split("_")[0] === firstServer.split("_")[0]) {
+  if (
+    !all.includes(receiver) ||
+    receiver.split("_")[0] === firstServer.split("_")[0]
+  ) {
     // receiver is on same side — pick opposite main
     receiver = firstServer.startsWith("side1") ? "side2_main" : "side1_main";
   }
@@ -191,8 +194,7 @@ export const getGameStatus = (side1: number, side2: number): string => {
   }
 
   if (isGameInDeuce(side1, side2)) {
-    const leader =
-      side1 > side2 ? "Side 1" : side2 > side1 ? "Side 2" : null;
+    const leader = side1 > side2 ? "Side 1" : side2 > side1 ? "Side 2" : null;
     if (leader) {
       return `Deuce - ${leader} Advantage`;
     }
@@ -234,15 +236,19 @@ export const getCurrentServerName = (
   server: ServerKey | null,
   participants: any[],
   matchType: string
-): string | null => {
+) => {
   if (!server || !participants) return null;
 
   if (matchType === "singles") {
     switch (server) {
       case "side1":
-        return participants[0]?.fullName || participants[0]?.username || "Player 1";
+        return (
+          participants[0]?.fullName || participants[0]?.username || "Player 1"
+        );
       case "side2":
-        return participants[1]?.fullName || participants[1]?.username || "Player 2";
+        return (
+          participants[1]?.fullName || participants[1]?.username || "Player 2"
+        );
       default:
         return null;
     }
@@ -251,13 +257,21 @@ export const getCurrentServerName = (
   // doubles / mixed_doubles
   switch (server) {
     case "side1_main":
-      return participants[0]?.fullName || participants[0]?.username || "Player 1A";
+      return (
+        participants[0]?.fullName || participants[0]?.username || "Player 1A"
+      );
     case "side1_partner":
-      return participants[1]?.fullName || participants[1]?.username || "Player 1B";
+      return (
+        participants[1]?.fullName || participants[1]?.username || "Player 1B"
+      );
     case "side2_main":
-      return participants[2]?.fullName || participants[2]?.username || "Player 2A";
+      return (
+        participants[2]?.fullName || participants[2]?.username || "Player 2A"
+      );
     case "side2_partner":
-      return participants[3]?.fullName || participants[3]?.username || "Player 2B";
+      return (
+        participants[3]?.fullName || participants[3]?.username || "Player 2B"
+      );
     default:
       return null;
   }
@@ -268,8 +282,8 @@ export const checkMatchWonBySets = (
   side2Sets: number,
   numberOfSets: number
 ): PlayerKey | null => {
-  const needed = Math.ceil(numberOfSets / 2);
-  if (side1Sets >= needed) return "side1";
-  if (side2Sets >= needed) return "side2";
+  const setsNeeded = Math.ceil(numberOfSets / 2);
+  if (side1Sets >= setsNeeded) return "side1";
+  if (side2Sets >= setsNeeded) return "side2";
   return null;
-};
+};  

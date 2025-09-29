@@ -10,7 +10,7 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    // --- Auth Check ---
+    // Auth check
     const token = getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,10 +26,10 @@ export async function POST(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Only scorer is allowed to update the score
+    // Only scorer can update
     if (match.scorer?.toString() !== decoded.userId) {
       return NextResponse.json(
-        { error: "Forbidden only the assigned scorer can update the score" },
+        { error: "Forbidden: only the assigned scorer can update the score" },
         { status: 403 }
       );
     }
@@ -43,10 +43,9 @@ export async function POST(
 
     const gameNumber = Number(body.gameNumber ?? match.currentGame ?? 1);
 
-    // find or create the current game subdoc
+    // Find or create current game
     let currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
     if (!currentGame) {
-      // push as plain object first (same as before)
       match.games.push({
         gameNumber,
         side1Score: 0,
@@ -56,12 +55,10 @@ export async function POST(
         completed: false,
         expedite: false,
       });
-
-      // IMPORTANT: re-read the subdoc so currentGame becomes the Mongoose subdoc
       currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
     }
 
-    // --- Handle subtract (undo last point) ---
+    // Handle subtract action
     if (body.action === "subtract" && body.side) {
       if (body.side === "side1" && currentGame.side1Score > 0) {
         currentGame.side1Score -= 1;
@@ -70,7 +67,7 @@ export async function POST(
         currentGame.side2Score -= 1;
       }
 
-      // remove last shot for that side
+      // Remove last shot for that side
       const lastIndex = [...(currentGame.shots || [])]
         .reverse()
         .findIndex((s: any) => s.side === body.side);
@@ -83,17 +80,43 @@ export async function POST(
       }
     }
 
-    // --- Handle normal score update (+ point) ---
-    if (
-      typeof body.side1Score === "number" &&
-      typeof body.side2Score === "number"
-    ) {
+    // Handle normal score update
+    if (typeof body.side1Score === "number" && typeof body.side2Score === "number") {
       currentGame.side1Score = body.side1Score;
       currentGame.side2Score = body.side2Score;
     }
 
-    // --- Add single shot if provided (frontend "plus" action) ---
-    // Keep the same `player` usage you had (no name manipulation).
+    // Check if game is won
+    const isGameWon = (currentGame.side1Score >= 11 || currentGame.side2Score >= 11) && 
+                     Math.abs(currentGame.side1Score - currentGame.side2Score) >= 2;
+    
+    if (isGameWon && !currentGame.winnerSide) {
+      currentGame.winnerSide = currentGame.side1Score > currentGame.side2Score ? "side1" : "side2";
+      currentGame.completed = true;
+      
+      // Update set counts
+      if (currentGame.winnerSide === "side1") {
+        match.finalScore.side1Sets += 1;
+      } else {
+        match.finalScore.side2Sets += 1;
+      }
+
+      // Check if match is won
+      const setsNeeded = Math.ceil(match.numberOfSets / 2);
+      const isMatchWon = match.finalScore.side1Sets >= setsNeeded || 
+                        match.finalScore.side2Sets >= setsNeeded;
+
+      if (isMatchWon) {
+        match.status = "completed";
+        match.winnerSide = match.finalScore.side1Sets >= setsNeeded ? "side1" : "side2";
+        match.matchDuration = Date.now() - (match.createdAt?.getTime() || Date.now());
+      } else {
+        // Prepare next game
+        match.currentGame = gameNumber + 1;
+      }
+    }
+
+    // Add shot data if provided
     if (body.shotData?.player) {
       const shot = {
         shotNumber: (currentGame.shots?.length || 0) + 1,
@@ -109,7 +132,7 @@ export async function POST(
       currentGame.shots = currentGame.shots || [];
       currentGame.shots.push(shot);
 
-      // ---- Update statistics ----
+      // Update statistics
       const stats = match.statistics || {};
       const playerId = body.shotData.player.toString();
 
@@ -124,6 +147,7 @@ export async function POST(
           errorsByType: {},
         });
       }
+
       const playerStats = stats.playerStats.get(playerId);
 
       if (shot.outcome === "winner") {
@@ -136,8 +160,7 @@ export async function POST(
         }
 
         if (shot.stroke) {
-          playerStats.detailedShots[shot.stroke] =
-            (playerStats.detailedShots[shot.stroke] || 0) + 1;
+          playerStats.detailedShots[shot.stroke] = (playerStats.detailedShots[shot.stroke] || 0) + 1;
         }
       }
 
@@ -150,30 +173,12 @@ export async function POST(
           playerStats.serveErrors += 1;
         }
 
-        playerStats.errorsByType[shot.errorType] =
-          (playerStats.errorsByType[shot.errorType] || 0) + 1;
+        playerStats.errorsByType[shot.errorType] = (playerStats.errorsByType[shot.errorType] || 0) + 1;
       }
 
       match.statistics = stats;
-
-      // ensure Mongoose notices the nested changes
-      // mark modified for games (we mutated shots) and statistics (we mutated nested map/object)
-      try {
-        match.markModified("games");
-        match.markModified("statistics");
-      } catch (e) {
-        // markModified can throw on some lean objects; ignore safely
-        console.warn("markModified warning", e);
-      }
-
-      // small debug to help you verify first-shot payload server-side
-      // remove or toggle in production
-      console.debug("[score route] pushed shot:", {
-        matchId: match._id,
-        gameNumber,
-        shot,
-        currentShotsCount: currentGame.shots?.length || 0,
-      });
+      match.markModified("games");
+      match.markModified("statistics");
     }
 
     await match.save();
@@ -183,7 +188,10 @@ export async function POST(
       { path: "games.shots.player", select: "username fullName" },
     ]);
 
-    return NextResponse.json({ match, message: "Score updated" });
+    return NextResponse.json({ 
+      match, 
+      message: match.status === "completed" ? "Match completed!" : "Score updated" 
+    });
   } catch (err) {
     console.error("Score update error:", err);
     return NextResponse.json(

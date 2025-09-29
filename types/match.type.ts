@@ -13,6 +13,12 @@ export interface Participant {
   fullName?: string; 
 }
 
+export interface serverConfig {
+  firstServer?: string | null;
+  firstReceiver?: string | null;
+  serverOrder?: string[];
+}
+
 export interface IndividualGame {
   gameNumber: number;
   side1Score: number;
@@ -29,7 +35,7 @@ export interface IndividualGame {
 export interface IndividualMatch {
   _id: string;
   matchCategory: "individual";
-  matchType: MatchType;
+  matchType: "singles" | "doubles" | "mixed_doubles";
   numberOfSets: number;
   participants: Participant[];
   scorer?: Participant;
@@ -42,11 +48,12 @@ export interface IndividualMatch {
     side1Sets: number;
     side2Sets: number;
   };
-  winnerSide?: WinnerSide;
+  winnerSide?: "side1" | "side2" | null;
   matchDuration?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  // statistics?: MatchStatistics;
   serverConfig?: InitialServerConfig;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Team Match Schema
@@ -92,8 +99,9 @@ export interface TeamMatch {
     side2Ties?: number;
   };
   winner?: WinnerSide;
-  createdAt?: string;
-  updatedAt?: string;
+  serverConfig?: serverConfig;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Normalized Frontend Type

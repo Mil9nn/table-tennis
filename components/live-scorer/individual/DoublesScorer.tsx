@@ -36,6 +36,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
+  const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
 
   const lastMatchId = useRef<string | null>(null);
   const lastMatchStatus = useRef<MatchStatus | null>(null);
@@ -46,31 +47,19 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 
-    if (
-      matchChanged ||
-      (statusChanged &&
-        (match.status === "completed" ||
-          lastMatchStatus.current === "completed"))
-    ) {
+    if (matchChanged || (statusChanged && (match.status === "completed" || lastMatchStatus.current === "completed"))) {
       setInitialMatch(match);
       lastMatchId.current = match._id;
       lastMatchStatus.current = match.status;
-
-      if (
-        (match.matchType === "doubles" ||
-          match.matchType === "mixed_doubles") &&
-        match.status === "scheduled"
-      ) {
-        useMatchStore.getState().setSetupDialogOpen(true);
-      }
     }
   }, [match._id, match.status, setInitialMatch]);
 
+  // Show server dialog when match starts and no server config exists
   useEffect(() => {
-  if (match?.status === "scheduled" && !match.serverConfig) {
-    useMatchStore.getState().setServerDialogOpen(true);
-  }
-}, [match]);
+    if (match.status === "in_progress" && !match.serverConfig?.firstServer) {
+      setServerDialogOpen(true);
+    }
+  }, [match.status, match.serverConfig?.firstServer]);
 
   
 

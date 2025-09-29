@@ -34,6 +34,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
+  const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
 
   const lastMatchId = useRef<string | null>(null);
   const lastMatchStatus = useRef<MatchStatus | null>(null);
@@ -44,23 +45,19 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 
-    if (
-      matchChanged ||
-      (statusChanged &&
-        (match.status === "completed" ||
-          lastMatchStatus.current === "completed"))
-    ) {
+    if (matchChanged || (statusChanged && (match.status === "completed" || lastMatchStatus.current === "completed"))) {
       setInitialMatch(match);
       lastMatchId.current = match._id;
       lastMatchStatus.current = match.status;
     }
   }, [match, setInitialMatch]);
 
+  // Show server dialog only when match starts (not on load)
   useEffect(() => {
-    if (match.status === "scheduled" && !match.serverConfig) {
-      useMatchStore.getState().setServerDialogOpen(true);
+    if (match.status === "in_progress" && !match.serverConfig?.firstServer) {
+      setServerDialogOpen(true);
     }
-  }, []);
+  }, [match.status, match.serverConfig?.firstServer]);
 
   const handleAddPoint = useCallback(
     ({ side, playerId }: AddPointPayload) => {

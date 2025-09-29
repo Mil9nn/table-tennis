@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
-import { RotateCcw, Play, Pause } from "lucide-react";
+import { RotateCcw, Play, Pause, Square } from "lucide-react";
+import { useMatchStore } from "@/hooks/useMatchStore";
 
 interface CenterControlsProps {
   isMatchActive: boolean;
@@ -16,34 +17,77 @@ export default function CenterControls({
   onReset,
 }: CenterControlsProps) {
   const isStartingMatch = useIndividualMatch((s) => s.isStartingMatch);
+  const status = useIndividualMatch((s) => s.status);
+  const match = useMatchStore((s) => s.match);
+
+  const handleToggleMatch = () => {
+    // Show server dialog if starting match without server config
+    if (!isMatchActive && match && !match.serverConfig?.firstServer) {
+      onToggleMatch();
+      return;
+    }
+    onToggleMatch();
+  };
+
+  const getButtonContent = () => {
+    if (isStartingMatch) {
+      return <span>Processing...</span>;
+    }
+
+    if (status === "completed") {
+      return (
+        <div className="flex items-center gap-2">
+          <Square className="w-4 h-4" />
+          <span>Match Ended</span>
+        </div>
+      );
+    }
+
+    if (isMatchActive) {
+      return (
+        <div className="flex items-center gap-2">
+          <Pause className="text-orange-400 w-4 h-4" />
+          <span className="text-orange-400">Pause Match</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <Play className="w-4 h-4" />
+        <span>Start Match</span>
+      </div>
+    );
+  };
 
   return (
     <section className="text-center space-y-4 col-span-2 md:col-span-1">
       <div className="flex justify-center space-x-2">
-        <Button onClick={onToggleMatch} disabled={isStartingMatch} className="cursor-pointer w-full gap-2 text-base py-6" asChild>
-            {
-              isStartingMatch ? (
-                <span>Processing...</span>
-              ) : isMatchActive ? (
-                <div>
-                  <Pause className="text-red-400 w-6 h-6" />
-                  <span className="text-red-400">Pause Match</span>
-                </div>
-              ) : (
-                <div>
-                  <Play className="w-6 h-6" />
-                  Start Match
-                </div>
-              )
-            }
+        <Button 
+          onClick={handleToggleMatch} 
+          disabled={isStartingMatch || status === "completed"} 
+          className="cursor-pointer w-full gap-2 text-base py-6"
+          variant={isMatchActive ? "destructive" : "default"}
+        >
+          {getButtonContent()}
         </Button>
 
-        {/* Reset Button */}
-        <Button onClick={onReset} className="cursor-pointer text-gray-200 py-6">
+        <Button 
+          onClick={onReset} 
+          className="cursor-pointer text-gray-200 py-6"
+          variant="outline"
+          title={status === "completed" ? "Restart Match" : "Reset Current Game"}
+        >
           <RotateCcw className="w-4 h-4" />
-          Reset
+          {status === "completed" ? "Restart" : "Reset"}
         </Button>
       </div>
+
+      {status === "completed" && (
+        <p className="text-xs text-gray-500 mt-2">
+          Match completed. Use Reset to start over.
+        </p>
+      )}
     </section>
   );
 }

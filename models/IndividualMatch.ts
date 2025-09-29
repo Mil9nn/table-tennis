@@ -70,6 +70,37 @@ const gameSchema = new mongoose.Schema({
   endTime: Date,
 });
 
+const serverConfigSchema = new mongoose.Schema({
+  firstServer: {
+    type: String,
+    enum: [
+      "side1",
+      "side2",
+      "side1_main",
+      "side1_partner",
+      "side2_main",
+      "side2_partner",
+    ],
+    default: null,
+  },
+  firstReceiver: {
+    type: String,
+    enum: [
+      "side1",
+      "side2",
+      "side1_main",
+      "side1_partner",
+      "side2_main",
+      "side2_partner",
+    ],
+    default: null,
+  },
+  serverOrder: {
+    type: String,
+    enum: [ "side1_main", "side1_partner", "side2_main", "side2_partner"  ],
+  }
+});
+
 // Match Schema
 const IndividualMatchSchema = new mongoose.Schema(
   {
@@ -88,7 +119,9 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     numberOfSets: { type: Number, enum: [1, 3, 5, 7, 9], default: 3 },
 
-    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
+    participants: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    ],
 
     scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     city: String,
@@ -108,6 +141,11 @@ const IndividualMatchSchema = new mongoose.Schema(
       side2Sets: { type: Number, default: 0 },
     },
     winnerSide: { type: String, enum: ["side1", "side2"], default: null },
+
+    serverConfig: {
+      type: serverConfigSchema,
+      default: {},
+    },
 
     matchDuration: Number,
 
@@ -188,4 +226,5 @@ IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
   return result;
 });
 
-export default mongoose.models.IndividualMatch || mongoose.model("IndividualMatch", IndividualMatchSchema);
+export default mongoose.models.IndividualMatch ||
+  mongoose.model("IndividualMatch", IndividualMatchSchema);

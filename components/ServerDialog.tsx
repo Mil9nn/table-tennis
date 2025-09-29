@@ -1,144 +1,191 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useMatchStore } from "@/hooks/useMatchStore";
-import type { PlayerKey, DoublesPlayerKey } from "@/components/live-scorer/individual/helpers";
-import { useIndividualMatch } from "@/hooks/useIndividualMatch";
+import { axiosInstance } from "@/lib/axiosInstance";
+import { toast } from "sonner";
+import { buildDoublesRotation } from "./live-scorer/individual/helpers";
 
 interface InitialServerDialogProps {
-  matchType: "singles" | "doubles" | "mixed_doubles";
+  matchType: string;
   participants: any[];
 }
 
 export default function InitialServerDialog({ matchType, participants }: InitialServerDialogProps) {
-  const open = useMatchStore((s) => s.serverDialogOpen);
+  const isOpen = useMatchStore((s) => s.serverDialogOpen);
   const setOpen = useMatchStore((s) => s.setServerDialogOpen);
   const match = useMatchStore((s) => s.match);
   const setMatch = useMatchStore((s) => s.setMatch);
 
-  const [firstServer, setFirstServer] = useState<PlayerKey | DoublesPlayerKey | null>(null);
-  const [firstReceiver, setFirstReceiver] = useState<DoublesPlayerKey | null>(null);
+  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(null);
+  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open) {
-      setFirstServer(null);
-      setFirstReceiver(null);
+  const isSingles = matchType === "singles";
+  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+
+  const handleSave = async () => {
+    if (!selectedFirstServer || !match) {
+      toast.error("Please select a first server");
+      return;
     }
-  }, [open]);
 
-  const handleConfirm = () => {
-    if (!match) return;
+    if (isDoubles && !selectedFirstReceiver) {
+      toast.error("Please select a first receiver");
+      return;
+    }
 
-    const updatedMatch = {
-      ...match,
-      serverConfig: {
-        firstServer,
-        firstReceiver: matchType !== "singles" ? firstReceiver : null,
-      },
-    };
+    setLoading(true);
+    try {
+      let serverOrder: string[] = [];
+      
+      if (isDoubles) {
+        serverOrder = buildDoublesRotation(
+          selectedFirstServer as any,
+          selectedFirstReceiver as any
+        );
+      }
 
-    setMatch(updatedMatch);
-    setOpen(false);
+      const serverConfig = {
+        firstServer: selectedFirstServer,
+        firstReceiver: selectedFirstReceiver,
+        serverOrder: serverOrder.length > 0 ? serverOrder : undefined,
+      };
 
-    useIndividualMatch.setState({ currentServer: firstServer });
+      const { data } = await axiosInstance.post(
+        `/matches/individual/${match._id}/server-config`,
+        serverConfig
+      );
+
+      if (data?.match) {
+        setMatch(data.match);
+        toast.success("Server configuration saved!");
+        setOpen(false);
+      }
+    } catch (err) {
+      console.error("Failed to save server config:", err);
+      toast.error("Failed to save server configuration");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getLabel = (i: number) =>
-    participants?.[i]?.fullName || participants?.[i]?.username || `Player ${i + 1}`;
+  const getPlayerName = (index: number) => {
+    const participant = participants[index];
+    return participant?.fullName || participant?.username || `Player ${index + 1}`;
+  };
+
+  const getServerOptions = () => {
+    if (isSingles) {
+      return [
+        { value: "side1", label: getPlayerName(0) },
+        { value: "side2", label: getPlayerName(1) },
+      ];
+    }
+
+    return [
+      { value: "side1_main", label: `${getPlayerName(0)} (Side 1 Main)` },
+      { value: "side1_partner", label: `${getPlayerName(1)} (Side 1 Partner)` },
+      { value: "side2_main", label: `${getPlayerName(2)} (Side 2 Main)` },
+      { value: "side2_partner", label: `${getPlayerName(3)} (Side 2 Partner)` },
+    ];
+  };
+
+  const getReceiverOptions = () => {
+    if (!selectedFirstServer) return [];
+
+    const isFirstServerSide1 = selectedFirstServer.startsWith("side1");
+    
+    return [
+      {
+        value: isFirstServerSide1 ? "side2_main" : "side1_main",
+        label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
+      },
+      {
+        value: isFirstServerSide1 ? "side2_partner" : "side1_partner",
+        label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
+      },
+    ];
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            Pick First Server {matchType !== "singles" && " & Receiver"}
-          </DialogTitle>
-          <DialogDescription>
-            Please select who will serve first in the match.
-          </DialogDescription>
+          <DialogTitle>Select First Server</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* First Server */}
           <div>
-            <p className="text-sm font-medium mb-2">First Server</p>
-            <div className="grid grid-cols-2 gap-2">
-              {matchType === "singles" ? (
-                <>
-                  <Button
-                    variant={firstServer === "side1" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side1")}
-                  >
-                    {getLabel(0)}
-                  </Button>
-                  <Button
-                    variant={firstServer === "side2" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side2")}
-                  >
-                    {getLabel(1)}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant={firstServer === "side1_main" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side1_main")}
-                  >
-                    {getLabel(0)}
-                  </Button>
-                  <Button
-                    variant={firstServer === "side1_partner" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side1_partner")}
-                  >
-                    {getLabel(1)}
-                  </Button>
-                  <Button
-                    variant={firstServer === "side2_main" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side2_main")}
-                  >
-                    {getLabel(2)}
-                  </Button>
-                  <Button
-                    variant={firstServer === "side2_partner" ? "default" : "outline"}
-                    onClick={() => setFirstServer("side2_partner")}
-                  >
-                    {getLabel(3)}
-                  </Button>
-                </>
-              )}
+            <label className="block text-sm font-medium mb-2">
+              Who serves first?
+            </label>
+            <div className="space-y-2">
+              {getServerOptions().map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setSelectedFirstServer(option.value);
+                    if (isSingles) setSelectedFirstReceiver(null);
+                  }}
+                  className={`w-full p-3 text-left rounded-lg border ${
+                    selectedFirstServer === option.value
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* First Receiver (only doubles/mixed) */}
-          {matchType !== "singles" && (
+          {isDoubles && selectedFirstServer && (
             <div>
-              <p className="text-sm font-medium mb-2">First Receiver</p>
-              <div className="grid grid-cols-2 gap-2">
-                {["side1_main", "side1_partner", "side2_main", "side2_partner"].map((key, i) => (
-                  <Button
-                    key={key}
-                    variant={firstReceiver === key ? "default" : "outline"}
-                    onClick={() => setFirstReceiver(key as DoublesPlayerKey)}
-                    disabled={firstServer?.toString().startsWith(key.split("_")[0])} // disable same side
+              <label className="block text-sm font-medium mb-2">
+                Who receives first?
+              </label>
+              <div className="space-y-2">
+                {getReceiverOptions().map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setSelectedFirstReceiver(option.value)}
+                    className={`w-full p-3 text-left rounded-lg border ${
+                      selectedFirstReceiver === option.value
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
                   >
-                    {getLabel(i)}
-                  </Button>
+                    {option.label}
+                  </button>
                 ))}
               </div>
             </div>
           )}
-        </div>
 
-        <DialogFooter>
-          <Button
-            onClick={handleConfirm}
-            disabled={!firstServer || (matchType !== "singles" && !firstReceiver)}
-          >
-            Confirm
-          </Button>
-        </DialogFooter>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!selectedFirstServer || (isDoubles && !selectedFirstReceiver) || loading}
+            >
+              {loading ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

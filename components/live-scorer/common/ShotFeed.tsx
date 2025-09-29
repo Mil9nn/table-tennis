@@ -38,7 +38,7 @@ export default function ShotFeed({
     return (
       <div className="relative flex flex-col items-center justify-center text-gray-500 italic">
         <Image
-          src="/EmptyShotState.png"
+          src="/imgs/EmptyShotState.png"
           alt="No shots"
           width={200}
           height={200}

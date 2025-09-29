@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params;
-    const { status, winnerSide } = await req.json();
+    const serverConfig = await req.json();
 
     const token = getTokenFromRequest(req);
     if (!token) {
@@ -20,10 +20,6 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    if (!["scheduled", "in_progress", "completed", "cancelled"].includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-
     const match = await IndividualMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
@@ -31,23 +27,30 @@ export async function POST(
 
     if (match.scorer?.toString() !== decoded.userId) {
       return NextResponse.json(
-        { error: "Forbidden only the assigned scorer can update the score" },
+        { error: "Forbidden: only the assigned scorer can configure servers" },
         { status: 403 }
       );
     }
 
-    match.status = status;
-
-    if (status === "completed" && winnerSide) {
-      match.winnerSide = winnerSide;
-    }
+    // Update server configuration
+    match.serverConfig = {
+      firstServer: serverConfig.firstServer,
+      firstReceiver: serverConfig.firstReceiver,
+      serverOrder: serverConfig.serverOrder,
+    };
 
     await match.save();
-    await match.populate("participants", "username fullName");
+    await match.populate([
+      { path: "participants", select: "username fullName" },
+      { path: "games.shots.player", select: "username fullName" },
+    ]);
 
-    return NextResponse.json({ match });
+    return NextResponse.json({ match, message: "Server configuration saved" });
   } catch (err) {
-    console.error("Status error:", err);
-    return NextResponse.json({ error: "Failed to update match status" }, { status: 500 });
+    console.error("Server config error:", err);
+    return NextResponse.json(
+      { error: "Failed to save server configuration" },
+      { status: 500 }
+    );
   }
 }
