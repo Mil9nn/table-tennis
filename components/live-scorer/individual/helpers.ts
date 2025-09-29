@@ -1,18 +1,4 @@
-export type PlayerKey = "side1" | "side2";
-
-export type DoublesPlayerKey =
-  | "side1_main"
-  | "side1_partner"
-  | "side2_main"
-  | "side2_partner";
-
-export type ServerKey = PlayerKey | DoublesPlayerKey;
-
-export type InitialServerConfig = {
-  firstServer?: ServerKey | null;
-  firstReceiver?: DoublesPlayerKey | null;
-  serverOrder?: DoublesPlayerKey[];
-};
+import { DoublesPlayerKey, InitialServerConfig, PlayerKey, ServerKey } from "@/types/match.type";
 
 export const checkGameWon = (
   side1: number,
@@ -64,7 +50,7 @@ const getNextServerSingles = (
     const serverIndex = totalPoints % 2;
     const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
     return {
-      server: servers[serverIndex],
+      server: servers[serverIndex] as PlayerKey,
       isDeuce: true,
       serveCount: 0,
     };
@@ -76,7 +62,7 @@ const getNextServerSingles = (
   const currentServerIndex = serveCycle % 2;
 
   return {
-    server: servers[currentServerIndex],
+    server: servers[currentServerIndex] as PlayerKey,
     isDeuce: false,
     serveCount: totalPoints % 2,
   };

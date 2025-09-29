@@ -11,7 +11,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       .populate("scorer", "username fullName")
       .populate("participants", "username fullName")
       .populate("games.shots.player", "username fullName")
-      .select("+serverConfig");
 
     if (!match) {
       return NextResponse.json(

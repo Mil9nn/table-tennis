@@ -20,14 +20,21 @@ interface InitialServerDialogProps {
   participants: any[];
 }
 
-export default function InitialServerDialog({ matchType, participants }: InitialServerDialogProps) {
+export default function InitialServerDialog({
+  matchType,
+  participants,
+}: InitialServerDialogProps) {
   const isOpen = useMatchStore((s) => s.serverDialogOpen);
   const setOpen = useMatchStore((s) => s.setServerDialogOpen);
   const match = useMatchStore((s) => s.match);
   const setMatch = useMatchStore((s) => s.setMatch);
 
-  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(null);
-  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<string | null>(null);
+  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(
+    null
+  );
+  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<
+    string | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const isSingles = matchType === "singles";
@@ -47,20 +54,19 @@ export default function InitialServerDialog({ matchType, participants }: Initial
     setLoading(true);
     try {
       let serverOrder: string[] | undefined = undefined;
-      
+
       if (isDoubles && selectedFirstServer && selectedFirstReceiver) {
         serverOrder = buildDoublesRotation(
           selectedFirstServer as any,
           selectedFirstReceiver as any
         );
-      }
 
-
-      // Validate rotation
-      if (!serverOrder || serverOrder.length !== 4) {
-        toast.error("Failed to build server rotation");
-        setLoading(false);
-        return;
+        // Validate rotation
+        if (!serverOrder || serverOrder.length !== 4) {
+          toast.error("Failed to build server rotation");
+          setLoading(false);
+          return;
+        }
       }
 
       const serverConfig = {
@@ -69,7 +75,10 @@ export default function InitialServerDialog({ matchType, participants }: Initial
         serverOrder: isDoubles ? serverOrder : undefined,
       };
 
-      const { data } = await axiosInstance.post(`/matches/individual/${match._id}/server-config`, serverConfig);
+      const { data } = await axiosInstance.post(
+        `/matches/individual/${match._id}/server-config`,
+        serverConfig
+      );
 
       if (data?.match) {
         setMatch(data.match);
@@ -87,7 +96,9 @@ export default function InitialServerDialog({ matchType, participants }: Initial
 
   const getPlayerName = (index: number) => {
     const participant = participants[index];
-    return participant?.fullName || participant?.username || `Player ${index + 1}`;
+    return (
+      participant?.fullName || participant?.username || `Player ${index + 1}`
+    );
   };
 
   const getServerOptions = () => {
@@ -110,7 +121,7 @@ export default function InitialServerDialog({ matchType, participants }: Initial
     if (!selectedFirstServer) return [];
 
     const isFirstServerSide1 = selectedFirstServer.startsWith("side1");
-    
+
     return [
       {
         value: isFirstServerSide1 ? "side2_main" : "side1_main",
@@ -191,7 +202,11 @@ export default function InitialServerDialog({ matchType, participants }: Initial
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!selectedFirstServer || (isDoubles && !selectedFirstReceiver) || loading}
+              disabled={
+                !selectedFirstServer ||
+                (isDoubles && !selectedFirstReceiver) ||
+                loading
+              }
             >
               {loading ? "Saving..." : "Save"}
             </Button>

@@ -1,4 +1,3 @@
-import { InitialServerConfig } from "@/components/live-scorer/individual/helpers";
 import { Shot } from "./shot.type";
 
 export type MatchStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -13,11 +12,21 @@ export interface Participant {
   fullName?: string; 
 }
 
-export interface serverConfig {
-  firstServer?: string | null;
-  firstReceiver?: string | null;
-  serverOrder?: string[];
-}
+export type PlayerKey = "side1" | "side2";
+
+export type DoublesPlayerKey =
+  | "side1_main"
+  | "side1_partner"
+  | "side2_main"
+  | "side2_partner";
+
+export type ServerKey = PlayerKey | DoublesPlayerKey;
+
+export type InitialServerConfig = {
+  firstServer?: ServerKey | null;
+  firstReceiver?: DoublesPlayerKey | null;
+  serverOrder?: DoublesPlayerKey[];
+};
 
 export interface IndividualGame {
   gameNumber: number;
@@ -51,7 +60,7 @@ export interface IndividualMatch {
   winnerSide?: "side1" | "side2" | null;
   matchDuration?: number;
   // statistics?: MatchStatistics;
-  serverConfig?: InitialServerConfig;
+  serverConfig?: InitialServerConfig | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -99,7 +108,7 @@ export interface TeamMatch {
     side2Ties?: number;
   };
   winner?: WinnerSide;
-  serverConfig?: serverConfig;
+  serverConfig?: InitialServerConfig;
   createdAt?: Date;
   updatedAt?: Date;
 }
