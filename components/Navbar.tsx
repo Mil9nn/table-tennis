@@ -38,6 +38,8 @@ export default function Navbar() {
     return pathname?.startsWith(href);
   }
 
+  const fallbackInitial = user?.fullName.charAt(0).toUpperCase() || "?";
+
   return (
     <>
       <header className="w-full fixed bg-white backdrop-blur-md border-b border-gray-200 z-50">
@@ -48,9 +50,7 @@ export default function Navbar() {
               <div className="w-10 h-10 p-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
                 <div className="bg-white w-3 h-3 rounded-full animate-bounce shadow-black shadow-md"></div>
               </div>
-              <span className="font-semibold text-gray-800 inline">
-                TTPro
-              </span>
+              <span className="font-semibold text-gray-800 inline">TTPro</span>
             </Link>
 
             {/* Mobile Profile Dropdown */}
@@ -58,15 +58,17 @@ export default function Navbar() {
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="cursor-pointer w-10 h-10 p-1 rounded-full ring-2 ring-gray-500 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
+                    <button className="cursor-pointer w-10 h-10 rounded-full ring-2 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden transition-all">
                       {user?.profileImage ? (
                         <img
                           src={user?.profileImage}
                           alt="Profile"
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Image src="/svgs/user.svg" alt="user" width={100} height={100} className="w-10 h-full object-contain" />
+                        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs font-bold border">
+                          {fallbackInitial}
+                        </div>
                       )}
                     </button>
                   </DropdownMenuTrigger>
@@ -128,12 +130,12 @@ export default function Navbar() {
                         <img
                           src={user?.profileImage}
                           alt="Profile"
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User className="w-5 h-5 text-gray-700" />
+                        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs font-bold border">
+                          {fallbackInitial}
+                        </div>
                       )}
                     </button>
                   </DropdownMenuTrigger>
@@ -200,14 +202,14 @@ export default function Navbar() {
                 <div
                   className={`rounded-full p-1 transition-colors ${
                     active
-                      ? "bg-gradient-to-r from-indigo-500 to-white shadow-md shadow-indigo-400"
-                      : "bg-white shadow-md"
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md shadow-indigo-400"
+                      : "bg-zinc-800 shadow-md"
                   }`}
                 >
                   <img
                     src={item.image}
                     alt={item.label}
-                    className="w-6 h-6"
+                    className="w-8 h-8"
                     loading="lazy"
                   />
                 </div>

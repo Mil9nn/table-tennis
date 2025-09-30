@@ -33,7 +33,7 @@ function Player({
       alt={name || "Player"}
       width={28}
       height={28}
-      className="rounded-full object-cover border"
+      className="w-7 h-7 rounded-full object-cover bg-white border"
     />
   ) : (
     <div className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs font-bold border">

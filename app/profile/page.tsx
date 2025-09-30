@@ -2,7 +2,7 @@
 
 import { useProfileStore } from "@/hooks/useProfileStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { Camera, Mail, Calendar, Copy, Check, Loader2 } from "lucide-react";
+import { Camera, Mail, Calendar, Copy, Check, Loader2, CheckCircle2, CheckCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import {
   Cell,
 } from "recharts";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { cropImageToSquare } from "@/lib/utils";
 
 // --- Shared colors for charts ---
 const COLORS = [
@@ -75,7 +76,7 @@ const ProfilePage = () => {
     fetchShotStats();
   }, [fetchProfileImage, fetchUser]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -87,6 +88,19 @@ const ProfilePage = () => {
     if (!selectedFile.type.startsWith("image/")) {
       toast.error("Please select a valid image file");
       return;
+    }
+
+    try {
+      const croppedFile = await cropImageToSquare(selectedFile);
+      setFile(croppedFile);
+
+      // Generate preview
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(croppedFile);
+    } catch (error) {
+      toast.error("Failed to process image. Please try a different file.");
+      console.error("Error cropping image:", error);
     }
 
     setFile(selectedFile);
@@ -176,16 +190,14 @@ const ProfilePage = () => {
                         <Camera className="w-8 h-8 text-gray-400" />
                       </div>
                     ) : (
-                      <div
-                        className={`${
-                          !profileImage && !previewUrl ? "p-4 bg-gray-100" : ""
-                        }`}
-                      >
+                      profileImage ? <div className="w-full h-full">
                         <img
-                          src={previewUrl || profileImage || "/svgs/user.svg"}
+                          src={previewUrl || profileImage}
                           alt="Profile"
                           className="w-full h-full object-cover"
                         />
+                      </div> : <div className="w-full h-full flex items-center justify-center text-2xl rounded-full bg-gray-200 text-gray-600 font-bold border">
+                        {user.fullName?.charAt(0).toUpperCase() || "?"}
                       </div>
                     )}
                   </div>
@@ -245,15 +257,15 @@ const ProfilePage = () => {
                 </div>
                 <div>
                   <label className="text-sm text-gray-700">Username</label>
-                  <div className="flex items-center justify-between p-2 border rounded-lg">
+                  <div className="w-fit gap-6 flex items-center justify-between p-2 border rounded-lg">
                     <span className="font-medium">@{user.username}</span>
                     <button
                       onClick={() => copyToClipboard(user.username, "Username")}
                     >
                       {copiedField === "Username" ? (
-                        <Check className="text-emerald-500" />
+                        <CheckCircle2 className="text-emerald-500 size-5" />
                       ) : (
-                        <Copy />
+                        <Copy className="size-5 text-gray-700" />
                       )}
                     </button>
                   </div>
@@ -272,51 +284,54 @@ const ProfilePage = () => {
             </div>
 
             {/* Career Stats */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-6">Player Stats</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl shadow-lg p-6 space-y-2">
+              <h2 className="text-xl font-semibold">Statistics</h2>
+              <p>Track your performance and progress</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mt-4">
                 {/* Matches Played Card */}
-                <div className="text-center p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
-                  <div className="text-2xl font-bold text-blue-600">
+                <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
+                  <h3 className="text-sm font-semibold text-blue-800">Matches Played</h3>
+                  <div className="text-2xl font-extrabold text-blue-600">
                     {stats?.matchesPlayed ?? 0}
                   </div>
-                  <div className="text-sm text-blue-800">Matches Played</div>
                 </div>
                 {/* Record */}
-                <div className="text-center p-4 bg-gradient-to-r from-white to-green-100 rounded-xl shadow-md">
-                  <div className="text-2xl font-bold text-green-600">
+                <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
+                  <h3 className="text-sm font-semibold text-blue-800">Record (W-L-D)</h3>
+                  <div className="text-2xl font-extrabold text-blue-600">
                     {stats
                       ? `${stats.wins}-${stats.losses}-${stats.draws}`
                       : "0-0-0"}
                   </div>
-                  <div className="text-sm text-green-800">Record (W-L-D)</div>
                 </div>
                 {/* Win Rate */}
-                <div className="text-center p-4 bg-gradient-to-r from-white to-purple-100 shadow-md rounded-xl">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {stats?.matchesPlayed
+                <div className="p-4 bg-gradient-to-r from-white to-blue-100 shadow-md rounded-xl">
+                  <div className="text-2xl font-bold">
+                    <h3 className="text-sm font-semibold text-blue-800">Win Rate</h3>
+                    <span className="font-extrabold text-blue-600">
+                      {stats?.matchesPlayed
                       ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(
                           1
                         )}%`
                       : "0%"}
+                    </span>
                   </div>
-                  <div className="text-sm text-purple-800">Win Rate</div>
                 </div>
                 {/* Backhand Drive */}
-                <div className="text-center p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
+                <div className="p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
+                  <div className="text-sm font-semibold text-yellow-800">Strength</div>
                   <div className="font-bold text-yellow-600 capitalize">
                     {stats?.bestShot
                       ? stats.bestShot.replaceAll("_", " ")
                       : "N/A"}
                   </div>
-                  <div className="text-sm text-yellow-800">Strength</div>
                 </div>
               </div>
             </div>
 
             {/* Career Shot Breakdown */}
             {shotData.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="bg-white rounded-2xl shadow-lg p-2">
                 <h2 className="text-xl font-semibold mb-6">
                   Career Shot Distribution
                 </h2>
@@ -324,7 +339,7 @@ const ProfilePage = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={shotData}>
                       <XAxis dataKey="name" />
-                      <YAxis />
+                      <YAxis width={30} />
                       <Tooltip />
                       <Bar dataKey="value">
                         {shotData.map((_, i) => (
