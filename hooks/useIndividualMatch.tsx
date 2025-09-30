@@ -6,12 +6,12 @@ import {
   checkGameWon,
   checkMatchWonBySets,
   getNextServer,
-  InitialServerConfig,
 } from "@/components/live-scorer/individual/helpers";
 import {
   IndividualMatch,
   MatchStatus,
   IndividualGame,
+  InitialServerConfig,
 } from "@/types/match.type";
 
 export type PlayerKey = "side1" | "side2" | null;
