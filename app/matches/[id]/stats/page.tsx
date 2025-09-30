@@ -254,7 +254,7 @@ export default function MatchStatsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={serveData}>
                 <XAxis dataKey="player" />
-                <YAxis allowDecimals={false} />
+                <YAxis width={25} allowDecimals={false} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="Serve" fill={COLORS.serve} />
@@ -273,7 +273,7 @@ export default function MatchStatsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={winnerErrorData}>
                 <XAxis dataKey="name" />
-                <YAxis />
+                <YAxis width={25} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="Winners" fill={COLORS.winners} />
@@ -294,7 +294,7 @@ export default function MatchStatsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={strokeData}>
                 <XAxis dataKey="name" />
-                <YAxis />
+                <YAxis width={25} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="value">

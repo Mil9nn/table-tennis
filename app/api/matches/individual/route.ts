@@ -4,9 +4,6 @@ import { User } from "@/models/User";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 
-// 🚨 disable Next.js caching for this route
-export const dynamic = "force-dynamic";
-
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
@@ -73,16 +70,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const matches = await IndividualMatch.find()
+    const { searchParams } = new URL(req.url);
+    const limit = parseInt(searchParams.get("limit") || "0", 10);
+
+    let query = IndividualMatch.find()
       .populate("participants", "username fullName profileImage")
       .populate("scorer", "username fullName")
       .populate("games.shots.player", "username fullName")
       .sort({ createdAt: -1 })
-      .lean(); // ensures plain objects
+      .lean();
+
+    // apply limit if provided
+    if (limit > 0) {
+      query = query.limit(limit);
+    }
+
+    const matches = await query;
 
     return NextResponse.json({ matches });
   } catch (err) {

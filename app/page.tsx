@@ -1,9 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { axiosInstance } from "@/lib/axiosInstance";
+import { timeAgo } from "@/lib/utils";
+import { IndividualMatch } from "@/types/match.type";
 
 export default function HomePage() {
+  const [matches, setMatches] = useState<IndividualMatch[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // get only 02 recent matches
+        const response = await axiosInstance.get("/matches/individual?limit=2");
+        setMatches(response.data.matches);
+      } catch (error) {
+        console.error("Error fetching recent matches:", error);
+      }
+    }
+    fetchData();
+  }, []);
+
   return (
     <div className="flex flex-col space-y-12">
       {/* Hero Section */}
@@ -31,8 +49,6 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        {/* Subtle background decoration */}
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20 bg-[radial-gradient(circle,white,transparent_70%)]" />
       </section>
 
       {/* Recent Matches */}
@@ -50,19 +66,66 @@ export default function HomePage() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Example placeholder cards */}
-          {[1, 2, 3].map((match) => (
-            <div
-              key={match}
-              className="p-6 bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-100"
-            >
-              <h3 className="font-semibold text-lg text-gray-700 mb-2">
-                Match {match}
-              </h3>
-              <p className="text-gray-500 text-sm">Side 1 vs Side 2</p>
-              <p className="text-sm text-gray-400 mt-1">Final Score: 3-2</p>
-            </div>
-          ))}
+          {matches.length > 0 ? (
+            matches.map((match) => (
+              <div
+                key={match._id}
+                className="flex flex-col justify-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-100"
+              >
+                {/* Players row */}
+                <div className="flex items-center gap-4">
+                  {/* Player 1 */}
+                  <div className="flex items-center gap-1">
+                    <h3 className="font-medium text-gray-700 text-sm">
+                      {match.participants[0].username}
+                    </h3>
+                    {match.participants[0].profileImage ? (
+                      <img
+                        src={match.participants[0].profileImage}
+                        alt={match.participants[0].username}
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 font-semibold text-lg border border-gray-300 shadow-sm">
+                        {match.participants[0].username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Player 2 */}
+                  <div className="flex items-center gap-1">
+                    {match.participants[1].profileImage ? (
+                      <img
+                        src={match.participants[1].profileImage}
+                        alt={match.participants[1].username}
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 font-semibold text-lg border border-gray-300 shadow-sm">
+                        {match.participants[1].username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <h3 className="font-medium text-gray-700 text-sm">
+                      {match.participants[1].username}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Score + Time */}
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-gray-800">
+                    Final Score: {match.finalScore.side1Sets} -{" "}
+                    {match.finalScore.side2Sets}
+                  </p>
+                  <p className="text-sm text-gray-500 text-right">
+                    {timeAgo(new Date(match.updatedAt!).toLocaleString())}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No recent matches available.</p>
+          )}
         </div>
       </section>
 
