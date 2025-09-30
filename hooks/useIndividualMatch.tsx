@@ -46,6 +46,7 @@ export interface IndividualMatchState {
   ) => Promise<void>;
   subtractPoint: (player: PlayerKey) => Promise<void>;
   toggleMatch: () => Promise<void>;
+  isUpdatingScore?: boolean;
 }
 
 export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
@@ -130,6 +131,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     side2Sets: 0,
     status: "scheduled" as MatchStatus,
     isStartingMatch: false,
+    isUpdatingScore: false,
 
     // initialize state from server match payload
     setInitialMatch: (match) => {
@@ -253,6 +255,18 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
         if (shotPlayerId) {
           const isError = shotType?.endsWith("_error");
+          let serverId: string | null = null;
+
+          const currentServer = get().currentServer;
+
+          if (currentServer) {
+            if (currentServer.startsWith("side1")) {
+              serverId = match.participants?.[0]?._id?.toString();
+            } else if (currentServer.startsWith("side2")) {
+              serverId = match.participants?.[match.matchType === "singles" ? 1 : 2]?._id?.toString();
+            }
+          }
+
           requestBody.shotData = {
             side: player,
             player: shotPlayerId,
@@ -266,10 +280,12 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
                 : shotType === "serve_error"
                 ? "serve"
                 : null,
+            server: serverId,
           };
         }
       }
 
+      set({ isUpdatingScore: true });
       try {
         const { data } = await axiosInstance.post(
           `/matches/individual/${match._id}/score`,
@@ -327,6 +343,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       } catch (err) {
         console.error("updateScore error", err);
         toast.error("❌ Failed to update score");
+      } finally {
+        set({ isUpdatingScore: false });
       }
     },
 

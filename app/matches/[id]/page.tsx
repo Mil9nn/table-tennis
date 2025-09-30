@@ -281,61 +281,6 @@ export default function MatchDetailsPage() {
               )}
             </div>
           )}
-
-          {/* Match Stats */}
-          {match.games && match.games.some((g: any) => g.shots?.length) && (
-            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-              <h2 className="text-lg font-semibold mb-4">Match Stats</h2>
-              <div className="grid grid-cols-2 gap-6 text-sm">
-                {[side1Name, side2Name].map((side, idx) => (
-                  <div key={idx}>
-                    <h3 className="font-medium mb-2">{side}</h3>
-                    <ul className="space-y-1 text-gray-600">
-                      <li>
-                        Winners:{" "}
-                        {match.games.reduce(
-                          (sum: number, g: any) =>
-                            sum +
-                            g.shots.filter(
-                              (s: any) =>
-                                s.side === (idx === 0 ? "side1" : "side2") &&
-                                s.outcome === "winner"
-                            ).length,
-                          0
-                        )}
-                      </li>
-                      <li>
-                        Errors:{" "}
-                        {match.games.reduce(
-                          (sum: number, g: any) =>
-                            sum +
-                            g.shots.filter(
-                              (s: any) =>
-                                s.side === (idx === 0 ? "side1" : "side2") &&
-                                s.outcome === "error"
-                            ).length,
-                          0
-                        )}
-                      </li>
-                      <li>
-                        Lets:{" "}
-                        {match.games.reduce(
-                          (sum: number, g: any) =>
-                            sum +
-                            g.shots.filter(
-                              (s: any) =>
-                                s.side === (idx === 0 ? "side1" : "side2") &&
-                                s.outcome === "let"
-                            ).length,
-                          0
-                        )}
-                      </li>
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Minus } from "lucide-react";
 type PlayerInfo = {
   name: string;
   playerId?: string;
-  serverKey?: string; // e.g., "side1", "side1_main", "side1_partner", etc.
+  serverKey?: string;
 };
 
 interface PlayerCardProps {
@@ -20,7 +20,7 @@ interface PlayerCardProps {
   setsWon: number;
   color?: "emerald" | "rose";
   disabled?: boolean;
-  currentServer: string | null; // e.g., "side1", "side1_main", "side2_partner", etc.
+  currentServer: string | null;
 }
 
 export default function PlayerCard({

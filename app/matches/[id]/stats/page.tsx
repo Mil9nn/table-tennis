@@ -14,24 +14,23 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import ReactECharts from "echarts-for-react";
 import Link from "next/link";
 import { Shot } from "@/types/shot.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 
-// --- 🔥 Shared color palette ---
+// --- Shared colors ---
 const COLORS = {
   winners: "#10B981",
   errors: "#EF4444",
-  lets: "#3B82F6",
+  serve: "#4ADE80",
+  receive: "#60A5FA",
   strokes: ["#F59E0B", "#8B5CF6", "#14B8A6", "#6366F1", "#EC4899"],
 };
 
-// --- 🔥 Helper: compute stats for given shots ---
+// --- Compute stats from shots ---
 function computeStats(shots: Shot[]) {
   const winners = { side1: 0, side2: 0 };
   const errors = { side1: 0, side2: 0 };
-  const lets = { side1: 0, side2: 0 };
   const errorBreakdown = { net: 0, long: 0, serve: 0 };
   const shotTypes: Record<string, number> = {};
 
@@ -39,13 +38,10 @@ function computeStats(shots: Shot[]) {
     if (!s) return;
     const side = s.side;
 
-    if (s.outcome === "winner") {
-      winners[side]++;
-    } else if (s.outcome === "error") {
+    if (s.outcome === "winner") winners[side]++;
+    else if (s.outcome === "error") {
       errors[side]++;
       if (s.errorType) errorBreakdown[s.errorType]++;
-    } else if (s.outcome === "let") {
-      lets[side]++;
     }
 
     if (s.stroke) {
@@ -53,8 +49,47 @@ function computeStats(shots: Shot[]) {
     }
   });
 
-  return { winners, errors, lets, errorBreakdown, shotTypes };
+  return { winners, errors, errorBreakdown, shotTypes };
 }
+
+function computeServeStats(games: any[]) {
+  const serveStats: Record<
+    string,
+    { servePoints: number; receivePoints: number; totalServes: number }
+  > = {};
+
+  (games || []).forEach((g) => {
+    (g.shots || []).forEach((shot: any, idx: number, arr: any[]) => {
+      // rally ends when outcome is "winner" or "error"
+      const isRallyEnd = shot.outcome === "winner" || shot.outcome === "error";
+      if (!isRallyEnd) return;
+
+      const winnerId = shot.player?.toString();
+      const serverId = shot.server?.toString();
+      if (!winnerId || !serverId) return;
+
+      // initialize server
+      if (!serveStats[serverId]) {
+        serveStats[serverId] = { servePoints: 0, receivePoints: 0, totalServes: 0 };
+      }
+      serveStats[serverId].totalServes += 1;
+
+      if (winnerId === serverId) {
+        // point won on serve
+        serveStats[serverId].servePoints += 1;
+      } else {
+        // point won on receive
+        if (!serveStats[winnerId]) {
+          serveStats[winnerId] = { servePoints: 0, receivePoints: 0, totalServes: 0 };
+        }
+        serveStats[winnerId].receivePoints += 1;
+      }
+    });
+  });
+
+  return serveStats;
+}
+
 
 export default function MatchStatsPage() {
   const params = useParams();
@@ -106,7 +141,7 @@ export default function MatchStatsPage() {
     );
   }
 
-  // --- 🔥 Side naming ---
+  // --- Names ---
   const isSingles =
     match.matchCategory === "individual" && match.participants?.length === 2;
   const isDoubles =
@@ -128,60 +163,37 @@ export default function MatchStatsPage() {
     ? "Side 2"
     : match.team2?.name || "Team 2";
 
-  // --- 🔥 Match-level stats ---
+  // --- Match-level stats ---
   const shots = match.games?.flatMap((g: any) => g.shots || []) || [];
-  const { winners, errors, lets, errorBreakdown, shotTypes } =
-    computeStats(shots);
+  const { winners, errors, shotTypes } = computeStats(shots);
 
-  const totalShots = shots.length;
+  // ✅ Serve stats
+  const serveStats = computeServeStats(match.games || []);
+  const serveData = Object.entries(serveStats).map(([playerId, s]) => {
+    const player = match.participants?.find(
+      (p: any) => p._id.toString() === playerId
+    );
+    return {
+      player: player?.fullName || player?.username || "Unknown",
+      Serve: s.servePoints,
+      Receive: s.receivePoints,
+    };
+  });
 
+  // Winners vs Errors chart
   const winnerErrorData = [
     { name: side1Name, Winners: winners.side1, Errors: errors.side1 },
     { name: side2Name, Winners: winners.side2, Errors: errors.side2 },
   ];
 
-  const errorData = Object.entries(errorBreakdown).map(([type, value]) => ({
-    name: type,
-    value,
-  }));
-
+  // Shot Distribution
   const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
     name: type,
     value,
   }));
 
-  // --- 🔥 Modern Pie Chart options ---
-  const errorOptions = {
-    tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
-    legend: { orient: "horizontal", bottom: 0 },
-    series: [
-      {
-        type: "pie",
-        radius: ["40%", "70%"],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 10, borderColor: "#fff", borderWidth: 2 },
-        label: {
-          show: true,
-          position: "inside",
-          formatter: "{b}\n{d}%",
-          fontSize: 12,
-          fontWeight: "bold",
-        },
-        emphasis: {
-          label: { show: true, fontSize: 16, fontWeight: "bold" },
-        },
-        labelLine: { show: false },
-        data: errorData.map((item, i) => ({
-          value: item.value,
-          name: item.name,
-          itemStyle: { color: COLORS.strokes[i % COLORS.strokes.length] },
-        })),
-      },
-    ],
-  };
-
   return (
-    <div className="px-4 py-8 space-y-10">
+    <div className="px-4 py-8 space-y-10 container mx-auto">
       {/* Go Back */}
       <Link
         href={`/matches/${matchId}`}
@@ -190,111 +202,91 @@ export default function MatchStatsPage() {
         <ArrowLeftCircle />
         <span className="font-semibold">Go back</span>
       </Link>
-      {/* Header */}
-      <section className="border text-center rounded-lg p-4">
-        <h2 className="text-xl font-semibold mb-4">
-          {match.matchCategory === "individual" ? "Players" : "Teams"}
-        </h2>
-        {match.matchCategory === "individual" ? (
-          <div className="grid grid-cols-2 gap-6">
-            <ul className="space-y-1 text-sm font-semibold text-gray-600">
-              {match.participants?.slice(0, 2).map((p: any, i: number) => (
-                <li key={i}>{p.fullName || p.username || "Unknown"}</li>
-              ))}
-            </ul>
-            <ul className="space-y-1 text-sm font-semibold text-gray-600">
-              {match.participants?.slice(2, 4).map((p: any, i: number) => (
-                <li key={i}>{p.fullName || p.username || "Unknown"}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
-              <ul className="space-y-1 text-sm text-gray-600">
-                {match.team1?.players?.map((player: any, idx: number) => (
-                  <li key={idx}>
-                    {player.user?.fullName ||
-                      player.user?.username ||
-                      "Unnamed"}
-                    {player.role ? ` (${player.role})` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
-              <ul className="space-y-1 text-sm text-gray-600">
-                {match.team2?.players?.map((player: any, idx: number) => (
-                  <li key={idx}>
-                    {player.user?.fullName ||
-                      player.user?.username ||
-                      "Unnamed"}
-                    {player.role ? ` (${player.role})` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </section>
 
-      {/* --- MATCH LEVEL --- */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold">Overall Match Stats</h2>
+      {/* Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Match Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-3">
+          <h3 className="text-2xl font-bold text-indigo-600">
+            {side1Name} vs {side2Name}
+          </h3>
+          <p className="text-gray-500 text-sm">
+            Games:{" "}
+            {match.games
+              ?.map(
+                (g: any, i: number) =>
+                  `G${i + 1}: ${g.side1Score}-${g.side2Score}`
+              )
+              .join(" | ")}
+          </p>
+        </CardContent>
+      </Card>
 
-        {/* Totals */}
+      {/* Key Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Key Match Stats</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div>
+            <p className="text-2xl font-bold">
+              {winners.side1 + winners.side2}
+            </p>
+            <p className="text-sm text-gray-500">Winners</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{errors.side1 + errors.side2}</p>
+            <p className="text-sm text-gray-500">Errors</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Charts */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Serve vs Receive */}
         <Card>
           <CardHeader>
-            <CardTitle>Totals</CardTitle>
+            <CardTitle>Serve vs Receive Points</CardTitle>
           </CardHeader>
-          <CardContent className="flex justify-around text-lg font-semibold">
-            {/* <span>Total Shots: {totalShots}</span> */}
-            <span>
-              Winners: {winners.side1 + winners.side2} / Errors:{" "}
-              {errors.side1 + errors.side2}
-            </span>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={serveData}>
+                <XAxis dataKey="player" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Serve" fill={COLORS.serve} />
+                <Bar dataKey="Receive" fill={COLORS.receive} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Winners vs Errors */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Winners vs Errors</CardTitle>
-            </CardHeader>
-            <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={winnerErrorData}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Winners" fill={COLORS.winners} />
-                  <Bar dataKey="Errors" fill={COLORS.errors} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Winners vs Errors */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Winners vs Errors</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={winnerErrorData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Winners" fill={COLORS.winners} />
+                <Bar dataKey="Errors" fill={COLORS.errors} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Error Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Error Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="h-80">
-              <ReactECharts
-                option={errorOptions}
-                style={{ height: "100%", width: "100%" }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Shot Distribution */}
-        <Card className="lg:col-span-2">
+      {/* Shot Distribution */}
+      {strokeData.length > 0 && (
+        <Card>
           <CardHeader>
             <CardTitle>Shot Distribution</CardTitle>
           </CardHeader>
@@ -305,7 +297,7 @@ export default function MatchStatsPage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="value" fill={COLORS.lets}>
+                <Bar dataKey="value">
                   {strokeData.map((_, i) => (
                     <Cell
                       key={i}
@@ -317,98 +309,7 @@ export default function MatchStatsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </section>
-
-      {/* --- PER GAME LEVEL --- */}
-      <section className="space-y-8">
-        <h2 className="text-2xl font-semibold">Per Game Stats</h2>
-        {match.games?.map((game: any, idx: number) => {
-          const { winners, errors, lets, errorBreakdown, shotTypes } =
-            computeStats(game.shots || []);
-
-          const gWinnerErrorData = [
-            { name: side1Name, Winners: winners.side1, Errors: errors.side1 },
-            { name: side2Name, Winners: winners.side2, Errors: errors.side2 },
-          ];
-
-          const gErrorData = Object.entries(errorBreakdown).map(
-            ([name, value]) => ({ name, value })
-          );
-
-          const gStrokeData = Object.entries(shotTypes).map(
-            ([name, value]) => ({
-              name,
-              value,
-            })
-          );
-
-          const gErrorOptions = {
-            ...errorOptions,
-            series: [
-              {
-                ...errorOptions.series[0],
-                data: gErrorData.map((item, i) => ({
-                  value: item.value,
-                  name: item.name,
-                  itemStyle: {
-                    color: COLORS.strokes[i % COLORS.strokes.length],
-                  },
-                })),
-              },
-            ],
-          };
-
-          return (
-            <Card key={idx} className="p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                Game {game.gameNumber || idx + 1}{" "}
-                <span className="text-indigo-500 text-sm">
-                  ({game.side1Score}-{game.side2Score})
-                </span>
-              </h3>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={gWinnerErrorData}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Winners" fill={COLORS.winners} />
-                    <Bar dataKey="Errors" fill={COLORS.errors} />
-                  </BarChart>
-                </ResponsiveContainer>
-
-                <ReactECharts
-                  option={gErrorOptions}
-                  style={{ height: 250, width: "100%" }}
-                />
-              </div>
-
-              {gStrokeData.length > 0 && (
-                <div className="mt-6 h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gStrokeData}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="value" fill={COLORS.lets}>
-                        {gStrokeData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={COLORS.strokes[i % COLORS.strokes.length]}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Card>
-          );
-        })}
-      </section>
+      )}
     </div>
   );
 }

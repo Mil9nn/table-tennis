@@ -9,7 +9,8 @@ export type WinnerSide = "side1" | "side2" | null;
 export interface Participant {
   _id: string;
   username: string;
-  fullName?: string; 
+  fullName?: string;
+  profileImage?: string; 
 }
 
 export type PlayerKey = "side1" | "side2";

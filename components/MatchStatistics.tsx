@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { axiosInstance } from "@/lib/axiosInstance";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface MatchStatisticsProps {
   matchId: string;
@@ -19,7 +28,9 @@ export default function MatchStatistics({ matchId }: MatchStatisticsProps) {
 
   const fetchStats = async () => {
     try {
-      const response = await axiosInstance.get(`/matches/individual/${matchId}/stats`);
+      const response = await axiosInstance.get(
+        `/matches/individual/${matchId}/stats`
+      );
       if (response.status === 200) {
         const data = await response.data;
         setStats(data);
@@ -39,61 +50,104 @@ export default function MatchStatistics({ matchId }: MatchStatisticsProps) {
     return <div className="text-center py-8">No statistics available</div>;
   }
 
+  // Prepare serve vs receive data for chart
+  const serveData =
+    stats.playerStats &&
+    Object.entries(stats.playerStats).map(([playerId, s]: [string, any]) => ({
+      player: s.fullName || `Player ${playerId}`,
+      Serve: s.servePoints || 0,
+      Receive: s.receivePoints || 0,
+    }));
+
   return (
-    <div className="container mx-auto space-y-6">
+    <div className="container mx-auto space-y-8">
+      {/* Match Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Match Overview</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            Match Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats.totalGames || 0}</div>
-              <div className="text-sm text-gray-600">Games Played</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <p className="text-2xl font-bold">{stats.totalGames || 0}</p>
+              <p className="text-sm text-gray-600">Games Played</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats.totalShots || 0}</div>
-              <div className="text-sm text-gray-600">Total Shots</div>
+            <div>
+              <p className="text-2xl font-bold">{stats.totalRallies || 0}</p>
+              <p className="text-sm text-gray-600">Total Rallies</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats.totalRallies || 0}</div>
-              <div className="text-sm text-gray-600">Total Rallies</div>
+            <div>
+              <p className="text-2xl font-bold">
+                {stats.averageRallyLength || 0}
+              </p>
+              <p className="text-sm text-gray-600">Avg Rally Length</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats.averageRallyLength || 0}</div>
-              <div className="text-sm text-gray-600">Avg Rally Length</div>
+            <div>
+              <p className="text-2xl font-bold">{stats.totalShots || 0}</p>
+              <p className="text-sm text-gray-600">Total Shots</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Player Comparison */}
       {stats.playerStats && (
         <Card>
           <CardHeader>
-            <CardTitle>Player Statistics</CardTitle>
+            <CardTitle className="text-lg font-semibold">
+              Player Comparison
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {Object.entries(stats.playerStats).map(([playerId, playerStat]: [string, any]) => (
-                <div key={playerId} className="border rounded-lg p-4">
-                  <div className="font-semibold mb-2">Player {playerId}</div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <Badge variant="outline">Winners: {playerStat.winners || 0}</Badge>
-                    </div>
-                    <div>
-                      <Badge variant="outline">Errors: {playerStat.unforcedErrors || 0}</Badge>
-                    </div>
-                    <div>
-                      <Badge variant="outline">Aces: {playerStat.aces || 0}</Badge>
-                    </div>
-                    <div>
-                      <Badge variant="outline">Total Shots: {playerStat.totalShots || 0}</Badge>
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.entries(stats.playerStats).map(
+                ([playerId, s]: [string, any]) => (
+                  <div
+                    key={playerId}
+                    className="p-4 border rounded-xl space-y-3"
+                  >
+                    <h3 className="font-semibold text-center">
+                      {s.fullName || `Player ${playerId}`}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Badge variant="outline">Winners: {s.winners || 0}</Badge>
+                      <Badge variant="outline">
+                        Errors: {s.unforcedErrors || 0}
+                      </Badge>
+                      <Badge variant="outline">Aces: {s.aces || 0}</Badge>
+                      <Badge variant="outline">
+                        Total Shots: {s.totalShots || 0}
+                      </Badge>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Serve vs Receive Chart */}
+      {serveData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              Serve vs Receive Points
+            </CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={serveData}>
+                <XAxis dataKey="player" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Serve" fill="#4ade80" />
+                <Bar dataKey="Receive" fill="#60a5fa" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       )}

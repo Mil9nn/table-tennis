@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -14,11 +15,52 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-white text-red-700 border-red-400",
 };
 
+// Minimal avatar with fallback
+function Player({
+  name,
+  profileImage,
+  align = "left",
+}: {
+  name?: string;
+  profileImage?: string;
+  align?: "left" | "right";
+}) {
+  const fallbackInitial = name?.charAt(0).toUpperCase() || "?";
+
+  const avatar = profileImage ? (
+    <Image
+      src={profileImage}
+      alt={name || "Player"}
+      width={28}
+      height={28}
+      className="rounded-full object-cover border"
+    />
+  ) : (
+    <div className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs font-bold border">
+      {fallbackInitial}
+    </div>
+  );
+
+  return (
+    <div
+      className={`flex items-center gap-2 ${
+        align === "right" ? "justify-end text-right" : "justify-start text-left"
+      }`}
+    >
+      {align === "left" && avatar}
+      <p className="font-medium text-gray-800 truncate max-w-[120px]">
+        {name || "Unknown Player"}
+      </p>
+      {align === "right" && avatar}
+    </div>
+  );
+}
+
 export default function MatchesList({ matches }: { matches: IndividualMatch[] }) {
   if (!matches || matches.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p className="text-lg">No matches found.</p>
+      <div className="text-center py-12 text-gray-400">
+        <p className="text-lg font-medium">No matches found.</p>
       </div>
     );
   }
@@ -37,51 +79,58 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
 
         return (
           <Link key={match._id} href={`/matches/${match._id}`}>
-            <Card className="hover:shadow-lg transition duration-200 border rounded-2xl overflow-hidden">
-              <CardContent className="p-6 space-y-4">
+            <Card className="hover:shadow-xl transition duration-200 border rounded-2xl overflow-hidden">
+              <CardContent className="p-5 space-y-4">
                 {/* Header */}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500">
-                    {match.matchType.toUpperCase()} • Best of{" "}
-                    {match.numberOfSets}
+                  <span className="text-xs font-medium text-gray-500">
+                    {match.matchType.toUpperCase()} • Best of {match.numberOfSets}
                   </span>
-                  <Badge className={`rounded-full ${statusClass}`}>
+                  <Badge className={`rounded-full text-xs px-3 ${statusClass}`}>
                     {match.status?.replace("_", " ") || "scheduled"}
                   </Badge>
                 </div>
 
                 {/* Participants */}
-                <div className="text-center">
+                <div>
                   {match.matchType === "singles" ? (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-right space-y-1">
-                        <p className="font-semibold">
-                          {match.participants?.[0]?.fullName || "Player 1"}
-                        </p>
-                      </div>
-                      <div className="text-left space-y-1">
-                        <p className="font-semibold">
-                          {match.participants?.[1]?.fullName || "Player 2"}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <Player
+                        name={match.participants?.[0]?.fullName}
+                        profileImage={match.participants?.[0]?.profileImage}
+                        align="right"
+                      />
+                      <Player
+                        name={match.participants?.[1]?.fullName}
+                        profileImage={match.participants?.[1]?.profileImage}
+                        align="left"
+                      />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-right space-y-1">
-                        <p className="font-semibold">
-                          {match.participants?.[0]?.fullName || "P1A"}
-                        </p>
-                        <p className="font-semibold">
-                          {match.participants?.[1]?.fullName || "P1B"}
-                        </p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="space-y-2">
+                        <Player
+                          name={match.participants?.[0]?.fullName}
+                          profileImage={match.participants?.[0]?.profileImage}
+                          align="right"
+                        />
+                        <Player
+                          name={match.participants?.[1]?.fullName}
+                          profileImage={match.participants?.[1]?.profileImage}
+                          align="right"
+                        />
                       </div>
-                      <div className="text-left space-y-1">
-                        <p className="font-semibold">
-                          {match.participants?.[2]?.fullName || "P2A"}
-                        </p>
-                        <p className="font-semibold">
-                          {match.participants?.[3]?.fullName || "P2B"}
-                        </p>
+                      <div className="space-y-2">
+                        <Player
+                          name={match.participants?.[2]?.fullName}
+                          profileImage={match.participants?.[2]?.profileImage}
+                          align="left"
+                        />
+                        <Player
+                          name={match.participants?.[3]?.fullName}
+                          profileImage={match.participants?.[3]?.profileImage}
+                          align="left"
+                        />
                       </div>
                     </div>
                   )}
@@ -89,12 +138,14 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
 
                 {/* Final Score */}
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-indigo-600">
+                  <p className="text-3xl font-bold text-indigo-600">
                     {match.finalScore?.side1Sets ?? 0} -{" "}
                     {match.finalScore?.side2Sets ?? 0}
                   </p>
                   {winner && (
-                    <p className="text-sm text-gray-500">🏆 Winner: {winner}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      🏆 Winner: {winner}
+                    </p>
                   )}
                 </div>
 

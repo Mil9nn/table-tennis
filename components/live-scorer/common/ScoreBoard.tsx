@@ -8,6 +8,7 @@ import {
   getCurrentServerName,
 } from "@/components/live-scorer/individual/helpers";
 import { AddPointPayload, MatchStatus } from "@/types/match.type";
+import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
 interface ScoreBoardProps {
   match: any;
@@ -47,6 +48,8 @@ export default function ScoreBoard({
       : null;
 
   const isGameWon = gameWinner !== null;
+
+  const isUpdatingScore = useIndividualMatch((state) => state.isUpdatingScore);
 
   const buildPlayers = () => {
     if (!match) {
@@ -172,7 +175,7 @@ export default function ScoreBoard({
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
-          disabled={status === "completed" || isGameWon}
+          disabled={isUpdatingScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 
@@ -185,7 +188,7 @@ export default function ScoreBoard({
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
-          disabled={status === "completed" || isGameWon}
+          disabled={isUpdatingScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 

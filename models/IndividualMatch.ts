@@ -45,7 +45,6 @@ const shotSchema = new mongoose.Schema({
     required: true,
   },
 
-  // Optional, in case you want to track service analytics later
   server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   timestamp: { type: Date, default: Date.now },
