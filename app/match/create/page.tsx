@@ -11,8 +11,7 @@ export default function CreateMatchPage() {
   );
 
   return (
-    <div>
-      <div className="p-6">
+      <div className="p-4">
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Create New Match</h1>
@@ -71,6 +70,5 @@ export default function CreateMatchPage() {
           )}
         </div>
       </div>
-    </div>
   );
 }

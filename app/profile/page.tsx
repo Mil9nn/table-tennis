@@ -2,7 +2,7 @@
 
 import { useProfileStore } from "@/hooks/useProfileStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { Camera, Mail, Calendar, Copy, Check, Loader2, CheckCircle2, CheckCircle } from "lucide-react";
+import { Camera, Copy, Loader2, CheckCircle2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -41,9 +41,7 @@ const ProfilePage = () => {
   const { user, fetchUser } = useAuthStore();
   const profileImage = user?.profileImage || null;
 
-  const [file, setFile] = useState<File | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
   const [stats, setStats] = useState<any>(null);
   const [shotStats, setShotStats] = useState<any>(null);
 
@@ -76,6 +74,7 @@ const ProfilePage = () => {
     fetchShotStats();
   }, [fetchProfileImage, fetchUser]);
 
+  // Auto upload on file select
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
@@ -92,34 +91,14 @@ const ProfilePage = () => {
 
     try {
       const croppedFile = await cropImageToSquare(selectedFile);
-      setFile(croppedFile);
 
-      // Generate preview
+      // Generate preview instantly
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(croppedFile);
-    } catch (error) {
-      toast.error("Failed to process image. Please try a different file.");
-      console.error("Error cropping image:", error);
-    }
 
-    setFile(selectedFile);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result;
-      setPreviewUrl(base64String as string);
-    };
-    reader.readAsDataURL(selectedFile);
-  };
-
-  const handleImageSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) return;
-
-    try {
-      await uploadImage(file);
-      setFile(null);
+      // Upload instantly
+      await uploadImage(croppedFile);
       toast.success("Profile image updated successfully!");
     } catch (error) {
       toast.error("Failed to upload image. Please try again.");
@@ -182,64 +161,46 @@ const ProfilePage = () => {
           {/* Profile Image Section */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <form onSubmit={handleImageSubmit} className="space-y-4">
-                <div className="relative mx-auto w-32 h-32">
-                  <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
-                    {isLoadingProfile ? (
-                      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                        <Camera className="w-8 h-8 text-gray-400" />
-                      </div>
-                    ) : (
-                      profileImage ? <div className="w-full h-full">
-                        <img
-                          src={previewUrl || profileImage}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      </div> : <div className="w-full h-full flex items-center justify-center text-2xl rounded-full bg-gray-200 text-gray-600 font-bold border">
-                        {user.fullName?.charAt(0).toUpperCase() || "?"}
-                      </div>
-                    )}
-                  </div>
-                  <label
-                    className="absolute bottom-0 right-0 cursor-pointer"
-                    htmlFor="profileImage"
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="profileImage"
-                      className="hidden"
-                      onChange={handleFileChange}
-                      disabled={isUploadingProfile}
-                    />
-                    <div
-                      className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
-                        isUploadingProfile ? "animate-pulse" : ""
-                      }`}
-                    >
-                      <Camera className="w-5 h-5" />
+              <div className="relative mx-auto w-32 h-32">
+                <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
+                  {isLoadingProfile ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-gray-400" />
                     </div>
-                  </label>
+                  ) : profileImage || previewUrl ? (
+                    <img
+                      src={previewUrl || profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
                 </div>
-
-                {file && (
-                  <button
-                    type="submit"
+                <label
+                  className="absolute bottom-0 right-0 cursor-pointer"
+                  htmlFor="profileImage"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="profileImage"
+                    className="hidden"
+                    onChange={handleFileChange}
                     disabled={isUploadingProfile}
-                    className="w-full bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  />
+                  <div
+                    className={`w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white hover:bg-indigo-600 transition shadow-lg ${
+                      isUploadingProfile ? "animate-pulse" : ""
+                    }`}
                   >
-                    {isUploadingProfile ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>Update Image</>
-                    )}
-                  </button>
-                )}
-              </form>
+                    <Camera className="w-5 h-5" />
+                  </div>
+                </label>
+              </div>
+              {isUploadingProfile && <p className="text-center text-gray-400 mt-2 animate-pulse">Updating your profile image...</p>}
             </div>
           </div>
 
@@ -288,14 +249,12 @@ const ProfilePage = () => {
               <h2 className="text-xl font-semibold">Statistics</h2>
               <p>Track your performance and progress</p>
               <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mt-4">
-                {/* Matches Played Card */}
                 <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
                   <h3 className="text-sm font-semibold text-blue-800">Matches Played</h3>
                   <div className="text-2xl font-extrabold text-blue-600">
                     {stats?.matchesPlayed ?? 0}
                   </div>
                 </div>
-                {/* Record */}
                 <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
                   <h3 className="text-sm font-semibold text-blue-800">Record (W-L-D)</h3>
                   <div className="text-2xl font-extrabold text-blue-600">
@@ -304,20 +263,16 @@ const ProfilePage = () => {
                       : "0-0-0"}
                   </div>
                 </div>
-                {/* Win Rate */}
                 <div className="p-4 bg-gradient-to-r from-white to-blue-100 shadow-md rounded-xl">
                   <div className="text-2xl font-bold">
                     <h3 className="text-sm font-semibold text-blue-800">Win Rate</h3>
                     <span className="font-extrabold text-blue-600">
                       {stats?.matchesPlayed
-                      ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(
-                          1
-                        )}%`
-                      : "0%"}
+                        ? `${((stats.wins / stats.matchesPlayed) * 100).toFixed(1)}%`
+                        : "0%"}
                     </span>
                   </div>
                 </div>
-                {/* Backhand Drive */}
                 <div className="p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
                   <div className="text-sm font-semibold text-yellow-800">Strength</div>
                   <div className="font-bold text-yellow-600 capitalize">

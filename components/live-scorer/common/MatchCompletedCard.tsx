@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatTimeDuration } from "@/lib/utils";
 import { IndividualMatch } from "@/types/match.type";
 
@@ -36,25 +38,25 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
   const matchScore = `${finalScore?.side1Sets ?? 0} - ${finalScore?.side2Sets ?? 0}`;
 
   return (
-    <Card className="border-green-200 bg-green-50">
-      <CardContent className="p-6 text-center space-y-4">
-        <div className="text-4xl">🏆</div>
+    <Card className="border border-green-300 bg-gradient-to-br from-green-50 to-emerald-100 shadow-lg rounded-2xl">
+      <CardContent className="p-8 text-center space-y-5">
+        <div className="text-5xl">🏆</div>
         
-        <h2 className="text-2xl font-bold text-green-700">
-          MATCH COMPLETED!
+        <h2 className="text-3xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
+          MATCH COMPLETED
         </h2>
         
-        <div className="space-y-2">
-          <div className="text-xl font-semibold">
-            Winner: <span className="text-green-800">{renderWinnerName()}</span>
+        <div className="space-y-3">
+          <div className="text-2xl font-semibold">
+            Winner: <span className="text-emerald-700">{renderWinnerName()}</span>
           </div>
           
-          <div className="text-lg text-gray-600">
-            Final Score: <span className="font-medium">{matchScore}</span>
+          <div className="text-lg text-gray-700">
+            Final Score: <span className="font-bold text-gray-900">{matchScore}</span>
           </div>
           
           {match.matchDuration && (
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 italic">
               Duration: {formatTimeDuration(match.matchDuration)}
             </div>
           )}
@@ -62,6 +64,14 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
 
         <div className="pt-2 text-xs text-gray-500">
           Match completed at {new Date().toLocaleString()}
+        </div>
+
+        <div className="pt-6">
+          <Link href="/matches">
+            <Button variant="default" className="px-6 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition">
+              ← Return to Matches
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

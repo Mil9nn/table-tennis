@@ -4,26 +4,38 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
+import { formatTimeDuration } from "@/lib/utils";
+import { Timer, Watch } from "lucide-react";
 
-// Utility for status → color
-const statusColors: Record<string, string> = {
-  completed: "bg-white text-green-700 border-green-400",
+// Status styles + labels
+const statusStyles: Record<string, string> = {
+  completed: "bg-white text-emerald-700 border-emerald-400",
   in_progress: "bg-white text-yellow-700 border-yellow-400 animate-pulse",
   scheduled: "bg-white text-blue-700 border-blue-400",
   cancelled: "bg-white text-red-700 border-red-400",
 };
 
-// Minimal avatar with fallback
+const statusLabels: Record<string, string> = {
+  completed: "✅ Completed",
+  in_progress: "⚡ In Progress",
+  scheduled: "📅 Scheduled",
+  cancelled: "❌ Cancelled",
+};
+
+// Player avatar + name
 function Player({
   name,
   profileImage,
   align = "left",
+  highlight = false,
 }: {
   name?: string;
   profileImage?: string;
   align?: "left" | "right";
+  highlight?: boolean;
 }) {
   const fallbackInitial = name?.charAt(0).toUpperCase() || "?";
 
@@ -45,12 +57,10 @@ function Player({
     <div
       className={`flex items-center gap-2 ${
         align === "right" ? "justify-end text-right" : "justify-start text-left"
-      }`}
+      } ${highlight ? "text-emerald-700 font-semibold" : "text-gray-800"}`}
     >
       {align === "left" && avatar}
-      <p className="font-medium text-gray-800 truncate max-w-[120px]">
-        {name || "Unknown Player"}
-      </p>
+      <p className="truncate max-w-[120px]">{name || "Unknown Player"}</p>
       {align === "right" && avatar}
     </div>
   );
@@ -59,8 +69,11 @@ function Player({
 export default function MatchesList({ matches }: { matches: IndividualMatch[] }) {
   if (!matches || matches.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-16 text-gray-400">
         <p className="text-lg font-medium">No matches found.</p>
+        <Link href="/matches/new">
+          <Button className="mt-4">➕ Start New Match</Button>
+        </Link>
       </div>
     );
   }
@@ -68,6 +81,9 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {matches.map((match) => {
+        const isWinnerSide1 = match.winnerSide === "side1";
+        const isWinnerSide2 = match.winnerSide === "side2";
+
         const winner =
           match.winnerSide === "side1"
             ? match.participants?.[0]?.fullName || "Side 1"
@@ -75,11 +91,12 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
             ? match.participants?.[1]?.fullName || "Side 2"
             : null;
 
-        const statusClass = statusColors[match.status || "scheduled"] || "";
+        const statusClass = statusStyles[match.status || "scheduled"] || "";
+        const statusLabel = statusLabels[match.status || "scheduled"];
 
         return (
           <Link key={match._id} href={`/matches/${match._id}`}>
-            <Card className="hover:shadow-xl transition duration-200 border rounded-2xl overflow-hidden">
+            <Card className="hover:shadow-xl hover:scale-[1.02] transition-transform duration-200 border rounded-2xl overflow-hidden">
               <CardContent className="p-5 space-y-4">
                 {/* Header */}
                 <div className="flex justify-between items-center">
@@ -87,7 +104,7 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                     {match.matchType.toUpperCase()} • Best of {match.numberOfSets}
                   </span>
                   <Badge className={`rounded-full text-xs px-3 ${statusClass}`}>
-                    {match.status?.replace("_", " ") || "scheduled"}
+                    {statusLabel}
                   </Badge>
                 </div>
 
@@ -99,11 +116,13 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                         name={match.participants?.[0]?.fullName}
                         profileImage={match.participants?.[0]?.profileImage}
                         align="right"
+                        highlight={isWinnerSide1}
                       />
                       <Player
                         name={match.participants?.[1]?.fullName}
                         profileImage={match.participants?.[1]?.profileImage}
                         align="left"
+                        highlight={isWinnerSide2}
                       />
                     </div>
                   ) : (
@@ -113,11 +132,13 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                           name={match.participants?.[0]?.fullName}
                           profileImage={match.participants?.[0]?.profileImage}
                           align="right"
+                          highlight={isWinnerSide1}
                         />
                         <Player
                           name={match.participants?.[1]?.fullName}
                           profileImage={match.participants?.[1]?.profileImage}
                           align="right"
+                          highlight={isWinnerSide1}
                         />
                       </div>
                       <div className="space-y-2">
@@ -125,11 +146,13 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                           name={match.participants?.[2]?.fullName}
                           profileImage={match.participants?.[2]?.profileImage}
                           align="left"
+                          highlight={isWinnerSide2}
                         />
                         <Player
                           name={match.participants?.[3]?.fullName}
                           profileImage={match.participants?.[3]?.profileImage}
                           align="left"
+                          highlight={isWinnerSide2}
                         />
                       </div>
                     </div>
@@ -138,14 +161,17 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
 
                 {/* Final Score */}
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-indigo-600">
-                    {match.finalScore?.side1Sets ?? 0} -{" "}
-                    {match.finalScore?.side2Sets ?? 0}
+                  <p className="text-3xl font-bold">
+                    <span className={isWinnerSide1 ? "text-emerald-600" : "text-gray-600"}>
+                      {match.finalScore?.side1Sets ?? 0}
+                    </span>
+                    {" - "}
+                    <span className={isWinnerSide2 ? "text-emerald-600" : "text-gray-600"}>
+                      {match.finalScore?.side2Sets ?? 0}
+                    </span>
                   </p>
                   {winner && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      🏆 Winner: {winner}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">🏆 Winner: {winner}</p>
                   )}
                 </div>
 
@@ -158,6 +184,13 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                       : ""}
                   </span>
                 </div>
+
+                {/* Duration (if available) */}
+                {match.matchDuration && (
+                  <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                    <Timer className="size-4" /> {formatTimeDuration(match.matchDuration)}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>

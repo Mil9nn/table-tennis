@@ -23,27 +23,27 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="flex flex-col space-y-12">
+    <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative flex flex-col md:flex-row items-center justify-between px-8 py-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xl overflow-hidden">
+      <section className="relative flex flex-col md:flex-row items-center justify-between px-8 py-14 overflow-hidden">
         <div className="max-w-2xl z-10">
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 text-white bg-blue-200 rounded-xl p-2 drop-shadow-lg shadow-black">
             Quick Table Tennis Scoring
           </h1>
-          <p className="text-lg md:text-xl mb-8 text-gray-100">
+          <p className="text-lg md:text-xl mb-8">
             Track scores, manage matches, and share results instantly with a
             sleek and easy-to-use interface.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
               href="/match/create"
-              className="px-6 py-3 rounded-full bg-white text-indigo-600 font-semibold shadow hover:scale-105 active:scale-95 transition"
+              className="px-6 py-3 text-sm rounded-full bg-white text-indigo-600 font-semibold shadow hover:scale-105 active:scale-95 transition"
             >
               Create a Match
             </Link>
             <Link
               href="/teams/create"
-              className="px-6 py-3 rounded-full bg-indigo-700 text-white font-semibold shadow hover:bg-indigo-800 hover:scale-105 active:scale-95 transition"
+              className="px-6 py-3 text-sm rounded-full bg-indigo-700 text-white font-semibold shadow hover:bg-indigo-800 hover:scale-105 active:scale-95 transition"
             >
               Create a Team
             </Link>
@@ -126,41 +126,6 @@ export default function HomePage() {
           ) : (
             <p className="text-gray-500">No recent matches available.</p>
           )}
-        </div>
-      </section>
-
-      {/* Teams Section */}
-      <section className="px-8 py-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-            Teams
-          </h2>
-          <Link
-            href="/teams"
-            className="text-indigo-600 font-medium hover:underline"
-          >
-            See all →
-          </Link>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Example placeholder team cards */}
-          {[1, 2].map((team) => (
-            <div
-              key={team}
-              className="flex items-center justify-between p-6 bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-100"
-            >
-              <div>
-                <h3 className="font-semibold text-lg text-gray-700">
-                  Team {team}
-                </h3>
-                <p className="text-gray-500 text-sm">2 Players</p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">
-                Active
-              </span>
-            </div>
-          ))}
         </div>
       </section>
     </div>
