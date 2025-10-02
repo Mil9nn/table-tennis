@@ -1,7 +1,9 @@
+// components/live-scorer/LiveScorer.tsx
 "use client";
 
 import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
+import TeamMatchScorer from "./team/TeamMatchScorer";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -65,6 +67,12 @@ export default function LiveScorer({ matchId }: { matchId: string }) {
     <p className="p-6 text-center">Match not found</p>
   </div>;
 
+  // Handle Team Matches
+  if (match.matchCategory === "team") {
+    return <TeamMatchScorer matchId={matchId} />;
+  }
+
+  // Handle Individual Matches
   if (match.matchCategory === "individual") {
     const individualMatch = match as IndividualMatch;
 

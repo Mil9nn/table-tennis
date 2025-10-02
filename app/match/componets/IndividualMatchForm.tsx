@@ -82,7 +82,8 @@ export default function IndividualMatchForm({
       }
 
       const response = await axiosInstance.post(endpoint, matchData);
-      router.push(`/matches/${response.data.match._id}`);
+      // CHANGED: Add category parameter to URL
+      router.push(`/matches/${response.data.match._id}?category=individual`);
       toast.success("Match created!");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to create match");

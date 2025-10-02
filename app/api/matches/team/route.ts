@@ -1,11 +1,14 @@
+// app/api/matches/team/route.ts - UPDATED
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
     const body = await request.json();
 
     // ✅ Auth check
@@ -27,31 +30,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Team 1 and Team 2 cannot be the same" }, { status: 400 });
     }
 
-    const [team1, team2] = await Promise.all([
-      Team.findById(body.team1Id),
-      Team.findById(body.team2Id),
+    const [team1Doc, team2Doc] = await Promise.all([
+      Team.findById(body.team1Id).populate("players.user", "username fullName"),
+      Team.findById(body.team2Id).populate("players.user", "username fullName"),
     ]);
 
-    if (!team1 || !team2) {
+    if (!team1Doc || !team2Doc) {
       return NextResponse.json({ error: "Invalid team IDs" }, { status: 400 });
     }
 
+    // Map format name to internal format
+    const formatMap: Record<string, string> = {
+      "five_singles": "swaythling_format",
+      "single_double_single": "single_double_single",
+      "extended_format": "five_singles_full",
+      "three_singles": "three_singles",
+      "custom": "three_singles", // default to 3 singles for custom
+    };
+
+    const internalFormat = formatMap[body.matchType] || "three_singles";
+
+    // Create match with embedded team data
     const match = new TeamMatch({
-      matchType: body.matchType,
       matchCategory: "team",
-      setsPerTie: Number(body.setsPerTie),
+      format: internalFormat,
+      numberOfSetsPerSubMatch: Number(body.setsPerTie),
       city: body.city,
       venue: body.venue || body.city,
-      team1: team1._id,
-      team2: team2._id,
       scorer: scorer._id,
+      
+      // Embed team data
+      team1: {
+        name: team1Doc.name,
+        players: team1Doc.players.map((p: any) => p.user._id),
+        assignments: team1Doc.assignments || new Map(),
+      },
+      team2: {
+        name: team2Doc.name,
+        players: team2Doc.players.map((p: any) => p.user._id),
+        assignments: team2Doc.assignments || new Map(),
+      },
+
+      subMatches: [], // Will be generated when match starts
+      currentSubMatch: 1,
+      finalScore: { team1Matches: 0, team2Matches: 0 },
+      status: "scheduled",
     });
 
     await match.save();
+
+    // Populate for response
     await match.populate([
       { path: "scorer", select: "username fullName" },
-      { path: "team1", populate: { path: "players.user", select: "username fullName" } },
-      { path: "team2", populate: { path: "players.user", select: "username fullName" } },
+      { path: "team1.players", select: "username fullName" },
+      { path: "team2.players", select: "username fullName" },
     ]);
 
     return NextResponse.json({ message: "Team match created", match }, { status: 201 });
@@ -63,16 +95,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    await connectDB();
+    
     const matches = await TeamMatch.find()
       .populate("scorer", "username fullName")
-      .populate({
-        path: "team1",
-        populate: { path: "players.user", select: "username fullName" },
-      })
-      .populate({
-        path: "team2",
-        populate: { path: "players.user", select: "username fullName" },
-      })
+      .populate("team1.players", "username fullName")
+      .populate("team2.players", "username fullName")
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ matches });

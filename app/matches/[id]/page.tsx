@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,12 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 
 export default function MatchDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const matchId = params.id;
+  const categoryParam = searchParams.get('category'); // Get category from URL
+  
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -40,18 +42,41 @@ export default function MatchDetailsPage() {
 
   const fetchMatch = async () => {
     try {
-      let response = await axiosInstance.get(`/matches/individual/${matchId}`);
-      if (response.status === 200) {
-        const data = await response.data;
-        setMatch({ ...data.match, matchCategory: "individual" });
-        return;
+      // If category is provided in URL, use that endpoint directly
+      if (categoryParam === 'individual' || categoryParam === 'team') {
+        const endpoint = categoryParam === 'team' 
+          ? `/matches/team/${matchId}`
+          : `/matches/individual/${matchId}`;
+        
+        const response = await axiosInstance.get(endpoint);
+        if (response.status === 200) {
+          setMatch({ ...response.data.match, matchCategory: categoryParam });
+          setLoading(false);
+          return;
+        }
       }
-      response = await axiosInstance.get(`/matches/team/${matchId}`);
-      if (response.status === 200) {
-        const data = await response.data;
-        setMatch({ ...data.match, matchCategory: "team" });
-        return;
+      
+      // Fallback: try both endpoints if no category provided
+      try {
+        const response = await axiosInstance.get(`/matches/individual/${matchId}`);
+        if (response.status === 200) {
+          setMatch({ ...response.data.match, matchCategory: "individual" });
+          setLoading(false);
+          return;
+        }
+      } catch (individualError: any) {
+        if (individualError.response?.status === 404) {
+          const response = await axiosInstance.get(`/matches/team/${matchId}`);
+          if (response.status === 200) {
+            setMatch({ ...response.data.match, matchCategory: "team" });
+            setLoading(false);
+            return;
+          }
+        } else {
+          throw individualError;
+        }
       }
+      
       setMatch(null);
     } catch (error) {
       console.error("Error fetching match:", error);
@@ -63,7 +88,7 @@ export default function MatchDetailsPage() {
 
   useEffect(() => {
     fetchMatch();
-  }, [matchId]);
+  }, [matchId, categoryParam]);
 
   if (loading) {
     return (
@@ -141,7 +166,7 @@ export default function MatchDetailsPage() {
                 <span className="capitalize">{match.matchType}</span>
               </div>
               <div>
-                <span>Best of {match.numberOfSets}</span>
+                <span>Best of {match.numberOfSets || match.setsPerTie}</span>
               </div>
             </div>
           </div>
@@ -221,43 +246,84 @@ export default function MatchDetailsPage() {
         {/* Actions + Score */}
         <div className="space-y-6">
           {/* Actions */}
-          {/* Actions */}
-            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-              <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+            <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
-              {(match.status === "scheduled" ||
-                match.status === "in_progress") && (
-                <Button className="w-full gap-2 text-base py-6" asChild>
-                  <Link
-                    href={
-                      match.scorer?._id === currentUserId
-                        ? `/matches/${matchId}/score`
-                        : `/matches/${matchId}/live`
-                    }
-                  >
-                    {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye />}
-                    {match.scorer?._id === currentUserId
-                      ? match.status === "scheduled"
-                        ? "Start Match"
-                        : "Continue Match"
-                      : "View Live Match"}
-                  </Link>
-                </Button>
-              )}
+            {/* Team Match - Need to assign players first */}
+            {match.matchCategory === "team" && 
+             match.status === "scheduled" && 
+             (!match.subMatches || match.subMatches.length === 0) && (
+              <Button className="w-full gap-2 text-base py-6" asChild>
+                <Link href={`/matches/${matchId}/assign-players`}>
+                  <Users className="w-4 h-4" />
+                  Assign Players & Start Match
+                </Link>
+              </Button>
+            )}
 
-              {/* Stats button (moved here) */}
-              {match.games && match.games.some((g: any) => g.shots?.length) && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 text-base py-6 mt-3"
-                  asChild
+            {/* Team Match - Already initialized */}
+            {match.matchCategory === "team" && 
+             match.subMatches && 
+             match.subMatches.length > 0 &&
+             (match.status === "scheduled" || match.status === "in_progress") && (
+              <Button className="w-full gap-2 text-base py-6" asChild>
+                <Link
+                  href={
+                    match.scorer?._id === currentUserId
+                      ? `/matches/${matchId}/score`
+                      : `/matches/${matchId}/live`
+                  }
                 >
-                  <Link href={`/matches/${matchId}/stats`}>
-                    View Statistics
-                  </Link>
-                </Button>
-              )}
-            </div>
+                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {match.scorer?._id === currentUserId
+                    ? match.status === "scheduled"
+                      ? "Start Match"
+                      : "Continue Match"
+                    : "View Live Match"}
+                </Link>
+              </Button>
+            )}
+
+            {/* Individual Match */}
+            {match.matchCategory === "individual" &&
+             (match.status === "scheduled" || match.status === "in_progress") && (
+              <Button className="w-full gap-2 text-base py-6" asChild>
+                <Link
+                  href={
+                    match.scorer?._id === currentUserId
+                      ? `/matches/${matchId}/score`
+                      : `/matches/${matchId}/live`
+                  }
+                >
+                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {match.scorer?._id === currentUserId
+                    ? match.status === "scheduled"
+                      ? "Start Match"
+                      : "Continue Match"
+                    : "View Live Match"}
+                </Link>
+              </Button>
+            )}
+
+            {/* Stats button */}
+            {((match.matchCategory === "individual" && 
+               match.games && 
+               match.games.some((g: any) => g.shots?.length)) ||
+              (match.matchCategory === "team" && 
+               match.subMatches?.some((sm: any) => 
+                 sm.games?.some((g: any) => g.shots?.length)
+               ))) && (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-base py-6 mt-3"
+                asChild
+              >
+                <Link href={`/matches/${matchId}/stats`}>
+                  View Statistics
+                </Link>
+              </Button>
+            )}
+          </div>
 
           {/* Score */}
           {match.finalScore && (
