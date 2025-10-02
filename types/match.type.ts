@@ -93,15 +93,19 @@ export interface TeamGame {
 export interface TeamMatch {
   _id: string;
   matchCategory: "team";
-  matchType: MatchType;
+  matchType: TeamMatchFormat;
   numberOfSets: number;
   setsPerTie?: number;
   participants: Participant[];
   scorer?: Participant;
+  city?: string;
+  venue?: string;
+  status?: MatchStatus;
   team1: Team | null;
   team2: Team | null;
   games: TeamGame[];
-  ties?: any[];
+  ties?: TeamTie[];
+  currentGame?: number;
   finalScore: {
     side1Sets: number;
     side2Sets: number;
@@ -124,3 +128,21 @@ export interface AddPointPayload {
 }
 
 export type OnAddPoint = (payload: AddPointPayload) => void;
+
+// Team Match Helpers
+// Add this near the top with other enums
+export type TeamMatchFormat =
+  | "swaythling-5"
+  | "swaythling-9"
+  | "sds"
+  | "three-singles"
+  | { customOrder: TeamTie[] };
+
+export interface TeamTie {
+  a: string;
+  b: string;
+  type?: "singles" | "doubles";
+  result?: "side1" | "side2"; // winner side
+}
+
+export type SideKey = "sideA" | "sideB";

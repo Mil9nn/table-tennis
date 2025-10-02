@@ -89,7 +89,13 @@ export default function PlayerCard({
       </div>
 
       {/* Sets Won */}
-      <div className="mt-4 text-white/80 text-sm">Sets Won: {setsWon}</div>
+      {/* Sets/Ties Won */}
+<div className="mt-4 text-white/80 text-sm">
+  {players.length === 1 && players[0].name?.startsWith("Team")
+    ? `Ties Won: ${setsWon}`
+    : `Sets Won: ${setsWon}`}
+</div>
+
 
       {/* Subtract Button */}
       <button

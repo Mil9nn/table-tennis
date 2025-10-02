@@ -1,4 +1,3 @@
-// models/TeamMatch.ts - UPDATED
 import mongoose from "mongoose";
 
 const shotSchema = new mongoose.Schema({
@@ -121,7 +120,7 @@ const subMatchSchema = new mongoose.Schema({
   serverConfig: { type: serverConfigSchema, default: null },
   completed: { type: Boolean, default: false },
 
-  // --- Per-player statistics ---
+  // --- Per-player statistics (same as IndividualMatch) ---
   statistics: {
     winners: { type: Number, default: 0 },
     unforcedErrors: { type: Number, default: 0 },
@@ -169,16 +168,6 @@ const subMatchSchema = new mongoose.Schema({
   },
 });
 
-// Embedded Team Schema
-const embeddedTeamSchema = new mongoose.Schema({
-  name: String,
-  players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  assignments: {
-    type: Map,
-    of: String, // Maps player ID to assignment (A, B, C, etc.)
-  },
-});
-
 // --- Team Match Schema ---
 const TeamMatchSchema = new mongoose.Schema(
   {
@@ -187,18 +176,24 @@ const TeamMatchSchema = new mongoose.Schema(
     format: {
       type: String,
       enum: [
-        "swaythling_format",   // 5 singles: ABCAB vs XYZYX
+        "swaythling_format",   // ABCAB vs XYZYX
         "single_double_single", // A, AB, B vs X, XY, Y
-        "five_singles_full",    // 5 singles: ABCDE vs XYZPQ
-        "three_singles",        // A, B, C vs X, Y, Z
+        "five_singles_full",    // ABCDE vs XYZPQ
+        "three_singles",         // A,B,C vs X,Y,Z
       ],
       required: true,
     },
 
     numberOfSetsPerSubMatch: { type: Number, enum: [3, 5, 7], default: 5 },
 
-    team1: embeddedTeamSchema,
-    team2: embeddedTeamSchema,
+    team1: {
+      name: String,
+      players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    },
+    team2: {
+      name: String,
+      players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    },
 
     subMatches: [subMatchSchema],
     currentSubMatch: { type: Number, default: 1 },

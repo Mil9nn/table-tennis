@@ -7,58 +7,72 @@ import {
   checkGameWon,
   getCurrentServerName,
 } from "@/components/live-scorer/individual/helpers";
-import { AddPointPayload, MatchStatus } from "@/types/match.type";
+import {
+  AddPointPayload,
+  MatchStatus,
+  TeamMatch,
+  IndividualMatch,
+} from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
-interface ScoreBoardProps {
-  match: any;
-  side1Score: number;
+type ScoreBoardProps = {
+  match: IndividualMatch | TeamMatch;
+  side1Score: number; // for team: ties won, for individual: points
   side2Score: number;
   isMatchActive: boolean;
-  currentServer: string | null; // serverKey from helpers
-  side1Sets: number;
+  currentServer: string | null;
+  side1Sets: number; // for individual: sets, for team: ties
   side2Sets: number;
   status: MatchStatus;
   onAddPoint: (payload: AddPointPayload) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   onReset: () => void;
   onToggleMatch: () => void;
-}
+};
 
-export default function ScoreBoard({
-  match,
-  side1Score,
-  side2Score,
-  isMatchActive,
-  currentServer,
-  side1Sets,
-  side2Sets,
-  status,
-  onAddPoint,
-  onSubtractPoint,
-  onReset,
-  onToggleMatch,
-}: ScoreBoardProps) {
-  const gameWinner = checkGameWon(side1Score, side2Score);
+export default function ScoreBoard(props: ScoreBoardProps) {
+  const {
+    match,
+    side1Score,
+    side2Score,
+    isMatchActive,
+    currentServer,
+    side1Sets,
+    side2Sets,
+    status,
+    onAddPoint,
+    onSubtractPoint,
+    onReset,
+    onToggleMatch,
+  } = props;
+
+  const isTeamMatch = match.matchCategory === "team";
+
+  // Game logic only matters for individual matches
+  const gameWinner = !isTeamMatch
+    ? checkGameWon(side1Score, side2Score)
+    : null;
   const gameWinnerName =
-    gameWinner === "side1"
-      ? "Side 1"
-      : gameWinner === "side2"
-      ? "Side 2"
-      : null;
-
+    gameWinner === "side1" ? "Side 1" : gameWinner === "side2" ? "Side 2" : null;
   const isGameWon = gameWinner !== null;
 
-  const isUpdatingScore = useIndividualMatch((state) => state.isUpdatingScore);
+  const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
 
+  // Build display players
   const buildPlayers = () => {
     if (!match) {
+      return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
+    }
+
+    if (isTeamMatch) {
+      // ✅ Teams
       return {
-        p1: [{ name: "Player 1" }],
-        p2: [{ name: "Player 2" }],
+        p1: [{ name: match.team1?.name || "Team A" }],
+        p2: [{ name: match.team2?.name || "Team B" }],
       };
     }
 
+    // ✅ Singles
     if (match.matchType === "singles") {
       return {
         p1: [
@@ -66,9 +80,8 @@ export default function ScoreBoard({
             name:
               match.participants?.[0]?.fullName ??
               match.participants?.[0]?.username ??
-              match.participants?.[0] ??
               "Player 1",
-            playerId: match.participants?.[0]?._id ?? match.participants?.[0],
+            playerId: match.participants?.[0]?._id,
             serverKey: "side1",
           },
         ],
@@ -77,34 +90,31 @@ export default function ScoreBoard({
             name:
               match.participants?.[1]?.fullName ??
               match.participants?.[1]?.username ??
-              match.participants?.[1] ??
               "Player 2",
-            playerId: match.participants?.[1]?._id ?? match.participants?.[1],
+            playerId: match.participants?.[1]?._id,
             serverKey: "side2",
           },
         ],
       };
     }
 
-    // doubles / mixed_doubles
+    // ✅ Doubles / mixed_doubles
     return {
       p1: [
         {
           name:
             match.participants?.[0]?.fullName ??
             match.participants?.[0]?.username ??
-            match.participants?.[0] ??
             "Player 1",
-          playerId: match.participants?.[0]?._id ?? match.participants?.[0],
+          playerId: match.participants?.[0]?._id,
           serverKey: "side1_main",
         },
         {
           name:
             match.participants?.[1]?.fullName ??
             match.participants?.[1]?.username ??
-            match.participants?.[1] ??
             "Partner 1",
-          playerId: match.participants?.[1]?._id ?? match.participants?.[1],
+          playerId: match.participants?.[1]?._id,
           serverKey: "side1_partner",
         },
       ],
@@ -113,18 +123,16 @@ export default function ScoreBoard({
           name:
             match.participants?.[2]?.fullName ??
             match.participants?.[2]?.username ??
-            match.participants?.[2] ??
             "Player 2",
-          playerId: match.participants?.[2]?._id ?? match.participants?.[2],
+          playerId: match.participants?.[2]?._id,
           serverKey: "side2_main",
         },
         {
           name:
             match.participants?.[3]?.fullName ??
             match.participants?.[3]?.username ??
-            match.participants?.[3] ??
             "Partner 2",
-          playerId: match.participants?.[3]?._id ?? match.participants?.[3],
+          playerId: match.participants?.[3]?._id,
           serverKey: "side2_partner",
         },
       ],
@@ -133,15 +141,18 @@ export default function ScoreBoard({
 
   const { p1, p2 } = buildPlayers();
 
-  const serverName = getCurrentServerName(
-    currentServer as any,
-    match?.participants || [],
-    match?.matchType || "singles"
-  );
+  const serverName =
+    !isTeamMatch && currentServer
+      ? getCurrentServerName(
+          currentServer as any,
+          match.participants || [],
+          match.matchType || "singles"
+        )
+      : null;
 
   return (
     <div className="space-y-2">
-      {/* Set tracker */}
+      {/* Tracker: sets for individual, ties for team */}
       <SetTracker
         bestOf={match.numberOfSets}
         side1Sets={side1Sets}
@@ -149,8 +160,8 @@ export default function ScoreBoard({
         status={status}
       />
 
-      {/* Serving indicator */}
-      {!isGameWon && (
+      {/* Serving indicator only for individual */}
+      {!isTeamMatch && !isGameWon && (
         <div className="text-center">
           {serverName ? (
             <p className="text-sm font-medium text-yellow-600">
@@ -166,7 +177,7 @@ export default function ScoreBoard({
 
       {/* Players + Controls */}
       <div className="grid grid-cols-2 sm:gap-6 gap-2 items-center">
-        {/* Left */}
+        {/* Side 1 */}
         <PlayerCard
           players={p1}
           score={side1Score}
@@ -175,11 +186,11 @@ export default function ScoreBoard({
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
-          disabled={isUpdatingScore || status === "completed" || isGameWon}
+          disabled={isUpdatingScore || status === "completed" || (!isTeamMatch && isGameWon)}
           currentServer={currentServer}
         />
 
-        {/* Right */}
+        {/* Side 2 */}
         <PlayerCard
           players={p2}
           score={side2Score}
@@ -188,11 +199,11 @@ export default function ScoreBoard({
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
-          disabled={isUpdatingScore || status === "completed" || isGameWon}
+          disabled={isUpdatingScore || status === "completed" || (!isTeamMatch && isGameWon)}
           currentServer={currentServer}
         />
 
-        {/* Center controls */}
+        {/* Controls */}
         <div className="col-span-2 flex justify-center mt-4">
           <CenterControls
             isMatchActive={isMatchActive}
@@ -201,9 +212,9 @@ export default function ScoreBoard({
           />
         </div>
 
-        {/* Game won */}
-        {isGameWon && status !== "completed" && (
-          <div className="col-span-2 md:col-span-3 text-center mt-4">
+        {/* Individual match game flow */}
+        {!isTeamMatch && isGameWon && status !== "completed" && (
+          <div className="col-span-2 text-center mt-4">
             <span className="text-lg font-bold text-green-600">
               🏆 Game Won by {gameWinnerName}!
             </span>
@@ -215,7 +226,7 @@ export default function ScoreBoard({
 
         {/* Match finished */}
         {status === "completed" && (
-          <div className="col-span-2 md:col-span-3 text-center mt-4">
+          <div className="col-span-2 text-center mt-4">
             <span className="text-lg font-bold text-green-600">
               🏆 Match Completed
             </span>

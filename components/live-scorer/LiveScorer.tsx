@@ -1,17 +1,20 @@
-// components/live-scorer/LiveScorer.tsx
 "use client";
 
 import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
-import TeamMatchScorer from "./team/TeamMatchScorer";
+import SwaythlingScorer from "./team/SwaythlingScorer";
+import SDSScorer from "./team/SDSScorer";
+import ThreeSinglesScorer from "./team/ThreeSinglesScorer";
+import ExtendedScorer from "./team/ExtendedScorer";
+
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { IndividualMatch } from "@/types/match.type";
+import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
 
-export default function LiveScorer({ matchId }: { matchId: string }) {
+export default function LiveScorer({ matchId, category }: { matchId: string, category?: 'individual' | 'team' }) {
   const match = useMatchStore((s) => s.match);
   const fetchMatch = useMatchStore((s) => s.fetchMatch);
   const loading = useMatchStore((s) => s.loading);
@@ -22,8 +25,8 @@ export default function LiveScorer({ matchId }: { matchId: string }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (matchId) fetchMatch(matchId);
-  }, [matchId, fetchMatch]);
+    if (matchId) fetchMatch(matchId, category);
+  }, [matchId, fetchMatch, category]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -63,16 +66,31 @@ export default function LiveScorer({ matchId }: { matchId: string }) {
       </div>
     );
 
-  if (!match) return <div>
-    <p className="p-6 text-center">Match not found</p>
-  </div>;
+  if (!match)
+    return (
+      <div>
+        <p className="p-6 text-center">Match not found</p>
+      </div>
+    );
 
-  // Handle Team Matches
+  // ✅ Team Matches
   if (match.matchCategory === "team") {
-    return <TeamMatchScorer matchId={matchId} />;
+    const teamMatch = match as TeamMatch;
+
+    switch (teamMatch.matchType) {
+      case "swaythling-5":
+      case "swaythling-9":
+        return <SwaythlingScorer match={teamMatch} />;
+      case "sds":
+        return <SDSScorer match={teamMatch} />;
+      case "three-singles":
+        return <ThreeSinglesScorer match={teamMatch} />;
+      default:
+        return <ExtendedScorer match={teamMatch} />;
+    }
   }
 
-  // Handle Individual Matches
+  // ✅ Individual Matches
   if (match.matchCategory === "individual") {
     const individualMatch = match as IndividualMatch;
 

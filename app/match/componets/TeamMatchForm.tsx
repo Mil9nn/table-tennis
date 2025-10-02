@@ -94,7 +94,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       };
 
       const response = await axiosInstance.post(endpoint, matchData);
-      toast.success("✅ Team match created!");
+      toast.success("Team match created!");
       router.push(`/matches/${response.data.match._id}?category=team`);
     } catch (err: any) {
       console.error(err);

@@ -12,6 +12,7 @@ import {
   Loader2,
   ArrowLeftCircle,
   Eye,
+  PlayCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { axiosInstance } from "@/lib/axiosInstance";
@@ -254,9 +255,9 @@ export default function MatchDetailsPage() {
              match.status === "scheduled" && 
              (!match.subMatches || match.subMatches.length === 0) && (
               <Button className="w-full gap-2 text-base py-6" asChild>
-                <Link href={`/matches/${matchId}/assign-players`}>
-                  <Users className="w-4 h-4" />
-                  Assign Players & Start Match
+                <Link href={`/matches/${matchId}/score`}>
+                  <Play className="w-4 h-4" />
+                  Start Match
                 </Link>
               </Button>
             )}
