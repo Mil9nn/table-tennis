@@ -30,6 +30,8 @@ export default function MatchDetailsPage() {
 
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
+  console.log("Category from URL in matches/[id]:", categoryParam);
+
   useEffect(() => {
     try {
       fetchUser();
@@ -271,8 +273,8 @@ export default function MatchDetailsPage() {
                 <Link
                   href={
                     match.scorer?._id === currentUserId
-                      ? `/matches/${matchId}/score`
-                      : `/matches/${matchId}/live`
+                      ? `/matches/${matchId}/score?category=${match.matchCategory}`
+                      : `/matches/${matchId}/live?category=${match.matchCategory}`
                   }
                 >
                   {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -292,11 +294,11 @@ export default function MatchDetailsPage() {
                 <Link
                   href={
                     match.scorer?._id === currentUserId
-                      ? `/matches/${matchId}/score`
-                      : `/matches/${matchId}/live`
+                      ? `/matches/${matchId}/score?category=${match.matchCategory}`
+                      : `/matches/${matchId}/live?category=${match.matchCategory}`
                   }
                 >
-                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="size-5" />}
                   {match.scorer?._id === currentUserId
                     ? match.status === "scheduled"
                       ? "Start Match"

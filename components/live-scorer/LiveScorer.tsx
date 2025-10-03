@@ -2,10 +2,6 @@
 
 import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
-import SwaythlingScorer from "./team/SwaythlingScorer";
-import SDSScorer from "./team/SDSScorer";
-import ThreeSinglesScorer from "./team/ThreeSinglesScorer";
-import ExtendedScorer from "./team/ExtendedScorer";
 
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
@@ -72,22 +68,6 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
         <p className="p-6 text-center">Match not found</p>
       </div>
     );
-
-  // ✅ Team Matches
-  if (match.matchCategory === "team") {
-    const teamMatch = match as TeamMatch;
-
-    switch (teamMatch.format) {
-      case "swaythling_format":
-        return <SwaythlingScorer match={teamMatch} />;
-      case "single_double_single":
-        return <SDSScorer match={teamMatch} />;
-      case "three_singles":
-        return <ThreeSinglesScorer match={teamMatch} />;
-      default:
-        return <ExtendedScorer match={teamMatch} />;
-    }
-  }
 
   // ✅ Individual Matches
   if (match.matchCategory === "individual") {

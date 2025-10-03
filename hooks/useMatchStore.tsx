@@ -87,49 +87,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
   const normalizeMatch = (raw: any): NormalizedMatch => {
     const participants = normalizeParticipants(raw.participants);
 
-    if (raw.matchCategory === "team") {
-      return {
-        _id: String(raw._id || raw.id),
-        matchCategory: "team",
-        matchType: raw.matchType,
-        numberOfSets: Number(raw.numberOfSets ?? 3),
-        setsPerTie: raw.setsPerTie,
-        participants,
-        team1: normalizeTeam(raw.team1),
-        team2: normalizeTeam(raw.team2),
-        games: (Array.isArray(raw.games) ? raw.games : []).map(
-          (g: any, idx: number) => ({
-            gameNumber: g.gameNumber ?? idx + 1,
-            side1Score: g.side1Score ?? 0,
-            side2Score: g.side2Score ?? 0,
-            winner: g.winner ?? null,
-            currentPlayers: g.currentPlayers || {},
-            shots: g.shots ?? [],
-          })
-        ),
-        ties: raw.ties || [],
-        finalScore: {
-          side1Sets: raw.finalScore?.side1Sets ?? 0,
-          side2Sets: raw.finalScore?.side2Sets ?? 0,
-          side1Ties: raw.finalScore?.side1Ties ?? 0,
-          side2Ties: raw.finalScore?.side2Ties ?? 0,
-        },
-        winnerSide: raw.winnerSide ?? null,
-        matchDuration: raw.matchDuration,
-        serverConfig: raw.serverConfig
-          ? {
-              firstServer: raw.serverConfig.firstServer ?? null,
-              firstReceiver: raw.serverConfig.firstReceiver ?? null,
-              serverOrder: Array.isArray(raw.serverConfig.serverOrder)
-                ? raw.serverConfig.serverOrder
-                : [],
-            }
-          : null,
-        createdAt: raw.createdAt,
-        updatedAt: raw.updatedAt,
-      } as TeamMatch;
-    }
-
     return {
       _id: String(raw._id || raw.id),
       matchCategory: "individual",
@@ -224,7 +181,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     fetchMatch: async (id: string, category: "individual" | "team") => {
       if (category === "individual") {
         await get().fetchIndividualMatch(id);
-      } else {
+      } else if (category === "team") {
         await get().fetchTeamMatch(id);
       }
     },

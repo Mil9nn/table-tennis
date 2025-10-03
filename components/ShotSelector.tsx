@@ -27,33 +27,39 @@ const ShotSelector = () => {
   // Get appropriate update function based on match type
   const updateScoreIndividual = useIndividualMatch((state) => state.updateScore);
   const addPointTeam = useTeamMatch((state) => state.addPoint);
+  const currentSubMatchIndex = useTeamMatch((state) => state.currentSubMatchIndex);
 
   const isTeamMatch = match?.matchCategory === "team";
   const currentSubMatch = isTeamMatch && match ? 
-    (match as any).subMatches?.[useTeamMatch.getState().currentSubMatchIndex] : null;
+    (match as any).subMatches?.[currentSubMatchIndex] : null;
 
   const handleShotSelect = async (shotValue: string) => {
     try {
-      if (pendingPlayer) {
-        setShotDialogOpen(false);
+      if (!pendingPlayer) return;
 
-        const side = pendingPlayer.side;
-        const playerId = pendingPlayer.playerId;
+      setShotDialogOpen(false);
 
-        if (isTeamMatch) {
-          // Team match scoring
-          await addPointTeam({
-            side,
-            playerId,
-            shotData: { stroke: shotValue, outcome: "rally" }
-          });
-        } else {
-          // Individual match scoring
-          updateScoreIndividual(side, 1, shotValue, playerId);
+      const side = pendingPlayer.side;
+      const playerId = pendingPlayer.playerId;
+
+      if (isTeamMatch) {
+        // Team match scoring
+        if (!playerId) {
+          toast.error("Player ID is required");
+          return;
         }
         
-        setPendingPlayer(null);
+        await addPointTeam({
+          side,
+          playerId,
+          shotData: { stroke: shotValue, outcome: "rally" }
+        });
+      } else {
+        // Individual match scoring
+        updateScoreIndividual(side, 1, shotValue, playerId);
       }
+      
+      setPendingPlayer(null);
     } catch (error) {
       console.error("Error updating score:", error);
       toast.error("Failed to update score");
@@ -66,9 +72,11 @@ const ShotSelector = () => {
 
     if (isTeamMatch && currentSubMatch) {
       // Team match: get players from current submatch
-      return pendingPlayer.side === "side1"
+      const players = pendingPlayer.side === "side1"
         ? currentSubMatch.team1Players
         : currentSubMatch.team2Players;
+      
+      return players || [];
     } else {
       // Individual match: get from participants
       const participants = match.participants || [];
@@ -84,28 +92,29 @@ const ShotSelector = () => {
   };
 
   const players = getPlayersForSide();
+  const needsPlayerSelection = !pendingPlayer?.playerId && players.length > 1;
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {pendingPlayer?.playerId
-              ? "Select Shot Type"
-              : "Who scored the point?"}
+            {needsPlayerSelection
+              ? "Who scored the point?"
+              : "Select Shot Type"}
           </DialogTitle>
           <DialogDescription>
-            {pendingPlayer?.playerId
-              ? "Select the type of shot played"
-              : "Select the player who scored the point"}
+            {needsPlayerSelection
+              ? "Select the player who scored the point"
+              : "Select the type of shot played"}
           </DialogDescription>
         </DialogHeader>
 
         {!pendingPlayer ? (
-          <p>No player selected</p>
-        ) : !pendingPlayer.playerId && players.length > 1 ? (
+          <p className="text-center text-gray-500">No player selected</p>
+        ) : needsPlayerSelection ? (
           // Doubles: ask which teammate
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {players.map((p: any) => (
               <button
                 key={p?._id}
@@ -115,25 +124,27 @@ const ShotSelector = () => {
                     playerId: p?._id,
                   });
                 }}
-                className="border-2 p-3 text-sm rounded-xl hover:bg-gray-50 transition"
+                className="border-2 p-4 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-blue-400 transition"
               >
                 {p?.fullName || p?.username || "Unknown"}
               </button>
             ))}
           </div>
         ) : (
-          // Singles OR doubles after teammate chosen → show shot types
+          // Show shot types
           <ScrollArea className="h-96">
-            <div className="space-y-4">
+            <div className="space-y-4 pr-4">
               {Object.entries(shotCategories).map(([category, shots]) => (
                 <div key={category}>
-                  <h3 className="font-medium capitalize mb-2">{category}</h3>
+                  <h3 className="font-medium capitalize mb-2 text-sm text-gray-700">
+                    {category.replace(/_/g, " ")}
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {shots.map((shot) => (
                       <button
                         key={shot.value}
                         onClick={() => handleShotSelect(shot.value)}
-                        className="border-2 rounded-xl p-3 hover:scale-[1.02] active:scale-[0.97] transition ease-in-out hover:bg-gray-50"
+                        className="border-2 rounded-xl p-3 text-sm hover:scale-[1.02] active:scale-[0.97] transition ease-in-out hover:bg-blue-50 hover:border-blue-400"
                       >
                         {shot.label}
                       </button>

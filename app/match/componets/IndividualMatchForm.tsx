@@ -82,7 +82,6 @@ export default function IndividualMatchForm({
       }
 
       const response = await axiosInstance.post(endpoint, matchData);
-      // CHANGED: Add category parameter to URL
       router.push(`/matches/${response.data.match._id}?category=individual`);
       toast.success("Match created!");
     } catch (err: any) {
@@ -96,7 +95,7 @@ export default function IndividualMatchForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className="space-y-6 py-2"
+        className="space-y-8 py-4"
       >
         {/* Match Type */}
         <FormField
@@ -150,50 +149,104 @@ export default function IndividualMatchForm({
 
         {/* Players */}
         {form.watch("matchType") === "singles" ? (
-          <div className="space-y-4">
-            <UserSearchInput
-              placeholder="Player 01 username"
-              onSelect={(u) => form.setValue("player1", u._id)}
-            />
-            <UserSearchInput
-              placeholder="Player 02 username"
-              onSelect={(u) => form.setValue("player2", u._id)}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-6">
+            <FormItem>
+              <FormLabel>Player 1</FormLabel>
               <UserSearchInput
-                placeholder="Player A"
+                placeholder="player 1 username"
                 onSelect={(u) => form.setValue("player1", u._id)}
               />
+              <FormMessage />
+            </FormItem>
+            <FormItem>
+              <FormLabel>Player 2</FormLabel>
               <UserSearchInput
-                placeholder="Partner A"
+                placeholder="player 2 username"
                 onSelect={(u) => form.setValue("player2", u._id)}
               />
+              <FormMessage />
+            </FormItem>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <div className="rounded-xl border p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Team A
+              </h3>
+              <FormItem>
+                <FormLabel>Player A</FormLabel>
+                <UserSearchInput
+                  placeholder="Player A username"
+                  onSelect={(u) => form.setValue("player1", u._id)}
+                />
+              </FormItem>
+              <FormItem>
+                <FormLabel>Partner A</FormLabel>
+                <UserSearchInput
+                  placeholder="Partner A username"
+                  onSelect={(u) => form.setValue("player2", u._id)}
+                />
+              </FormItem>
             </div>
 
-            <span className="bg-gradient-to-r from-purple-500 to-indigo-500 block w-full h-1 rounded-full" />
-
-            <div className="space-y-2">
-              <UserSearchInput
-                placeholder="Player B"
-                onSelect={(u) => form.setValue("player3", u._id)}
-              />
-              <UserSearchInput
-                placeholder="Partner B"
-                onSelect={(u) => form.setValue("player4", u._id)}
-              />
+            <div className="rounded-xl border p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Team B
+              </h3>
+              <FormItem>
+                <FormLabel>Player B</FormLabel>
+                <UserSearchInput
+                  placeholder="Player B username"
+                  onSelect={(u) => form.setValue("player3", u._id)}
+                />
+              </FormItem>
+              <FormItem>
+                <FormLabel>Partner B</FormLabel>
+                <UserSearchInput
+                  placeholder="Partner B username"
+                  onSelect={(u) => form.setValue("player4", u._id)}
+                />
+              </FormItem>
             </div>
           </div>
         )}
 
-        {/* City & Venue */}
-        <Input placeholder="City" {...form.register("city")} />
-        <Input placeholder="Venue (optional)" {...form.register("venue")} />
+        {/* City */}
+        <FormField
+          control={form.control}
+          name="city"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>City</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter city" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Venue */}
+        <FormField
+          control={form.control}
+          name="venue"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Venue (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter venue" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button className="w-full" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="animate-spin" /> : "Create Match"}
+          {isSubmitting ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            "Create Match"
+          )}
         </Button>
       </form>
     </Form>

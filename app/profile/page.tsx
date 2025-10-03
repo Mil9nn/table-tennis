@@ -146,10 +146,10 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="p-6 max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-          <div>
+          <div className="px-4">
             <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
             <p className="text-gray-600 mt-1">
               Manage your account settings and information
@@ -160,7 +160,7 @@ const ProfilePage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Image Section */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="p-6">
               <div className="relative mx-auto w-32 h-32">
                 <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
                   {isLoadingProfile ? (
@@ -207,37 +207,37 @@ const ProfilePage = () => {
           {/* Info + Stats */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Info */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-6">
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-700">Full Name</label>
-                  <div className="p-2 font-medium">{user.fullName}</div>
+                  <label className="text-sm text-gray-700 font-bold">Full Name</label>
+                  <div className="p-2 text-sm font-medium">{user.fullName}</div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Username</label>
-                  <div className="w-fit gap-6 flex items-center justify-between p-2 border rounded-lg">
-                    <span className="font-medium">@{user.username}</span>
+                  <label className="text-sm font-bold text-gray-700">Username</label>
+                  <div className="w-fit gap-4 flex items-center justify-between p-2 border rounded-lg">
+                    <span className="font-medium text-sm">@{user.username}</span>
                     <button
                       onClick={() => copyToClipboard(user.username, "Username")}
                     >
                       {copiedField === "Username" ? (
                         <CheckCircle2 className="text-emerald-500 size-5" />
                       ) : (
-                        <Copy className="size-5 text-gray-700" />
+                        <Copy className="size-4 text-gray-700" />
                       )}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Email</label>
-                  <div className="p-2 bg-gray-50 rounded">{user.email}</div>
+                  <label className="text-sm text-gray-700 font-bold">Email</label>
+                  <div className="p-2 bg-gray-50 rounded text-sm font-medium">{user.email}</div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Member Since</label>
-                  <div className="p-2 bg-gray-50 rounded">
+                  <label className="text-sm text-gray-700 font-bold">Member Since</label>
+                  <div className="p-2 bg-gray-50 rounded font-medium text-sm">
                     {formatDate(user.createdAt || "")}
                   </div>
                 </div>
@@ -245,7 +245,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Career Stats */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 space-y-2">
+            <div className="bg-white shadow-sm p-6 space-y-2">
               <h2 className="text-xl font-semibold">Statistics</h2>
               <p>Track your performance and progress</p>
               <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mt-4">

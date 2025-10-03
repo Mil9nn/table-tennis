@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     // 🔐 Auth
     const token = getTokenFromRequest(request);
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token) return NextResponse.json({ error: "Unauthorized! Please login or register." }, { status: 401 });
 
     const decoded = verifyToken(token);
     if (!decoded?.userId)
