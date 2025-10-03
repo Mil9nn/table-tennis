@@ -77,13 +77,12 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
   if (match.matchCategory === "team") {
     const teamMatch = match as TeamMatch;
 
-    switch (teamMatch.matchType) {
-      case "swaythling-5":
-      case "swaythling-9":
+    switch (teamMatch.format) {
+      case "swaythling_format":
         return <SwaythlingScorer match={teamMatch} />;
-      case "sds":
+      case "single_double_single":
         return <SDSScorer match={teamMatch} />;
-      case "three-singles":
+      case "three_singles":
         return <ThreeSinglesScorer match={teamMatch} />;
       default:
         return <ExtendedScorer match={teamMatch} />;

@@ -6,7 +6,6 @@ import type {
   TeamMatch,
   MatchStatus,
   SubMatch,
-  Shot,
 } from "@/types/match.type";
 
 interface TeamMatchState {
