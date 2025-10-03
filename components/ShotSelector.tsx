@@ -1,4 +1,3 @@
-// components/ShotSelector.tsx
 "use client";
 import React from "react";
 
@@ -14,8 +13,8 @@ import { ScrollArea, ScrollBar } from "./ui/scroll-area";
 import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
-import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { toast } from "sonner";
+import { isIndividualMatch } from "@/types/match.type";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
@@ -24,41 +23,21 @@ const ShotSelector = () => {
   const setPendingPlayer = useMatchStore((state) => state.setPendingPlayer);
   const match = useMatchStore((state) => state.match);
 
-  // Get appropriate update function based on match type
+  // Only use individual match hook now
   const updateScoreIndividual = useIndividualMatch((state) => state.updateScore);
-  const addPointTeam = useTeamMatch((state) => state.addPoint);
-  const currentSubMatchIndex = useTeamMatch((state) => state.currentSubMatchIndex);
-
-  const isTeamMatch = match?.matchCategory === "team";
-  const currentSubMatch = isTeamMatch && match ? 
-    (match as any).subMatches?.[currentSubMatchIndex] : null;
 
   const handleShotSelect = async (shotValue: string) => {
     try {
-      if (!pendingPlayer) return;
+      if (!pendingPlayer || !match) return;
 
       setShotDialogOpen(false);
 
-      const side = pendingPlayer.side;
-      const playerId = pendingPlayer.playerId;
+      const { side, playerId } = pendingPlayer;
 
-      if (isTeamMatch) {
-        // Team match scoring
-        if (!playerId) {
-          toast.error("Player ID is required");
-          return;
-        }
-        
-        await addPointTeam({
-          side,
-          playerId,
-          shotData: { stroke: shotValue, outcome: "rally" }
-        });
-      } else {
-        // Individual match scoring
+      if (isIndividualMatch(match)) {
         updateScoreIndividual(side, 1, shotValue, playerId);
       }
-      
+
       setPendingPlayer(null);
     } catch (error) {
       console.error("Error updating score:", error);
@@ -66,33 +45,30 @@ const ShotSelector = () => {
     }
   };
 
-  // Get available players for selection
+  // Get available players for selection (only individual logic now)
   const getPlayersForSide = () => {
     if (!pendingPlayer || !match) return [];
 
-    if (isTeamMatch && currentSubMatch) {
-      // Team match: get players from current submatch
-      const players = pendingPlayer.side === "side1"
-        ? currentSubMatch.team1Players
-        : currentSubMatch.team2Players;
-      
-      return players || [];
-    } else {
-      // Individual match: get from participants
+    if (isIndividualMatch(match)) {
       const participants = match.participants || [];
       if (match.matchType === "singles") {
-        return pendingPlayer.side === "side1" ? [participants[0]] : [participants[1]];
+        return pendingPlayer.side === "side1"
+          ? [participants[0]]
+          : [participants[1]];
       } else {
-        // Doubles
+        // doubles / mixed doubles
         return pendingPlayer.side === "side1"
           ? [participants[0], participants[1]]
           : [participants[2], participants[3]];
       }
     }
+
+    return [];
   };
 
   const players = getPlayersForSide();
-  const needsPlayerSelection = !pendingPlayer?.playerId && players.length > 1;
+  const needsPlayerSelection =
+    !pendingPlayer?.playerId && players.length > 1;
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>

@@ -79,120 +79,21 @@ export type TeamMatchFormat =
   | "five_singles_full"      // 5 singles (A-X, B-Y, C-Z, D-P, E-Q)
   | "three_singles";         // 3 singles (A-X, B-Y, C-Z)
 
-export interface TeamSubMatch {
-  subMatchNumber: number;
-  type: "singles" | "doubles";
-  matchLabel: string;
-  team1Players: Participant[];
-  team2Players: Participant[];
-  games: {
-    gameNumber: number;
-    team1Score: number;
-    team2Score: number;
-    shots?: Shot[];
-    winnerSide: "team1" | "team2" | null;
-    completed: boolean;
-  }[];
-  currentGame: number;
-  finalScore: {
-    team1Sets: number;
-    team2Sets: number;
-  };
-  winnerSide: "team1" | "team2" | null;
-  completed: boolean;
-  statistics?: {
-    winners: number;
-    unforcedErrors: number;
-    aces: number;
-    serveErrors: number;
-    playerStats: Map<string, any>;
-  };
-}
-
-// Alias for backwards compatibility
-export type SubMatch = TeamSubMatch;
-
-export interface TeamMatch {
-  _id: string;
-  matchCategory: "team";
-  format: TeamMatchFormat;
-  numberOfSetsPerSubMatch: number; // Number of sets per individual submatch
-  city: string;
-  venue?: string;
-  scorer: Participant | string;
-  
-  team1: {
-    name: string;
-    players: Participant[] | string[];
-    assignments?: Map<string, string> | Record<string, string>;
-  };
-  
-  team2: {
-    name: string;
-    players: Participant[] | string[];
-    assignments?: Map<string, string> | Record<string, string>;
-  };
-  
-  subMatches: TeamSubMatch[];
-  currentSubMatch: number;
-  
-  finalScore: {
-    team1Matches: number; // How many submatches team1 won
-    team2Matches: number; // How many submatches team2 won
-  };
-  
-  status: MatchStatus;
-  winnerTeam?: "team1" | "team2" | null;
-  matchDuration?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-// ============================================
-// LEGACY TEAM TYPES (for backwards compatibility)
-// ============================================
-
-export interface TeamPlayer {
-  id?: string;
-  name: string;
-  role?: string;
-}
-
-export interface Team {
-  id?: string | null;
-  name?: string | null;
-  city?: string | null;
-  players: TeamPlayer[];
-  assignments: Record<string, string>;
-}
-
-export interface TeamTie {
-  a: string;
-  b: string;
-  type?: "singles" | "doubles";
-  result?: "side1" | "side2";
-}
-
-export interface TeamGame {
-  gameNumber: number;
-  side1Score: number;
-  side2Score: number;
-  winner?: WinnerSide;
-  currentPlayers?: { side1?: string; side2?: string };
-  shots?: Shot[];
-}
-
-export type SideKey = "sideA" | "sideB";
 
 // ============================================
 // UNIFIED TYPES
 // ============================================
 
-export type NormalizedMatch = IndividualMatch | TeamMatch;
+export type NormalizedMatch = IndividualMatch;
 
 export interface AddPointPayload {
   side: "side1" | "side2";
   playerId?: string;
+  shotData?: {
+    stroke: string;
+    outcome: "winner" | "error";
+    errorType?: "net" | "long" | "serve";
+  }
 }
 
 export type OnAddPoint = (payload: AddPointPayload) => void;
@@ -203,10 +104,6 @@ export type OnAddPoint = (payload: AddPointPayload) => void;
 
 export function isIndividualMatch(match: NormalizedMatch): match is IndividualMatch {
   return match.matchCategory === "individual";
-}
-
-export function isTeamMatch(match: NormalizedMatch): match is TeamMatch {
-  return match.matchCategory === "team";
 }
 
 // ============================================

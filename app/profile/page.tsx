@@ -169,7 +169,7 @@ const ProfilePage = () => {
                     </div>
                   ) : profileImage || previewUrl ? (
                     <img
-                      src={previewUrl || profileImage}
+                      src={previewUrl || profileImage || ""}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />

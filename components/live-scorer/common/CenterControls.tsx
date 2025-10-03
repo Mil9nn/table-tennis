@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { RotateCcw, Play, Pause, Square } from "lucide-react";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { isIndividualMatch } from "@/types/match.type";
 
 interface CenterControlsProps {
   isMatchActive: boolean;
@@ -22,7 +23,7 @@ export default function CenterControls({
 
   const handleToggleMatch = () => {
     // Show server dialog if starting match without server config
-    if (!isMatchActive && match && !match.serverConfig?.firstServer) {
+    if (!isMatchActive && match && isIndividualMatch(match) && !match.serverConfig?.firstServer) {
       onToggleMatch();
       return;
     }

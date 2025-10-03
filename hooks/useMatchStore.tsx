@@ -1,21 +1,15 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import {
-  NormalizedMatch,
-  Participant,
-  Team,
-  TeamPlayer,
-  TeamMatch,
-  IndividualMatch,
-} from "@/types/match.type";
+import { IndividualMatch, Participant } from "@/types/match.type";
 
 interface MatchStore {
-  match: NormalizedMatch | null;
-  setMatch: (m: NormalizedMatch | null) => void;
+  match: IndividualMatch | null;
+  setMatch: (m: IndividualMatch | null) => void;
 
   loading: boolean;
   updating: boolean;
+  fetchingMatch: boolean;
 
   shotDialogOpen: boolean;
   setShotDialogOpen: (open: boolean) => void;
@@ -25,16 +19,13 @@ interface MatchStore {
     p: { side: "side1" | "side2"; playerId?: string } | null
   ) => void;
 
-  fetchMatch: (matchId: string, category: "individual" | "team") => Promise<void>;
-  fetchIndividualMatch: (matchId: string) => Promise<void>;
-  fetchTeamMatch: (matchId: string) => Promise<void>;
-  fetchingMatch: boolean;
-
   setupDialogOpen: boolean;
   setSetupDialogOpen: (open: boolean) => void;
 
   serverDialogOpen: boolean;
   setServerDialogOpen: (open: boolean) => void;
+
+  fetchMatch: (matchId: string) => Promise<void>;
 }
 
 export const useMatchStore = create<MatchStore>((set, get) => {
@@ -46,45 +37,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     }));
   }
 
-  const normalizeTeam = (team: any): Team | null => {
-    if (!team) return null;
-
-    const playersRaw = Array.isArray(team.players) ? team.players : [];
-    const players: TeamPlayer[] = playersRaw
-      .map((p: any) => {
-        if (!p) return null;
-
-        if (p.user && typeof p.user === "object") {
-          return {
-            name: p.user.fullName || p.user.username || String(p.user._id),
-            role: p.role || "",
-            id: String(p.user._id),
-          };
-        }
-        if (typeof p.user === "string") {
-          return { name: p.user, role: p.role || "", id: p.user };
-        }
-        if (typeof p === "string") return { name: p };
-
-        return {
-          name: p.name || p.username || p.fullName || String(p._id || ""),
-          role: p.role || "",
-        };
-      })
-      .filter(Boolean) as TeamPlayer[];
-
-    return {
-      id: team._id || team.id || null,
-      name: team.name || null,
-      city: team.city || null,
-      players,
-      assignments: team.assignments
-        ? Object.fromEntries(Object.entries(team.assignments))
-        : {},
-    };
-  };
-
-  const normalizeMatch = (raw: any): NormalizedMatch => {
+  const normalizeMatch = (raw: any): IndividualMatch => {
     const participants = normalizeParticipants(raw.participants);
 
     return {
@@ -120,7 +73,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       matchDuration: raw.matchDuration,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
-    } as IndividualMatch;
+    };
   };
 
   return {
@@ -132,57 +85,30 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     fetchingMatch: false,
 
     shotDialogOpen: false,
-    pendingPlayer: null,
     setShotDialogOpen: (open) => set({ shotDialogOpen: open }),
+
+    pendingPlayer: null,
     setPendingPlayer: (p) => set({ pendingPlayer: p }),
+
     setupDialogOpen: false,
     setSetupDialogOpen: (open) => set({ setupDialogOpen: open }),
 
     serverDialogOpen: false,
     setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
-    fetchIndividualMatch: async (id: string) => {
+    // ✅ Only supports individual matches now
+    fetchMatch: async (id: string) => {
       set({ fetchingMatch: true });
       try {
         const res = await axiosInstance.get(`/matches/individual/${id}`);
-        const normalizedMatch = normalizeMatch({
-          ...(res.data.match || res.data), // support both shapes
-          matchCategory: "individual",
-        });
+        const normalizedMatch = normalizeMatch(res.data.match || res.data);
         set({ match: normalizedMatch, loading: false });
       } catch (err) {
-        console.error("Error fetching individual match:", err);
+        console.error("Error fetching match:", err);
         set({ loading: false, match: null });
         throw err;
       } finally {
         set({ fetchingMatch: false });
-      }
-    },
-
-    fetchTeamMatch: async (id: string) => {
-      set({ fetchingMatch: true });
-      try {
-        const res = await axiosInstance.get(`/matches/team/${id}`);
-        const normalizedMatch = normalizeMatch({
-          ...(res.data.match || res.data), // support both shapes
-          matchCategory: "team",
-        });
-        set({ match: normalizedMatch, loading: false });
-      } catch (err) {
-        console.error("Error fetching team match:", err);
-        set({ loading: false, match: null });
-        throw err;
-      } finally {
-        set({ fetchingMatch: false });
-      }
-    },
-
-    // 🚀 No fallback anymore
-    fetchMatch: async (id: string, category: "individual" | "team") => {
-      if (category === "individual") {
-        await get().fetchIndividualMatch(id);
-      } else if (category === "team") {
-        await get().fetchTeamMatch(id);
       }
     },
   };

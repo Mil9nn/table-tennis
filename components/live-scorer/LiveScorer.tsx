@@ -6,7 +6,7 @@ import DoublesScorer from "./individual/DoublesScorer";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { IndividualMatch, TeamMatch } from "@/types/match.type";
+import { IndividualMatch } from "@/types/match.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,7 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
   const router = useRouter();
 
   useEffect(() => {
-    if (matchId) fetchMatch(matchId, category);
+    if (matchId && category) fetchMatch(matchId);
   }, [matchId, fetchMatch, category]);
 
   useEffect(() => {

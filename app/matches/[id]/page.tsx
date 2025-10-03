@@ -30,8 +30,6 @@ export default function MatchDetailsPage() {
 
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
-  console.log("Category from URL in matches/[id]:", categoryParam);
-
   useEffect(() => {
     try {
       fetchUser();

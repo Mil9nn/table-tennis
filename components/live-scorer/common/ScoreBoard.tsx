@@ -10,18 +10,17 @@ import {
 import {
   AddPointPayload,
   MatchStatus,
-  TeamMatch,
   IndividualMatch,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 
 type ScoreBoardProps = {
-  match: IndividualMatch | TeamMatch;
-  side1Score: number; // for team: ties won, for individual: points
+  match: IndividualMatch;
+  side1Score: number; // points
   side2Score: number;
   isMatchActive: boolean;
   currentServer: string | null;
-  side1Sets: number; // for individual: sets, for team: ties
+  side1Sets: number;
   side2Sets: number;
   status: MatchStatus;
   onAddPoint: (payload: AddPointPayload) => void;
@@ -46,33 +45,21 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     onToggleMatch,
   } = props;
 
-  const isTeamMatch = match.matchCategory === "team";
-
-  // Game logic only matters for individual matches
-  const gameWinner = !isTeamMatch
-    ? checkGameWon(side1Score, side2Score)
-    : null;
+  // ✅ Game win check for individual matches
+  const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
     gameWinner === "side1" ? "Side 1" : gameWinner === "side2" ? "Side 2" : null;
   const isGameWon = gameWinner !== null;
 
   const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
 
-  // Build display players
+  // ✅ Build display players
   const buildPlayers = () => {
     if (!match) {
       return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
     }
 
-    if (isTeamMatch) {
-      // ✅ Teams
-      return {
-        p1: [{ name: match.team1?.name || "Team A" }],
-        p2: [{ name: match.team2?.name || "Team B" }],
-      };
-    }
-
-    // ✅ Singles
+    // Singles
     if (match.matchType === "singles") {
       return {
         p1: [
@@ -98,7 +85,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       };
     }
 
-    // ✅ Doubles / mixed_doubles
+    // Doubles / mixed_doubles
     return {
       p1: [
         {
@@ -142,17 +129,12 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   const { p1, p2 } = buildPlayers();
 
   const serverName =
-    !isTeamMatch && currentServer
-      ? getCurrentServerName(
-          currentServer as any,
-          match.participants || [],
-          match.matchType || "singles"
-        )
-      : null;
+    currentServer &&
+    getCurrentServerName(currentServer as any, match.participants || [], match.matchType);
 
   return (
     <div className="space-y-2">
-      {/* Tracker: sets for individual, ties for team */}
+      {/* ✅ Tracker for individual match sets */}
       <SetTracker
         bestOf={match.numberOfSets}
         side1Sets={side1Sets}
@@ -160,8 +142,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         status={status}
       />
 
-      {/* Serving indicator only for individual */}
-      {!isTeamMatch && !isGameWon && (
+      {/* ✅ Serving indicator */}
+      {!isGameWon && (
         <div className="text-center">
           {serverName ? (
             <p className="text-sm font-medium text-yellow-600">
@@ -175,7 +157,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         </div>
       )}
 
-      {/* Players + Controls */}
+      {/* ✅ Players + Controls */}
       <div className="grid grid-cols-2 sm:gap-6 gap-2 items-center">
         {/* Side 1 */}
         <PlayerCard
@@ -186,7 +168,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
-          disabled={isUpdatingScore || status === "completed" || (!isTeamMatch && isGameWon)}
+          disabled={isUpdatingScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 
@@ -199,7 +181,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
-          disabled={isUpdatingScore || status === "completed" || (!isTeamMatch && isGameWon)}
+          disabled={isUpdatingScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 
@@ -212,8 +194,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           />
         </div>
 
-        {/* Individual match game flow */}
-        {!isTeamMatch && isGameWon && status !== "completed" && (
+        {/* Game flow */}
+        {isGameWon && status !== "completed" && (
           <div className="col-span-2 text-center mt-4">
             <span className="text-lg font-bold text-green-600">
               🏆 Game Won by {gameWinnerName}!
