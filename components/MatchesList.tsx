@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
 import { formatTimeDuration } from "@/lib/utils";
-import { Timer, Watch } from "lucide-react";
+import { PlusCircle, Timer, Watch } from "lucide-react";
 
 // Status styles + labels
 const statusStyles: Record<string, string> = {
@@ -71,8 +71,8 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
     return (
       <div className="text-center py-16 text-gray-400">
         <p className="text-lg font-medium">No matches found.</p>
-        <Link href="/matches/new">
-          <Button className="mt-4">➕ Start New Match</Button>
+        <Link href="/match/create">
+          <Button className="mt-4"><PlusCircle className="size-5" /> Start New Match</Button>
         </Link>
       </div>
     );

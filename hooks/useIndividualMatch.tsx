@@ -437,7 +437,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         }
       } catch (err) {
         console.error("toggleMatch error", err);
-        toast.error("❌ Failed to update match status");
+        toast.error("Failed to update match status");
       } finally {
         set({ isStartingMatch: false });
       }

@@ -197,7 +197,7 @@ export default function MatchStatsPage() {
       {/* Go Back */}
       <Link
         href={`/matches/${matchId}`}
-        className="flex items-center gap-2 text-sm hover:bg-blue-300 w-fit rounded-full px-3 py-1 bg-blue-100 text-blue-800 transition-all"
+        className="flex items-center gap-2 text-sm shadow-sm hover:shadow-md w-fit rounded-full px-3 py-1 text-blue-800 transition-all"
       >
         <ArrowLeftCircle />
         <span className="font-semibold">Go back</span>
@@ -296,7 +296,6 @@ export default function MatchStatsPage() {
                 <XAxis dataKey="name" />
                 <YAxis width={25} />
                 <Tooltip />
-                <Legend />
                 <Bar dataKey="value">
                   {strokeData.map((_, i) => (
                     <Cell

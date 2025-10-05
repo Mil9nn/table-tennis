@@ -128,7 +128,7 @@ export default function MatchDetailsPage() {
       <div className="flex items-center gap-4 mb-10">
         <Link
           href="/matches"
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 transition"
+          className="flex items-center gap-2 text-sm px-4 py-2 rounded-full shadow-sm hover:shadow-md text-blue-700 transition"
         >
           <ArrowLeftCircle className="w-4 h-4" />
           <span className="font-semibold">Go back</span>

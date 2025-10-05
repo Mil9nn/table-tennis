@@ -67,7 +67,7 @@ export default function CenterControls({
         <Button 
           onClick={handleToggleMatch} 
           disabled={isStartingMatch || status === "completed"} 
-          className="cursor-pointer w-full gap-2 text-base py-6"
+          className={`cursor-pointer w-full gap-2 text-base py-6 ${ isMatchActive ? "bg-orange-100" : ""   }`}
           variant={isMatchActive ? "destructive" : "default"}
         >
           {getButtonContent()}
@@ -75,7 +75,7 @@ export default function CenterControls({
 
         <Button 
           onClick={onReset} 
-          className="cursor-pointer text-gray-200 py-6"
+          className="cursor-pointer py-6 text-gray-600"
           variant="outline"
           title={status === "completed" ? "Restart Match" : "Reset Current Game"}
         >

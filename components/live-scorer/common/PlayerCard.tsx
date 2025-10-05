@@ -12,10 +12,7 @@ interface PlayerCardProps {
   players: PlayerInfo[];
   score: number;
   side: "side1" | "side2";
-  onAddPoint: (payload: {
-    side: "side1" | "side2";
-    playerId?: string;
-  }) => void;
+  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
   onSubtractPoint: (side: "side1" | "side2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
@@ -72,7 +69,7 @@ export default function PlayerCard({
             <span>{pl.name}</span>
             {isPlayerServing(pl) && (
               <span
-                className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse shadow-lg"
+                className="w-3 h-3 bg-yellow-400 rounded-full shadow-lg"
                 title="Serving"
               />
             )}
@@ -90,12 +87,11 @@ export default function PlayerCard({
 
       {/* Sets Won */}
       {/* Sets/Ties Won */}
-<div className="mt-4 text-white/80 text-sm">
-  {players.length === 1 && players[0].name?.startsWith("Team")
-    ? `Ties Won: ${setsWon}`
-    : `Sets Won: ${setsWon}`}
-</div>
-
+      <div className="mt-4 text-white/80 text-sm">
+        {players.length === 1 && players[0].name?.startsWith("Team")
+          ? `Ties Won: ${setsWon}`
+          : `Sets Won: ${setsWon}`}
+      </div>
 
       {/* Subtract Button */}
       <button

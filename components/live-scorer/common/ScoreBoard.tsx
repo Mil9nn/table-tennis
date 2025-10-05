@@ -13,6 +13,7 @@ import {
   IndividualMatch,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
+import { TriangleAlert } from "lucide-react";
 
 type ScoreBoardProps = {
   match: IndividualMatch;
@@ -48,7 +49,11 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   // ✅ Game win check for individual matches
   const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
-    gameWinner === "side1" ? "Side 1" : gameWinner === "side2" ? "Side 2" : null;
+    gameWinner === "side1"
+      ? "Side 1"
+      : gameWinner === "side2"
+      ? "Side 2"
+      : null;
   const isGameWon = gameWinner !== null;
 
   const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
@@ -130,7 +135,11 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const serverName =
     currentServer &&
-    getCurrentServerName(currentServer as any, match.participants || [], match.matchType);
+    getCurrentServerName(
+      currentServer as any,
+      match.participants || [],
+      match.matchType
+    );
 
   return (
     <div className="space-y-2">
@@ -145,13 +154,14 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       {/* ✅ Serving indicator */}
       {!isGameWon && (
         <div className="text-center">
-          {serverName ? (
+          {!serverName ? (
             <p className="text-sm font-medium text-yellow-600">
               <span>Serving: {serverName}</span>
             </p>
           ) : (
-            <p className="text-sm font-medium text-gray-500">
-              ⚠️ Waiting for server selection
+            <p className="flex items-center justify-center gap-2 text-sm font-medium text-gray-500">
+              <TriangleAlert className="size-4 text-yellow-500" />
+              <span>No server selected</span>
             </p>
           )}
         </div>

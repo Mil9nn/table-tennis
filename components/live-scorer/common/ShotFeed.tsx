@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Shot } from "@/types/shot.type";
 import Image from "next/image";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Target } from "lucide-react";
 
 interface ShotFeedProps {
   games: { gameNumber: number; shots: Shot[] }[];
@@ -35,19 +35,16 @@ export default function ShotFeed({
   };
 
   if (!games?.length) {
-    return (
-      <div className="relative flex flex-col items-center justify-center text-gray-500 italic">
-        <Image
-          src="/imgs/EmptyShotState.png"
-          alt="No shots"
-          width={200}
-          height={200}
-          className="inline-block"
-        />
-        <span className="absolute bottom-0">No shots recorded yet...</span>
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+      <div className="rounded-full bg-gray-100 p-3 mb-3">
+        <Target className="w-5 h-5 text-gray-400" />
       </div>
-    );
-  }
+      <span className="text-sm font-medium">No shots recorded yet</span>
+      <p className="text-xs text-gray-400 mt-1">Start tracking to see results here.</p>
+    </div>
+  );
+}
 
   return (
     <div className="p-4 space-y-4">
@@ -58,19 +55,19 @@ export default function ShotFeed({
         const shots = game.shots || [];
 
         return (
-          <div key={game.gameNumber} className="border rounded-md">
+          <div key={game.gameNumber} className="border rounded-xl">
             {/* Game Header */}
             <button
               onClick={() => toggleGame(game.gameNumber)}
               className={`w-full flex justify-between items-center px-4 py-2 text-left ${
                 game.gameNumber === currentGame
-                  ? "bg-emerald-100 font-semibold"
+                  ? "shadow-sm font-semibold"
                   : "bg-gray-100"
               }`}
             >
               <span>
                 Game {game.gameNumber}{" "}
-                {game.gameNumber === currentGame && "(In Progress)"}
+                {game.gameNumber === currentGame && "(In progress...)"}
               </span>
               <span>{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
             </button>

@@ -16,7 +16,7 @@ export default function CreateMatchPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Create New Match</h1>
           <p className="text-sm text-gray-600">
-            Choose the category and set up your match.
+           Select your match type and configure its details below.
           </p>
         </div>
 
