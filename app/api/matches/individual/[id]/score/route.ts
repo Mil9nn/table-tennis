@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
+import { flipDoublesRotationForNextGame } from "@/components/live-scorer/individual/helpers";
 
 export async function POST(
   request: NextRequest,
@@ -83,19 +84,29 @@ export async function POST(
     }
 
     // Handle normal score update
-    if (typeof body.side1Score === "number" && typeof body.side2Score === "number") {
+    if (
+      typeof body.side1Score === "number" &&
+      typeof body.side2Score === "number"
+    ) {
       currentGame.side1Score = body.side1Score;
       currentGame.side2Score = body.side2Score;
     }
 
+    // Handle current server update if provided
+    if (body.currentServer) {
+      match.currentServer = body.currentServer;
+    }
+
     // Check if game is won
-    const isGameWon = (currentGame.side1Score >= 11 || currentGame.side2Score >= 11) && 
-                     Math.abs(currentGame.side1Score - currentGame.side2Score) >= 2;
-    
+    const isGameWon =
+      (currentGame.side1Score >= 11 || currentGame.side2Score >= 11) &&
+      Math.abs(currentGame.side1Score - currentGame.side2Score) >= 2;
+
     if (isGameWon && !currentGame.winnerSide) {
-      currentGame.winnerSide = currentGame.side1Score > currentGame.side2Score ? "side1" : "side2";
+      currentGame.winnerSide =
+        currentGame.side1Score > currentGame.side2Score ? "side1" : "side2";
       currentGame.completed = true;
-      
+
       // Update set counts
       if (currentGame.winnerSide === "side1") {
         match.finalScore.side1Sets += 1;
@@ -105,16 +116,46 @@ export async function POST(
 
       // Check if match is won
       const setsNeeded = Math.ceil(match.numberOfSets / 2);
-      const isMatchWon = match.finalScore.side1Sets >= setsNeeded || 
-                        match.finalScore.side2Sets >= setsNeeded;
+      const isMatchWon =
+        match.finalScore.side1Sets >= setsNeeded ||
+        match.finalScore.side2Sets >= setsNeeded;
 
       if (isMatchWon) {
         match.status = "completed";
-        match.winnerSide = match.finalScore.side1Sets >= setsNeeded ? "side1" : "side2";
-        match.matchDuration = Date.now() - (match.createdAt?.getTime() || Date.now());
+        match.winnerSide =
+          match.finalScore.side1Sets >= setsNeeded ? "side1" : "side2";
+        match.matchDuration =
+          Date.now() - (match.createdAt?.getTime() || Date.now());
       } else {
         // Prepare next game
-        match.currentGame = gameNumber + 1;
+match.currentGame = gameNumber + 1;
+
+if (match.matchType !== "singles") {
+  // Ensure serverConfig object exists
+  match.serverConfig = match.serverConfig || {};
+
+  // Determine current server order (fallback to buildDoublesRotation if missing)
+  let currentOrder = match.serverConfig.serverOrder;
+  if (!Array.isArray(currentOrder) || currentOrder.length !== 4) {
+    // NOTE: if you implemented buildDoublesRotation on backend, call it here.
+    // Otherwise fall back to the existing order (avoid raising exceptions).
+    currentOrder = match.serverConfig.serverOrder || [];
+  }
+
+  // Flip rotation for next game (if we have a valid order)
+  if (Array.isArray(currentOrder) && currentOrder.length === 4) {
+    const newOrder = flipDoublesRotationForNextGame(currentOrder);
+    match.serverConfig.serverOrder = newOrder;
+
+    // Persist the *first server* of the new rotation as the authoritative currentServer
+    // This prevents recompute mismatch on reload.
+    match.currentServer = newOrder[0] || null;
+  } else {
+    // If no valid serverOrder exists, clear currentServer so frontend will compute reliably
+    match.currentServer = null;
+  }
+}
+
       }
     }
 
@@ -162,7 +203,8 @@ export async function POST(
         }
 
         if (shot.stroke) {
-          playerStats.detailedShots[shot.stroke] = (playerStats.detailedShots[shot.stroke] || 0) + 1;
+          playerStats.detailedShots[shot.stroke] =
+            (playerStats.detailedShots[shot.stroke] || 0) + 1;
         }
       }
 
@@ -175,7 +217,8 @@ export async function POST(
           playerStats.serveErrors += 1;
         }
 
-        playerStats.errorsByType[shot.errorType] = (playerStats.errorsByType[shot.errorType] || 0) + 1;
+        playerStats.errorsByType[shot.errorType] =
+          (playerStats.errorsByType[shot.errorType] || 0) + 1;
       }
 
       match.statistics = stats;
@@ -184,15 +227,17 @@ export async function POST(
     }
 
     await match.save();
+    const updatedMatch = await IndividualMatch.findById(match._id)
+      .populate([
+        { path: "participants", select: "username fullName" },
+        { path: "games.shots.player", select: "username fullName" },
+      ])
+      .lean();
 
-    await match.populate([
-      { path: "participants", select: "username fullName" },
-      { path: "games.shots.player", select: "username fullName" },
-    ]);
-
-    return NextResponse.json({ 
-      match, 
-      message: match.status === "completed" ? "Match completed!" : "Score updated" 
+    return NextResponse.json({
+      match: updatedMatch,
+      message:
+        match.status === "completed" ? "Match completed!" : "Score updated",
     });
   } catch (err) {
     console.error("Score update error:", err);

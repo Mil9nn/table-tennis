@@ -91,8 +91,6 @@ export default function HomePage() {
                     </h3>
                   </div>
 
-                  <span className="text-gray-400 font-semibold">vs</span>
-
                   {/* Player 2 */}
                   <div className="flex items-center gap-3">
                     <h3 className="font-semibold text-gray-800 text-sm md:text-base">

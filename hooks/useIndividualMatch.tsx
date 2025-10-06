@@ -5,6 +5,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import {
   checkGameWon,
   checkMatchWonBySets,
+  flipDoublesRotationForNextGame,
   getNextServer,
 } from "@/components/live-scorer/individual/helpers";
 import {
@@ -70,7 +71,13 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       serverOrder: match.serverConfig?.serverOrder || undefined,
     };
 
-    const serverResult = getNextServer(p1, p2, isDoubles, serverConfig);
+    const serverResult = getNextServer(
+      p1,
+      p2,
+      isDoubles,
+      serverConfig,
+      match.currentGame
+    );
 
     return serverResult.server as ServerKey;
   };
@@ -134,20 +141,25 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     isUpdatingScore: false,
 
     // initialize state from server match payload
+    // inside useIndividualMatch.tsx — replace setInitialMatch implementation
     setInitialMatch: (match) => {
       if (!match) return;
 
       const currentGameNum = match.currentGame ?? 1;
 
-      let currentGameObj = match.games?.find(
+      const currentGameObj = match.games?.find(
         (g: IndividualGame) => g.gameNumber === currentGameNum && !g.winnerSide
       );
 
       const p1 = currentGameObj?.side1Score ?? 0;
       const p2 = currentGameObj?.side2Score ?? 0;
 
-      let nextServer: ServerKey;
-      if (match.serverConfig?.firstServer) {
+      // Prefer persisted currentServer from DB if it exists
+      let nextServer: ServerKey | null = null;
+      if (match.currentServer) {
+        nextServer = match.currentServer as ServerKey;
+      } else if (match.serverConfig?.firstServer) {
+        // Fall back to computed server using serverOrder + currentGame (handles doubles flip)
         nextServer = computeNextServer(match, p1, p2);
       } else {
         nextServer = null;
@@ -157,10 +169,10 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       set({
         match,
+        currentServer: nextServer,
         side1Score: p1,
         side2Score: p2,
         currentGame: currentGameNum,
-        currentServer: nextServer,
         side1Sets: match.finalScore?.side1Sets ?? 0,
         side2Sets: match.finalScore?.side2Sets ?? 0,
         status: actualStatus,
@@ -230,6 +242,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         side1Score: newP1,
         side2Score: newP2,
         gameWinner: gameWinnerSide,
+        currentServer: get().currentServer,
       };
 
       // Shot Data
@@ -263,7 +276,10 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
             if (currentServer.startsWith("side1")) {
               serverId = match.participants?.[0]?._id?.toString();
             } else if (currentServer.startsWith("side2")) {
-              serverId = match.participants?.[match.matchType === "singles" ? 1 : 2]?._id?.toString();
+              serverId =
+                match.participants?.[
+                  match.matchType === "singles" ? 1 : 2
+                ]?._id?.toString();
             }
           }
 
@@ -299,6 +315,15 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           if (gameWinnerSide) {
             const newSide1Sets = data.match.finalScore?.side1Sets ?? 0;
             const newSide2Sets = data.match.finalScore?.side2Sets ?? 0;
+
+            if (match.matchType !== "singles") {
+              const newRotation = flipDoublesRotationForNextGame(
+                match.serverConfig?.serverOrder || []
+              );
+              if (match.serverConfig) {
+                match.serverConfig.serverOrder = newRotation;
+              }
+            }
 
             const matchCompleted = await checkAndCompleteMatch(
               newSide1Sets,

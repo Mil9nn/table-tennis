@@ -36,8 +36,8 @@ export default function ShotFeed({
 
   if (!games?.length) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-      <div className="rounded-full bg-gray-100 p-3 mb-3">
+    <div className="flex flex-col items-center justify-center text-gray-500 pb-4">
+      <div className="rounded-full bg-gray-100 p-3 mb-2">
         <Target className="w-5 h-5 text-gray-400" />
       </div>
       <span className="text-sm font-medium">No shots recorded yet</span>

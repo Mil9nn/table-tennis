@@ -55,7 +55,7 @@ export default function CenterControls({
 
     return (
       <div className="flex items-center gap-2">
-        <Play className="w-4 h-4" />
+        <Play className="size-5" />
         <span>Start Match</span>
       </div>
     );

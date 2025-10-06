@@ -1,4 +1,3 @@
-// app/api/teams/route.ts
 import { NextResponse } from "next/server";
 import Team from "@/models/Team";
 import { User } from "@/models/User";

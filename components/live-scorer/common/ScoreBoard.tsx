@@ -153,13 +153,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
       {/* ✅ Serving indicator */}
       {!isGameWon && (
-        <div className="text-center">
-          {!serverName ? (
+        <div className="bg-yellow-50 rounded-md p-1 px-2 w-fit mx-auto">
+          {serverName ? (
             <p className="text-sm font-medium text-yellow-600">
               <span>Serving: {serverName}</span>
             </p>
           ) : (
-            <p className="flex items-center justify-center gap-2 text-sm font-medium text-gray-500">
+            <p className="flex items-center justify-center gap-1 text-sm italic text-yellow-400">
               <TriangleAlert className="size-4 text-yellow-500" />
               <span>No server selected</span>
             </p>

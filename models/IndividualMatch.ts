@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
 
-  side: { type: String, enum: ["side1", "side2"], required: true }, // who hit the shot
+  side: { type: String, enum: ["side1", "side2"], required: true },
   player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
   // Separate stroke vs errors to avoid crashes
@@ -97,14 +97,9 @@ const serverConfigSchema = new mongoose.Schema({
   serverOrder: [
     {
       type: String,
-      enum: [
-        "side1_main",
-        "side1_partner",
-        "side2_main",
-        "side2_partner",
-      ]
-    }
-  ]
+      enum: ["side1_main", "side1_partner", "side2_main", "side2_partner"],
+    },
+  ],
 });
 
 // Match Schema
@@ -139,6 +134,19 @@ const IndividualMatchSchema = new mongoose.Schema(
       default: "scheduled",
     },
     currentGame: { type: Number, default: 1 },
+
+    currentServer: {
+      type: String,
+      enum: [
+        "side1",
+        "side2",
+        "side1_main",
+        "side1_partner",
+        "side2_main",
+        "side2_partner",
+      ],
+      default: null,
+    },
 
     games: [gameSchema],
 

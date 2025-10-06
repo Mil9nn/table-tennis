@@ -8,21 +8,21 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
 import { formatTimeDuration } from "@/lib/utils";
-import { PlusCircle, Timer, Watch } from "lucide-react";
+import { PlusCircle, Timer, Trophy, Watch } from "lucide-react";
 
 // Status styles + labels
 const statusStyles: Record<string, string> = {
   completed: "bg-white text-emerald-700 border-emerald-400",
-  in_progress: "bg-white text-yellow-700 border-yellow-400 animate-pulse",
+  in_progress: "bg-white text-yellow-700 border-yellow-400",
   scheduled: "bg-white text-blue-700 border-blue-400",
   cancelled: "bg-white text-red-700 border-red-400",
 };
 
 const statusLabels: Record<string, string> = {
-  completed: "✅ Completed",
-  in_progress: "⚡ In Progress",
-  scheduled: "📅 Scheduled",
-  cancelled: "❌ Cancelled",
+  completed: "Completed",
+  in_progress: "In Progress",
+  scheduled: "Scheduled",
+  cancelled: "Cancelled",
 };
 
 // Player avatar + name
@@ -66,13 +66,19 @@ function Player({
   );
 }
 
-export default function MatchesList({ matches }: { matches: IndividualMatch[] }) {
+export default function MatchesList({
+  matches,
+}: {
+  matches: IndividualMatch[];
+}) {
   if (!matches || matches.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
         <p className="text-lg font-medium">No matches found.</p>
         <Link href="/match/create">
-          <Button className="mt-4"><PlusCircle className="size-5" /> Start New Match</Button>
+          <Button className="mt-4">
+            <PlusCircle className="size-5" /> Start New Match
+          </Button>
         </Link>
       </div>
     );
@@ -101,7 +107,8 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                 {/* Header */}
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-gray-500">
-                    {match.matchType.toUpperCase()} • Best of {match.numberOfSets}
+                    {match.matchType.toUpperCase()} • Best of{" "}
+                    {match.numberOfSets}
                   </span>
                   <Badge className={`rounded-full text-xs px-3 ${statusClass}`}>
                     {statusLabel}
@@ -162,16 +169,27 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                 {/* Final Score */}
                 <div className="text-center">
                   <p className="text-3xl font-bold">
-                    <span className={isWinnerSide1 ? "text-emerald-600" : "text-gray-600"}>
+                    <span
+                      className={
+                        isWinnerSide1 ? "text-emerald-600" : "text-gray-600"
+                      }
+                    >
                       {match.finalScore?.side1Sets ?? 0}
                     </span>
                     {" - "}
-                    <span className={isWinnerSide2 ? "text-emerald-600" : "text-gray-600"}>
+                    <span
+                      className={
+                        isWinnerSide2 ? "text-emerald-600" : "text-gray-600"
+                      }
+                    >
                       {match.finalScore?.side2Sets ?? 0}
                     </span>
                   </p>
                   {winner && (
-                    <p className="text-xs text-gray-500 mt-1">🏆 Winner: {winner}</p>
+                    <p className="flex items-center justify-center gap-1 text-xs text-gray-500 mt-1">
+                      <Trophy className="size-4 text-yellow-400 drop-shadow-md stroke-[2]" />
+                      <span>Winner: {winner}</span>
+                    </p>
                   )}
                 </div>
 
@@ -188,7 +206,8 @@ export default function MatchesList({ matches }: { matches: IndividualMatch[] })
                 {/* Duration (if available) */}
                 {match.matchDuration && (
                   <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                    <Timer className="size-4" /> {formatTimeDuration(match.matchDuration)}
+                    <Timer className="size-4" />{" "}
+                    {formatTimeDuration(match.matchDuration)}
                   </div>
                 )}
               </CardContent>

@@ -20,18 +20,23 @@ export const getNextServer = (
   p1: number,
   p2: number,
   isDoubles: boolean,
-  initialConfig?: InitialServerConfig
+  initialConfig?: InitialServerConfig,
+  currentGame?: number
 ): ServerResult => {
   const totalPoints = p1 + p2;
   const isDeuce = p1 >= 10 && p2 >= 10;
 
   if (isDoubles) {
-    const rotation =
+    let rotation =
       initialConfig?.serverOrder ||
       buildDoublesRotation(
         initialConfig?.firstServer as DoublesPlayerKey,
         initialConfig?.firstReceiver
       );
+
+    if (currentGame && currentGame % 2 === 0) {
+      rotation = flipDoublesRotationForNextGame(rotation);
+    }
     return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
     const firstServer: PlayerKey =
@@ -69,10 +74,10 @@ const getNextServerSingles = (
 };
 
 const defaultDoublesOrder: DoublesPlayerKey[] = [
-  "side1_main",
-  "side2_main",
-  "side1_partner",
-  "side2_partner",
+  "side1_main", // A1
+  "side2_main", // B1
+  "side1_partner", // A2
+  "side2_partner", // B2
 ];
 
 const getNextServerDoubles = (
@@ -83,24 +88,33 @@ const getNextServerDoubles = (
   // rotation must be length 4 (safe fallback to default if not)
   if (!rotation || rotation.length !== 4) rotation = defaultDoublesOrder;
 
-  if (isDeuce) {
-    // alternate every point following the established rotation
-    const serverIndex = totalPoints % rotation.length;
-    return {
-      server: rotation[serverIndex],
-      isDeuce,
-      serveCount: 0,
-    };
-  }
-
   const serveCycle = Math.floor(totalPoints / 2); // each server serves 2 points
   const serverIndex = serveCycle % rotation.length;
 
   return {
     server: rotation[serverIndex],
     isDeuce,
-    serveCount: totalPoints % 2,
+    serveCount: isDeuce ? 0 : totalPoints % 2,
   };
+};
+
+export const flipDoublesRotationForNextGame = (
+  currentRotation: DoublesPlayerKey[]
+): DoublesPlayerKey[] => {
+  if (!currentRotation || currentRotation.length !== 4)
+    return defaultDoublesOrder;
+
+  // Rule: first receiver of previous game serves first in next game
+  const [prevServer, prevReceiver, prevServerPartner, prevReceiverPartner] = currentRotation;
+
+  const nextRotation: DoublesPlayerKey[] = [
+    prevReceiver,          // new server
+    prevServerPartner,     // new receiver
+    prevReceiverPartner,   // new server's partner
+    prevServer,            // new receiver's partner
+  ];
+
+  return nextRotation;
 };
 
 export const buildDoublesRotation = (
@@ -114,22 +128,19 @@ export const buildDoublesRotation = (
     "side2_partner",
   ];
 
-  const partnerOf = (k: DoublesPlayerKey): DoublesPlayerKey => {
-    if (k.startsWith("side1")) {
-      return k.endsWith("_main") ? "side1_partner" : "side1_main";
-    }
-    return k.endsWith("_main") ? "side2_partner" : "side2_main";
-  };
+  const partnerOf = (k: DoublesPlayerKey): DoublesPlayerKey =>
+    k.endsWith("_main")
+      ? (k.startsWith("side1")
+          ? "side1_partner"
+          : "side2_partner")
+      : (k.startsWith("side1")
+          ? "side1_main"
+          : "side2_main");
 
   const fallback = defaultDoublesOrder.slice();
 
-  if (!firstServer || !all.includes(firstServer)) {
-    console.warn("Invalid firstServer, using fallback");
-    return fallback;
-  }
-
-  if (!firstReceiver || !all.includes(firstReceiver)) {
-    console.warn("Invalid firstReceiver, using fallback");
+  if (!firstServer || !all.includes(firstServer) || !firstReceiver || !all.includes(firstReceiver)) {
+    console.warn("Invalid firstServer or firstReceiver, using fallback rotation");
     return fallback;
   }
 
@@ -138,7 +149,7 @@ export const buildDoublesRotation = (
   const receiverSide = firstReceiver.split("_")[0];
   
   if (serverSide === receiverSide) {
-    console.error("Server and receiver must be on opposite sides");
+    console.error("Server and receiver must be on opposite sides, using fallback");
     return fallback;
   }
 

@@ -64,6 +64,7 @@ export interface IndividualMatch {
   };
   winnerSide?: "side1" | "side2" | null;
   matchDuration?: number;
+  currentServer?: ServerKey | null;
   serverConfig?: InitialServerConfig | null;
   createdAt?: Date;
   updatedAt?: Date;

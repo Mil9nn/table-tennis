@@ -180,16 +180,20 @@ export default function MatchDetailsPage() {
 
             {match.matchCategory === "individual" ? (
               <div className="grid grid-cols-2 gap-6">
-                {match.participants?.slice(0, 2).map((p: any, i: number) => (
+                <div className="flex flex-col gap-2 shadow-sm p-4 rounded-lg border border-gray-200">
+                  {match.participants?.slice(0, 2).map((p: any, i: number) => (
                   <p key={i} className="font-medium text-gray-800">
                     {p.fullName || p.username || "Unknown"}
                   </p>
                 ))}
-                {match.participants?.slice(2, 4).map((p: any, i: number) => (
+                </div>
+                <div className="flex flex-col gap-2 shadow-sm p-4 rounded-lg border border-gray-200">
+                  {match.participants?.slice(2, 4).map((p: any, i: number) => (
                   <p key={i} className="font-medium text-gray-800">
                     {p.fullName || p.username || "Unknown"}
                   </p>
                 ))}
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-6">

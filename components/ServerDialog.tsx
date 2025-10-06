@@ -146,7 +146,7 @@ export default function InitialServerDialog({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="font-medium mb-2">
               Who serves first?
             </label>
             <div className="space-y-2">
@@ -157,7 +157,7 @@ export default function InitialServerDialog({
                     setSelectedFirstServer(option.value);
                     if (isSingles) setSelectedFirstReceiver(null);
                   }}
-                  className={`w-full p-3 text-left rounded-lg border ${
+                  className={`w-full p-3 text-sm text-left font-semibold rounded-lg border ${
                     selectedFirstServer === option.value
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200 hover:bg-gray-50"
@@ -171,7 +171,7 @@ export default function InitialServerDialog({
 
           {isDoubles && selectedFirstServer && (
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="font-medium mb-2">
                 Who receives first?
               </label>
               <div className="space-y-2">
@@ -179,7 +179,7 @@ export default function InitialServerDialog({
                   <button
                     key={option.value}
                     onClick={() => setSelectedFirstReceiver(option.value)}
-                    className={`w-full p-3 text-left rounded-lg border ${
+                    className={`w-full p-3 text-left text-sm font-semibold rounded-lg border ${
                       selectedFirstReceiver === option.value
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:bg-gray-50"

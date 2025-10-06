@@ -31,7 +31,7 @@ export default function SetTracker({
         } else if (setIndex <= side1Sets + side2Sets) {
           bg = "bg-rose-500"; // ✅ player2 won this set
         } else if (status !== "completed" && setIndex === currentSet) {
-          bg = "bg-blue-500 animate-pulse"; // 🔵 current set in progress
+          bg = "bg-blue-500"; // 🔵 current set in progress
         }
 
         return (
