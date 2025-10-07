@@ -59,7 +59,7 @@ export default function CreateTeamPage() {
       router.push("/teams");
     } catch (err: any) {
       console.error("Error creating team:", err);
-      toast.error("Failed to create team");
+      toast.error(err.response?.data?.message || "Failed to create team");
     }
   };
 

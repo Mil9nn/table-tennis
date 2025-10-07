@@ -79,7 +79,7 @@ export default function TeamsPage() {
         {teams.map((t) => (
           <div
             key={t._id}
-            className="border rounded-lg shadow-sm p-4 bg-white flex flex-col justify-between"
+            className="border rounded-lg shadow-sm p-4 bg-gradient-to-r from-blue-50 to-white flex flex-col justify-between"
           >
             {/* Team Header */}
             <div className="flex justify-between items-center mb-2">

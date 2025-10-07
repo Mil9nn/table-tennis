@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
+import TeamSearchInput from "@/components/search/TeamSearchInput";
 
 const schema = z.object({
   matchType: z.string().min(1, "Select a team format"),
@@ -167,20 +168,12 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Team 1</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Team 1" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {teams.map((team) => (
-                      <SelectItem key={team._id} value={team._id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <TeamSearchInput
+                    placeholder="Team 1 username"
+                    onSelect={(team) => field.onChange(team._id)}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -192,20 +185,12 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Team 2</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Team 2" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {teams.map((team) => (
-                      <SelectItem key={team._id} value={team._id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <TeamSearchInput
+                    placeholder="Team 2 username"
+                    onSelect={(team) => field.onChange(team._id)}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

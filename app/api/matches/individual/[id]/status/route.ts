@@ -22,7 +22,9 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    if (!["scheduled", "in_progress", "completed", "cancelled"].includes(status)) {
+    if (
+      !["scheduled", "in_progress", "completed", "cancelled"].includes(status)
+    ) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
@@ -40,6 +42,14 @@ export async function POST(
 
     match.status = status;
 
+    if (
+      status === "in_progress" &&
+      !match.currentServer &&
+      match.serverConfig?.firstServer
+    ) {
+      match.currentServer = match.serverConfig.firstServer;
+    }
+
     if (status === "completed" && winnerSide) {
       match.winnerSide = winnerSide;
     }
@@ -50,6 +60,9 @@ export async function POST(
     return NextResponse.json({ match });
   } catch (err) {
     console.error("Status error:", err);
-    return NextResponse.json({ error: "Failed to update match status" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update match status" },
+      { status: 500 }
+    );
   }
 }

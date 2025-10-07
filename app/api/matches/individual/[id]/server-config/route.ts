@@ -34,12 +34,19 @@ export async function POST(
       );
     }
 
-    // Update server configuration
-    match.serverConfig ??= {}; // ensure it exists
-
+    // ✅ Update server configuration
+    match.serverConfig ??= {};
     match.serverConfig.firstServer = serverConfig.firstServer;
     match.serverConfig.firstReceiver = serverConfig.firstReceiver;
     match.serverConfig.serverOrder = serverConfig.serverOrder ?? [];
+
+    // ✅ Persist currentServer as well
+    match.currentServer = serverConfig.firstServer;
+
+    console.log("✅ Saved server config:", {
+      firstServer: match.serverConfig.firstServer,
+      currentServer: match.currentServer,
+    });
 
     await match.save();
     await match.populate([
@@ -47,7 +54,10 @@ export async function POST(
       { path: "games.shots.player", select: "username fullName" },
     ]);
 
-    return NextResponse.json({ match, message: "Server configuration saved" });
+    return NextResponse.json({
+      match,
+      message: "Server configuration saved",
+    });
   } catch (err) {
     console.error("Server config error:", err);
     return NextResponse.json(

@@ -82,7 +82,6 @@ export async function GET(req: NextRequest) {
       .populate("scorer", "username fullName")
       .populate("games.shots.player", "username fullName")
       .sort({ createdAt: -1 })
-      .lean();
 
     // apply limit if provided
     if (limit > 0) {

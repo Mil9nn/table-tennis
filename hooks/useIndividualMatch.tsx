@@ -154,7 +154,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const p1 = currentGameObj?.side1Score ?? 0;
       const p2 = currentGameObj?.side2Score ?? 0;
 
-      // Prefer persisted currentServer from DB if it exists
+      // ✅ Prefer persisted currentServer from DB if it exists — even if it's null
       let nextServer: ServerKey | null = null;
       if (match.currentServer) {
         nextServer = match.currentServer as ServerKey;

@@ -44,6 +44,12 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
   useEffect(() => {
     if (!match) return;
 
+    console.log("🧩 [DEBUG] DoublesScorer received match:", {
+      currentServer: match.currentServer,
+      firstServer: match.serverConfig?.firstServer,
+      order: match.serverConfig?.serverOrder,
+    });
+
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 

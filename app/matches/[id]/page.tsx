@@ -22,8 +22,8 @@ export default function MatchDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const matchId = params.id;
-  const categoryParam = searchParams.get('category'); // Get category from URL
-  
+  const categoryParam = searchParams.get("category"); // Get category from URL
+
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -44,11 +44,12 @@ export default function MatchDetailsPage() {
   const fetchMatch = async () => {
     try {
       // If category is provided in URL, use that endpoint directly
-      if (categoryParam === 'individual' || categoryParam === 'team') {
-        const endpoint = categoryParam === 'team' 
-          ? `/matches/team/${matchId}`
-          : `/matches/individual/${matchId}`;
-        
+      if (categoryParam === "individual" || categoryParam === "team") {
+        const endpoint =
+          categoryParam === "team"
+            ? `/matches/team/${matchId}`
+            : `/matches/individual/${matchId}`;
+
         const response = await axiosInstance.get(endpoint);
         if (response.status === 200) {
           setMatch({ ...response.data.match, matchCategory: categoryParam });
@@ -56,10 +57,12 @@ export default function MatchDetailsPage() {
           return;
         }
       }
-      
+
       // Fallback: try both endpoints if no category provided
       try {
-        const response = await axiosInstance.get(`/matches/individual/${matchId}`);
+        const response = await axiosInstance.get(
+          `/matches/individual/${matchId}`
+        );
         if (response.status === 200) {
           setMatch({ ...response.data.match, matchCategory: "individual" });
           setLoading(false);
@@ -77,7 +80,7 @@ export default function MatchDetailsPage() {
           throw individualError;
         }
       }
-      
+
       setMatch(null);
     } catch (error) {
       console.error("Error fetching match:", error);
@@ -179,22 +182,43 @@ export default function MatchDetailsPage() {
             </h2>
 
             {match.matchCategory === "individual" ? (
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2 shadow-sm p-4 rounded-lg border border-gray-200">
-                  {match.participants?.slice(0, 2).map((p: any, i: number) => (
-                  <p key={i} className="font-medium text-gray-800">
-                    {p.fullName || p.username || "Unknown"}
-                  </p>
-                ))}
+                <div className="font-semibold text-xl">
+                  {match.matchType === "singles" ? (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600">
+                        {match.participants?.[0]?.fullName ||
+                          match.participants?.[0]?.username ||
+                          "Unnamed Player"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {match.participants?.[1]?.fullName ||
+                          match.participants?.[1]?.username ||
+                          "Unnamed Player"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="space-y-2">
+                        {match.participants
+                          ?.slice(0, 2)
+                          .map((p: any, i: number) => (
+                            <p key={i}>
+                              {p.fullName || p.username || "Unnamed Player"}
+                            </p>
+                          ))}
+                      </div>
+                      <div className="space-y-2">
+                        {match.participants
+                          ?.slice(2, 4)
+                          .map((p: any, i: number) => (
+                            <p key={i}>
+                              {p.fullName || p.username || "Unnamed Player"}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex flex-col gap-2 shadow-sm p-4 rounded-lg border border-gray-200">
-                  {match.participants?.slice(2, 4).map((p: any, i: number) => (
-                  <p key={i} className="font-medium text-gray-800">
-                    {p.fullName || p.username || "Unknown"}
-                  </p>
-                ))}
-                </div>
-              </div>
             ) : (
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -255,77 +279,85 @@ export default function MatchDetailsPage() {
             <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
             {/* Team Match - Need to assign players first */}
-            {match.matchCategory === "team" && 
-             match.status === "scheduled" && 
-             (!match.subMatches || match.subMatches.length === 0) && (
-              <Button className="w-full gap-2 text-base py-6" asChild>
-                <Link href={`/matches/${matchId}/score`}>
-                  <Play className="w-4 h-4" />
-                  Start Match
-                </Link>
-              </Button>
-            )}
+            {match.matchCategory === "team" &&
+              match.status === "scheduled" &&
+              (!match.subMatches || match.subMatches.length === 0) && (
+                <Button className="w-full gap-2 text-base py-6" asChild>
+                  <Link href={`/matches/${matchId}/score`}>
+                    <Play className="w-4 h-4" />
+                    Start Match
+                  </Link>
+                </Button>
+              )}
 
             {/* Team Match - Already initialized */}
-            {match.matchCategory === "team" && 
-             match.subMatches && 
-             match.subMatches.length > 0 &&
-             (match.status === "scheduled" || match.status === "in_progress") && (
-              <Button className="w-full gap-2 text-base py-6" asChild>
-                <Link
-                  href={
-                    match.scorer?._id === currentUserId
-                      ? `/matches/${matchId}/score?category=${match.matchCategory}`
-                      : `/matches/${matchId}/live?category=${match.matchCategory}`
-                  }
-                >
-                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  {match.scorer?._id === currentUserId
-                    ? match.status === "scheduled"
-                      ? "Start Match"
-                      : "Continue Match"
-                    : "View Live Match"}
-                </Link>
-              </Button>
-            )}
+            {match.matchCategory === "team" &&
+              match.subMatches &&
+              match.subMatches.length > 0 &&
+              (match.status === "scheduled" ||
+                match.status === "in_progress") && (
+                <Button className="w-full gap-2 text-base py-6" asChild>
+                  <Link
+                    href={
+                      match.scorer?._id === currentUserId
+                        ? `/matches/${matchId}/score?category=${match.matchCategory}`
+                        : `/matches/${matchId}/live?category=${match.matchCategory}`
+                    }
+                  >
+                    {match.scorer?._id === currentUserId ? (
+                      <Play className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                    {match.scorer?._id === currentUserId
+                      ? match.status === "scheduled"
+                        ? "Start Match"
+                        : "Continue Match"
+                      : "View Live Match"}
+                  </Link>
+                </Button>
+              )}
 
             {/* Individual Match */}
             {match.matchCategory === "individual" &&
-             (match.status === "scheduled" || match.status === "in_progress") && (
-              <Button className="w-full gap-2 text-base py-6" asChild>
-                <Link
-                  href={
-                    match.scorer?._id === currentUserId
-                      ? `/matches/${matchId}/score?category=${match.matchCategory}`
-                      : `/matches/${matchId}/live?category=${match.matchCategory}`
-                  }
-                >
-                  {match.scorer?._id === currentUserId ? <Play className="w-4 h-4" /> : <Eye className="size-5" />}
-                  {match.scorer?._id === currentUserId
-                    ? match.status === "scheduled"
-                      ? "Start Match"
-                      : "Continue Match"
-                    : "View Live Match"}
-                </Link>
-              </Button>
-            )}
+              (match.status === "scheduled" ||
+                match.status === "in_progress") && (
+                <Button className="w-full gap-2 text-base py-6" asChild>
+                  <Link
+                    href={
+                      match.scorer?._id === currentUserId
+                        ? `/matches/${matchId}/score?category=${match.matchCategory}`
+                        : `/matches/${matchId}/live?category=${match.matchCategory}`
+                    }
+                  >
+                    {match.scorer?._id === currentUserId ? (
+                      <Play className="w-4 h-4" />
+                    ) : (
+                      <Eye className="size-5" />
+                    )}
+                    {match.scorer?._id === currentUserId
+                      ? match.status === "scheduled"
+                        ? "Start Match"
+                        : "Continue Match"
+                      : "View Live Match"}
+                  </Link>
+                </Button>
+              )}
 
             {/* Stats button */}
-            {((match.matchCategory === "individual" && 
-               match.games && 
-               match.games.some((g: any) => g.shots?.length)) ||
-              (match.matchCategory === "team" && 
-               match.subMatches?.some((sm: any) => 
-                 sm.games?.some((g: any) => g.shots?.length)
-               ))) && (
+            {((match.matchCategory === "individual" &&
+              match.games &&
+              match.games.some((g: any) => g.shots?.length)) ||
+              (match.matchCategory === "team" &&
+                match.subMatches?.some((sm: any) =>
+                  sm.games?.some((g: any) => g.shots?.length)
+                ))) && (
               <Button
                 variant="outline"
                 className="w-full gap-2 text-base py-6 mt-3"
                 asChild
               >
-                <Link href={`/matches/${matchId}/stats`}>
-                  View Statistics
-                </Link>
+                <Link href={`/matches/${matchId}/stats`}>View Statistics</Link>
               </Button>
             )}
           </div>

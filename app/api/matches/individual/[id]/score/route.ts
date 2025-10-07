@@ -128,34 +128,33 @@ export async function POST(
           Date.now() - (match.createdAt?.getTime() || Date.now());
       } else {
         // Prepare next game
-match.currentGame = gameNumber + 1;
+        match.currentGame = gameNumber + 1;
 
-if (match.matchType !== "singles") {
-  // Ensure serverConfig object exists
-  match.serverConfig = match.serverConfig || {};
+        if (match.matchType !== "singles") {
+          // Ensure serverConfig object exists
+          match.serverConfig = match.serverConfig || {};
 
-  // Determine current server order (fallback to buildDoublesRotation if missing)
-  let currentOrder = match.serverConfig.serverOrder;
-  if (!Array.isArray(currentOrder) || currentOrder.length !== 4) {
-    // NOTE: if you implemented buildDoublesRotation on backend, call it here.
-    // Otherwise fall back to the existing order (avoid raising exceptions).
-    currentOrder = match.serverConfig.serverOrder || [];
-  }
+          // Determine current server order (fallback to buildDoublesRotation if missing)
+          let currentOrder = match.serverConfig.serverOrder;
+          if (!Array.isArray(currentOrder) || currentOrder.length !== 4) {
+            // NOTE: if you implemented buildDoublesRotation on backend, call it here.
+            // Otherwise fall back to the existing order (avoid raising exceptions).
+            currentOrder = match.serverConfig.serverOrder || [];
+          }
 
-  // Flip rotation for next game (if we have a valid order)
-  if (Array.isArray(currentOrder) && currentOrder.length === 4) {
-    const newOrder = flipDoublesRotationForNextGame(currentOrder);
-    match.serverConfig.serverOrder = newOrder;
+          // Flip rotation for next game (if we have a valid order)
+          if (Array.isArray(currentOrder) && currentOrder.length === 4) {
+            const newOrder = flipDoublesRotationForNextGame(currentOrder);
+            match.serverConfig.serverOrder = newOrder;
 
-    // Persist the *first server* of the new rotation as the authoritative currentServer
-    // This prevents recompute mismatch on reload.
-    match.currentServer = newOrder[0] || null;
-  } else {
-    // If no valid serverOrder exists, clear currentServer so frontend will compute reliably
-    match.currentServer = null;
-  }
-}
-
+            // Persist the *first server* of the new rotation as the authoritative currentServer
+            // This prevents recompute mismatch on reload.
+            match.currentServer = newOrder[0] || null;
+          } else {
+            // If no valid serverOrder exists, clear currentServer so frontend will compute reliably
+            match.currentServer = null;
+          }
+        }
       }
     }
 
@@ -227,12 +226,25 @@ if (match.matchType !== "singles") {
     }
 
     await match.save();
-    const updatedMatch = await IndividualMatch.findById(match._id)
-      .populate([
-        { path: "participants", select: "username fullName" },
-        { path: "games.shots.player", select: "username fullName" },
-      ])
-      .lean();
+    // ✅ Fetch full document (no .lean()) so we keep schema fields intact
+    const updatedMatchDoc = await IndividualMatch.findById(match._id).populate([
+      { path: "participants", select: "username fullName" },
+      { path: "games.shots.player", select: "username fullName" },
+    ]);
+
+    // ✅ Convert to plain object safely and include all schema-defined fields
+    const updatedMatch = updatedMatchDoc.toObject({
+      virtuals: true,
+      getters: true,
+    });
+
+    // ✅ Guarantee these keys exist even if null
+    if (updatedMatch.currentServer === undefined) {
+      updatedMatch.currentServer = updatedMatchDoc.currentServer ?? null;
+    }
+    if (updatedMatch.serverConfig === undefined) {
+      updatedMatch.serverConfig = updatedMatchDoc.serverConfig ?? null;
+    }
 
     return NextResponse.json({
       match: updatedMatch,

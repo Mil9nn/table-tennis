@@ -39,11 +39,9 @@ export default function Navbar() {
     <header className="w-full fixed top-0 left-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Left: Brand */}
-        <Link href="/" className="items-center hidden sm:flex gap-2 sm:gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
-            <div className="bg-white w-2 h-2 rounded-full shadow"></div>
-          </div>
-          <span className="font-bold text-gray-800 text-lg">TTPro</span>
+        <Link href="/" className="items-center hidden sm:flex">
+            <img src="/imgs/logo.png" alt="logo" className="w-12 h-12" />
+          <span className="font-semibold text-gray-800 text-lg italic">TTPro</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -135,11 +133,9 @@ export default function Navbar() {
         }`}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
-            <div className="bg-white w-2 h-2 rounded-full shadow"></div>
-          </div>
-          <span className="font-bold text-gray-800 text-lg">TTPro</span>
+        <div className="flex items-center px-6 py-4 border-b">
+          <img src="/imgs/logo.png" alt="logo" className="w-12 h-12" />
+          <span className="font-semibold text-gray-800 text-lg italic">TTPro</span>
         </div>
 
         {/* Sidebar Links */}
