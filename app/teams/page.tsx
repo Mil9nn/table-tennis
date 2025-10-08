@@ -1,28 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Plus, Trophy, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Trophy, Loader2, Edit2, Trash, Search } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
+import TeamListSkeleton from "@/components/skeletons/TeamListSkeleton";
 
 type Team = {
   _id: string;
   name: string;
   city?: string;
-  record?: { wins: number; losses: number }; // optional
+  record?: { wins: number; losses: number };
   captain?: { username: string; fullName?: string };
   players: {
     user: { _id: string; username: string; fullName?: string };
-    role?: string;
-    assignment?: string; // added for A, B, C, etc.
+    assignment?: string;
   }[];
 };
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
 
   const fetchTeams = async () => {
     try {
@@ -51,107 +63,169 @@ export default function TeamsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-105px)] text-sm">
-        <p className="flex items-center gap-2 text-gray-500">
-          <Loader2 className="animate-spin" />
-          <span>Loading teams...</span>
-        </p>
-      </div>
-    )
-  }
+  // Filter + Sort logic (memoized for performance)
+  const filteredTeams = useMemo(() => {
+    let filtered = teams;
+
+    // Filter by search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.captain?.username?.toLowerCase().includes(q) ||
+          t.captain?.fullName?.toLowerCase().includes(q) ||
+          t.players.some(
+            (p) =>
+              p.user.username.toLowerCase().includes(q) ||
+              p.user.fullName?.toLowerCase().includes(q)
+          )
+      );
+    }
+
+    // Filter by city
+    if (cityFilter !== "all") {
+      filtered = filtered.filter((t) => t.city === cityFilter);
+    }
+
+    // Sort
+    if (sortBy === "wins") {
+      filtered = [...filtered].sort(
+        (a, b) => (b.record?.wins || 0) - (a.record?.wins || 0)
+      );
+    } else if (sortBy === "players") {
+      filtered = [...filtered].sort(
+        (a, b) => (b.players?.length || 0) - (a.players?.length || 0)
+      );
+    } else {
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return filtered;
+  }, [teams, search, cityFilter, sortBy]);
+
+  const cities = Array.from(new Set(teams.map((t) => t.city).filter(Boolean)));
 
   return (
-    <div className="space-y-6 p-2">
-      {/* Header */}
-      <header className="flex justify-between items-center p-2">
-        <h1 className="text-2xl font-bold flex items-center gap-2">Teams</h1>
+    <div className="p-4 space-y-6">
+      {/* Header + Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-tight">Teams</h1>
         <Link href="/teams/create">
-          <Button className="gap-2">
+          <Button size="sm" className="gap-1.5">
             <Plus className="w-4 h-4" /> New Team
           </Button>
         </Link>
-      </header>
+      </div>
 
-      {/* Card Layout */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {teams.map((t) => (
-          <div
-            key={t._id}
-            className="border rounded-lg shadow-sm p-4 bg-gradient-to-r from-blue-50 to-white flex flex-col justify-between"
-          >
-            {/* Team Header */}
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">{t.name}</h2>
-              <div className="flex gap-2">
-                <Link href={`/teams/${t._id}/edit`}>
-                  <Pencil className="w-5 h-5 text-gray-600 cursor-pointer hover:text-black" />
-                </Link>
-                <Trash2
-                  className="w-5 h-5 text-red-600 cursor-pointer hover:text-red-800"
-                  onClick={() => deleteTeam(t._id)}
-                />
-              </div>
-            </div>
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by team, captain, or player..."
+          className="pl-8 rounded-full border-2 border-black/60"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-            {/* Captain / Record / Players */}
-            <div className="p-2 space-y-2">
-              <p className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-500">Captain:</span>
-                <span className="font-semibold">
-                  {t.captain?.fullName || t.captain?.username || "-"}
-                </span>
-              </p>
-              <p className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-500">Players:</span>
-                <span className="font-semibold">{t.players?.length || 0}</span>
-              </p>
-              <p className="flex items-center justify-between text-sm mb-3">
-                <span className="font-medium text-gray-500">Record:</span>
-                <span className="font-semibold">
-                  {t.record
-                    ? `${t.record.wins}W - ${t.record.losses}L`
-                    : "0W - 0L"}
-                </span>
-              </p>
-            </div>
+      {loading ? <TeamListSkeleton /> : <div>
+        {filteredTeams.length ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredTeams.map((t) => (
+              <Card
+                key={t._id}
+                className="border rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <CardHeader className="pb-2 flex flex-row justify-between items-center">
+                  <CardTitle className="text-base font-medium">
+                    {t.name}
+                  </CardTitle>
+                  <div className="flex gap-1">
+                    <Link href={`/teams/${t._id}/edit`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 hover:text-red-600"
+                      onClick={() => deleteTeam(t._id)}
+                    >
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
 
-            <hr className="my-2" />
-
-            {/* Player List */}
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">Players:</p>
-              <div className="p-2 space-y-2 h-30 overflow-y-auto">
-                {t.players.map((p) => (
-                  <div key={p.user._id} className="flex justify-between">
-                    <span className="text-gray-500 font-semibold">
-                      {p.user.fullName || p.user.username}
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Captain</span>
+                    <span className="text-foreground font-medium">
+                      {t.captain?.fullName || t.captain?.username || "-"}
                     </span>
-                    {p.assignment && (
-                      <span className="text-xs px-2 py-0.5 border rounded bg-gray-100">
-                        {p.assignment}
-                      </span>
+                  </div>
+
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Players</span>
+                    <span className="text-foreground font-medium">
+                      {t.players?.length || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Record</span>
+                    <span className="text-foreground font-medium">
+                      {t.record
+                        ? `${t.record.wins}W - ${t.record.losses}L`
+                        : "0W - 0L"}
+                    </span>
+                  </div>
+
+                  <div className="border-t pt-2 space-y-1 max-h-18 overflow-y-auto">
+                    {t.players.length ? (
+                      t.players.map((p) => (
+                        <div
+                          key={p.user._id}
+                          className="flex justify-between text-xs items-center"
+                        >
+                          <span className="truncate text-muted-foreground">
+                            {p.user.fullName || p.user.username}
+                          </span>
+                          {p.assignment && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                              {p.assignment}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        No players yet
+                      </p>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Actions */}
-            <div className="mt-4 flex gap-2">
-              <Link href={`/teams/${t._id}/assign`} className="flex-1">
-                <Button variant="outline" className="w-full gap-1">
-                  Assign A - B - C
-                </Button>
-              </Link>
-              <Button variant="outline" className="flex-1 gap-1">
-                <Trophy className="w-4 h-4" />
-              </Button>
-            </div>
+                  <div className="pt-2 flex gap-2">
+                    <Link href={`/teams/${t._id}/assign`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Assign
+                      </Button>
+                    </Link>
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Trophy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        ))}
-      </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center italic">
+            No teams found.
+          </p>
+        )}
+      </div>}
     </div>
   );
 }

@@ -202,14 +202,6 @@ export default function MatchesList({
                       : ""}
                   </span>
                 </div>
-
-                {/* Duration (if available) */}
-                {match.matchDuration && (
-                  <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                    <Timer className="size-4" />{" "}
-                    {formatTimeDuration(match.matchDuration)}
-                  </div>
-                )}
               </CardContent>
             </Card>
           </Link>

@@ -23,31 +23,24 @@ export default function MatchesListSkeleton() {
             {/* Participants (2x2 or 2x1 grid mimic) */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex items-center justify-end gap-2">
-                <div className="h-7 w-7 bg-gray-200 rounded-full" />
                 <div className="h-3 w-20 bg-gray-200 rounded" />
+                <div className="h-7 w-7 bg-gray-200 rounded-full" />
               </div>
               <div className="flex items-center justify-start gap-2">
-                <div className="h-3 w-20 bg-gray-200 rounded" />
                 <div className="h-7 w-7 bg-gray-200 rounded-full" />
+                <div className="h-3 w-20 bg-gray-200 rounded" />
               </div>
             </div>
 
             {/* Final Score */}
             <div className="text-center space-y-2">
               <div className="h-6 w-16 mx-auto bg-gray-200 rounded" />
-              <div className="h-3 w-24 mx-auto bg-gray-200 rounded" />
             </div>
 
             {/* Footer */}
             <div className="flex justify-between text-xs text-gray-400">
               <div className="h-3 w-16 bg-gray-200 rounded" />
               <div className="h-3 w-12 bg-gray-200 rounded" />
-            </div>
-
-            {/* Duration */}
-            <div className="flex justify-center gap-2 text-xs">
-              <div className="h-4 w-4 bg-gray-200 rounded-full" />
-              <div className="h-3 w-16 bg-gray-200 rounded" />
             </div>
           </CardContent>
         </Card>
