@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         { fullName: { $regex: q, $options: "i" } },
       ],
     })
-      .select("_id username fullName profileImage")
+      .select("_id username fullName gender profileImage")
       .limit(10);
 
     return NextResponse.json({ users });
