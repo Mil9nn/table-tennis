@@ -18,8 +18,6 @@ interface ProfileState {
   profileImage: string | null;
   setProfileImage: (profileImage: string) => void;
   isUploadingProfile: boolean;
-  isLoadingProfile: boolean;
-  fetchProfileImage: () => Promise<void>;
   
   // User info management
   userInfo: User | null;
@@ -36,25 +34,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   profileImage: null,
   setProfileImage: (profileImage: string) => set({ profileImage }),
   isUploadingProfile: false,
-  isLoadingProfile: false,
 
   userInfo: null,
   isLoadingUserInfo: false,
   isUpdatingUserInfo: false,
-
-  // Fetch profile image from API
-  async fetchProfileImage() {
-    set({ isLoadingProfile: true });
-    try {
-      const response = await axiosInstance.get("/profile/image");
-      const data = response.data;
-      set({ profileImage: data.url || data.profileImage });
-    } catch (error) {
-      console.error("Error fetching profile image:", error);
-    } finally {
-      set({ isLoadingProfile: false });
-    }
-  },
 
   async uploadImage(image: File) {
     const formData = new FormData();

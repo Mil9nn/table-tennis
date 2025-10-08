@@ -50,9 +50,7 @@ const ProfilePage = () => {
     previewUrl,
     setPreviewUrl,
     uploadImage,
-    fetchProfileImage,
     isUploadingProfile,
-    isLoadingProfile,
   } = useProfileStore();
 
   const { user, fetchUser } = useAuthStore();
@@ -64,9 +62,10 @@ const ProfilePage = () => {
 
   const [isEditingGender, setIsEditingGender] = useState(false);
 
+  const authLoading = useAuthStore((state) => state.authLoading);
+
   // Fetch profile + stats
   useEffect(() => {
-    fetchProfileImage();
     fetchUser();
 
     const fetchStats = async () => {
@@ -91,7 +90,7 @@ const ProfilePage = () => {
 
     fetchStats();
     fetchShotStats();
-  }, [fetchProfileImage, fetchUser]);
+  }, [fetchUser]);
 
   // Auto upload on file select
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,7 +181,7 @@ const ProfilePage = () => {
             <div className="p-6">
               <div className="relative mx-auto w-32 h-32">
                 <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 shadow-lg">
-                  {isLoadingProfile ? (
+                  {authLoading ? (
                     <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
                       <Camera className="w-8 h-8 text-gray-400" />
                     </div>
@@ -287,15 +286,15 @@ const ProfilePage = () => {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-700 font-bold">
+                  <h3 className="text-sm text-gray-700 font-bold">
                     Full Name
-                  </label>
+                  </h3>
                   <div className="p-2 text-sm font-medium">{user.fullName}</div>
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-700">
+                  <h3 className="text-sm font-bold text-gray-700">
                     Username
-                  </label>
+                  </h3>
                   <div className="w-fit gap-4 flex items-center justify-between p-2 border rounded-lg">
                     <span className="font-medium text-sm">
                       @{user.username}
@@ -312,17 +311,17 @@ const ProfilePage = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700 font-bold">
+                  <h3 className="text-sm text-gray-700 font-bold">
                     Email
-                  </label>
+                  </h3>
                   <div className="p-2 bg-gray-50 rounded text-sm font-medium">
                     {user.email}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700 font-bold">
+                  <h3 className="text-sm text-gray-700 font-bold">
                     Member Since
-                  </label>
+                  </h3>
                   <div className="p-2 bg-gray-50 rounded font-medium text-sm">
                     {formatDate(user.createdAt || "")}
                   </div>

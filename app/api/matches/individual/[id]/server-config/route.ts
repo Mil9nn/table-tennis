@@ -43,11 +43,6 @@ export async function POST(
     // ✅ Persist currentServer as well
     match.currentServer = serverConfig.firstServer;
 
-    console.log("✅ Saved server config:", {
-      firstServer: match.serverConfig.firstServer,
-      currentServer: match.currentServer,
-    });
-
     await match.save();
     await match.populate([
       { path: "participants", select: "username fullName" },

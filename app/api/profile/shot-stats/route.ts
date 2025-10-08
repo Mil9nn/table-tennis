@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
     const errorBreakdown: Record<string, number> = { net: 0, long: 0, serve: 0 };
     let winners = 0;
     let errors = 0;
-    let lets = 0;
 
     matches.forEach((match: any) => {
       match.games?.forEach((game: any) => {
@@ -45,8 +44,6 @@ export async function GET(request: NextRequest) {
             if (shot.errorType) {
               errorBreakdown[shot.errorType] = (errorBreakdown[shot.errorType] || 0) + 1;
             }
-          } else if (shot.outcome === "let") {
-            lets++;
           }
 
           // Stroke
@@ -62,7 +59,6 @@ export async function GET(request: NextRequest) {
       stats: {
         winners,
         errors,
-        lets,
         errorBreakdown,
         detailedShots: shotTotals,
       },

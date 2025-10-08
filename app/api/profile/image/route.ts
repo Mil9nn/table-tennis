@@ -3,47 +3,6 @@ import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { User } from "@/models/User";
 import cloudinary from "@/lib/cloudinary";
 
-export async function GET(request: NextRequest) {
-  try {
-    const token = getTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.userId).select("-password -__v");
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        user: {
-          _id: user._id,
-          username: user.username,
-          fullName: user.fullName,
-          email: user.email,
-          profileImage: user.profileImage,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Get profile error:", error);
-    return NextResponse.json(
-      { message: "Something went wrong" },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(request: NextRequest) {
   const token = getTokenFromRequest(request);
   if (!token) {

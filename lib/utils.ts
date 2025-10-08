@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function formatDuration(startTime: number, endTime: number) {
@@ -68,37 +68,14 @@ export async function cropImageToSquare(file: File): Promise<File> {
   });
 }
 
-export function timeAgo(dateString: string): string {
+export function timeAgo(dateInput: string | Date): string {
   try {
-    // ✅ Validate input format
-    if (!dateString.includes(",")) {
-      throw new Error("Invalid date format");
-    }
+    const inputDate = new Date(dateInput);
+    if (isNaN(inputDate.getTime())) throw new Error("Invalid date");
 
-    const [datePart, timePart] = dateString.split(", ");
-    if (!datePart || !timePart) throw new Error("Invalid date/time");
+    const now = new Date();
+    const diffMs = now.getTime() - inputDate.getTime();
 
-    const [day, month, year] = datePart.split("/").map(Number);
-    const [hours, minutes, seconds] = timePart.split(":").map(Number);
-
-    // ✅ Ensure all parsed values are numbers
-    if (
-      [day, month, year, hours, minutes, seconds].some(
-        (n) => Number.isNaN(n) || n === undefined
-      )
-    ) {
-      throw new Error("Invalid date components");
-    }
-
-    const inputDate = new Date(year, month - 1, day, hours, minutes, seconds);
-    if (isNaN(inputDate.getTime())) {
-      throw new Error("Invalid Date object");
-    }
-
-    const now: Date = new Date();
-    const diffMs: number = now.getTime() - inputDate.getTime();
-
-    // If somehow input date is in future
     if (diffMs < 0) return "in the future";
 
     const secondsAgo = Math.floor(diffMs / 1000);
@@ -107,21 +84,19 @@ export function timeAgo(dateString: string): string {
     const daysAgo = Math.floor(hoursAgo / 24);
 
     if (secondsAgo < 5) return "just now";
-    if (secondsAgo < 60)
-      return `${secondsAgo} second${secondsAgo !== 1 ? "s" : ""} ago`;
-    if (minutesAgo < 60)
-      return `${minutesAgo} minute${minutesAgo !== 1 ? "s" : ""} ago`;
-    if (hoursAgo < 24)
-      return `${hoursAgo} hour${hoursAgo !== 1 ? "s" : ""} ago`;
-    if (daysAgo < 30)
-      return `${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`;
+    if (secondsAgo < 60) return `${secondsAgo} seconds ago`;
+    if (minutesAgo < 60) return `${minutesAgo} minutes ago`;
+    if (hoursAgo < 24) {
+      if (hoursAgo == 1) return "1 hour ago";
+      else return `${hoursAgo} hours ago`;
+    }
+    if (daysAgo < 30) return `${daysAgo} days ago`;
 
     const monthsAgo = Math.floor(daysAgo / 30);
-    if (monthsAgo < 12)
-      return `${monthsAgo} month${monthsAgo !== 1 ? "s" : ""} ago`;
+    if (monthsAgo < 12) return `${monthsAgo} months ago`;
 
     const yearsAgo = Math.floor(monthsAgo / 12);
-    return `${yearsAgo} year${yearsAgo !== 1 ? "s" : ""} ago`;
+    return `${yearsAgo} years ago`;
   } catch (err) {
     console.error("timeAgo error:", err);
     return "invalid date";
