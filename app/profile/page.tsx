@@ -33,6 +33,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import Image from "next/image";
 
 // --- Shared colors for charts ---
 const COLORS = [
@@ -186,7 +187,7 @@ const ProfilePage = () => {
                       <Camera className="w-8 h-8 text-gray-400" />
                     </div>
                   ) : profileImage || previewUrl ? (
-                    <img
+                    <Image
                       src={previewUrl || profileImage || ""}
                       alt="Profile"
                       className="w-full h-full object-cover"

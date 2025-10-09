@@ -89,8 +89,8 @@ export async function POST(req: Request) {
 
     // Populate for response
     await team.populate([
-      { path: "captain", select: "username fullName" },
-      { path: "players.user", select: "username fullName" },
+      { path: "captain", select: "username fullName profileImage" },
+      { path: "players.user", select: "username fullName profileImage" },
     ]);
 
     return NextResponse.json(

@@ -42,10 +42,18 @@ function UserSearchInput({
   };
 
   const handleSelect = (u: User) => {
-    setSelectedUser(u);
     onSelect(u);
-    setSuggestions([]);
-    if (clearAfterSelect) setQuery("");
+
+    if (clearAfterSelect) {
+      // 🧹 Team creation mode: clear everything after picking
+      setQuery("");
+      setSuggestions([]);
+      setSelectedUser(null);
+    } else {
+      // 🎯 Individual match mode: show selected user
+      setSelectedUser(u);
+      setSuggestions([]);
+    }
   };
 
   const handleClear = () => {
@@ -57,8 +65,8 @@ function UserSearchInput({
 
   return (
     <div className="relative">
-      {/* When a user is selected */}
-      {selectedUser ? (
+      {/* Selected user (for singles/doubles inputs) */}
+      {selectedUser && !clearAfterSelect ? (
         <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
@@ -87,7 +95,7 @@ function UserSearchInput({
             value={query}
             onChange={(e) => fetchSuggestions(e.target.value)}
             onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)} // delay so click can register
+            onBlur={() => setTimeout(() => setFocused(false), 150)} // short delay to allow click
             className="pr-10"
           />
           {loading && (
@@ -99,7 +107,7 @@ function UserSearchInput({
       )}
 
       {/* Dropdown suggestions */}
-      {focused && suggestions.length > 0 && !selectedUser && (
+      {focused && suggestions.length > 0 && (
         <ul className="absolute z-20 w-full mt-1 bg-background border rounded-lg shadow-lg overflow-hidden animate-in fade-in-50 slide-in-from-top-1">
           {suggestions.map((u) => {
             const displayName = u.fullName || u.username;

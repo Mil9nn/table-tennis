@@ -8,6 +8,7 @@ import { IndividualMatch } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { set } from "mongoose";
 import RecentMatchesSkeleton from "@/components/skeletons/RecentMatchesSkeleton";
+import Image from "next/image";
 
 export default function HomePage() {
   const [matches, setMatches] = useState<IndividualMatch[]>([]);
@@ -84,10 +85,12 @@ export default function HomePage() {
                     {/* Player 1 */}
                     <div className="flex items-center gap-3">
                       {match.participants[0].profileImage ? (
-                        <img
+                        <Image
                           src={match.participants[0].profileImage}
                           alt={match.participants[0].username}
-                          className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm"
+                          width={48}
+                          height={48}
+                          className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
                         />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-semibold text-lg border border-gray-200 shadow-sm">
@@ -107,10 +110,12 @@ export default function HomePage() {
                         {match.participants[1].username}
                       </h3>
                       {match.participants[1].profileImage ? (
-                        <img
+                        <Image
                           src={match.participants[1].profileImage}
                           alt={match.participants[1].username}
-                          className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm"
+                          width={48}
+                          height={48}
+                          className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
                         />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-semibold text-lg border border-gray-200 shadow-sm">

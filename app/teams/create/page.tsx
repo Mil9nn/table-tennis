@@ -18,6 +18,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { useState } from "react";
 import UserSearchInput from "@/app/match/componets/UserSearchInput";
+import Image from "next/image";
 
 const teamSchema = z.object({
   name: z.string().min(2, "Team name is required"),
@@ -26,35 +27,47 @@ const teamSchema = z.object({
   players: z.array(z.string()).min(2, "Add at least 2 players"),
 });
 
-type User = { _id: string; username: string; fullName?: string };
+type User = {
+  _id: string;
+  username: string;
+  fullName?: string;
+  profileImage?: string;
+};
 
 export default function CreateTeamPage() {
   const router = useRouter();
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<User[]>([]);
 
   const form = useForm({
     resolver: zodResolver(teamSchema),
     defaultValues: { name: "", captain: "", city: "", players: [] },
   });
 
-  const addPlayer = (username: string) => {
-    if (username && !players.includes(username)) {
-      const updated = [...players, username];
+  const addPlayer = (user: User) => {
+    const exists = players.some((p) => p._id === user._id);
+    if (!exists) {
+      const updated = [...players, user];
       setPlayers(updated);
-      form.setValue("players", updated);
+      form.setValue(
+        "players",
+        updated.map((p) => p._id)
+      );
     }
   };
 
-  const removePlayer = (username: string) => {
-    const updated = players.filter((p) => p !== username);
+  const removePlayer = (id: string) => {
+    const updated = players.filter((p) => p._id !== id);
     setPlayers(updated);
-    form.setValue("players", updated);
+    form.setValue(
+      "players",
+      updated.map((p) => p._id)
+    );
   };
 
   const onSubmit = async (data: any) => {
     try {
-      const payload = { ...data, players };
-      const res = await axiosInstance.post("/teams", payload);
+      const payload = { ...data, players: players.map((p) => p._id) };
+      await axiosInstance.post("/teams", payload);
       toast.success("Team created!");
       router.push("/teams");
     } catch (err: any) {
@@ -125,7 +138,7 @@ export default function CreateTeamPage() {
                 <UserSearchInput
                   placeholder="Search player by username"
                   clearAfterSelect
-                  onSelect={(u) => addPlayer(u._id)}
+                  onSelect={(u) => addPlayer(u)}
                 />
 
                 {/* Player List */}
@@ -133,14 +146,31 @@ export default function CreateTeamPage() {
                   {players.length > 0 ? (
                     players.map((p) => (
                       <div
-                        key={p}
+                        key={p._id}
                         className="flex justify-between items-center border p-2 rounded"
                       >
-                        <span>{p}</span>
+                        <div className="flex items-center gap-3">
+                          {p.profileImage ? (
+                            <Image
+                              src={p.profileImage}
+                              alt={p.fullName || p.username}
+                              width={36}
+                              height={36}
+                              className="w-9 h-9 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-700">
+                              {(p.fullName?.[0] || p.username?.[0] || "?").toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-medium text-sm">
+                            {p.fullName || p.username}
+                          </span>
+                        </div>
                         <button
                           type="button"
-                          className="text-red-500 text-sm"
-                          onClick={() => removePlayer(p)}
+                          className="text-red-500 text-xs font-medium hover:underline"
+                          onClick={() => removePlayer(p._id)}
                         >
                           Remove
                         </button>

@@ -183,45 +183,79 @@ export default function MatchDetailsPage() {
             </h2>
 
             {match.matchCategory === "individual" ? (
-                <div className="font-semibold text-xl">
-                  {match.matchType === "singles" ? (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600">
-                        {match.participants?.[0]?.fullName ||
-                          match.participants?.[0]?.username ||
-                          "Unnamed Player"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {match.participants?.[1]?.fullName ||
-                          match.participants?.[1]?.username ||
-                          "Unnamed Player"}
-                      </p>
+              <div className="font-semibold text-xl">
+                {match.matchType === "singles" ? (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">
+                      <Image src={match.participants?.[0]?.profileImage} alt="Profile Image" width={40} height={40} className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border" />
+                      {match.participants?.[0]?.fullName ||
+                        match.participants?.[0]?.username ||
+                        "Unnamed Player"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <Image src={match.participants?.[1]?.profileImage} alt="Profile Image" width={40} height={40} className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border" />
+                      {match.participants?.[1]?.fullName ||
+                        match.participants?.[1]?.username ||
+                        "Unnamed Player"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="space-y-2">
+                      {match.participants
+                        ?.slice(0, 2)
+                        .map((p: any, i: number) => (
+                          <p key={i} className="flex items-center">
+                            {p.profileImage ? (
+                              <Image
+                                src={p.profileImage}
+                                alt="Profile Image"
+                                width={40}
+                                height={40}
+                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                              />
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                                {(
+                                  p.fullName?.[0] ||
+                                  p.username?.[0] ||
+                                  "?"
+                                ).toUpperCase()}
+                              </div>
+                            )}
+                            {p.fullName || p.username || "Unnamed Player"}
+                          </p>
+                        ))}
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="space-y-2">
-                        {match.participants
-                          ?.slice(0, 2)
-                          .map((p: any, i: number) => (
-                            <p key={i}>
-                              <img src={p.profileImage || '/default-profile.png'} alt="Profile Image" className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-500 border-2" />
-                              {p.fullName || p.username || "Unnamed Player"}
-                            </p>
-                          ))}
-                      </div>
-                      <div className="space-y-2">
-                        {match.participants
-                          ?.slice(2, 4)
-                          .map((p: any, i: number) => (
-                            <p key={i}>
-                              <img src={p.profileImage || '/default-profile.png'} alt="Profile Image" className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-500 border-2" />
-                              {p.fullName || p.username || "Unnamed Player"}
-                            </p>
-                          ))}
-                      </div>
+                    <div className="space-y-2">
+                      {match.participants
+                        ?.slice(2, 4)
+                        .map((p: any, i: number) => (
+                          <p key={i} className="flex items-center">
+                            {p.profileImage ? (
+                              <Image
+                                src={p.profileImage}
+                                alt="Profile Image"
+                                width={40}
+                                height={40}
+                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                              />
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                                {(
+                                  p.fullName?.[0] ||
+                                  p.username?.[0] ||
+                                  "?"
+                                ).toUpperCase()}
+                              </div>
+                            )}
+                            {p.fullName || p.username || "Unnamed Player"}
+                          </p>
+                        ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="grid grid-cols-2 gap-6">
                 <div>

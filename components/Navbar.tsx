@@ -48,7 +48,7 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Left: Brand */}
         <Link href="/" className="items-center hidden sm:flex">
-          <img src="/imgs/logo.png" alt="logo" className="w-12 h-12" />
+          <Image src="/imgs/logo.png" alt="logo" width={48} height={48} className="w-12 h-12" />
           <span className="font-semibold text-gray-800 text-lg italic">
             TTPro
           </span>
@@ -71,7 +71,7 @@ export default function Navbar() {
               </Link>
             ))}
           </div>
-          
+
           {/* Hamburger Menu (Mobile) */}
           <button
             onClick={() => setOpen(!open)}
@@ -96,9 +96,11 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <button className="cursor-pointer w-9 h-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
                     {user?.profileImage ? (
-                      <img
+                      <Image
                         src={previewUrl || user.profileImage}
                         alt="Profile"
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -157,7 +159,13 @@ export default function Navbar() {
       >
         {/* Sidebar Header */}
         <div className="flex items-center px-6 py-4 border-b">
-          <img src="/imgs/logo.png" alt="logo" className="w-12 h-12" />
+          <Image
+            src="/imgs/logo.png"
+            alt="logo"
+            width={48}
+            height={48}
+            className="w-12 h-12"
+          />
           <span className="font-semibold text-gray-800 text-lg italic">
             TTPro
           </span>
