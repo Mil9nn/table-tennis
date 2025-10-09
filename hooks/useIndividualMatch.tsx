@@ -14,6 +14,7 @@ import {
   IndividualGame,
   InitialServerConfig,
 } from "@/types/match.type";
+import { updateCurrentServerInDB } from "@/lib/updateCurrentServer";
 
 export type PlayerKey = "side1" | "side2" | null;
 type ServerKey =
@@ -351,6 +352,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
               toast.success(
                 `Game ${currentGame} won! Starting Game ${nextGameNum}`
               );
+
+              await updateCurrentServerInDB(match._id, nextServer!);
             }
           } else {
             const nextServer = computeNextServer(
@@ -363,6 +366,9 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
               side2Score: newP2,
               currentServer: nextServer,
             });
+
+            // Persist currentServer change to DB if it changed
+            await updateCurrentServerInDB(match._id, nextServer!);
           }
         }
       } catch (err) {

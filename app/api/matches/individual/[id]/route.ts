@@ -8,9 +8,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { id } = await context.params;
 
     const match = await IndividualMatch.findById(id)
-      .populate("scorer", "username fullName")
-      .populate("participants", "username fullName")
-      .populate("games.shots.player", "username fullName")
+      .populate("scorer", "username fullName profileImage")
+      .populate("participants", "username fullName profileImage")
+      .populate("games.shots.player", "username fullName profileImage");
 
     if (!match) {
       return NextResponse.json(

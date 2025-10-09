@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import Image from "next/image";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -203,6 +204,7 @@ export default function MatchDetailsPage() {
                           ?.slice(0, 2)
                           .map((p: any, i: number) => (
                             <p key={i}>
+                              <img src={p.profileImage || '/default-profile.png'} alt="Profile Image" className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-500 border-2" />
                               {p.fullName || p.username || "Unnamed Player"}
                             </p>
                           ))}
@@ -212,6 +214,7 @@ export default function MatchDetailsPage() {
                           ?.slice(2, 4)
                           .map((p: any, i: number) => (
                             <p key={i}>
+                              <img src={p.profileImage || '/default-profile.png'} alt="Profile Image" className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-500 border-2" />
                               {p.fullName || p.username || "Unnamed Player"}
                             </p>
                           ))}

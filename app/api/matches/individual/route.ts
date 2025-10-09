@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
     const scorer = await User.findById(decoded.userId);
-    if (!scorer) return NextResponse.json({ error: "Invalid scorer" }, { status: 400 });
+    if (!scorer) return NextResponse.json({ error: "invalid scorer, user not found" }, { status: 401 });
 
     // ✅ Validate
     if (

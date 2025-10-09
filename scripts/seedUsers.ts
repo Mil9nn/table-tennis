@@ -1,7 +1,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { connectDB } from "../lib/mongodb.js"; // ⚠️ use relative path, not "@/lib/mongodb"
+import { connectDB } from "../lib/mongodb.js";
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },

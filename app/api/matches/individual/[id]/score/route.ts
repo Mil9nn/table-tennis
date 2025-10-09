@@ -226,7 +226,7 @@ export async function POST(
     }
 
     await match.save();
-    // ✅ Fetch full document (no .lean()) so we keep schema fields intact
+    
     const updatedMatchDoc = await IndividualMatch.findById(match._id).populate([
       { path: "participants", select: "username fullName" },
       { path: "games.shots.player", select: "username fullName" },
