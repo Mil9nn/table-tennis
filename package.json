@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "seed:users": "tsx scripts/seedUsers.ts"
+    "seed:users": "tsx scripts/seedUsers.ts",
+    "seed:matches": "tsx scripts/seedMatches.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
