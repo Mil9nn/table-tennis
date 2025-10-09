@@ -1,9 +1,10 @@
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { throttle } from "lodash";
+import { ServerKey } from "@/types/match.type";
 
 // 🔄 Define throttled internal function
-const _updateServer = async (matchId: string, currentServer: string) => {
+const _updateServer = async (matchId: string, currentServer: ServerKey) => {
   try {
     await axiosInstance.post(`/matches/individual/${matchId}/current-server`, {
       currentServer,
