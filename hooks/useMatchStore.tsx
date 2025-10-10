@@ -73,6 +73,9 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       matchDuration: raw.matchDuration,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+
+      currentServer: raw.currentServer ?? null,
+      serverConfig: raw.serverConfig ?? null,
     };
   };
 

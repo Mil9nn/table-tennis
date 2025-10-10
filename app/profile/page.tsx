@@ -47,12 +47,8 @@ const COLORS = [
 ];
 
 const ProfilePage = () => {
-  const {
-    previewUrl,
-    setPreviewUrl,
-    uploadImage,
-    isUploadingProfile,
-  } = useProfileStore();
+  const { previewUrl, setPreviewUrl, uploadImage, isUploadingProfile } =
+    useProfileStore();
 
   const { user, fetchUser } = useAuthStore();
   const profileImage = user?.profileImage || null;
@@ -190,6 +186,8 @@ const ProfilePage = () => {
                     <Image
                       src={previewUrl || profileImage || ""}
                       alt="Profile"
+                      width={45}
+                      height={45}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -225,56 +223,58 @@ const ProfilePage = () => {
                 </p>
               )}
 
-              {/* --- GENDER FIELD (EDITABLE ON CLICK) --- */}
-              <div className="mt-6 text-center">
-                {user?.gender && !isEditingGender ? (
-                  <div className="flex items-center justify-between gap-2 border-blue-200 border p-1 rounded-xl px-4">
-                    <span className="flex items-center gap-1 text-sm font-medium capitalize text-gray-800 italic">
-                      {user.gender}
-                      {user.gender === "male" ? (
-                        <Mars className="size-4 stroke-[2.5] text-blue-500" />
-                      ) : (
-                        <Venus className="size-4 stroke-[2.5] text-pink-500" />
-                      )}
-                    </span>
-                    <Button
-                      variant="link"
-                      onClick={() => setIsEditingGender(true)}
-                      className="text-indigo-500 hover:text-indigo-700 text-sm cursor-pointer hover:border-2 border-indigo-500 transition-colors rounded-full"
-                    >
-                      <Edit2 className="inline-block size-4 ml-1" />
-                      Edit
-                    </Button>
-                  </div>
-                ) : (
-                  <Select
-                    defaultValue={user?.gender || ""}
-                    onValueChange={async (gender) => {
-                      try {
-                        const res = await axiosInstance.put("/profile/update", {
-                          gender,
-                        });
-                        if (res.data.success) {
-                          toast.success("Gender updated successfully!");
-                          await fetchUser();
-                          setIsEditingGender(false); // ✅ immediately close edit mode
-                        }
-                      } catch (err) {
-                        console.error("Failed to update gender:", err);
-                        toast.error("Failed to update gender. Try again.");
-                      }
-                    }}
+              {user?.gender && !isEditingGender ? (
+                // --- View mode ---
+                <div className="flex items-center justify-between gap-2 border-blue-200 border p-1 rounded-xl px-4 mt-4">
+                  <span className="flex items-center gap-1 text-sm font-medium capitalize text-gray-800 italic">
+                    {user.gender}
+                    {user.gender === "male" ? (
+                      <Mars className="size-4 stroke-[2.5] text-blue-500" />
+                    ) : (
+                      <Venus className="size-4 stroke-[2.5] text-pink-500" />
+                    )}
+                  </span>
+                  <Button
+                    variant="link"
+                    onClick={() => setIsEditingGender(true)}
+                    className="flex items-center gap-1 text-indigo-500 hover:text-indigo-700 text-sm cursor-pointer hover:border-2 border-indigo-500 transition-colors rounded-full"
                   >
-                    <SelectTrigger className="w-full border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400">
-                      <SelectValue placeholder="Select your gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+                    <Edit2 className="inline-block size-4" />
+                    Edit
+                  </Button>
+                </div>
+              ) : (
+                // --- Edit mode ---
+                <Select
+                  // ⬇️ key point: clear value when editing to show placeholder
+                  defaultValue={
+                    !user?.gender || isEditingGender ? undefined : user.gender
+                  }
+                  onValueChange={async (gender) => {
+                    try {
+                      const res = await axiosInstance.put("/profile/update", {
+                        gender,
+                      });
+                      if (res.data.success) {
+                        toast.success("Gender updated successfully!");
+                        await fetchUser();
+                        setIsEditingGender(false);
+                      }
+                    } catch (err) {
+                      console.error("Failed to update gender:", err);
+                      toast.error("Failed to update gender. Try again.");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400">
+                    <SelectValue placeholder="Select your gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -287,16 +287,12 @@ const ProfilePage = () => {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm text-gray-700 font-bold">
-                    Full Name
-                  </h3>
-                  <div className="p-2 text-sm font-medium">{user.fullName}</div>
+                  <h3 className="text-sm text-gray-700 font-bold">Full Name</h3>
+                  <div className="p-2 bg-gray-50 rounded text-sm font-medium">{user.fullName}</div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-700">
-                    Username
-                  </h3>
-                  <div className="w-fit gap-4 flex items-center justify-between p-2 border rounded-lg">
+                  <h3 className="text-sm font-bold text-gray-700">Username</h3>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm font-medium">
                     <span className="font-medium text-sm">
                       @{user.username}
                     </span>
@@ -312,9 +308,7 @@ const ProfilePage = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm text-gray-700 font-bold">
-                    Email
-                  </h3>
+                  <h3 className="text-sm text-gray-700 font-bold">Email</h3>
                   <div className="p-2 bg-gray-50 rounded text-sm font-medium">
                     {user.email}
                   </div>
@@ -335,7 +329,7 @@ const ProfilePage = () => {
               <h2 className="text-xl font-semibold">Statistics</h2>
               <p>Track your performance and progress</p>
               <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mt-4">
-                <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
+                <div className="p-4 bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-sm">
                   <h3 className="text-sm font-semibold text-blue-800">
                     Matches Played
                   </h3>
@@ -343,7 +337,7 @@ const ProfilePage = () => {
                     {stats?.matchesPlayed ?? 0}
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-r from-white to-blue-100 rounded-xl shadow-md">
+                <div className="p-4 bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-sm">
                   <h3 className="text-sm font-semibold text-blue-800">
                     Record (W-L-D)
                   </h3>
@@ -353,7 +347,7 @@ const ProfilePage = () => {
                       : "0-0-0"}
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-r from-white to-blue-100 shadow-md rounded-xl">
+                <div className="p-4 bg-gradient-to-r from-white to-blue-50 shadow-sm rounded-xl">
                   <div className="text-2xl font-bold">
                     <h3 className="text-sm font-semibold text-blue-800">
                       Win Rate
@@ -367,7 +361,7 @@ const ProfilePage = () => {
                     </span>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-r from-white to-yellow-100 shadow-md rounded-xl">
+                <div className="p-4 bg-gradient-to-r from-white to-yellow-50 shadow-sm rounded-xl">
                   <div className="text-sm font-semibold text-yellow-800">
                     Strength
                   </div>

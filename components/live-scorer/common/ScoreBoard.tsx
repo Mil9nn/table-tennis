@@ -141,6 +141,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       match.matchType
     );
 
+    console.log({serverName});
+
   return (
     <div className="space-y-2">
       {/* ✅ Tracker for individual match sets */}
