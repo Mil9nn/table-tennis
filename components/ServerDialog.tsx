@@ -95,7 +95,7 @@ const handleSave = async () => {
 };
 
 const getPlayerName = (index: number) => {
-  const participant = participants[index];
+  const participant = participants?.[index];
   return (
     participant?.fullName || participant?.username || `Player ${index + 1}`
   );

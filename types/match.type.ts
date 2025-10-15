@@ -1,6 +1,10 @@
 import { Shot } from "./shot.type";
 
-export type MatchStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+export type MatchStatus =
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export type IndividualMatchType = "singles" | "doubles" | "mixed_doubles";
 export type MatchCategory = "individual" | "team";
@@ -10,7 +14,13 @@ export interface Participant {
   _id: string;
   username: string;
   fullName?: string;
-  profileImage?: string; 
+  profileImage?: string;
+}
+
+export interface Player {
+  _id: string;
+  user: Participant;
+  role?: "player" | "captain"; 
 }
 
 export type PlayerKey = "side1" | "side2";
@@ -74,12 +84,65 @@ export interface IndividualMatch {
 // TEAM MATCH TYPES
 // ============================================
 
-export type TeamMatchFormat = 
-  | "swaythling_format"      // 5 singles (A-X, B-Y, C-Z, A-Y, B-X)
-  | "single_double_single"   // A-X, AB-XY, B-Y
-  | "five_singles_full"      // 5 singles (A-X, B-Y, C-Z, D-P, E-Q)
-  | "three_singles";         // 3 singles (A-X, B-Y, C-Z)
+export interface TeamInfo {
+  _id: string;
+  name: string;
+  captain?: Participant;
+  logo?: string;
+  players: Player[];
+  city: string;
+  stats: {
+    matchesPlayed: number;
+    matchesWon: number;
+    matchesLost: number;
+    winPercentage: number;
+    gamesWon: number;
+    gamesLost: number;
+  };
+  assignments?: Record<string, string>; // playerId -> symbol (A, B, C, X, Y, Z, etc.)
+}
 
+export interface SubMatch {
+  _id?: string;
+  subMatchNumber: number;
+  matchType: IndividualMatchType;
+  numberOfSets: number;
+  participants: Participant[];
+  games: IndividualGame[];
+  finalScore: {
+    side1Sets: number;
+    side2Sets: number;
+  };
+  winnerSide?: WinnerSide;
+  completed: boolean;
+}
+
+export interface TeamMatch {
+  _id: string;
+  matchCategory: "team";
+  format: TeamMatchFormat;
+  numberOfSetsPerSubMatch: number;
+  team1: TeamInfo;
+  team2: TeamInfo;
+  scorer?: Participant;
+  city?: string;
+  venue?: string;
+  status: MatchStatus;
+  subMatches: SubMatch[];
+  overallScore: {
+    team1: number;
+    team2: number;
+  };
+  winnerSide?: WinnerSide;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type TeamMatchFormat =
+  | "swaythling_format" // 5 singles (A-X, B-Y, C-Z, A-Y, B-X)
+  | "single_double_single" // A-X, AB-XY, B-Y
+  | "five_singles_full" // 5 singles (A-X, B-Y, C-Z, D-P, E-Q)
+  | "three_singles"; // 3 singles (A-X, B-Y, C-Z)
 
 // ============================================
 // UNIFIED TYPES
@@ -94,7 +157,7 @@ export interface AddPointPayload {
     stroke: string;
     outcome: "winner" | "error";
     errorType?: "net" | "long" | "serve";
-  }
+  };
 }
 
 export type OnAddPoint = (payload: AddPointPayload) => void;
@@ -103,7 +166,9 @@ export type OnAddPoint = (payload: AddPointPayload) => void;
 // TYPE GUARDS
 // ============================================
 
-export function isIndividualMatch(match: NormalizedMatch): match is IndividualMatch {
+export function isIndividualMatch(
+  match: NormalizedMatch
+): match is IndividualMatch {
   return match.matchCategory === "individual";
 }
 
@@ -118,30 +183,33 @@ export const FORMAT_DISPLAY_NAMES: Record<TeamMatchFormat, string> = {
   three_singles: "Three Singles",
 };
 
-export const FORMAT_REQUIREMENTS: Record<TeamMatchFormat, { 
-  team1: string[]; 
-  team2: string[];
-  minPlayers: number;
-}> = {
-  swaythling_format: { 
-    team1: ["A", "B", "C"], 
+export const FORMAT_REQUIREMENTS: Record<
+  TeamMatchFormat,
+  {
+    team1: string[];
+    team2: string[];
+    minPlayers: number;
+  }
+> = {
+  swaythling_format: {
+    team1: ["A", "B", "C"],
     team2: ["X", "Y", "Z"],
-    minPlayers: 3
+    minPlayers: 3,
   },
-  single_double_single: { 
-    team1: ["A", "B"], 
+  single_double_single: {
+    team1: ["A", "B"],
     team2: ["X", "Y"],
-    minPlayers: 2
+    minPlayers: 2,
   },
-  five_singles_full: { 
-    team1: ["A", "B", "C", "D", "E"], 
+  five_singles_full: {
+    team1: ["A", "B", "C", "D", "E"],
     team2: ["X", "Y", "Z", "P", "Q"],
-    minPlayers: 5
+    minPlayers: 5,
   },
-  three_singles: { 
-    team1: ["A", "B", "C"], 
+  three_singles: {
+    team1: ["A", "B", "C"],
     team2: ["X", "Y", "Z"],
-    minPlayers: 3
+    minPlayers: 3,
   },
 };
 

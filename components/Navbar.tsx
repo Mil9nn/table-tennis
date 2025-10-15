@@ -48,7 +48,7 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Left: Brand */}
         <Link href="/" className="items-center hidden sm:flex">
-          <Image src="/imgs/logo.png" alt="logo" width={48} height={48} className="w-12 h-12" />
+          <Image src="/imgs/logo.png" alt="logo" width={48} height={48} className="w-12 h-12" priority />
           <span className="font-semibold text-gray-800 text-lg italic">
             TTPro
           </span>

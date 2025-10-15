@@ -30,17 +30,19 @@ export default function MatchDetailsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchUser = useAuthStore((state) => state.fetchUser);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    try {
-      fetchUser();
-      const user = useAuthStore.getState().user;
-      setCurrentUserId(user?._id || null);
-    } catch (error) {
-      console.error("Error fetching user:", error);
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (user?._id) {
+      setCurrentUserId(user._id);
+    } else {
       setCurrentUserId(null);
     }
-  }, []);
+  }, [user]);
 
   const fetchMatch = async () => {
     try {
@@ -58,30 +60,6 @@ export default function MatchDetailsPage() {
           return;
         }
       }
-
-      // Fallback: try both endpoints if no category provided
-      try {
-        const response = await axiosInstance.get(
-          `/matches/individual/${matchId}`
-        );
-        if (response.status === 200) {
-          setMatch({ ...response.data.match, matchCategory: "individual" });
-          setLoading(false);
-          return;
-        }
-      } catch (individualError: any) {
-        if (individualError.response?.status === 404) {
-          const response = await axiosInstance.get(`/matches/team/${matchId}`);
-          if (response.status === 200) {
-            setMatch({ ...response.data.match, matchCategory: "team" });
-            setLoading(false);
-            return;
-          }
-        } else {
-          throw individualError;
-        }
-      }
-
       setMatch(null);
     } catch (error) {
       console.error("Error fetching match:", error);
@@ -112,19 +90,20 @@ export default function MatchDetailsPage() {
     );
   }
 
+  console.log("Players:", match.team1);
+
   const side1Name =
     match.matchCategory === "individual"
-      ? match.participants?.[0]?.fullName ||
-        match.participants?.[0]?.username ||
-        "Player 1"
-      : match.team1?.name || "Team 1";
-
+      ? match.participants?.[0]?.fullName
+      : match.team1?.name;
   const side2Name =
     match.matchCategory === "individual"
-      ? match.participants?.[1]?.fullName ||
-        match.participants?.[1]?.username ||
-        "Player 2"
-      : match.team2?.name || "Team 2";
+      ? match.participants?.[1]?.fullName
+      : match.team2?.name;
+
+  const isScorer = match.scorer._id === currentUserId;
+
+  console.log(isScorer, match.scorer._id, currentUserId);
 
   return (
     <div className="px-4 py-8 max-w-6xl mx-auto">
@@ -183,105 +162,162 @@ export default function MatchDetailsPage() {
             </h2>
 
             {match.matchCategory === "individual" ? (
+              // 🎯 INDIVIDUAL MATCHES
               <div className="font-semibold text-xl">
                 {match.matchType === "singles" ? (
+                  // Singles: Two players
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-600">
-                      <Image src={match.participants?.[0]?.profileImage} alt="Profile Image" width={40} height={40} className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border" />
-                      {match.participants?.[0]?.fullName ||
-                        match.participants?.[0]?.username ||
-                        "Unnamed Player"}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      <Image src={match.participants?.[1]?.profileImage} alt="Profile Image" width={40} height={40} className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border" />
-                      {match.participants?.[1]?.fullName ||
-                        match.participants?.[1]?.username ||
-                        "Unnamed Player"}
-                    </p>
+                    {match.participants
+                      ?.slice(0, 2)
+                      .map((p: any, i: number) => (
+                        <p
+                          key={i}
+                          className="text-sm text-gray-600 flex items-center"
+                        >
+                          {p?.profileImage ? (
+                            <Image
+                              src={p.profileImage}
+                              alt={p.fullName || "Player"}
+                              width={40}
+                              height={40}
+                              className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(p?.fullName?.[0] || "?").toUpperCase()}
+                            </div>
+                          )}
+                          {p?.fullName || "Unnamed"}
+                        </p>
+                      ))}
                   </div>
                 ) : (
+                  // Doubles: 2 players per side (4 total)
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="space-y-2">
                       {match.participants
                         ?.slice(0, 2)
                         .map((p: any, i: number) => (
-                          <p key={i} className="flex items-center">
-                            {p.profileImage ? (
+                          <div key={i} className="flex items-center">
+                            {p?.profileImage ? (
                               <Image
                                 src={p.profileImage}
-                                alt="Profile Image"
+                                alt={p.fullName || "Player"}
                                 width={40}
                                 height={40}
                                 className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
                               />
                             ) : (
                               <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                                {(
-                                  p.fullName?.[0] ||
-                                  p.username?.[0] ||
-                                  "?"
-                                ).toUpperCase()}
+                                {(p?.fullName?.[0] || "?").toUpperCase()}
                               </div>
                             )}
-                            {p.fullName || p.username || "Unnamed Player"}
-                          </p>
+                            {p?.fullName || "Unnamed"}
+                          </div>
                         ))}
                     </div>
+
                     <div className="space-y-2">
                       {match.participants
                         ?.slice(2, 4)
                         .map((p: any, i: number) => (
-                          <p key={i} className="flex items-center">
-                            {p.profileImage ? (
+                          <div key={i} className="flex items-center">
+                            {p?.profileImage ? (
                               <Image
                                 src={p.profileImage}
-                                alt="Profile Image"
+                                alt={p.fullName || "Player"}
                                 width={40}
                                 height={40}
                                 className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
                               />
                             ) : (
                               <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                                {(
-                                  p.fullName?.[0] ||
-                                  p.username?.[0] ||
-                                  "?"
-                                ).toUpperCase()}
+                                {(p?.fullName?.[0] || "?").toUpperCase()}
                               </div>
                             )}
-                            {p.fullName || p.username || "Unnamed Player"}
-                          </p>
+                            {p?.fullName || "Unnamed"}
+                          </div>
                         ))}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
+              // 🏆 TEAM MATCHES
               <div className="grid grid-cols-2 gap-6">
+                {/* TEAM 1 */}
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    {match.team1?.players?.map((player: any, index: number) => (
-                      <li key={index}>
-                        {player.user?.fullName ||
-                          player.user?.username ||
-                          "Unnamed"}
-                        {player.role ? ` (${player.role})` : ""}
-                      </li>
-                    ))}
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    {match.team1?.players?.length ? (
+                      match.team1.players.map((player: any, index: number) => (
+                        <li key={index} className="flex items-center">
+                          {player?.user?.profileImage ? (
+                            <Image
+                              src={player.user.profileImage}
+                              alt={player.user.fullName || "Player"}
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(
+                                player?.user?.fullName?.[0] || "?"
+                              ).toUpperCase()}
+                            </div>
+                          )}
+                          {player?.user?.fullName ||
+                            player?.user?.username ||
+                            "Unnamed"}
+                          {match.team1.assignments?.get?.(player.user._id) && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({match.team1.assignments.get(player.user._id)})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 italic">No players found</li>
+                    )}
                   </ul>
                 </div>
+
+                {/* TEAM 2 */}
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    {match.team2?.players?.map((player: any, index: number) => (
-                      <li key={index}>
-                        {player.user?.fullName ||
-                          player.user?.username ||
-                          "Unnamed"}
-                        {player.role ? ` (${player.role})` : ""}
-                      </li>
-                    ))}
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    {match.team2?.players?.length ? (
+                      match.team2.players.map((player: any, index: number) => (
+                        <li key={index} className="flex items-center">
+                          {player?.user?.profileImage ? (
+                            <Image
+                              src={player.user.profileImage}
+                              alt={player.user.fullName || "Player"}
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(
+                                player?.user?.fullName?.[0] || "?"
+                              ).toUpperCase()}
+                            </div>
+                          )}
+                          {player?.user?.fullName ||
+                            player?.user?.username ||
+                            "Unnamed"}
+                          {match.team2.assignments?.get?.(player.user._id) && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({match.team2.assignments.get(player.user._id)})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 italic">No players found</li>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -312,82 +348,40 @@ export default function MatchDetailsPage() {
         {/* Actions + Score */}
         <div className="space-y-6">
           {/* Actions */}
+          {/* ACTIONS */}
           <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
             <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
-            {/* Team Match - Need to assign players first */}
-            {match.matchCategory === "team" &&
-              match.status === "scheduled" &&
-              (!match.subMatches || match.subMatches.length === 0) && (
-                <Button className="w-full gap-2 text-base py-6" asChild>
-                  <Link href={`/matches/${matchId}/score`}>
-                    <Play className="w-4 h-4" />
-                    Start Match
-                  </Link>
-                </Button>
-              )}
-
-            {/* Team Match - Already initialized */}
-            {match.matchCategory === "team" &&
-              match.subMatches &&
-              match.subMatches.length > 0 &&
-              (match.status === "scheduled" ||
-                match.status === "in_progress") && (
+            {["individual", "team"].includes(match.matchCategory) &&
+              ["scheduled", "in_progress"].includes(match.status) && (
                 <Button className="w-full gap-2 text-base py-6" asChild>
                   <Link
                     href={
-                      match.scorer?._id === currentUserId
+                      isScorer
                         ? `/matches/${matchId}/score?category=${match.matchCategory}`
                         : `/matches/${matchId}/live?category=${match.matchCategory}`
                     }
                   >
-                    {match.scorer?._id === currentUserId ? (
+                    {isScorer ? (
                       <Play className="w-4 h-4" />
                     ) : (
                       <Eye className="w-4 h-4" />
                     )}
-                    {match.scorer?._id === currentUserId
+                    {isScorer
                       ? match.status === "scheduled"
                         ? "Start Match"
                         : "Continue Match"
-                      : "View Live Match"}
-                  </Link>
-                </Button>
-              )}
-
-            {/* Individual Match */}
-            {match.matchCategory === "individual" &&
-              (match.status === "scheduled" ||
-                match.status === "in_progress") && (
-                <Button className="w-full gap-2 text-base py-6" asChild>
-                  <Link
-                    href={
-                      match.scorer?._id === currentUserId
-                        ? `/matches/${matchId}/score?category=${match.matchCategory}`
-                        : `/matches/${matchId}/live?category=${match.matchCategory}`
-                    }
-                  >
-                    {match.scorer?._id === currentUserId ? (
-                      <Play className="w-4 h-4" />
-                    ) : (
-                      <Eye className="size-5" />
-                    )}
-                    {match.scorer?._id === currentUserId
-                      ? match.status === "scheduled"
-                        ? "Start Match"
-                        : "Continue Match"
-                      : "View Live Match"}
+                      : "View Live"}
                   </Link>
                 </Button>
               )}
 
             {/* Stats button */}
             {((match.matchCategory === "individual" &&
-              match.games &&
-              match.games.some((g: any) => g.shots?.length)) ||
+              match.games?.some((g) => g.shots?.length)) ||
               (match.matchCategory === "team" &&
-                match.subMatches?.some((sm: any) =>
-                  sm.games?.some((g: any) => g.shots?.length)
+                match.subMatches?.some((sm) =>
+                  sm.games?.some((g) => g.shots?.length)
                 ))) && (
               <Button
                 variant="outline"

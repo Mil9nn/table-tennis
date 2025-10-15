@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { IndividualMatch, Participant } from "@/types/match.type";
+import { IndividualMatch, Participant, TeamMatch } from "@/types/match.type";
 
 interface MatchStore {
-  match: IndividualMatch | null;
-  setMatch: (m: IndividualMatch | null) => void;
+  match: IndividualMatch | TeamMatch | null;
+  setMatch: (m: IndividualMatch | TeamMatch | null) => void;
 
   loading: boolean;
   updating: boolean;
@@ -25,7 +25,11 @@ interface MatchStore {
   serverDialogOpen: boolean;
   setServerDialogOpen: (open: boolean) => void;
 
-  fetchMatch: (matchId: string) => Promise<void>;
+  // 👇 Modified to include matchType
+  fetchMatch: (
+    matchId: string,
+    matchType?: "individual" | "team"
+  ) => Promise<void>;
 }
 
 export const useMatchStore = create<MatchStore>((set, get) => {
@@ -37,9 +41,35 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     }));
   }
 
-  const normalizeMatch = (raw: any): IndividualMatch => {
-    const participants = normalizeParticipants(raw.participants);
+  const normalizeMatch = (raw: any): IndividualMatch | TeamMatch => {
+    if (raw.matchCategory === "team") {
+      return {
+        _id: String(raw._id),
+        matchCategory: "team",
+        format: raw.format,
+        numberOfSetsPerSubMatch: raw.numberOfSetsPerSubMatch ?? 3,
+        team1: {
+          _id: String(raw.team1._id),
+          name: raw.team1.name,
+          players: normalizeParticipants(raw.team1.players || []),
+          logo: raw.team1.logo,
+        },
+        team2: {
+          _id: String(raw.team2._id),
+          name: raw.team2.name,
+          players: normalizeParticipants(raw.team2.players || []),
+          logo: raw.team2.logo,
+        },
+        scorer: raw.scorer,
+        subMatches: raw.subMatches || [],
+        status: raw.status,
+        createdAt: raw.createdAt,
+        updatedAt: raw.updatedAt,
+      };
+    }
 
+    // otherwise individual
+    const participants = normalizeParticipants(raw.participants);
     return {
       _id: String(raw._id || raw.id),
       matchCategory: "individual",
@@ -73,7 +103,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       matchDuration: raw.matchDuration,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
-
       currentServer: raw.currentServer ?? null,
       serverConfig: raw.serverConfig ?? null,
     };
@@ -99,15 +128,19 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     serverDialogOpen: false,
     setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
-    // ✅ Only supports individual matches now
-    fetchMatch: async (id: string) => {
+    // ✅ Now supports both individual and team matches
+    fetchMatch: async (id, matchType) => {
       set({ fetchingMatch: true });
       try {
-        const res = await axiosInstance.get(`/matches/individual/${id}`);
+        const res = await axiosInstance.get(`/matches/${matchType}/${id}`);
         const normalizedMatch = normalizeMatch(res.data.match || res.data);
         set({ match: normalizedMatch, loading: false });
-      } catch (err) {
-        console.error("Error fetching match:", err);
+      } catch (err: any) {
+        console.error(
+          `Error fetching ${matchType} match:`,
+          err.response?.data || err
+        );
+        toast.error(`Failed to load ${matchType} match`);
         set({ loading: false, match: null });
         throw err;
       } finally {

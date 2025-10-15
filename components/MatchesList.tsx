@@ -60,7 +60,7 @@ function Player({
       } ${highlight ? "text-emerald-700 font-semibold" : "text-gray-800"}`}
     >
       {align === "left" && avatar}
-      <p className="truncate max-w-[120px]">{name || "Unknown Player"}</p>
+      <p className="truncate max-w-[120px]">{name}</p>
       {align === "right" && avatar}
     </div>
   );

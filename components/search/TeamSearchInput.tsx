@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import BlinkingDotsLoader from "../loaders/BlinkingDotsLoader";
 
 type Team = {
   _id: string;
@@ -75,8 +76,8 @@ export default function TeamSearchInput({
       {/* Selected Team Display */}
       {selectedTeam ? (
         <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 ring-2 ring-background ring-offset-2 ring-offset-muted">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
               <AvatarImage src={selectedTeam.logo} alt={selectedTeam.name} />
               <AvatarFallback>{getInitial(selectedTeam.name)}</AvatarFallback>
             </Avatar>
@@ -105,7 +106,7 @@ export default function TeamSearchInput({
             className="pr-10"
           />
           {loading && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-indigo-500" />
+            <BlinkingDotsLoader className="absolute right-3 top-1/2 -translate-y-1/2" />
           )}
         </>
       )}
@@ -119,7 +120,7 @@ export default function TeamSearchInput({
               type="button"
               onMouseDown={() => handleSelect(team)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 hover:bg-muted transition-colors text-left"
+                "w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-left"
               )}
             >
               <Avatar className="h-8 w-8">

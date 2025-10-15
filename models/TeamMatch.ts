@@ -187,12 +187,14 @@ const TeamMatchSchema = new mongoose.Schema(
     numberOfSetsPerSubMatch: { type: Number, enum: [3, 5, 7], default: 5 },
 
     team1: {
-      name: String,
-      players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
+      required: true,
     },
     team2: {
-      name: String,
-      players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
+      required: true,
     },
 
     subMatches: [subMatchSchema],

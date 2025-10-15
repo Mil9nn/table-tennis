@@ -7,14 +7,17 @@ import { IndividualMatch } from "@/types/match.type";
 import GamesHistory from "@/components/live-scorer/common/GamesHistory";
 import ShotFeed from "@/components/live-scorer/common/ShotFeed";
 import MatchCompletedCard from "@/components/live-scorer/common/MatchCompletedCard";
+import { useParams } from "next/navigation";
 
 export default function LiveMatchDetails({ matchId }: { matchId: string }) {
   const match = useMatchStore((s) => s.match);
   const fetchMatch = useMatchStore((s) => s.fetchMatch);
   const loading = useMatchStore((s) => s.loading);
 
+  
+
   useEffect(() => {
-    if (matchId) fetchMatch(matchId);
+    if (matchId) fetchMatch(matchId, match?.matchCategory);
   }, [matchId, fetchMatch]);
 
   if (loading)

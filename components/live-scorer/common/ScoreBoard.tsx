@@ -17,7 +17,7 @@ import { TriangleAlert } from "lucide-react";
 
 type ScoreBoardProps = {
   match: IndividualMatch;
-  side1Score: number; // points
+  side1Score: number;
   side2Score: number;
   isMatchActive: boolean;
   currentServer: string | null;
@@ -28,6 +28,12 @@ type ScoreBoardProps = {
   onSubtractPoint: (side: "side1" | "side2") => void;
   onReset: () => void;
   onToggleMatch: () => void;
+
+  // For team matches: can be individual player info
+  teamMatchPlayers?: {
+    side1: { name: string; playerId?: string; serverKey: string };
+    side2: { name: string; playerId?: string; serverKey: string };
+  };
 };
 
 export default function ScoreBoard(props: ScoreBoardProps) {
@@ -44,9 +50,17 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     onSubtractPoint,
     onReset,
     onToggleMatch,
+    teamMatchPlayers,
   } = props;
 
-  // ✅ Game win check for individual matches
+  const getPlayerName = (player: { name?: string; playerId?: string; serverKey: string }) => {
+  if (!player.playerId) return player.serverKey; // fallback if player not assigned
+  const allPlayers = [...(match.team1.players || []), ...(match.team2.players || [])];
+  const realPlayer = allPlayers.find((p) => p._id === player.playerId);
+  return realPlayer?.fullName || realPlayer?.username || player.serverKey;
+};
+
+
   const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
     gameWinner === "side1"
@@ -58,14 +72,40 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
 
-  // ✅ Build display players
   const buildPlayers = () => {
     if (!match) {
       return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
     }
 
-    // Singles
-    if (match.matchType === "singles") {
+    // Individual match
+    if (match.matchCategory === "individual") {
+      // Singles
+      if (match.matchType === "singles") {
+        return {
+          p1: [
+            {
+              name:
+                match.participants?.[0]?.fullName ??
+                match.participants?.[0]?.username ??
+                "Player 1",
+              playerId: match.participants?.[0]?._id,
+              serverKey: "side1",
+            },
+          ],
+          p2: [
+            {
+              name:
+                match.participants?.[1]?.fullName ??
+                match.participants?.[1]?.username ??
+                "Player 2",
+              playerId: match.participants?.[1]?._id,
+              serverKey: "side2",
+            },
+          ],
+        };
+      }
+
+      // Doubles / mixed_doubles
       return {
         p1: [
           {
@@ -74,61 +114,57 @@ export default function ScoreBoard(props: ScoreBoardProps) {
               match.participants?.[0]?.username ??
               "Player 1",
             playerId: match.participants?.[0]?._id,
-            serverKey: "side1",
+            serverKey: "side1_main",
+          },
+          {
+            name:
+              match.participants?.[1]?.fullName ??
+              match.participants?.[1]?.username ??
+              "Partner 1",
+            playerId: match.participants?.[1]?._id,
+            serverKey: "side1_partner",
           },
         ],
         p2: [
           {
             name:
-              match.participants?.[1]?.fullName ??
-              match.participants?.[1]?.username ??
+              match.participants?.[2]?.fullName ??
+              match.participants?.[2]?.username ??
               "Player 2",
-            playerId: match.participants?.[1]?._id,
-            serverKey: "side2",
+            playerId: match.participants?.[2]?._id,
+            serverKey: "side2_main",
+          },
+          {
+            name:
+              match.participants?.[3]?.fullName ??
+              match.participants?.[3]?.username ??
+              "Partner 2",
+            playerId: match.participants?.[3]?._id,
+            serverKey: "side2_partner",
           },
         ],
       };
     }
 
-    // Doubles / mixed_doubles
-    return {
-      p1: [
-        {
-          name:
-            match.participants?.[0]?.fullName ??
-            match.participants?.[0]?.username ??
-            "Player 1",
-          playerId: match.participants?.[0]?._id,
-          serverKey: "side1_main",
-        },
-        {
-          name:
-            match.participants?.[1]?.fullName ??
-            match.participants?.[1]?.username ??
-            "Partner 1",
-          playerId: match.participants?.[1]?._id,
-          serverKey: "side1_partner",
-        },
-      ],
-      p2: [
-        {
-          name:
-            match.participants?.[2]?.fullName ??
-            match.participants?.[2]?.username ??
-            "Player 2",
-          playerId: match.participants?.[2]?._id,
-          serverKey: "side2_main",
-        },
-        {
-          name:
-            match.participants?.[3]?.fullName ??
-            match.participants?.[3]?.username ??
-            "Partner 2",
-          playerId: match.participants?.[3]?._id,
-          serverKey: "side2_partner",
-        },
-      ],
-    };
+    console.log("Team Match Players:", teamMatchPlayers);
+
+    // Team Match
+    if (match.matchCategory === "team" && teamMatchPlayers) {
+      return {
+        p1: [
+          {
+            ...teamMatchPlayers.side1,
+            name: getPlayerName(teamMatchPlayers.side1),
+          },
+        ],
+        p2: [
+          {
+            ...teamMatchPlayers.side2,
+            name: getPlayerName(teamMatchPlayers.side2),
+          },
+        ],
+      };
+    }
   };
 
   const { p1, p2 } = buildPlayers();
@@ -137,15 +173,14 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     currentServer &&
     getCurrentServerName(
       currentServer as any,
-      match.participants || [],
-      match.matchType
+      match.matchCategory === "individual"
+        ? match.participants || []
+        : [...match.team1.players, ...match.team2.players],
+      match.matchCategory === "individual" ? match.matchType : "singles" // use singles for team since ScoreBoard only uses names
     );
-
-    console.log({serverName});
 
   return (
     <div className="space-y-2">
-      {/* ✅ Tracker for individual match sets */}
       <SetTracker
         bestOf={match.numberOfSets}
         side1Sets={side1Sets}
@@ -153,7 +188,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         status={status}
       />
 
-      {/* ✅ Serving indicator */}
       {!isGameWon && (
         <div className="bg-yellow-50 rounded-md p-1 px-2 w-fit mx-auto">
           {serverName ? (
@@ -169,9 +203,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         </div>
       )}
 
-      {/* ✅ Players + Controls */}
       <div className="grid grid-cols-2 sm:gap-6 gap-2 items-center">
-        {/* Side 1 */}
         <PlayerCard
           players={p1}
           score={side1Score}
@@ -184,7 +216,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           currentServer={currentServer}
         />
 
-        {/* Side 2 */}
         <PlayerCard
           players={p2}
           score={side2Score}
@@ -197,7 +228,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           currentServer={currentServer}
         />
 
-        {/* Controls */}
         <div className="col-span-2 flex justify-center mt-4">
           <CenterControls
             isMatchActive={isMatchActive}
@@ -206,7 +236,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           />
         </div>
 
-        {/* Game flow */}
         {isGameWon && status !== "completed" && (
           <div className="col-span-2 text-center mt-4">
             <span className="text-lg font-bold text-green-600">
@@ -218,7 +247,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           </div>
         )}
 
-        {/* Match finished */}
         {status === "completed" && (
           <div className="col-span-2 text-center mt-4">
             <span className="text-lg font-bold text-green-600">

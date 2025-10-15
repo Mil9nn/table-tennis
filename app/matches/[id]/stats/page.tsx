@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { Shot } from "@/types/shot.type";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { useMatchStore } from "@/hooks/useMatchStore";
 
 // --- Shared colors ---
 const COLORS = {
@@ -93,40 +94,18 @@ function computeServeStats(games: any[]) {
 
 export default function MatchStatsPage() {
   const params = useParams();
-  const matchId = params.id;
-  const [match, setMatch] = useState<any>(null);
+  const matchId = params.id as string;
   const [loading, setLoading] = useState(true);
 
-  const fetchMatch = async () => {
-    try {
-      let response = await axiosInstance.get(`/matches/individual/${matchId}`);
-      if (response.status === 200) {
-        const data = await response.data;
-        setMatch({ ...data.match, matchCategory: "individual" });
-        return;
-      }
-
-      response = await axiosInstance.get(`/matches/team/${matchId}`);
-      if (response.status === 200) {
-        const data = await response.data;
-        setMatch({ ...data.match, matchCategory: "team" });
-        return;
-      }
-
-      setMatch(null);
-    } catch (error) {
-      console.error("Error fetching match stats:", error);
-      setMatch(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { match, fetchingMatch, fetchMatch } = useMatchStore();
 
   useEffect(() => {
-    fetchMatch();
-  }, [matchId]);
+    if (!matchId) return;
+    const category = match?.matchCategory;
+    fetchMatch(matchId, category);
+  }, [matchId, fetchMatch]);
 
-  if (loading) {
+  if (fetchingMatch) {
     return (
       <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
         <Loader2 className="animate-spin size-4" />
@@ -142,10 +121,8 @@ export default function MatchStatsPage() {
   }
 
   // --- Names ---
-  const isSingles =
-    match.matchCategory === "individual" && match.participants?.length === 2;
-  const isDoubles =
-    match.matchCategory === "individual" && match.participants?.length === 4;
+  const isSingles = match.matchCategory === "individual" && match.participants?.length === 2;
+  const isDoubles = match.matchCategory === "individual" && match.participants?.length === 4;
 
   const side1Name = isSingles
     ? match.participants?.[0]?.fullName ||
