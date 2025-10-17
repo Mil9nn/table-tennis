@@ -82,10 +82,7 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
     }
   }
 
-  // Team Matches
-  if (match.matchCategory === "team") {
-    return <SwaythlingFormatScorer match={match as TeamMatch} />
-  }
+  // Team Matches ...
 
   return <div>Unsupported match type</div>;
 }
