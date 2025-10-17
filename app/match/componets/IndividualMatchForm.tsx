@@ -113,6 +113,8 @@ export default function IndividualMatchForm({
     }
   };
 
+  const matchType = form.watch("matchType");
+
   return (
     <div className="rounded-2xl border bg-card p-6 sm:p-8 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-6">
@@ -173,7 +175,7 @@ export default function IndividualMatchForm({
 
           {/* Player Fields */}
           <div className="space-y-6">
-            {form.watch("matchType") === "singles" ? (
+            {matchType === "singles" ? (
               <>
                 <FormItem>
                   <FormLabel>Player 1</FormLabel>
@@ -192,7 +194,7 @@ export default function IndividualMatchForm({
               </>
             ) : (
               <>
-                {form.watch("matchType") === "mixed_doubles" && (
+                {matchType === "mixed_doubles" && (
                   <p className="text-xs text-muted-foreground italic text-center">
                     Each team must have one <strong>male</strong> and one{" "}
                     <strong>female</strong> player.

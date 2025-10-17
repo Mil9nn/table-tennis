@@ -11,12 +11,13 @@ import {
   AddPointPayload,
   MatchStatus,
   IndividualMatch,
+  TeamMatch,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { TriangleAlert } from "lucide-react";
 
 type ScoreBoardProps = {
-  match: IndividualMatch;
+  match: IndividualMatch | TeamMatch;
   side1Score: number;
   side2Score: number;
   isMatchActive: boolean;
@@ -52,14 +53,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     onToggleMatch,
     teamMatchPlayers,
   } = props;
-
-  const getPlayerName = (player: { name?: string; playerId?: string; serverKey: string }) => {
-  if (!player.playerId) return player.serverKey; // fallback if player not assigned
-  const allPlayers = [...(match.team1.players || []), ...(match.team2.players || [])];
-  const realPlayer = allPlayers.find((p) => p._id === player.playerId);
-  return realPlayer?.fullName || realPlayer?.username || player.serverKey;
-};
-
 
   const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
@@ -146,43 +139,73 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       };
     }
 
-    console.log("Team Match Players:", teamMatchPlayers);
-
-    // Team Match
+    // Team Match - use the pre-resolved player info from teamMatchPlayers
     if (match.matchCategory === "team" && teamMatchPlayers) {
+      console.log("🎯 Building players for team match");
+      console.log("Side1 player:", teamMatchPlayers.side1);
+      console.log("Side2 player:", teamMatchPlayers.side2);
+
       return {
         p1: [
           {
-            ...teamMatchPlayers.side1,
-            name: getPlayerName(teamMatchPlayers.side1),
+            name: teamMatchPlayers.side1.name, // This already has the resolved name
+            playerId: teamMatchPlayers.side1.playerId,
+            serverKey: teamMatchPlayers.side1.serverKey,
           },
         ],
         p2: [
           {
-            ...teamMatchPlayers.side2,
-            name: getPlayerName(teamMatchPlayers.side2),
+            name: teamMatchPlayers.side2.name, // This already has the resolved name
+            playerId: teamMatchPlayers.side2.playerId,
+            serverKey: teamMatchPlayers.side2.serverKey,
           },
         ],
       };
     }
+
+    // Fallback
+    return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
   };
 
   const { p1, p2 } = buildPlayers();
+
+  console.log("👥 Final players for ScoreBoard:", { p1, p2 });
+
+  // Get all participants for server name lookup
+  const allParticipants =
+    match.matchCategory === "individual"
+      ? match.participants || []
+      : teamMatchPlayers
+      ? [
+          {
+            _id: teamMatchPlayers.side1.playerId || "",
+            fullName: teamMatchPlayers.side1.name,
+            username: teamMatchPlayers.side1.name,
+          },
+          {
+            _id: teamMatchPlayers.side2.playerId || "",
+            fullName: teamMatchPlayers.side2.name,
+            username: teamMatchPlayers.side2.name,
+          },
+        ]
+      : [];
 
   const serverName =
     currentServer &&
     getCurrentServerName(
       currentServer as any,
-      match.matchCategory === "individual"
-        ? match.participants || []
-        : [...match.team1.players, ...match.team2.players],
-      match.matchCategory === "individual" ? match.matchType : "singles" // use singles for team since ScoreBoard only uses names
+      allParticipants,
+      match.matchCategory === "individual" ? match.matchType : "singles"
     );
 
   return (
     <div className="space-y-2">
       <SetTracker
-        bestOf={match.numberOfSets}
+        bestOf={
+          match.matchCategory === "individual"
+            ? match.numberOfSets
+            : match.numberOfSetsPerSubMatch || 3
+        }
         side1Sets={side1Sets}
         side2Sets={side2Sets}
         status={status}

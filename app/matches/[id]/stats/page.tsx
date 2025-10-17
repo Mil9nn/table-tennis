@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Shot } from "@/types/shot.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
 
 // --- Shared colors ---
 const COLORS = {
@@ -71,7 +72,11 @@ function computeServeStats(games: any[]) {
 
       // initialize server
       if (!serveStats[serverId]) {
-        serveStats[serverId] = { servePoints: 0, receivePoints: 0, totalServes: 0 };
+        serveStats[serverId] = {
+          servePoints: 0,
+          receivePoints: 0,
+          totalServes: 0,
+        };
       }
       serveStats[serverId].totalServes += 1;
 
@@ -81,7 +86,11 @@ function computeServeStats(games: any[]) {
       } else {
         // point won on receive
         if (!serveStats[winnerId]) {
-          serveStats[winnerId] = { servePoints: 0, receivePoints: 0, totalServes: 0 };
+          serveStats[winnerId] = {
+            servePoints: 0,
+            receivePoints: 0,
+            totalServes: 0,
+          };
         }
         serveStats[winnerId].receivePoints += 1;
       }
@@ -90,7 +99,6 @@ function computeServeStats(games: any[]) {
 
   return serveStats;
 }
-
 
 export default function MatchStatsPage() {
   const params = useParams();
@@ -121,24 +129,36 @@ export default function MatchStatsPage() {
   }
 
   // --- Names ---
-  const isSingles = match.matchCategory === "individual" && match.participants?.length === 2;
-  const isDoubles = match.matchCategory === "individual" && match.participants?.length === 4;
+  const isSingles =
+    match.matchCategory === "individual" && match.participants?.length === 2;
+  const isDoubles =
+    match.matchCategory === "individual" && match.participants?.length === 4;
 
-  const side1Name = isSingles
-    ? match.participants?.[0]?.fullName ||
-      match.participants?.[0]?.username ||
-      "Player 1"
-    : isDoubles
-    ? "Side 1"
-    : match.team1?.name || "Team 1";
+  let side1Name: string;
 
-  const side2Name = isSingles
-    ? match.participants?.[1]?.fullName ||
-      match.participants?.[1]?.username ||
-      "Player 2"
-    : isDoubles
-    ? "Side 2"
-    : match.team2?.name || "Team 2";
+  if (isIndividualMatch(match)) {
+    side1Name = isSingles
+      ? match.participants?.[0]?.fullName ||
+        match.participants?.[0]?.username ||
+        "Player 1"
+      : isDoubles
+      ? "Side 1"
+      : "Player 1";
+  } else {
+    side1Name = match.team1?.name || "Team 1";
+  }
+
+  let side2Name: string;
+
+  if (isIndividualMatch(match)) {
+    const side2 = match.participants?.[1]?.fullName || "Player 2";
+    side2Name = isSingles ? side2 : isDoubles ? "Side 2" : "Player 2";
+  } else if (isTeamMatch(match)) {
+    // ✅ Now TypeScript knows it's a TeamMatch
+    side2Name = match.team2?.name || "Team 2";
+  } else {
+    side2Name = "Unknown";
+  }
 
   // --- Match-level stats ---
   const shots = match.games?.flatMap((g: any) => g.shots || []) || [];

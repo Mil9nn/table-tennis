@@ -25,7 +25,9 @@ interface MatchStore {
   serverDialogOpen: boolean;
   setServerDialogOpen: (open: boolean) => void;
 
-  // 👇 Modified to include matchType
+  pendingShot: { shotType: string } | null;
+  setPendingShot: (shot: { shotType: string } | null) => void;
+
   fetchMatch: (
     matchId: string,
     matchType?: "individual" | "team"
@@ -43,6 +45,12 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
   const normalizeMatch = (raw: any): IndividualMatch | TeamMatch => {
     if (raw.matchCategory === "team") {
+      console.log("🔄 Normalizing team match...");
+      console.log("Raw team1:", raw.team1);
+      console.log("Raw team1.assignments:", raw.team1?.assignments);
+      console.log("Raw team2:", raw.team2);
+      console.log("Raw team2.assignments:", raw.team2?.assignments);
+
       return {
         _id: String(raw._id),
         matchCategory: "team",
@@ -51,18 +59,26 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         team1: {
           _id: String(raw.team1._id),
           name: raw.team1.name,
-          players: normalizeParticipants(raw.team1.players || []),
+          players: raw.team1.players || [],
           logo: raw.team1.logo,
+          assignments: raw.team1.assignments || {},
+          city: raw.team1.city || "",
+          stats: raw.team1.stats || {},
         },
         team2: {
           _id: String(raw.team2._id),
           name: raw.team2.name,
-          players: normalizeParticipants(raw.team2.players || []),
+          players: raw.team2.players || [],
           logo: raw.team2.logo,
+          assignments: raw.team2.assignments || {},
+          city: raw.team2.city || "",
+          stats: raw.team2.stats || {},
         },
         scorer: raw.scorer,
         subMatches: raw.subMatches || [],
+        currentSubMatch: raw.currentSubMatch || 1,
         status: raw.status,
+        finalScore: raw.finalScore,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       };
@@ -122,18 +138,22 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     pendingPlayer: null,
     setPendingPlayer: (p) => set({ pendingPlayer: p }),
 
+    pendingShot: null,
+    setPendingShot: (shot) => set({ pendingShot: shot }),
+
     setupDialogOpen: false,
     setSetupDialogOpen: (open) => set({ setupDialogOpen: open }),
 
     serverDialogOpen: false,
     setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
-    // ✅ Now supports both individual and team matches
     fetchMatch: async (id, matchType) => {
       set({ fetchingMatch: true });
       try {
         const res = await axiosInstance.get(`/matches/${matchType}/${id}`);
+        console.log("📦 Raw API response:", res.data);
         const normalizedMatch = normalizeMatch(res.data.match || res.data);
+        console.log("✅ Normalized match:", normalizedMatch);
         set({ match: normalizedMatch, loading: false });
       } catch (err: any) {
         console.error(

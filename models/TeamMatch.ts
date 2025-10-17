@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
@@ -167,6 +167,48 @@ const subMatchSchema = new mongoose.Schema({
     },
   },
 });
+
+export interface ITeamMatch extends Document {
+  team1: {
+    name: string;
+    players: Array<{
+      user: Types.ObjectId | {
+        username: string;
+        fullName?: string;
+        profileImage?: string;
+        _id: string;
+      };
+    }>;
+    assignments: Record<string, string> | Map<string, string>;
+  };
+  team2: {
+    name: string;
+    players: Array<{
+      user: Types.ObjectId | {
+        username: string;
+        fullName?: string;
+        profileImage?: string;
+        _id: string;
+      };
+    }>;
+    assignments: Record<string, string> | Map<string, string>;
+  };
+  scorer?: {
+    username: string;
+    fullName?: string;
+    profileImage?: string;
+    _id: string;
+  };
+  subMatches: Array<{
+    team1Players: Array<any>;
+    team2Players: Array<any>;
+    games: Array<{
+      shots: Array<{
+        player: any;
+      }>;
+    }>;
+  }>;
+}
 
 // --- Team Match Schema ---
 const TeamMatchSchema = new mongoose.Schema(

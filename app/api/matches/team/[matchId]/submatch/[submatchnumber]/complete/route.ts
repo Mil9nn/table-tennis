@@ -4,13 +4,13 @@ import TeamMatch from "@/models/TeamMatch";
 
 export async function POST(
   req: Request,
-  { params }: { params: { matchId: string; subMatchNumber: string } }
+  context: { params: Promise<{ matchId: string; subMatchNumber: string }> }
 ) {
   await connectDB();
 
   try {
     const { winnerSide, finalScore } = await req.json();
-    const { matchId, subMatchNumber } = params;
+    const { matchId, subMatchNumber } = await context.params;
 
     const teamMatch = await TeamMatch.findById(matchId);
     if (!teamMatch)

@@ -40,6 +40,7 @@
     "leaflet": "^1.9.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.542.0",
+    "mongodb": "^6.20.0",
     "mongoose": "^8.19.1",
     "next": "15.5.2",
     "next-auth": "^4.24.11",

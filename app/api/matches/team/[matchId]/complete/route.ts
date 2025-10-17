@@ -4,13 +4,13 @@ import { connectDB } from "@/lib/mongodb";
 
 export async function POST(
   req: Request,
-  { params }: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
   await connectDB();
 
   try {
     const { winnerTeam } = await req.json();
-    const { matchId } = params;
+    const { matchId } = await context.params;
 
     const teamMatch = await TeamMatch.findById(matchId);
     if (!teamMatch)

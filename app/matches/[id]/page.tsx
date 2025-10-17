@@ -18,6 +18,7 @@ import Link from "next/link";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import Image from "next/image";
+import { IndividualGame, SubMatch } from "@/types/match.type";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -378,9 +379,9 @@ export default function MatchDetailsPage() {
 
             {/* Stats button */}
             {((match.matchCategory === "individual" &&
-              match.games?.some((g) => g.shots?.length)) ||
+              match.games?.some((g: IndividualGame) => g.shots?.length)) ||
               (match.matchCategory === "team" &&
-                match.subMatches?.some((sm) =>
+                match.subMatches?.some((sm: SubMatch) =>
                   sm.games?.some((g) => g.shots?.length)
                 ))) && (
               <Button

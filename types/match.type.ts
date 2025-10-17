@@ -129,9 +129,10 @@ export interface TeamMatch {
   venue?: string;
   status: MatchStatus;
   subMatches: SubMatch[];
-  overallScore: {
-    team1: number;
-    team2: number;
+  currentSubMatch: number;
+  finalScore: {
+    team1Matches: number;
+    team2Matches: number;
   };
   winnerSide?: WinnerSide;
   createdAt?: Date;
@@ -148,7 +149,7 @@ export type TeamMatchFormat =
 // UNIFIED TYPES
 // ============================================
 
-export type NormalizedMatch = IndividualMatch;
+export type NormalizedMatch = IndividualMatch | TeamMatch;
 
 export interface AddPointPayload {
   side: "side1" | "side2";
@@ -166,10 +167,12 @@ export type OnAddPoint = (payload: AddPointPayload) => void;
 // TYPE GUARDS
 // ============================================
 
-export function isIndividualMatch(
-  match: NormalizedMatch
-): match is IndividualMatch {
+export function isIndividualMatch(match: NormalizedMatch): match is IndividualMatch {
   return match.matchCategory === "individual";
+}
+
+export function isTeamMatch(match: NormalizedMatch): match is TeamMatch {
+  return match.matchCategory === "team";
 }
 
 // ============================================

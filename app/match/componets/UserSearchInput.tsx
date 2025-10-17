@@ -69,7 +69,7 @@ function UserSearchInput({
       {selectedUser && !clearAfterSelect ? (
         <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
           <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
               <AvatarImage src={selectedUser.profileImage} alt={selectedUser.username} />
               <AvatarFallback>{getInitial(selectedUser.username)}</AvatarFallback>
             </Avatar>
@@ -117,7 +117,7 @@ function UserSearchInput({
                 onMouseDown={() => handleSelect(u)}
                 className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer transition-colors"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
                   <AvatarImage src={u.profileImage} alt={displayName} />
                   <AvatarFallback>{getInitial(displayName)}</AvatarFallback>
                 </Avatar>

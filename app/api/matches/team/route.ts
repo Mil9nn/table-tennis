@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       // Convert Map -> Array of [playerId, symbol]
       const assignments = Array.from(team.assignments.entries());
 
-      const playerId = assignments.find(
+      const playerId = Object.entries(assignments ?? {}).find(
         ([, val]) => typeof val === "string" && val.toUpperCase() === symbol
       )?.[0];
 
