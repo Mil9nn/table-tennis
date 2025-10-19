@@ -28,7 +28,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
 
 const schema = z.object({
-  matchType: z.string().min(1, "Select a team format"),
+  matchFormat: z.string().min(1, "Select a team format"),
   setsPerTie: z.enum(["1", "3", "5", "7"]),
   team1Id: z.string().min(1, "Select Team 1"),
   team2Id: z.string().min(1, "Select Team 2"),
@@ -45,7 +45,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const form = useForm<TeamMatchFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      matchType: "",
+      matchFormat: "five_singles",
       setsPerTie: "3",
       team1Id: "",
       team2Id: "",
@@ -55,7 +55,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   });
 
   const teamMatchFormats = [
-    { value: "five_singles", label: "Swaythling Cup [5 singles]" },
+    { value: "five_singles", label: "Swaythling Format [5 singles]" },
     { value: "single_double_single", label: "Single–Double–Single" },
     { value: "extended_format", label: "Extended Format" },
     { value: "three_singles", label: "3 Singles" },
@@ -63,6 +63,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   ];
 
   const handleSubmit = async (data: TeamMatchFormValues) => {
+    console.log("Submitting team match with data:", data);
     setIsSubmitting(true);
     try {
       if (data.team1Id === data.team2Id) {
@@ -71,7 +72,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       }
 
       const matchData = {
-        matchType: data.matchType,
+        matchFormat: data.matchFormat,
         setsPerTie: Number(data.setsPerTie),
         city: data.city,
         venue: data.venue || data.city,
@@ -104,7 +105,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
           {/* Match Format */}
           <FormField
             control={form.control}
-            name="matchType"
+            name="matchFormat"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Team Match Format</FormLabel>

@@ -99,28 +99,30 @@ export interface TeamInfo {
     gamesWon: number;
     gamesLost: number;
   };
-  assignments?: Record<string, string>; // playerId -> symbol (A, B, C, X, Y, Z, etc.)
+  assignments?: Record<string, string>;
 }
 
 export interface SubMatch {
   _id?: string;
-  subMatchNumber: number;
-  matchType: IndividualMatchType;
-  numberOfSets: number;
-  participants: Participant[];
+  matchNumber: number;
+  matchType?: IndividualMatchType;
+
+  playerTeam1?: Participant;
+  playerTeam2?: Participant;
+  serverConfig?: InitialServerConfig | null;
+
   games: IndividualGame[];
-  finalScore: {
-    side1Sets: number;
-    side2Sets: number;
+  finalScore?: {
+    team1Sets: number;
+    team2Sets: number;
   };
-  winnerSide?: WinnerSide;
-  completed: boolean;
+  winnerSide?: "team1" | "team2" | null;
 }
 
 export interface TeamMatch {
   _id: string;
   matchCategory: "team";
-  format: TeamMatchFormat;
+  matchFormat: TeamMatchFormat;
   numberOfSetsPerSubMatch: number;
   team1: TeamInfo;
   team2: TeamInfo;
@@ -134,16 +136,25 @@ export interface TeamMatch {
     team1Matches: number;
     team2Matches: number;
   };
-  winnerSide?: WinnerSide;
+  winnerTeam?: "team1" | "team2" | null;
+  serverConfig?: InitialServerConfig | null;
+  currentServer?: ServerKey | null;
+  statistics?: {
+    winners: number;
+    errors: number;
+  }
+
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export type TeamMatchFormat =
-  | "swaythling_format" // 5 singles (A-X, B-Y, C-Z, A-Y, B-X)
-  | "single_double_single" // A-X, AB-XY, B-Y
-  | "five_singles_full" // 5 singles (A-X, B-Y, C-Z, D-P, E-Q)
-  | "three_singles"; // 3 singles (A-X, B-Y, C-Z)
+  | "five_singles"
+  | "single_double_single"
+  | "extended_format"
+  | "three_singles"
+  | "custom";
+
 
 // ============================================
 // UNIFIED TYPES
@@ -180,10 +191,11 @@ export function isTeamMatch(match: NormalizedMatch): match is TeamMatch {
 // ============================================
 
 export const FORMAT_DISPLAY_NAMES: Record<TeamMatchFormat, string> = {
-  swaythling_format: "Swaythling Cup (Best of 5)",
+  five_singles: "Swaythling Cup (Best of 5)",
   single_double_single: "Single-Double-Single",
-  five_singles_full: "Extended Format (5 Singles)",
+  extended_format: "Extended Format (5 Singles)",
   three_singles: "Three Singles",
+  custom: "Custom Format",
 };
 
 export const FORMAT_REQUIREMENTS: Record<
@@ -194,7 +206,7 @@ export const FORMAT_REQUIREMENTS: Record<
     minPlayers: number;
   }
 > = {
-  swaythling_format: {
+  five_singles: {
     team1: ["A", "B", "C"],
     team2: ["X", "Y", "Z"],
     minPlayers: 3,
@@ -204,7 +216,7 @@ export const FORMAT_REQUIREMENTS: Record<
     team2: ["X", "Y"],
     minPlayers: 2,
   },
-  five_singles_full: {
+  extended_format: {
     team1: ["A", "B", "C", "D", "E"],
     team2: ["X", "Y", "Z", "P", "Q"],
     minPlayers: 5,
@@ -213,6 +225,11 @@ export const FORMAT_REQUIREMENTS: Record<
     team1: ["A", "B", "C"],
     team2: ["X", "Y", "Z"],
     minPlayers: 3,
+  },
+  custom: {
+    team1: [],
+    team2: [],
+    minPlayers: 1,
   },
 };
 

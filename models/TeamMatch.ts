@@ -1,7 +1,9 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 
+// Shot Schema (reused / identical to IndividualMatch)
 const shotSchema = new mongoose.Schema({
   shotNumber: Number,
+
   side: { type: String, enum: ["team1", "team2"], required: true },
   player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
@@ -33,16 +35,21 @@ const shotSchema = new mongoose.Schema({
   errorType: {
     type: String,
     enum: ["net", "long", "serve"],
-    default: null,
+    default: null, // only used if outcome = "error"
   },
 
-  outcome: { type: String, enum: ["winner", "error", "let"], required: true },
+  outcome: {
+    type: String,
+    enum: ["winner", "error", "let"],
+    required: true,
+  },
+
   server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   timestamp: { type: Date, default: Date.now },
 });
 
-// Game Schema
+// Game Schema (reused / identical to IndividualMatch)
 const gameSchema = new mongoose.Schema({
   gameNumber: Number,
 
@@ -50,8 +57,9 @@ const gameSchema = new mongoose.Schema({
   team2Score: { type: Number, default: 0 },
 
   winnerSide: { type: String, enum: ["team1", "team2"], default: null },
+
   completed: { type: Boolean, default: false },
-  expedite: { type: Boolean, default: false },
+  expedite: { type: Boolean, default: false }, // ITTF expedite system marker
 
   shots: [shotSchema],
 
@@ -60,17 +68,17 @@ const gameSchema = new mongoose.Schema({
   endTime: Date,
 });
 
-// Server Config (doubles rotation, etc.)
+// Server Config (match-level, supports singles/doubles keys used in UI)
 const serverConfigSchema = new mongoose.Schema({
   firstServer: {
     type: String,
     enum: [
       "team1",
       "team2",
-      "team1_player1",
-      "team1_player2",
-      "team2_player1",
-      "team2_player2",
+      "team1_main",
+      "team1_partner",
+      "team2_main",
+      "team2_partner",
     ],
     default: null,
   },
@@ -79,36 +87,36 @@ const serverConfigSchema = new mongoose.Schema({
     enum: [
       "team1",
       "team2",
-      "team1_player1",
-      "team1_player2",
-      "team2_player1",
-      "team2_player2",
+      "team1_main",
+      "team1_partner",
+      "team2_main",
+      "team2_partner",
     ],
     default: null,
   },
   serverOrder: [
     {
       type: String,
-      enum: [
-        "team1_player1",
-        "team1_player2",
-        "team2_player1",
-        "team2_player2",
-      ],
+      enum: ["team1_main", "team1_partner", "team2_main", "team2_partner"],
     },
   ],
 });
 
-// --- SubMatch Schema (rubbers inside team match) ---
 const subMatchSchema = new mongoose.Schema({
-  subMatchNumber: Number,
-  type: { type: String, enum: ["singles", "doubles", "mixed_doubles"], required: true },
+  matchNumber: { type: Number, required: true },
 
-  team1Players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
-  team2Players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
+  playerTeam1: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  playerTeam2: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+  numberOfSets: { type: Number, enum: [3, 5, 7], default: 5 },
+
+  // Per-submatch server / rotation config (optional; falls back to match-level)
+  serverConfig: {
+    type: serverConfigSchema,
+    default: null,
+  },
 
   games: [gameSchema],
-  currentGame: { type: Number, default: 1 },
 
   finalScore: {
     team1Sets: { type: Number, default: 0 },
@@ -117,131 +125,94 @@ const subMatchSchema = new mongoose.Schema({
 
   winnerSide: { type: String, enum: ["team1", "team2"], default: null },
 
-  serverConfig: { type: serverConfigSchema, default: null },
+  status: {
+    type: String,
+    enum: ["scheduled", "in_progress", "completed"],
+    default: "scheduled",
+  },
+
   completed: { type: Boolean, default: false },
 
-  // --- Per-player statistics (same as IndividualMatch) ---
-  statistics: {
-    winners: { type: Number, default: 0 },
-    unforcedErrors: { type: Number, default: 0 },
-    aces: { type: Number, default: 0 },
-    serveErrors: { type: Number, default: 0 },
-    longestStreak: { type: Number, default: 0 },
-    clutchPointsWon: { type: Number, default: 0 },
+  startedAt: Date,
+  completedAt: Date,
+});
 
-    playerStats: {
-      type: Map,
-      of: new mongoose.Schema({
-        winners: { type: Number, default: 0 },
-        unforcedErrors: { type: Number, default: 0 },
-        aces: { type: Number, default: 0 },
-        serveErrors: { type: Number, default: 0 },
+/* -------------------- TEAM / TEAMMATCH SCHEMA -------------------- */
 
-        detailedShots: {
-          forehand_drive: { type: Number, default: 0 },
-          backhand_drive: { type: Number, default: 0 },
-          forehand_topspin: { type: Number, default: 0 },
-          backhand_topspin: { type: Number, default: 0 },
-          forehand_loop: { type: Number, default: 0 },
-          backhand_loop: { type: Number, default: 0 },
-          forehand_smash: { type: Number, default: 0 },
-          backhand_smash: { type: Number, default: 0 },
-          forehand_push: { type: Number, default: 0 },
-          backhand_push: { type: Number, default: 0 },
-          forehand_chop: { type: Number, default: 0 },
-          backhand_chop: { type: Number, default: 0 },
-          forehand_flick: { type: Number, default: 0 },
-          backhand_flick: { type: Number, default: 0 },
-          forehand_block: { type: Number, default: 0 },
-          backhand_block: { type: Number, default: 0 },
-          forehand_drop: { type: Number, default: 0 },
-          backhand_drop: { type: Number, default: 0 },
-        },
+// Team info used in team1/team2
+const teamInfoSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  captain: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-        errorsByType: {
-          net: { type: Number, default: 0 },
-          long: { type: Number, default: 0 },
-          serve: { type: Number, default: 0 },
-        },
-      }),
+  // players array — matches your Team schema style (user + role + joinedDate)
+  players: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      role: { type: String, enum: ["captain", "player"], default: "player" },
+      joinedDate: { type: Date, default: Date.now },
     },
+  ],
+
+  // assignments map (A,B,C -> playerId ; X,Y,Z -> playerId)
+  assignments: {
+    type: Map,
+    of: String,
+    default: {},
+  },
+
+  city: String,
+  stats: {
+    totalMatches: { type: Number, default: 0 },
+    wins: { type: Number, default: 0 },
+    losses: { type: Number, default: 0 },
+    winPercentage: { type: Number, default: 0 },
+    gamesWon: { type: Number, default: 0 },
+    gamesLost: { type: Number, default: 0 },
   },
 });
 
-export interface ITeamMatch extends Document {
-  team1: {
-    name: string;
-    players: Array<{
-      user: Types.ObjectId | {
-        username: string;
-        fullName?: string;
-        profileImage?: string;
-        _id: string;
-      };
-    }>;
-    assignments: Record<string, string> | Map<string, string>;
-  };
-  team2: {
-    name: string;
-    players: Array<{
-      user: Types.ObjectId | {
-        username: string;
-        fullName?: string;
-        profileImage?: string;
-        _id: string;
-      };
-    }>;
-    assignments: Record<string, string> | Map<string, string>;
-  };
-  scorer?: {
-    username: string;
-    fullName?: string;
-    profileImage?: string;
-    _id: string;
-  };
-  subMatches: Array<{
-    team1Players: Array<any>;
-    team2Players: Array<any>;
-    games: Array<{
-      shots: Array<{
-        player: any;
-      }>;
-    }>;
-  }>;
-}
+/* -------------------- MAIN TEAM MATCH SCHEMA -------------------- */
 
-// --- Team Match Schema ---
 const TeamMatchSchema = new mongoose.Schema(
   {
-    matchCategory: { type: String, enum: ["team"], required: true, default: "team" },
+    matchCategory: {
+      type: String,
+      enum: ["team"],
+      required: true,
+      default: "team",
+    },
 
-    format: {
+    matchType: {
+      type: String,
+    },
+    
+    matchFormat: {
       type: String,
       enum: [
-        "swaythling_format",   // ABCAB vs XYZYX
-        "single_double_single", // A, AB, B vs X, XY, Y
-        "five_singles_full",    // ABCDE vs XYZPQ
-        "three_singles",         // A,B,C vs X,Y,Z
+        "five_singles",
+        "single_double_single",
+        "extended_format",
+        "three_singles",
+        "custom",
       ],
       required: true,
     },
 
+    // per-submatch number of sets (best of 5 typical for ITTF team)
     numberOfSetsPerSubMatch: { type: Number, enum: [3, 5, 7], default: 5 },
 
-    team1: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Team",
-      required: true,
-    },
-    team2: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Team",
-      required: true,
-    },
-
-    subMatches: [subMatchSchema],
+    // number of submatches (usually 5 for Swaythling)
+    numberOfSubMatches: { type: Number, default: 5 },
     currentSubMatch: { type: Number, default: 1 },
 
+    // team descriptors
+    team1: { type: teamInfoSchema, required: true },
+    team2: { type: teamInfoSchema, required: true },
+
+    // embedded submatches
+    subMatches: { type: [subMatchSchema], default: [] },
+
+    // final team-level score (matches won)
     finalScore: {
       team1Matches: { type: Number, default: 0 },
       team2Matches: { type: Number, default: 0 },
@@ -250,9 +221,29 @@ const TeamMatchSchema = new mongoose.Schema(
     winnerTeam: { type: String, enum: ["team1", "team2"], default: null },
 
     scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    // match-level server config & currentServer (for default singles server behavior)
+    serverConfig: {
+      type: serverConfigSchema,
+      default: null,
+    },
+
+    currentServer: {
+      type: String,
+      enum: [
+        "team1",
+        "team2",
+        "team1_main",
+        "team1_partner",
+        "team2_main",
+        "team2_partner",
+      ],
+      default: null,
+    },
+
+    // status, timestamps, meta
     city: String,
     venue: String,
-
     status: {
       type: String,
       enum: ["scheduled", "in_progress", "completed", "cancelled"],
@@ -260,21 +251,103 @@ const TeamMatchSchema = new mongoose.Schema(
     },
 
     matchDuration: Number,
+
+    // -------------------- STATISTICS --------------------
+    statistics: {
+      winners: { type: Number, default: 0 },
+      unforcedErrors: { type: Number, default: 0 },
+      aces: { type: Number, default: 0 },
+      serveErrors: { type: Number, default: 0 },
+      longestStreak: { type: Number, default: 0 },
+      clutchPointsWon: { type: Number, default: 0 },
+
+      // Per-player stats map (playerId -> stats object)
+      playerStats: {
+        type: Map,
+        of: new mongoose.Schema({
+          winners: { type: Number, default: 0 },
+          unforcedErrors: { type: Number, default: 0 },
+          aces: { type: Number, default: 0 },
+          serveErrors: { type: Number, default: 0 },
+
+          detailedShots: {
+            forehand_drive: { type: Number, default: 0 },
+            backhand_drive: { type: Number, default: 0 },
+            forehand_topspin: { type: Number, default: 0 },
+            backhand_topspin: { type: Number, default: 0 },
+            forehand_loop: { type: Number, default: 0 },
+            backhand_loop: { type: Number, default: 0 },
+            forehand_smash: { type: Number, default: 0 },
+            backhand_smash: { type: Number, default: 0 },
+            forehand_push: { type: Number, default: 0 },
+            backhand_push: { type: Number, default: 0 },
+            forehand_chop: { type: Number, default: 0 },
+            backhand_chop: { type: Number, default: 0 },
+            forehand_flick: { type: Number, default: 0 },
+            backhand_flick: { type: Number, default: 0 },
+            forehand_block: { type: Number, default: 0 },
+            backhand_block: { type: Number, default: 0 },
+            forehand_drop: { type: Number, default: 0 },
+            backhand_drop: { type: Number, default: 0 },
+          },
+
+          errorsByType: {
+            net: { type: Number, default: 0 },
+            long: { type: Number, default: 0 },
+            serve: { type: Number, default: 0 },
+          },
+        }),
+      },
+    },
   },
   { timestamps: true }
 );
 
-// VIRTUALS
-TeamMatchSchema.virtual("isCompleted").get(function () {
-  return this.status === "completed";
+/* -------------------- VIRTUALS -------------------- */
+
+// Winner/Error ratio (team-level)
+TeamMatchSchema.virtual("statistics.winnerErrorRatio").get(function () {
+  const winners = this.statistics?.winners || 0;
+  const errors = this.statistics?.unforcedErrors || 0;
+  const total = winners + errors;
+  return total > 0 ? (winners / total).toFixed(2) : "0.00";
 });
 
-TeamMatchSchema.virtual("subMatchStats").get(function () {
-  return this.subMatches.map((sm: any) => ({
-    subMatchNumber: sm.subMatchNumber,
-    winnerSide: sm.winnerSide,
-    playerStats: sm.statistics?.playerStats || {},
-  }));
+// playerStatsWithRatio virtual for convenience (mirrors IndividualMatch)
+TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
+  if (!this.statistics?.playerStats) return {};
+
+  const result: Record<string, any> = {};
+  // Map stored as native Map in mongoose doc; iterate safely
+  try {
+    this.statistics.playerStats.forEach((stats: any, playerId: string) => {
+      const winners = stats?.winners || 0;
+      const errors = stats?.unforcedErrors || 0;
+      const total = winners + errors;
+
+      // stats may be a Mongoose subdocument; convert to plain object if possible
+      const statsObj = stats.toObject ? stats.toObject() : { ...stats };
+      result[playerId] = {
+        ...statsObj,
+        winnerErrorRatio: total > 0 ? winners / total : 0,
+      };
+    });
+  } catch (e) {
+    // fallback: iterate keys
+    for (const [k, stats] of Object.entries(
+      this.statistics.playerStats || {}
+    )) {
+      const winners = stats?.winners || 0;
+      const errors = stats?.unforcedErrors || 0;
+      const total = winners + errors;
+      result[k] = {
+        ...(stats as any),
+        winnerErrorRatio: total > 0 ? winners / total : 0,
+      };
+    }
+  }
+  return result;
 });
 
-export default mongoose.models.TeamMatch || mongoose.model("TeamMatch", TeamMatchSchema);
+export default mongoose.models.TeamMatch ||
+  mongoose.model("TeamMatch", TeamMatchSchema);

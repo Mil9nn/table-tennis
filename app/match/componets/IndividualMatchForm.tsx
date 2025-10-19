@@ -37,12 +37,12 @@ const userSchema = z.object({
 const schema = z.object({
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   numberOfSets: z.enum(["1", "3", "5", "7", "9"]),
-  city: z.string().min(1, "City is required"),
-  venue: z.string().optional(),
   player1: userSchema.optional(),
   player2: userSchema.optional(),
   player3: userSchema.optional(),
   player4: userSchema.optional(),
+  city: z.string().min(1, "City is required"),
+  venue: z.string().optional(),
 });
 
 export default function IndividualMatchForm({

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import IndividualMatchForm from "../componets/IndividualMatchForm";
 import TeamMatchForm from "../componets/TeamMatchForm";
 import { motion } from "framer-motion";
-import { Users, User2, Users2 } from "lucide-react";
+import { User2, Users2 } from "lucide-react";
 
 export default function CreateMatchPage() {
   const [matchCategory, setMatchCategory] = useState<"individual" | "team">("individual");

@@ -7,7 +7,6 @@ interface MatchStore {
   match: IndividualMatch | TeamMatch | null;
   setMatch: (m: IndividualMatch | TeamMatch | null) => void;
 
-  loading: boolean;
   updating: boolean;
   fetchingMatch: boolean;
 
@@ -28,10 +27,7 @@ interface MatchStore {
   pendingShot: { shotType: string } | null;
   setPendingShot: (shot: { shotType: string } | null) => void;
 
-  fetchMatch: (
-    matchId: string,
-    matchType?: "individual" | "team"
-  ) => Promise<void>;
+  fetchMatch: (matchId: string, category: "individual" | "team") => Promise<void>;
 }
 
 export const useMatchStore = create<MatchStore>((set, get) => {
@@ -54,7 +50,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       return {
         _id: String(raw._id),
         matchCategory: "team",
-        format: raw.format,
+        matchFormat: raw.matchFormat,
         numberOfSetsPerSubMatch: raw.numberOfSetsPerSubMatch ?? 3,
         team1: {
           _id: String(raw.team1._id),
@@ -128,7 +124,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     match: null,
     setMatch: (m) => set({ match: m }),
 
-    loading: false,
     updating: false,
     fetchingMatch: false,
 
@@ -147,21 +142,21 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     serverDialogOpen: false,
     setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
-    fetchMatch: async (id, matchType) => {
+    fetchMatch: async (id, category) => {
       set({ fetchingMatch: true });
       try {
-        const res = await axiosInstance.get(`/matches/${matchType}/${id}`);
+        const res = await axiosInstance.get(`/matches/${category}/${id}`);
         console.log("📦 Raw API response:", res.data);
         const normalizedMatch = normalizeMatch(res.data.match || res.data);
         console.log("✅ Normalized match:", normalizedMatch);
-        set({ match: normalizedMatch, loading: false });
+        set({ match: normalizedMatch });
       } catch (err: any) {
         console.error(
-          `Error fetching ${matchType} match:`,
+          `Error fetching ${category} match:`,
           err.response?.data || err
         );
-        toast.error(`Failed to load ${matchType} match`);
-        set({ loading: false, match: null });
+        toast.error(`Failed to load ${category} match`);
+        set({ match: null });
         throw err;
       } finally {
         set({ fetchingMatch: false });

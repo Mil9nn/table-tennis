@@ -77,9 +77,9 @@ export default function TeamSearchInput({
       {selectedTeam ? (
         <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
+            <Avatar className="h-8 w-8">
               <AvatarImage src={selectedTeam.logo} alt={selectedTeam.name} />
-              <AvatarFallback>{getInitial(selectedTeam.name)}</AvatarFallback>
+              <AvatarFallback className="bg-indigo-500">{getInitial(selectedTeam.name)}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-medium leading-none text-sm text-foreground">
@@ -125,7 +125,7 @@ export default function TeamSearchInput({
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={team.logo} alt={team.name} />
-                <AvatarFallback>{getInitial(team.name)}</AvatarFallback>
+                <AvatarFallback className="bg-indigo-500">{getInitial(team.name)}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-foreground">{team.name}</p>
