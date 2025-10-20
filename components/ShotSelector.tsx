@@ -13,8 +13,9 @@ import { ScrollArea, ScrollBar } from "./ui/scroll-area";
 import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
+import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { toast } from "sonner";
-import { isIndividualMatch } from "@/types/match.type";
+import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
@@ -25,6 +26,7 @@ const ShotSelector = () => {
 
   // Only use individual match hook now
   const updateScoreIndividual = useIndividualMatch((state) => state.updateScore);
+  const updateScoreTeam = useTeamMatch((state) => state.updateSubMatchScore);
 
   const handleShotSelect = async (shotValue: string) => {
     try {
@@ -36,6 +38,11 @@ const ShotSelector = () => {
 
       if (isIndividualMatch(match)) {
         updateScoreIndividual(side, 1, shotValue, playerId);
+      }
+
+      if (isTeamMatch(match)) {
+        const teamSide = side === "side1" ? "team1" : "team2";
+        updateScoreTeam(teamSide as any, 1, shotValue, playerId);
       }
 
       setPendingPlayer(null);
@@ -61,6 +68,10 @@ const ShotSelector = () => {
           ? [participants[0], participants[1]]
           : [participants[2], participants[3]];
       }
+    }
+
+    if (isTeamMatch(match)) {
+      return [];
     }
 
     return [];

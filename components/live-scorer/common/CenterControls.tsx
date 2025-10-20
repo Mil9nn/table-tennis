@@ -63,7 +63,7 @@ export default function CenterControls({
 
   return (
     <section className="text-center space-y-4 col-span-2 md:col-span-1">
-      <div className="flex justify-center space-x-2">
+      <div className="flex max-xxs:flex-col gap-2 justify-center space-x-2">
         <Button 
           onClick={handleToggleMatch} 
           disabled={isStartingMatch || status === "completed"} 

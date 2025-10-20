@@ -87,16 +87,14 @@ export default function HomePage() {
                       {match.participants[0].profileImage ? (
                         <Image
                           src={match.participants[0].profileImage}
-                          alt={match.participants[0].username}
+                          alt={match.participants[0].username!}
                           width={48}
                           height={48}
                           className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
                         />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-semibold text-lg border border-gray-200 shadow-sm">
-                          {match.participants[0].username
-                            .charAt(0)
-                            .toUpperCase()}
+                          {match.participants[0].username && match.participants[0].username.charAt(0).toUpperCase()}
                         </div>
                       )}
                       <h3 className="font-semibold text-gray-800 text-sm md:text-base">
@@ -112,16 +110,14 @@ export default function HomePage() {
                       {match.participants[1].profileImage ? (
                         <Image
                           src={match.participants[1].profileImage}
-                          alt={match.participants[1].username}
+                          alt={match.participants[1].username!}
                           width={48}
                           height={48}
                           className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
                         />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-semibold text-lg border border-gray-200 shadow-sm">
-                          {match.participants[1].username
-                            .charAt(0)
-                            .toUpperCase()}
+                          {match.participants[1].username && match.participants[1].username.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { AddPointPayload } from "@/types/match.type";
 import { Minus } from "lucide-react";
 
 type PlayerInfo = {
@@ -11,9 +12,9 @@ type PlayerInfo = {
 interface PlayerCardProps {
   players: PlayerInfo[];
   score: number;
-  side: "side1" | "side2";
-  onAddPoint: (payload: { side: "side1" | "side2"; playerId?: string }) => void;
-  onSubtractPoint: (side: "side1" | "side2") => void;
+  side: "side1" | "side2" | "team1" | "team2";
+  onAddPoint: (payload: AddPointPayload) => void;
+  onSubtractPoint: (side: "side1" | "side2" | "team1" | "team2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
   disabled?: boolean;
@@ -54,10 +55,10 @@ export default function PlayerCard({
         !disabled && onAddPoint({ side, playerId: players[0]?.playerId })
       }
       className={`relative flex flex-col justify-between items-center
-        p-8 shadow-lg cursor-pointer select-none
-        bg-gradient-to-br ${colors[color].bg} transition
-        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-      `}
+          p-8 shadow-lg cursor-pointer select-none
+          bg-gradient-to-br ${colors[color].bg} transition
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+        `}
     >
       {/* Player Names */}
       <div className="flex flex-col items-center mb-4 text-white gap-1">
@@ -80,7 +81,7 @@ export default function PlayerCard({
       {/* Score */}
       <div
         className={`font-extrabold tracking-tight ${colors[color].score} 
-        text-[5rem] md:text-[7rem]`}
+          text-[5rem] md:text-[7rem]`}
       >
         {score}
       </div>
@@ -101,12 +102,12 @@ export default function PlayerCard({
         }}
         disabled={disabled}
         className={`absolute top-0 right-0 bg-white/80 hover:bg-white text-gray-800 
-          rounded-full p-2 shadow-md transition
-          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-        `}
+            rounded-full p-2 shadow-md transition
+            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+          `}
       >
         <Minus className="w-5 h-5" />
       </button>
     </section>
   );
-}
+}    

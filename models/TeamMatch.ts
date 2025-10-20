@@ -127,7 +127,7 @@ const subMatchSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["scheduled", "in_progress", "completed"],
+    enum: ["scheduled", "in_progress", "completed", "cancelled"],
     default: "scheduled",
   },
 

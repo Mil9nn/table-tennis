@@ -110,7 +110,7 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (!matchId) return;
     const category = match?.matchCategory;
-    fetchMatch(matchId, category);
+    fetchMatch(matchId, category!);
   }, [matchId, fetchMatch]);
 
   if (fetchingMatch) {
@@ -161,21 +161,54 @@ export default function MatchStatsPage() {
   }
 
   // --- Match-level stats ---
-  const shots = match.games?.flatMap((g: any) => g.shots || []) || [];
-  const { winners, errors, shotTypes } = computeStats(shots);
+  // --- Match-level stats ---
+  let shots: Shot[] = [];
+  let serveData: { player: string; Serve: number; Receive: number }[] = [];
+  let winners = { side1: 0, side2: 0 };
+  let errors = { side1: 0, side2: 0 };
+  let shotTypes: Record<string, number> = {};
 
-  // ✅ Serve stats
-  const serveStats = computeServeStats(match.games || []);
-  const serveData = Object.entries(serveStats).map(([playerId, s]) => {
-    const player = match.participants?.find(
-      (p: any) => p._id.toString() === playerId
-    );
-    return {
-      player: player?.fullName || player?.username || "Unknown",
-      Serve: s.servePoints,
-      Receive: s.receivePoints,
-    };
-  });
+  if (isIndividualMatch(match)) {
+    // ✅ Individual match
+    const allGames = match.games || [];
+    shots = allGames.flatMap((g) => g.shots || []);
+
+    ({ winners, errors, shotTypes } = computeStats(shots));
+
+    const serveStats = computeServeStats(allGames);
+    serveData = Object.entries(serveStats).map(([playerId, s]) => {
+      const player = match.participants?.find(
+        (p) => p._id.toString() === playerId
+      );
+      return {
+        player: player?.fullName || player?.username || "Unknown",
+        Serve: s.servePoints,
+        Receive: s.receivePoints,
+      };
+    });
+  } else if (isTeamMatch(match)) {
+    // ✅ Team match
+    const subMatches = match.subMatches || [];
+    const allGames = subMatches.flatMap((sm) => sm.games || []);
+    shots = allGames.flatMap((g) => g.shots || []);
+
+    ({ winners, errors, shotTypes } = computeStats(shots));
+
+    const serveStats = computeServeStats(allGames);
+    serveData = Object.entries(serveStats).map(([teamKey, s]) => {
+      const team =
+        teamKey === "team1"
+          ? match.team1
+          : teamKey === "team2"
+          ? match.team2
+          : null;
+      return {
+        player: team?.name || "Unknown Team",
+        Serve: s.servePoints,
+        Receive: s.receivePoints,
+      };
+    });
+  }
 
   // Winners vs Errors chart
   const winnerErrorData = [
@@ -209,7 +242,7 @@ export default function MatchStatsPage() {
           <h3 className="text-2xl font-bold text-indigo-600">
             {side1Name} vs {side2Name}
           </h3>
-          <p className="text-gray-500 text-sm">
+          {isIndividualMatch(match) &&<p className="text-gray-500 text-sm">
             Games:{" "}
             {match.games
               ?.map(
@@ -217,7 +250,7 @@ export default function MatchStatsPage() {
                   `G${i + 1}: ${g.side1Score}-${g.side2Score}`
               )
               .join(" | ")}
-          </p>
+          </p>}
         </CardContent>
       </Card>
 

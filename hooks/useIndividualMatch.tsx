@@ -13,10 +13,11 @@ import {
   MatchStatus,
   IndividualGame,
   InitialServerConfig,
+  PlayerKey,
+  sideUnion,
 } from "@/types/match.type";
 import { updateCurrentServerInDB } from "@/lib/updateCurrentServer";
 
-export type PlayerKey = "side1" | "side2" | null;
 type ServerKey =
   | "side1"
   | "side2"
@@ -41,12 +42,12 @@ export interface IndividualMatchState {
   setInitialMatch: (match: IndividualMatch) => void;
   resetGame: (fullReset?: boolean) => Promise<void>;
   updateScore: (
-    player: PlayerKey,
+    player: sideUnion,
     increment: number,
     shotType?: string,
     playerId?: string
   ) => Promise<void>;
-  subtractPoint: (player: PlayerKey) => Promise<void>;
+  subtractPoint: (player: sideUnion) => Promise<void>;
   toggleMatch: () => Promise<void>;
   isUpdatingScore?: boolean;
 }

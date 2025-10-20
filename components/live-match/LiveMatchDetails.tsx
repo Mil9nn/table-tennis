@@ -12,15 +12,15 @@ import { useParams } from "next/navigation";
 export default function LiveMatchDetails({ matchId }: { matchId: string }) {
   const match = useMatchStore((s) => s.match);
   const fetchMatch = useMatchStore((s) => s.fetchMatch);
-  const loading = useMatchStore((s) => s.loading);
+  const fetchingMatch = useMatchStore((s) => s.fetchingMatch);
 
   
 
   useEffect(() => {
-    if (matchId) fetchMatch(matchId, match?.matchCategory);
+    if (matchId) fetchMatch(matchId, match?.matchCategory!);
   }, [matchId, fetchMatch]);
 
-  if (loading)
+  if (fetchingMatch)
     return (
       <div className="flex items-center justify-center w-full h-[calc(100vh-65px)]">
         <Loader2 className="animate-spin text-gray-500 w-8 h-8" />

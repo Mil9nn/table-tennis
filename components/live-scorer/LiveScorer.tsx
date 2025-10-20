@@ -2,16 +2,22 @@
 
 import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
+import SwaythlingFormatScorer from "./team/SwaythlingScorer";
 
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { IndividualMatch, TeamMatch } from "@/types/match.type";
+import { TeamMatch } from "@/types/match.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
-import SwaythlingFormatScorer from "./team/SwaythlingScorer";
 
-export default function LiveScorer({ matchId, category }: { matchId: string, category?: 'individual' | 'team' }) {
+export default function LiveScorer({
+  matchId,
+  category,
+}: {
+  matchId: string;
+  category?: "individual" | "team";
+}) {
   const match = useMatchStore((s) => s.match);
   const fetchMatch = useMatchStore((s) => s.fetchMatch);
   const fetchingMatch = useMatchStore((s) => s.fetchingMatch);
@@ -20,9 +26,6 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
   const router = useRouter();
-
-  console.log("MatchId from props:", matchId);
-  console.log("Category from props:", category);
 
   useEffect(() => {
     if (matchId && category) fetchMatch(matchId, category);
@@ -75,7 +78,6 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
 
   // ✅ Individual Matches
   if (match.matchCategory === "individual") {
-
     if (match.matchType === "singles") {
       return <SinglesScorer match={match} />;
     }
@@ -96,5 +98,6 @@ export default function LiveScorer({ matchId, category }: { matchId: string, cat
       return <SwaythlingFormatScorer match={match as TeamMatch} />;
     }
 
-  return <div>Unsupported match type</div>;
+    return <div>Unsupported match type</div>;
+  }
 }

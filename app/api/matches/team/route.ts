@@ -12,15 +12,12 @@ function generateFiveSinglesSubmatches(
   team2: any,
   setsPerTie: number
 ) {
-  const submatches = [];
+  const submatches = [] as SubMatch[];
   
   // team1 and team2 are now plain objects (from .lean())
   // assignments is already a plain object, not a Map
   const team1AssignmentsRaw = team1.assignments || {};
   const team2AssignmentsRaw = team2.assignments || {};
-  
-  console.log("Team1 assignments in submatch function:", team1AssignmentsRaw);
-  console.log("Team2 assignments in submatch function:", team2AssignmentsRaw);
 
   // IMPORTANT: Reverse the structure from playerId->position to position->playerId
   const team1PositionMap = new Map();
@@ -37,19 +34,14 @@ function generateFiveSinglesSubmatches(
     }
   }
 
-  console.log("Team1 Position Map:", Array.from(team1PositionMap.entries()));
-  console.log("Team2 Position Map:", Array.from(team2PositionMap.entries()));
-
   function findPlayerByPosition(
     positionMap: Map<string, string>,
     position: string
   ) {
     const playerId = positionMap.get(position);
     if (playerId) {
-      console.log(`Found player ${playerId} for position "${position}"`);
       return playerId;
     }
-    console.log(`No player found for position "${position}"`);
     return null;
   }
 
@@ -140,14 +132,28 @@ export async function POST(request: NextRequest) {
         path: "players.user",
         select: "username fullName profileImage",
       },
-    ]).lean(); // Add .lean() to get plain JavaScript object
+    ]).lean<{
+      _id: mongoose.Types.ObjectId;
+      name: string;
+      captain?: mongoose.Types.ObjectId;
+      city: string;
+      players: Array<{ user: mongoose.Types.ObjectId }>;
+      assignments?: Record<string, string>;
+    }>(); // Add .lean() to get plain JavaScript object
 
     const team2 = await Team.findById(team2Id).populate([
       {
         path: "players.user",
         select: "username fullName profileImage",
       }
-    ]).lean(); // Add .lean() to get plain JavaScript object
+    ]).lean<{
+      _id: mongoose.Types.ObjectId;
+      name: string;
+      captain?: mongoose.Types.ObjectId;
+      city: string;
+      players: Array<{ user: mongoose.Types.ObjectId }>;
+      assignments?: Record<string, string>;
+    }>(); // Add .lean() to get plain JavaScript object
 
     if (!team1 || !team2) {
       return NextResponse.json(
@@ -156,17 +162,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Team1 raw:", JSON.stringify(team1, null, 2));
-    console.log("Team2 raw:", JSON.stringify(team2, null, 2));
-
     // When using .lean(), Mongoose Maps become plain objects
     const team1AssignmentsObj = team1.assignments || {};
     const team2AssignmentsObj = team2.assignments || {};
-
-    console.log("Team1 assignments (raw):", team1AssignmentsObj);
-    console.log("Team2 assignments (raw):", team2AssignmentsObj);
-    console.log("Team1 assignments keys:", Object.keys(team1AssignmentsObj));
-    console.log("Team2 assignments keys:", Object.keys(team2AssignmentsObj));
 
     // Check if assignments exist
     if (matchFormat === "five_singles") {
@@ -201,7 +199,6 @@ export async function POST(request: NextRequest) {
         team2,
         Number(setsPerTie)
       );
-      console.log("Generated submatches:", subMatches);
 
       if (subMatches.length === 0) {
         return NextResponse.json(
@@ -241,16 +238,6 @@ export async function POST(request: NextRequest) {
       },
       status: "scheduled",
       createdAt: new Date(),
-    });
-
-    // Before saving teamMatch
-    console.log("TeamMatch document before save:", {
-      team1: team1.name,
-      team2: team2.name,
-      team1Assignments: teamMatch.team1.assignments,
-      team2Assignments: teamMatch.team2.assignments,
-      subMatchesCount: subMatches.length,
-      subMatches,
     });
 
     await teamMatch.save();

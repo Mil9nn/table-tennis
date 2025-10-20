@@ -12,6 +12,7 @@ import {
   MatchStatus,
   IndividualMatch,
   TeamMatch,
+  sideUnion,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { TriangleAlert } from "lucide-react";
@@ -26,7 +27,7 @@ type ScoreBoardProps = {
   side2Sets: number;
   status: MatchStatus;
   onAddPoint: (payload: AddPointPayload) => void;
-  onSubtractPoint: (side: "side1" | "side2") => void;
+  onSubtractPoint: (side: sideUnion) => void;
   onReset: () => void;
   onToggleMatch: () => void;
 
@@ -70,6 +71,26 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
     }
 
+    // Team Match - use the pre-resolved player info from teamMatchPlayers
+    if (match.matchCategory === "team" && teamMatchPlayers) {
+      return {
+        p1: [
+          {
+            name: teamMatchPlayers.side1.name,
+            playerId: teamMatchPlayers.side1.playerId,
+            serverKey: teamMatchPlayers.side1.serverKey,
+          },
+        ],
+        p2: [
+          {
+            name: teamMatchPlayers.side2.name,
+            playerId: teamMatchPlayers.side2.playerId,
+            serverKey: teamMatchPlayers.side2.serverKey,
+          },
+        ],
+      };
+    }
+
     // Individual match
     if (match.matchCategory === "individual") {
       // Singles
@@ -77,20 +98,14 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         return {
           p1: [
             {
-              name:
-                match.participants?.[0]?.fullName ??
-                match.participants?.[0]?.username ??
-                "Player 1",
+              name: match.participants?.[0]?.fullName || "Player 1",
               playerId: match.participants?.[0]?._id,
               serverKey: "side1",
             },
           ],
           p2: [
             {
-              name:
-                match.participants?.[1]?.fullName ??
-                match.participants?.[1]?.username ??
-                "Player 2",
+              name: match.participants?.[1]?.fullName || "Player 2",
               playerId: match.participants?.[1]?._id,
               serverKey: "side2",
             },
@@ -102,62 +117,26 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       return {
         p1: [
           {
-            name:
-              match.participants?.[0]?.fullName ??
-              match.participants?.[0]?.username ??
-              "Player 1",
+            name: match.participants?.[0]?.fullName || "Player 1",
             playerId: match.participants?.[0]?._id,
             serverKey: "side1_main",
           },
           {
-            name:
-              match.participants?.[1]?.fullName ??
-              match.participants?.[1]?.username ??
-              "Partner 1",
+            name: match.participants?.[1]?.fullName || "Partner 1",
             playerId: match.participants?.[1]?._id,
             serverKey: "side1_partner",
           },
         ],
         p2: [
           {
-            name:
-              match.participants?.[2]?.fullName ??
-              match.participants?.[2]?.username ??
-              "Player 2",
+            name: match.participants?.[2]?.fullName || "Player 2",
             playerId: match.participants?.[2]?._id,
             serverKey: "side2_main",
           },
           {
-            name:
-              match.participants?.[3]?.fullName ??
-              match.participants?.[3]?.username ??
-              "Partner 2",
+            name: match.participants?.[3]?.fullName || "Partner 2",
             playerId: match.participants?.[3]?._id,
             serverKey: "side2_partner",
-          },
-        ],
-      };
-    }
-
-    // Team Match - use the pre-resolved player info from teamMatchPlayers
-    if (match.matchCategory === "team" && teamMatchPlayers) {
-      console.log("🎯 Building players for team match");
-      console.log("Side1 player:", teamMatchPlayers.side1);
-      console.log("Side2 player:", teamMatchPlayers.side2);
-
-      return {
-        p1: [
-          {
-            name: teamMatchPlayers.side1.name, // This already has the resolved name
-            playerId: teamMatchPlayers.side1.playerId,
-            serverKey: teamMatchPlayers.side1.serverKey,
-          },
-        ],
-        p2: [
-          {
-            name: teamMatchPlayers.side2.name, // This already has the resolved name
-            playerId: teamMatchPlayers.side2.playerId,
-            serverKey: teamMatchPlayers.side2.serverKey,
           },
         ],
       };

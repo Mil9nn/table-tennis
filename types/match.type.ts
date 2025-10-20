@@ -1,3 +1,4 @@
+import mongoose, { Types } from "mongoose";
 import { Shot } from "./shot.type";
 
 export type MatchStatus =
@@ -12,7 +13,7 @@ export type WinnerSide = "side1" | "side2" | null;
 
 export interface Participant {
   _id: string;
-  username: string;
+  username?: string;
   fullName?: string;
   profileImage?: string;
 }
@@ -23,7 +24,9 @@ export interface Player {
   role?: "player" | "captain"; 
 }
 
-export type PlayerKey = "side1" | "side2";
+export type PlayerKey = "side1" | "side2" | null;
+
+export type sideUnion = "side1" | "side2" | "team1" | "team2";
 
 export type DoublesPlayerKey =
   | "side1_main"
@@ -47,6 +50,8 @@ export interface IndividualGame {
   gameNumber: number;
   side1Score: number;
   side2Score: number;
+  team1Score?: number;
+  team2Score?: number;
   winnerSide?: WinnerSide;
   completed: boolean;
   expedite?: boolean;
@@ -103,12 +108,13 @@ export interface TeamInfo {
 }
 
 export interface SubMatch {
-  _id?: string;
+  _id?: Types.ObjectId;
   matchNumber: number;
   matchType?: IndividualMatchType;
+  numberOfSets: number;
 
-  playerTeam1?: Participant;
-  playerTeam2?: Participant;
+  playerTeam1?: Types.ObjectId;
+  playerTeam2?: Types.ObjectId;
   serverConfig?: InitialServerConfig | null;
 
   games: IndividualGame[];
@@ -117,6 +123,8 @@ export interface SubMatch {
     team2Sets: number;
   };
   winnerSide?: "team1" | "team2" | null;
+  status: MatchStatus;
+  completed: boolean;
 }
 
 export interface TeamMatch {
@@ -163,7 +171,7 @@ export type TeamMatchFormat =
 export type NormalizedMatch = IndividualMatch | TeamMatch;
 
 export interface AddPointPayload {
-  side: "side1" | "side2";
+  side: "side1" | "side2" | "team1" | "team2";
   playerId?: string;
   shotData?: {
     stroke: string;

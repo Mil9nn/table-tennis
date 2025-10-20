@@ -132,3 +132,8 @@
     @apply border-2 border-white text-white hover:bg-white/20 hover:scale-105 active:scale-95;
   }
 }
+
+@theme {
+  --breakpoint-xs: 30rem;
+  --breakpoint-xxs: 22rem;
+}

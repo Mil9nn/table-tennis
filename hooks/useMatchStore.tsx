@@ -13,9 +13,9 @@ interface MatchStore {
   shotDialogOpen: boolean;
   setShotDialogOpen: (open: boolean) => void;
 
-  pendingPlayer: { side: "side1" | "side2"; playerId?: string } | null;
+  pendingPlayer: { side: "side1" | "side2" | "team1" | "team2"; playerId?: string } | null;
   setPendingPlayer: (
-    p: { side: "side1" | "side2"; playerId?: string } | null
+    p: { side: "side1" | "side2" | "team1" | "team2"; playerId?: string } | null
   ) => void;
 
   setupDialogOpen: boolean;
