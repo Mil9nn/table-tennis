@@ -148,8 +148,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const { p1, p2 } = buildPlayers();
 
-  console.log("👥 Final players for ScoreBoard:", { p1, p2 });
-
   // Get all participants for server name lookup
   const allParticipants =
     match.matchCategory === "individual"

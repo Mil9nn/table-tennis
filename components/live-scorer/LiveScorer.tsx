@@ -87,11 +87,6 @@ export default function LiveScorer({
     }
   }
 
-  console.log("Match category:", match.matchCategory);
-  console.log("Match format:", (match as TeamMatch).matchFormat);
-
-  console.log("Match object:", match);
-
   // Team Matches ...
   if (match.matchCategory === "team") {
     if (match.matchFormat === "five_singles") {

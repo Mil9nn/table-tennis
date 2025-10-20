@@ -63,7 +63,6 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   ];
 
   const handleSubmit = async (data: TeamMatchFormValues) => {
-    console.log("Submitting team match with data:", data);
     setIsSubmitting(true);
     try {
       if (data.team1Id === data.team2Id) {

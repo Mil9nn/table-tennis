@@ -41,11 +41,6 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
   const normalizeMatch = (raw: any): IndividualMatch | TeamMatch => {
     if (raw.matchCategory === "team") {
-      console.log("🔄 Normalizing team match...");
-      console.log("Raw team1:", raw.team1);
-      console.log("Raw team1.assignments:", raw.team1?.assignments);
-      console.log("Raw team2:", raw.team2);
-      console.log("Raw team2.assignments:", raw.team2?.assignments);
 
       return {
         _id: String(raw._id),
@@ -146,9 +141,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       set({ fetchingMatch: true });
       try {
         const res = await axiosInstance.get(`/matches/${category}/${id}`);
-        console.log("📦 Raw API response:", res.data);
         const normalizedMatch = normalizeMatch(res.data.match || res.data);
-        console.log("✅ Normalized match:", normalizedMatch);
         set({ match: normalizedMatch });
       } catch (err: any) {
         console.error(

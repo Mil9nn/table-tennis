@@ -91,8 +91,6 @@ export default function MatchDetailsPage() {
     );
   }
 
-  console.log("Players:", match.team1);
-
   const side1Name =
     match.matchCategory === "individual"
       ? match.participants?.[0]?.fullName
@@ -103,8 +101,6 @@ export default function MatchDetailsPage() {
       : match.team2?.name;
 
   const isScorer = match.scorer._id === currentUserId;
-
-  console.log(isScorer, match.scorer._id, currentUserId);
 
   return (
     <div className="px-4 py-8 max-w-6xl mx-auto">

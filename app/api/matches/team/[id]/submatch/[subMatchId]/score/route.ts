@@ -14,11 +14,6 @@ export async function POST(
     const { id, subMatchId } = await context.params;
     const body = await req.json();
 
-    console.log("📌 POST request to /score");
-    console.log("Match ID:", id);
-    console.log("SubMatch ID:", subMatchId);
-    console.log("Request body:", body);
-
     const token = getTokenFromRequest(req);
     if (!token) {
       console.warn("❌ Unauthorized: No token provided");
@@ -51,13 +46,11 @@ export async function POST(
       console.warn("❌ SubMatch not found for _id:", subMatchId);
       return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
     }
-    console.log("✅ Found subMatch:", subMatch._id.toString());
 
     const gameNumber = body.gameNumber || subMatch.games.length + 1;
     let currentGame = subMatch.games.find((g: any) => g.gameNumber === gameNumber);
 
     if (!currentGame) {
-      console.log("⚡ Creating new game:", gameNumber);
       subMatch.games.push({
         gameNumber,
         team1Score: 0,
@@ -71,7 +64,6 @@ export async function POST(
 
     // Handle subtract action
     if (body.action === "subtract" && body.side) {
-      console.log("➖ Subtracting point from", body.side);
       if (body.side === "team1" && currentGame.team1Score > 0) {
         currentGame.team1Score -= 1;
       }
@@ -84,13 +76,11 @@ export async function POST(
         .findIndex((s: any) => s.side === body.side);
 
       if (lastIndex !== -1) {
-        console.log("🗑 Removing last shot of side", body.side);
         currentGame.shots.splice(currentGame.shots.length - 1 - lastIndex, 1);
       }
     } else {
       // Normal score update
       if (typeof body.team1Score === "number" && typeof body.team2Score === "number") {
-        console.log("➕ Updating scores:", body.team1Score, body.team2Score);
         currentGame.team1Score = body.team1Score;
         currentGame.team2Score = body.team2Score;
       }
@@ -105,7 +95,6 @@ export async function POST(
       currentGame.winnerSide =
         currentGame.team1Score > currentGame.team2Score ? "team1" : "team2";
       currentGame.completed = true;
-      console.log(`🏆 Game ${gameNumber} won by`, currentGame.winnerSide);
 
       if (!subMatch.finalScore) subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
       if (currentGame.winnerSide === "team1") subMatch.finalScore.team1Sets += 1;
@@ -120,7 +109,6 @@ export async function POST(
           subMatch.finalScore.team1Sets >= setsNeeded ? "team1" : "team2";
         subMatch.status = "completed";
         subMatch.completed = true;
-        console.log("🥇 SubMatch completed:", subMatch.winnerSide);
 
         if (subMatch.winnerSide === "team1") match.finalScore.team1Matches += 1;
         else match.finalScore.team2Matches += 1;
@@ -132,11 +120,9 @@ export async function POST(
           match.status = "completed";
           match.winnerTeam =
             match.finalScore.team1Matches >= 3 ? "team1" : "team2";
-          console.log("🏅 Team match completed:", match.winnerTeam);
         } else {
           const nextSubIndex = match.subMatches.findIndex((sm: SubMatch) => !sm.completed);
           match.currentSubMatch = nextSubIndex !== -1 ? nextSubIndex + 1 : match.currentSubMatch;
-          console.log("➡ Next subMatch index:", match.currentSubMatch);
         }
       }
     }
@@ -155,7 +141,6 @@ export async function POST(
       };
       currentGame.shots = currentGame.shots || [];
       currentGame.shots.push(shot);
-      console.log("🎯 Shot added:", shot);
     }
 
     match.markModified("subMatches");
@@ -167,8 +152,6 @@ export async function POST(
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
       .populate("subMatches.games.shots.player", "username fullName profileImage");
-
-    console.log("✅ Match updated successfully");
 
     return NextResponse.json({
       match: updatedMatch,
