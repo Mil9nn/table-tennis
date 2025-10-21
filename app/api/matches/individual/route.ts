@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await request.json();
 
-    // 🔐 Auth
     const token = getTokenFromRequest(request);
     if (!token) return NextResponse.json({ error: "Unauthorized! Please login or register." }, { status: 401 });
 

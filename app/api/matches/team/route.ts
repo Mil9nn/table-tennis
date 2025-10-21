@@ -69,8 +69,6 @@ function generateFiveSinglesSubmatches(
         status: "scheduled",
         completed: false,
       });
-    } else {
-      console.warn(`Skipping submatch ${index + 1}: Missing players for positions ${pair[0]} vs ${pair[1]}`);
     }
   });
 

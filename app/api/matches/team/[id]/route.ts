@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const match = await TeamMatch.findById(id)
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .populate("team1.captain team2.captain", "username fullName")
-      .populate("scorer", "username fullName")
+      .populate("scorer", "username fullName profileImage")
       .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
       .populate({ path: "subMatches.games.shots.player", select: "username fullName profileImage" });
 

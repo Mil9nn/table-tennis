@@ -1,4 +1,3 @@
-// app/api/matches/team/[id]/submatch/[subMatchId]/score/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
@@ -16,34 +15,26 @@ export async function POST(
 
     const token = getTokenFromRequest(req);
     if (!token) {
-      console.warn("❌ Unauthorized: No token provided");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      console.warn("❌ Invalid token");
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const match = await TeamMatch.findById(id);
     if (!match) {
-      console.warn("❌ Match not found:", id);
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
     if (match.scorer?.toString() !== decoded.userId) {
-      console.warn("❌ Forbidden: scorer mismatch", {
-        scorer: match.scorer?.toString(),
-        userId: decoded.userId,
-      });
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // ✅ Use Mongoose subdocument lookup by _id
     const subMatch = match.subMatches.id(subMatchId);
     if (!subMatch) {
-      console.warn("❌ SubMatch not found for _id:", subMatchId);
       return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
     }
 
@@ -158,7 +149,7 @@ export async function POST(
       message: match.status === "completed" ? "Team match completed!" : "Score updated",
     });
   } catch (err) {
-    console.error("🔥 SubMatch score update error:", err);
+    console.error("SubMatch score update error:", err);
     return NextResponse.json(
       { error: "Failed to update score", details: (err as Error).message },
       { status: 500 }

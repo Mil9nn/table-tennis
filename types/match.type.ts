@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { Shot } from "./shot.type";
+import { User } from "./user";
 
 export type MatchStatus =
   | "scheduled"
@@ -113,8 +114,8 @@ export interface SubMatch {
   matchType?: IndividualMatchType;
   numberOfSets: number;
 
-  playerTeam1?: Types.ObjectId;
-  playerTeam2?: Types.ObjectId;
+  playerTeam1?: Participant | Types.ObjectId;
+  playerTeam2?: Participant | Types.ObjectId;
   serverConfig?: InitialServerConfig | null;
 
   games: IndividualGame[];

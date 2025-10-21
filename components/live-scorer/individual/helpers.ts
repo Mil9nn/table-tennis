@@ -140,7 +140,6 @@ export const buildDoublesRotation = (
   const fallback = defaultDoublesOrder.slice();
 
   if (!firstServer || !all.includes(firstServer) || !firstReceiver || !all.includes(firstReceiver)) {
-    console.warn("Invalid firstServer or firstReceiver, using fallback rotation");
     return fallback;
   }
 

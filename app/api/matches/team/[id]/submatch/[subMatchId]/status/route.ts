@@ -15,14 +15,12 @@ export async function POST(
 
     const match = await TeamMatch.findById(id);
     if (!match) {
-      console.warn("❌ Match not found:", id);
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
     const subMatch = match.subMatches.id(subMatchId);
 
     if (!subMatch) {
-      console.warn("❌ SubMatch not found at index:", subMatchId);
       return NextResponse.json(
         { error: "SubMatch not found" },
         { status: 404 }
@@ -58,14 +56,13 @@ export async function POST(
         message: "SubMatch status updated",
       });
     } else {
-      console.warn("⚠️ Status not provided in request");
       return NextResponse.json(
         { error: "Status not provided" },
         { status: 400 }
       );
     }
   } catch (err) {
-    console.error("🔥 SubMatch status update error:", err);
+    console.error("SubMatch status update error:", err);
     return NextResponse.json(
       {
         error: "Failed to update submatch status",
@@ -93,14 +90,12 @@ export async function GET(
       );
 
     if (!match) {
-      console.warn("❌ Match not found:", id);
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
     const subMatch = match.subMatches.id(subMatchId);
 
     if (!subMatch) {
-      console.warn("❌ SubMatch not found:", subMatchId);
       return NextResponse.json(
         { error: "SubMatch not found" },
         { status: 404 }
@@ -109,7 +104,7 @@ export async function GET(
 
     return NextResponse.json({ subMatch });
   } catch (err) {
-    console.error("🔥 Error fetching submatch:", err);
+    console.error("Error fetching submatch:", err);
     return NextResponse.json(
       { error: "Failed to fetch submatch", details: (err as Error).message },
       { status: 500 }

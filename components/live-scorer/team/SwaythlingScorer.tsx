@@ -63,20 +63,20 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   }
 
   // Get player info for current submatch
-  const player1 = currentSubMatch.playerTeam1 as unknown as Participant;
-  const player2 = currentSubMatch.playerTeam2 as unknown as Participant;
+  const player1 = currentSubMatch.playerTeam1 as Participant;
+  const player2 = currentSubMatch.playerTeam2 as Participant;
 
-  const player1Name = player1?.fullName || player1?.username || "Player 1";
-  const player2Name = player2?.fullName || player2?.username || "Player 2";
+  const player1Name = player1?.fullName;
+  const player2Name = player2?.fullName;
 
   const teamMatchPlayers = {
     side1: {
-      name: player1Name,
+      name: player1Name!,
       playerId: player1?._id,
       serverKey: "side1" as const,
     },
     side2: {
-      name: player2Name,
+      name: player2Name!,
       playerId: player2?._id,
       serverKey: "side2" as const,
     },
