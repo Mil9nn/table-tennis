@@ -7,29 +7,29 @@ import { connectDB } from "@/lib/mongodb";
 import { SubMatch } from "@/types/match.type";
 import mongoose from "mongoose";
 
+/*
+ Generate submatches for Swaythling Cup (5 singles: A-X, B-Y, C-Z, A-Y, B-X)
+ */
 function generateFiveSinglesSubmatches(
   team1: any,
   team2: any,
   setsPerTie: number
 ) {
   const submatches = [] as SubMatch[];
-  
-  // team1 and team2 are now plain objects (from .lean())
-  // assignments is already a plain object, not a Map
+
   const team1AssignmentsRaw = team1.assignments || {};
   const team2AssignmentsRaw = team2.assignments || {};
 
-  // IMPORTANT: Reverse the structure from playerId->position to position->playerId
   const team1PositionMap = new Map();
   for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
-    if (position) { // Only add if position is not empty
+    if (position) {
       team1PositionMap.set(position, playerId);
     }
   }
 
   const team2PositionMap = new Map();
   for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
-    if (position) { // Only add if position is not empty
+    if (position) {
       team2PositionMap.set(position, playerId);
     }
   }
@@ -39,10 +39,7 @@ function generateFiveSinglesSubmatches(
     position: string
   ) {
     const playerId = positionMap.get(position);
-    if (playerId) {
-      return playerId;
-    }
-    return null;
+    return playerId || null;
   }
 
   const order = [
@@ -56,6 +53,200 @@ function generateFiveSinglesSubmatches(
   order.forEach((pair, index) => {
     const playerTeam1 = findPlayerByPosition(team1PositionMap, pair[0]);
     const playerTeam2 = findPlayerByPosition(team2PositionMap, pair[1]);
+
+    if (playerTeam1 && playerTeam2) {
+      submatches.push({
+        matchNumber: index + 1,
+        playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
+        playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
+        numberOfSets: setsPerTie,
+        games: [],
+        finalScore: { team1Sets: 0, team2Sets: 0 },
+        winnerSide: null,
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  });
+
+  return submatches;
+}
+
+/**
+ * Generate submatches for Single-Double-Single format
+ * Match 1: A vs X (singles)
+ * Match 2: AB vs XY (doubles)
+ * Match 3: B vs Y (singles)
+ */
+function generateSingleDoubleSingleSubmatches(
+  team1: any,
+  team2: any,
+  setsPerTie: number
+) {
+  const submatches = [] as SubMatch[];
+  
+  const team1AssignmentsRaw = team1.assignments || {};
+  const team2AssignmentsRaw = team2.assignments || {};
+
+  const team1PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
+    if (position) team1PositionMap.set(position, playerId);
+  }
+
+  const team2PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
+    if (position) team2PositionMap.set(position, playerId);
+  }
+
+  const playerA = team1PositionMap.get("A");
+  const playerB = team1PositionMap.get("B");
+  const playerX = team2PositionMap.get("X");
+  const playerY = team2PositionMap.get("Y");
+
+  // Match 1: A vs X (singles)
+  if (playerA && playerX) {
+    submatches.push({
+      matchNumber: 1,
+      playerTeam1: new mongoose.Types.ObjectId(playerA),
+      playerTeam2: new mongoose.Types.ObjectId(playerX),
+      numberOfSets: setsPerTie,
+      games: [],
+      finalScore: { team1Sets: 0, team2Sets: 0 },
+      winnerSide: null,
+      status: "scheduled",
+      completed: false,
+    });
+  }
+
+  // Match 2: AB vs XY (doubles)
+  // For doubles, we'll use the first player of each team in the submatch,
+  // but the UI will show both players
+  if (playerA && playerX) {
+    submatches.push({
+      matchNumber: 2,
+      matchType: "doubles",
+      playerTeam1: new mongoose.Types.ObjectId(playerA),
+      playerTeam2: new mongoose.Types.ObjectId(playerX),
+      numberOfSets: setsPerTie,
+      games: [],
+      finalScore: { team1Sets: 0, team2Sets: 0 },
+      winnerSide: null,
+      status: "scheduled",
+      completed: false,
+    });
+  }
+
+  // Match 3: B vs Y (singles)
+  if (playerB && playerY) {
+    submatches.push({
+      matchNumber: 3,
+      playerTeam1: new mongoose.Types.ObjectId(playerB),
+      playerTeam2: new mongoose.Types.ObjectId(playerY),
+      numberOfSets: setsPerTie,
+      games: [],
+      finalScore: { team1Sets: 0, team2Sets: 0 },
+      winnerSide: null,
+      status: "scheduled",
+      completed: false,
+    });
+  }
+
+  return submatches;
+}
+
+/**
+ * Generate submatches for Three Singles format
+ * Match 1: A vs X
+ * Match 2: B vs Y
+ * Match 3: C vs Z
+ */
+function generateThreeSinglesSubmatches(
+  team1: any,
+  team2: any,
+  setsPerTie: number
+) {
+  const submatches = [] as SubMatch[];
+  
+  const team1AssignmentsRaw = team1.assignments || {};
+  const team2AssignmentsRaw = team2.assignments || {};
+
+  const team1PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
+    if (position) team1PositionMap.set(position, playerId);
+  }
+
+  const team2PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
+    if (position) team2PositionMap.set(position, playerId);
+  }
+
+  const order = [
+    ["A", "X"],
+    ["B", "Y"],
+    ["C", "Z"],
+  ];
+
+  order.forEach((pair, index) => {
+    const playerTeam1 = team1PositionMap.get(pair[0]);
+    const playerTeam2 = team2PositionMap.get(pair[1]);
+
+    if (playerTeam1 && playerTeam2) {
+      submatches.push({
+        matchNumber: index + 1,
+        playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
+        playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
+        numberOfSets: setsPerTie,
+        games: [],
+        finalScore: { team1Sets: 0, team2Sets: 0 },
+        winnerSide: null,
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  });
+
+  return submatches;
+}
+
+/**
+ * Generate submatches for Extended Format (5 singles, different order)
+ * Match 1: A vs X
+ * Match 2: B vs Y
+ * Match 3: C vs Z
+ * Match 4: D vs P
+ * Match 5: E vs Q
+ */
+function generateExtendedFormatSubmatches(
+  team1: any,
+  team2: any,
+  setsPerTie: number
+) {
+  const submatches = [] as SubMatch[];
+  
+  const team1AssignmentsRaw = team1.assignments || {};
+  const team2AssignmentsRaw = team2.assignments || {};
+
+  const team1PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
+    if (position) team1PositionMap.set(position, playerId);
+  }
+
+  const team2PositionMap = new Map();
+  for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
+    if (position) team2PositionMap.set(position, playerId);
+  }
+
+  const order = [
+    ["A", "X"],
+    ["B", "Y"],
+    ["C", "Z"],
+    ["D", "P"],
+    ["E", "Q"],
+  ];
+
+  order.forEach((pair, index) => {
+    const playerTeam1 = team1PositionMap.get(pair[0]);
+    const playerTeam2 = team2PositionMap.get(pair[1]);
 
     if (playerTeam1 && playerTeam2) {
       submatches.push({
@@ -125,33 +316,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const team1 = await Team.findById(team1Id).populate([
-      {
-        path: "players.user",
-        select: "username fullName profileImage",
-      },
-    ]).lean<{
-      _id: mongoose.Types.ObjectId;
-      name: string;
-      captain?: mongoose.Types.ObjectId;
-      city: string;
-      players: Array<{ user: mongoose.Types.ObjectId }>;
-      assignments?: Record<string, string>;
-    }>(); // Add .lean() to get plain JavaScript object
+    const team1 = await Team.findById(team1Id)
+      .populate([
+        {
+          path: "players.user",
+          select: "username fullName profileImage",
+        },
+      ])
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        captain?: mongoose.Types.ObjectId;
+        city: string;
+        players: Array<{ user: mongoose.Types.ObjectId }>;
+        assignments?: Record<string, string>;
+      }>();
 
-    const team2 = await Team.findById(team2Id).populate([
-      {
-        path: "players.user",
-        select: "username fullName profileImage",
-      }
-    ]).lean<{
-      _id: mongoose.Types.ObjectId;
-      name: string;
-      captain?: mongoose.Types.ObjectId;
-      city: string;
-      players: Array<{ user: mongoose.Types.ObjectId }>;
-      assignments?: Record<string, string>;
-    }>(); // Add .lean() to get plain JavaScript object
+    const team2 = await Team.findById(team2Id)
+      .populate([
+        {
+          path: "players.user",
+          select: "username fullName profileImage",
+        },
+      ])
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        captain?: mongoose.Types.ObjectId;
+        city: string;
+        players: Array<{ user: mongoose.Types.ObjectId }>;
+        assignments?: Record<string, string>;
+      }>();
 
     if (!team1 || !team2) {
       return NextResponse.json(
@@ -160,53 +355,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // When using .lean(), Mongoose Maps become plain objects
     const team1AssignmentsObj = team1.assignments || {};
     const team2AssignmentsObj = team2.assignments || {};
 
-    // Check if assignments exist
-    if (matchFormat === "five_singles") {
+    // Check if assignments exist for formats that need them
+    const needsAssignments = ["five_singles", "single_double_single", "three_singles", "extended_format"].includes(matchFormat);
+    
+    if (needsAssignments) {
       const hasTeam1Assignments = Object.keys(team1AssignmentsObj).length > 0;
       const hasTeam2Assignments = Object.keys(team2AssignmentsObj).length > 0;
 
       if (!hasTeam1Assignments) {
         return NextResponse.json(
-          { error: `Team "${team1.name}" has no player position assignments. Please assign positions A, B, C first.` },
+          { error: `Team "${team1.name}" has no player position assignments. Please assign positions first.` },
           { status: 400 }
         );
       }
 
       if (!hasTeam2Assignments) {
         return NextResponse.json(
-          { error: `Team "${team2.name}" has no player position assignments. Please assign positions X, Y, Z first.` },
+          { error: `Team "${team2.name}" has no player position assignments. Please assign positions first.` },
           { status: 400 }
         );
       }
     }
 
-    // Generating subMatches based on match format and player assignments
+    // Generate subMatches based on match format
     let subMatches = [] as SubMatch[];
 
-    if (
-      matchFormat === "five_singles" &&
-      team1.assignments &&
-      team2.assignments
-    ) {
-      subMatches = generateFiveSinglesSubmatches(
-        team1,
-        team2,
-        Number(setsPerTie)
-      );
+    switch (matchFormat) {
+      case "five_singles":
+        subMatches = generateFiveSinglesSubmatches(team1, team2, Number(setsPerTie));
+        break;
 
-      if (subMatches.length === 0) {
+      case "single_double_single":
+        subMatches = generateSingleDoubleSingleSubmatches(team1, team2, Number(setsPerTie));
+        break;
+
+      case "three_singles":
+        subMatches = generateThreeSinglesSubmatches(team1, team2, Number(setsPerTie));
+        break;
+
+      case "extended_format":
+        subMatches = generateExtendedFormatSubmatches(team1, team2, Number(setsPerTie));
+        break;
+
+      default:
         return NextResponse.json(
-          { error: "Could not generate submatches. Please ensure all required positions (A, B, C for Team 1 and X, Y, Z for Team 2) are assigned." },
+          { error: `Format "${matchFormat}" is not yet supported` },
           { status: 400 }
         );
-      }
     }
 
-    // Create team match document with properly formatted assignments
+    if (subMatches.length === 0) {
+      return NextResponse.json(
+        { error: "Could not generate submatches. Please ensure all required positions are assigned." },
+        { status: 400 }
+      );
+    }
+
+    // Create team match document
     const teamMatch = new TeamMatch({
       matchFormat,
       matchCategory: "team",
@@ -240,7 +448,7 @@ export async function POST(request: NextRequest) {
 
     await teamMatch.save();
 
-    // 👇 Populate for return
+    // Populate for return
     await teamMatch.populate([
       { path: "scorer", select: "username fullName" },
       { path: "team1.captain team2.captain", select: "username fullName" },

@@ -16,11 +16,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
 import InitialServerDialog from "@/components/ServerDialog";
 
-interface SwaythlingScorerProps {
+interface SingleDoubleSingleScorerProps {
   match: TeamMatch;
 }
 
-export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
+export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleScorerProps) {
   const {
     currentSubMatchIndex,
     currentSubMatch,
@@ -38,6 +38,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
+  const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
 
   const lastMatchId = useRef<string | null>(null);
   const lastSubMatchIndex = useRef<number | null>(null);
@@ -63,22 +64,43 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
     );
   }
 
-  // Get player info for current submatch
-  const player1 = currentSubMatch.playerTeam1 as Participant;
-  const player2 = currentSubMatch.playerTeam2 as Participant;
+  // Determine if current submatch is doubles (match 2 in the sequence)
+  const isDoublesMatch = currentSubMatch.matchNumber === 2;
+  
+  // Get players for current submatch
+  const getPlayersForSubmatch = () => {
+    if (isDoublesMatch) {
+      // Doubles match - 2 players per team
+      const team1Players = match.team1.players.slice(0, 2);
+      const team2Players = match.team2.players.slice(0, 2);
+      
+      return {
+        player1: team1Players.map(p => p.user as Participant),
+        player2: team2Players.map(p => p.user as Participant),
+      };
+    } else {
+      // Singles match
+      const player1 = currentSubMatch.playerTeam1 as Participant;
+      const player2 = currentSubMatch.playerTeam2 as Participant;
+      
+      return {
+        player1: [player1],
+        player2: [player2],
+      };
+    }
+  };
 
-  const player1Name = player1?.fullName;
-  const player2Name = player2?.fullName;
+  const { player1, player2 } = getPlayersForSubmatch();
 
   const teamMatchPlayers = {
     side1: {
-      name: player1Name!,
-      playerId: player1?._id,
+      name: player1.map(p => p?.fullName || p?.username || "Player").join(" & "),
+      playerId: player1[0]?._id,
       serverKey: "side1" as const,
     },
     side2: {
-      name: player2Name!,
-      playerId: player2?._id,
+      name: player2.map(p => p?.fullName || p?.username || "Player").join(" & "),
+      playerId: player2[0]?._id,
       serverKey: "side2" as const,
     },
   };
@@ -97,12 +119,20 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
 
   const isCompleted = status === "completed";
 
+  // Format labels for submatches
+  const getSubMatchLabel = (index: number) => {
+    if (index === 0) return "Singles 1";
+    if (index === 1) return "Doubles";
+    if (index === 2) return "Singles 2";
+    return `Match ${index + 1}`;
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-2">
       {/* Team Match Score Overview */}
       <Card className="shadow-none rounded-none">
         <CardHeader>
-          <CardTitle>Swaythling Format</CardTitle>
+          <CardTitle>Single-Double-Single Format</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center items-center gap-8">
@@ -126,9 +156,9 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
       {/* SubMatch Navigator */}
       <Card className="rounded-none shadow-none">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Individual Matches</CardTitle>
+          <CardTitle>Match Sequence</CardTitle>
           <Badge variant="outline">
-            Match {currentSubMatchIndex + 1} of {match.subMatches.length}
+            {getSubMatchLabel(currentSubMatchIndex)}
           </Badge>
         </CardHeader>
         <CardContent>
@@ -161,13 +191,9 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                     }
                   `}
                 >
-                  <span className="hidden sm:inline">Match</span>
-                  <span className="inline sm:hidden">M</span>
-                  {idx + 1}
+                  {getSubMatchLabel(idx)}
                   {isCompleted && sm.winnerSide && (
-                    <span className="ml-2">
-                      {sm.winnerSide === "team1" ? "✓" : "✓"}
-                    </span>
+                    <span className="ml-2">✓</span>
                   )}
                 </button>
               );
@@ -190,7 +216,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
         <CardHeader>
           <div className="flex flex-col gap-2">
             <CardTitle className="w-full flex items-center justify-between gap-2">
-              <span>Match {currentSubMatchIndex + 1}:</span>
+              <span>{getSubMatchLabel(currentSubMatchIndex)}</span>
               <Badge className="rounded-full">
                 {currentSubMatch.status === "completed"
                   ? "Completed"
@@ -200,7 +226,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
               </Badge>
             </CardTitle>
             <p className="text-xs font-semibold">
-              {player1Name} vs {player2Name}
+              {teamMatchPlayers.side1.name} vs {teamMatchPlayers.side2.name}
             </p>
           </div>
         </CardHeader>
@@ -213,8 +239,8 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
               <p className="text-sm text-gray-500 mt-2">
                 Winner:{" "}
                 {currentSubMatch.winnerSide === "team1"
-                  ? player1Name
-                  : player2Name}
+                  ? teamMatchPlayers.side1.name
+                  : teamMatchPlayers.side2.name}
               </p>
               <p className="text-sm text-gray-500">
                 Score: {currentSubMatch.finalScore?.team1Sets || 0} -{" "}
@@ -242,7 +268,14 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 }}
                 onSubtractPoint={subtractPoint}
                 onReset={() => toast.info("Reset not yet implemented")}
-                onToggleMatch={toggleSubMatch}
+                onToggleMatch={() => {
+                  // Show server dialog if starting and no server config
+                  if (!isSubMatchActive && !currentSubMatch.serverConfig?.firstServer) {
+                    setServerDialogOpen(true);
+                  } else {
+                    toggleSubMatch();
+                  }
+                }}
                 teamMatchPlayers={teamMatchPlayers}
               />
 
@@ -250,7 +283,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 <GamesHistory
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
-                  participants={[player1, player2] as any}
+                  participants={[...player1, ...player2] as any}
                 />
               </div>
 
@@ -258,7 +291,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 <ShotFeed
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
-                  participants={[player1, player2] as any}
+                  participants={[...player1, ...player2] as any}
                 />
               </div>
             </>
@@ -268,16 +301,14 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
 
       {isCompleted && <TeamMatchCompletedCard match={match} />}
 
-      {/* Shot Selector Dialog */}
-      {!isCompleted && <ShotSelector />}
-
-      {!isCompleted && currentSubMatch && (
-        <InitialServerDialog
-          matchType="singles"
-          participants={[player1, player2]}
-          isTeamMatch={true}
-          subMatchId={currentSubMatch._id?.toString()}
-        />
+      {!isCompleted && (
+        <>
+          <ShotSelector />
+          <InitialServerDialog 
+            matchType={isDoublesMatch ? "doubles" : "singles"} 
+            participants={[...player1, ...player2] as any}
+          />
+        </>
       )}
     </div>
   );

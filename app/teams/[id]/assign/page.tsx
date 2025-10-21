@@ -41,7 +41,7 @@ export default function AssignPage() {
 
   if (!team) return <div className="p-8 text-center">Loading team...</div>;
 
-  const availableSymbols = ["A", "B", "C", "X", "Y", "Z"];
+  const availableSymbols = ["A", "B", "C", "D", "E", "X", "Y", "Z", "P", "Q"];
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">

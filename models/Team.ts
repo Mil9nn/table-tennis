@@ -27,7 +27,7 @@ const teamSchema = new mongoose.Schema({
   },
   assignments: {
     type: Map,
-    of: mongoose.Schema.Types.ObjectId,
+    of: String,
     default: {}
   } 
 }, {

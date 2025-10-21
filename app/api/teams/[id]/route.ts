@@ -12,11 +12,25 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    // Merge assignments into players
-    const playersWithAssignments = team.players.map((p: any) => ({
-      ...p.toObject(),
-      assignment: team.assignments.get(p.user._id.toString()) || null,
-    }));
+    // ✅ Safely handle assignments (Map or plain object)
+    const playersWithAssignments = team.players.map((p: any) => {
+      const playerId = p.user._id.toString();
+      let assignment = null;
+      
+      if (team.assignments) {
+        // Handle both Map and plain object cases
+        if (team.assignments instanceof Map) {
+          assignment = team.assignments.get(playerId);
+        } else if (typeof team.assignments === 'object') {
+          assignment = (team.assignments as any)[playerId];
+        }
+      }
+      
+      return {
+        ...p.toObject(),
+        assignment: assignment || null,
+      };
+    });
 
     return NextResponse.json({
       team: { ...team.toObject(), players: playersWithAssignments },
@@ -34,16 +48,15 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     const { id } = await context.params;
 
+    // ✅ Convert assignments object to Map if provided
+    const updateData: any = { ...rest };
+    if (assignments) {
+      updateData.assignments = new Map(Object.entries(assignments));
+    }
+
     const updatedTeam = await Team.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          ...rest,
-          ...(assignments
-            ? { assignments: new Map(Object.entries(assignments)) }
-            : {}),
-        },
-      },
+      { $set: updateData },
       { new: true }
     )
       .populate("captain", "username fullName")

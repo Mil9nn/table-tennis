@@ -3,6 +3,9 @@
 import SinglesScorer from "./individual/SinglesScorer";
 import DoublesScorer from "./individual/DoublesScorer";
 import SwaythlingFormatScorer from "./team/SwaythlingScorer";
+import SingleDoubleSingleScorer from "./team/SingleDoubleSingleScorer";
+import ThreeSinglesScorer from "./team/ThreeSinglesScorer";
+import ExtendedFormatScorer from "./team/ExtendedFormatScorer";
 
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useEffect } from "react";
@@ -76,7 +79,7 @@ export default function LiveScorer({
       </div>
     );
 
-  // ✅ Individual Matches
+  // Individual Matches
   if (match.matchCategory === "individual") {
     if (match.matchType === "singles") {
       return <SinglesScorer match={match} />;
@@ -87,10 +90,34 @@ export default function LiveScorer({
     }
   }
 
-  // Team Matches ...
+  // ✅ Team Matches
   if (match.matchCategory === "team") {
-    if (match.matchFormat === "five_singles") {
-      return <SwaythlingFormatScorer match={match as TeamMatch} />;
+    const teamMatch = match as TeamMatch;
+
+    switch (teamMatch.matchFormat) {
+      case "five_singles":
+        return <SwaythlingFormatScorer match={teamMatch} />;
+
+      case "single_double_single":
+        return <SingleDoubleSingleScorer match={teamMatch} />;
+
+      case "three_singles":
+        return <ThreeSinglesScorer match={teamMatch} />;
+
+      case "extended_format":
+        return <ExtendedFormatScorer match={teamMatch} />;
+
+      default:
+        return (
+          <div className="p-8 text-center">
+            <p className="text-red-600 font-semibold">
+              Format "{teamMatch.matchFormat}" is not yet supported
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Please contact support or select a different format
+            </p>
+          </div>
+        );
     }
 
     return <div>Unsupported match type</div>;
