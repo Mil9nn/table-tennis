@@ -116,6 +116,19 @@ const subMatchSchema = new mongoose.Schema({
     default: null,
   },
 
+  currentServer: {
+    type: String,
+    enum: [
+      "team1",
+      "team2",
+      "team1_main",
+      "team1_partner",
+      "team2_main",
+      "team2_partner",
+    ],
+    default: null,
+  },
+
   games: [gameSchema],
 
   finalScore: {

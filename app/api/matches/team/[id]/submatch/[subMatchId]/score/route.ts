@@ -3,6 +3,7 @@ import TeamMatch from "@/models/TeamMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import { SubMatch } from "@/types/match.type";
+import { getNextServer } from "@/components/live-scorer/individual/helpers";
 
 export async function POST(
   req: NextRequest,
@@ -68,12 +69,36 @@ export async function POST(
 
       if (lastIndex !== -1) {
         currentGame.shots.splice(currentGame.shots.length - 1 - lastIndex, 1);
+
+        // ✅ ADD: Recompute server after subtract
+      const isDoubles = (subMatch as any).matchType === "doubles";
+      const serverConfig = (subMatch as any).serverConfig || {};
+      const serverResult = getNextServer(
+        currentGame.team1Score,
+        currentGame.team2Score,
+        isDoubles,
+        serverConfig,
+        gameNumber
+      );
+      (subMatch as any).currentServer = serverResult.server;
       }
     } else {
       // Normal score update
       if (typeof body.team1Score === "number" && typeof body.team2Score === "number") {
         currentGame.team1Score = body.team1Score;
         currentGame.team2Score = body.team2Score;
+
+        // ✅ ADD: Compute next server after point
+        const isDoubles = (subMatch as any).matchType === "doubles";
+        const serverConfig = (subMatch as any).serverConfig || {};
+        const serverResult = getNextServer(
+          body.team1Score,
+          body.team2Score,
+          isDoubles,
+          serverConfig,
+          gameNumber
+        );
+        (subMatch as any).currentServer = serverResult.server;
       }
     }
 
@@ -115,6 +140,18 @@ export async function POST(
           const nextSubIndex = match.subMatches.findIndex((sm: SubMatch) => !sm.completed);
           match.currentSubMatch = nextSubIndex !== -1 ? nextSubIndex + 1 : match.currentSubMatch;
         }
+      } else {
+        // ✅ ADD: Reset server for next game
+        const isDoubles = (subMatch as any).matchType === "doubles";
+        const serverConfig = (subMatch as any).serverConfig || {};
+        const serverResult = getNextServer(
+          0,
+          0,
+          isDoubles,
+          serverConfig,
+          gameNumber + 1
+        );
+        (subMatch as any).currentServer = serverResult.server;
       }
     }
 

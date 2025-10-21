@@ -280,6 +280,8 @@ export default function ThreeSinglesScorer({ match }: ThreeSinglesScorerProps) {
           <InitialServerDialog 
             matchType="singles" 
             participants={[player1, player2] as any}
+            isTeamMatch={true}
+            subMatchId={currentSubMatch._id?.toString()}
           />
         </>
       )}

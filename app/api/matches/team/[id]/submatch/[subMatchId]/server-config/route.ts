@@ -49,6 +49,8 @@ export async function POST(
     subMatch.serverConfig.firstReceiver = serverConfig.firstReceiver;
     subMatch.serverConfig.serverOrder = serverConfig.serverOrder ?? [];
 
+    (subMatch as any).currentServer = serverConfig.firstServer;
+
     match.markModified("subMatches");
     await match.save();
 

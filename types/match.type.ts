@@ -1,6 +1,5 @@
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { Shot } from "./shot.type";
-import { User } from "./user";
 
 export type MatchStatus =
   | "scheduled"
@@ -22,7 +21,7 @@ export interface Participant {
 export interface Player {
   _id: string;
   user: Participant;
-  role?: "player" | "captain"; 
+  role?: "player" | "captain";
 }
 
 export type PlayerKey = "side1" | "side2" | null;
@@ -117,6 +116,13 @@ export interface SubMatch {
   playerTeam1?: Participant | Types.ObjectId;
   playerTeam2?: Participant | Types.ObjectId;
   serverConfig?: InitialServerConfig | null;
+  currentServer?:
+    | "team1"
+    | "team2"
+    | "team1_main"
+    | "team1_partner"
+    | "team2_main"
+    | "team2_partner";
 
   games: IndividualGame[];
   finalScore?: {
@@ -151,7 +157,7 @@ export interface TeamMatch {
   statistics?: {
     winners: number;
     errors: number;
-  }
+  };
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -163,7 +169,6 @@ export type TeamMatchFormat =
   | "extended_format"
   | "three_singles"
   | "custom";
-
 
 // ============================================
 // UNIFIED TYPES
@@ -187,7 +192,9 @@ export type OnAddPoint = (payload: AddPointPayload) => void;
 // TYPE GUARDS
 // ============================================
 
-export function isIndividualMatch(match: NormalizedMatch): match is IndividualMatch {
+export function isIndividualMatch(
+  match: NormalizedMatch
+): match is IndividualMatch {
   return match.matchCategory === "individual";
 }
 

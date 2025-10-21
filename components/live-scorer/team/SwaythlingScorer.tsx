@@ -228,10 +228,10 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
-                currentServer={null}
+                currentServer={currentSubMatch.currentServer!}
                 side1Sets={team1Sets}
                 side2Sets={team2Sets}
-                status={currentSubMatch.status as MatchStatus}
+                status={currentSubMatch.status}
                 onAddPoint={({ side, playerId }) => {
                   if (!isSubMatchActive) {
                     toast.error("Start the match first");
@@ -271,13 +271,16 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
       {/* Shot Selector Dialog */}
       {!isCompleted && <ShotSelector />}
 
-      {!isCompleted && currentSubMatch && (
-        <InitialServerDialog
-          matchType="singles"
-          participants={[player1, player2]}
-          isTeamMatch={true}
-          subMatchId={currentSubMatch._id?.toString()}
-        />
+      {!isCompleted && (
+        <>
+          <ShotSelector />
+          <InitialServerDialog
+            matchType="singles"
+            participants={[player1, player2] as any}
+            isTeamMatch={true}
+            subMatchId={currentSubMatch._id?.toString()}
+          />
+        </>
       )}
     </div>
   );

@@ -15,6 +15,8 @@ interface TeamMatchState {
   team1Sets: number;
   team2Sets: number;
 
+  currentServer?: string | null;
+
   isMatchActive: boolean;
   isSubMatchActive: boolean;
   status: MatchStatus;
@@ -44,6 +46,8 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
   team1Sets: 0,
   team2Sets: 0,
 
+  currentServer: null,
+
   isMatchActive: false,
   isSubMatchActive: false,
   status: "scheduled" as MatchStatus,
@@ -68,6 +72,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
         team2Sets: 0,
         isSubMatchActive: false,
         status: match.status,
+        currentServer: null,
       });
       return;
     }
@@ -90,6 +95,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       team2Sets: subMatch.finalScore?.team2Sets || 0,
       isSubMatchActive: subMatch.status === "in_progress",
       status: match.status,
+      currentServer: (subMatch as any).currentServer || null,
     });
   },
 

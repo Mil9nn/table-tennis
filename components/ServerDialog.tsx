@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { buildDoublesRotation } from "./live-scorer/individual/helpers";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { isTeamMatch } from "@/types/match.type";
+import { useTeamMatch } from "@/hooks/useTeamMatch";
 
 interface InitialServerDialogProps {
   matchType: string;
@@ -35,8 +36,12 @@ export default function InitialServerDialog({
   const match = useMatchStore((s) => s.match);
   const setMatch = useMatchStore((s) => s.setMatch);
 
-  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(null);
-  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<string | null>(null);
+  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(
+    null
+  );
+  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<
+    string | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const isSingles = matchType === "singles" || isTeam; // ✅ Team submatches are always singles
@@ -88,12 +93,14 @@ export default function InitialServerDialog({
 
       if (data?.match) {
         setMatch(data.match);
-        
+
         // ✅ Update the appropriate store
         if (!isTeam) {
           useIndividualMatch.getState().setInitialMatch(data.match);
+        } else {
+          useTeamMatch.getState().setInitialTeamMatch(data.match);
         }
-        
+
         toast.success("Server configuration saved!");
         setOpen(false);
       }
@@ -114,37 +121,79 @@ export default function InitialServerDialog({
 
   const getServerOptions = () => {
     if (isSingles) {
-      // ✅ For singles (individual or team submatch)
-      return [
-        { value: "side1", label: getPlayerName(0) },
-        { value: "side2", label: getPlayerName(1) },
-      ];
+      // ✅ Use correct keys based on match type
+      if (isTeam) {
+        return [
+          { value: "team1", label: getPlayerName(0) },
+          { value: "team2", label: getPlayerName(1) },
+        ];
+      } else {
+        return [
+          { value: "side1", label: getPlayerName(0) },
+          { value: "side2", label: getPlayerName(1) },
+        ];
+      }
     }
 
     // ✅ For doubles
-    return [
-      { value: "side1_main", label: `${getPlayerName(0)} (Side 1 Main)` },
-      { value: "side1_partner", label: `${getPlayerName(1)} (Side 1 Partner)` },
-      { value: "side2_main", label: `${getPlayerName(2)} (Side 2 Main)` },
-      { value: "side2_partner", label: `${getPlayerName(3)} (Side 2 Partner)` },
-    ];
+    if (isTeam) {
+      return [
+        { value: "team1_main", label: `${getPlayerName(0)} (Team 1 Main)` },
+        {
+          value: "team1_partner",
+          label: `${getPlayerName(1)} (Team 1 Partner)`,
+        },
+        { value: "team2_main", label: `${getPlayerName(2)} (Team 2 Main)` },
+        {
+          value: "team2_partner",
+          label: `${getPlayerName(3)} (Team 2 Partner)`,
+        },
+      ];
+    } else {
+      return [
+        { value: "side1_main", label: `${getPlayerName(0)} (Side 1 Main)` },
+        {
+          value: "side1_partner",
+          label: `${getPlayerName(1)} (Side 1 Partner)`,
+        },
+        { value: "side2_main", label: `${getPlayerName(2)} (Side 2 Main)` },
+        {
+          value: "side2_partner",
+          label: `${getPlayerName(3)} (Side 2 Partner)`,
+        },
+      ];
+    }
   };
 
   const getReceiverOptions = () => {
     if (!selectedFirstServer) return [];
 
-    const isFirstServerSide1 = selectedFirstServer.startsWith("side1");
+    const prefix = isTeam ? "team" : "side";
+    const isFirstServerSide1 = selectedFirstServer.startsWith(`${prefix}1`);
 
-    return [
-      {
-        value: isFirstServerSide1 ? "side2_main" : "side1_main",
-        label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
-      },
-      {
-        value: isFirstServerSide1 ? "side2_partner" : "side1_partner",
-        label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
-      },
-    ];
+    if (isTeam) {
+      return [
+        {
+          value: isFirstServerSide1 ? "team2_main" : "team1_main",
+          label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
+        },
+        {
+          value: isFirstServerSide1 ? "team2_partner" : "team1_partner",
+          label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
+        },
+      ];
+    } else {
+      return [
+        {
+          value: isFirstServerSide1 ? "side2_main" : "side1_main",
+          label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
+        },
+        {
+          value: isFirstServerSide1 ? "side2_partner" : "side1_partner",
+          label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
+        },
+      ];
+    }
   };
 
   return (
@@ -153,7 +202,8 @@ export default function InitialServerDialog({
         <DialogHeader>
           <DialogTitle>Select First Server</DialogTitle>
           <DialogDescription>
-            Choose who will serve first in {isTeam ? "this submatch" : "the match"}.
+            Choose who will serve first in{" "}
+            {isTeam ? "this submatch" : "the match"}.
           </DialogDescription>
         </DialogHeader>
 
