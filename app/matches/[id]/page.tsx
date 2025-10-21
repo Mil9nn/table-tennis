@@ -12,69 +12,35 @@ import {
   Loader2,
   ArrowLeftCircle,
   Eye,
-  PlayCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import Image from "next/image";
-import { IndividualGame, SubMatch } from "@/types/match.type";
+import {
+  IndividualGame,
+  isIndividualMatch,
+  SubMatch,
+} from "@/types/match.type";
+import { useMatchStore } from "@/hooks/useMatchStore";
+import { formatDate } from "@/lib/utils";
 
 export default function MatchDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const matchId = params.id;
+  const matchId = params.id as string;
   const categoryParam = searchParams.get("category"); // Get category from URL
 
-  const [match, setMatch] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const fetchMatch = useMatchStore((state) => state.fetchMatch);
+  const fetchingMatch = useMatchStore((state) => state.fetchingMatch);
+  const match = useMatchStore((state) => state.match);
 
-  const fetchUser = useAuthStore((state) => state.fetchUser);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    if (user?._id) {
-      setCurrentUserId(user._id);
-    } else {
-      setCurrentUserId(null);
-    }
-  }, [user]);
-
-  const fetchMatch = async () => {
-    try {
-      // If category is provided in URL, use that endpoint directly
-      if (categoryParam === "individual" || categoryParam === "team") {
-        const endpoint =
-          categoryParam === "team"
-            ? `/matches/team/${matchId}`
-            : `/matches/individual/${matchId}`;
-
-        const response = await axiosInstance.get(endpoint);
-        if (response.status === 200) {
-          setMatch({ ...response.data.match, matchCategory: categoryParam });
-          setLoading(false);
-          return;
-        }
-      }
-      setMatch(null);
-    } catch (error) {
-      console.error("Error fetching match:", error);
-      setMatch(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMatch();
+    fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
   }, [matchId, categoryParam]);
 
-  if (loading) {
+  if (fetchingMatch) {
     return (
       <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
         <Loader2 className="animate-spin size-5 text-blue-600" />
@@ -100,7 +66,7 @@ export default function MatchDetailsPage() {
       ? match.participants?.[1]?.fullName
       : match.team2?.name;
 
-  const isScorer = match.scorer._id === currentUserId;
+  const isScorer = match.scorer?._id === user?._id;
 
   return (
     <div className="px-4 py-8 max-w-6xl mx-auto">
@@ -133,10 +99,10 @@ export default function MatchDetailsPage() {
                 {match.status}
               </Badge>
             </div>
-            <div className="grid grid-cols-2 gap-y-3 text-sm text-muted-foreground">
+            {isIndividualMatch(match) && <div className="grid grid-cols-2 gap-y-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(match.createdAt).toLocaleDateString()}</span>
+                <span>{formatDate(match.createdAt)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
@@ -147,9 +113,9 @@ export default function MatchDetailsPage() {
                 <span className="capitalize">{match.matchType}</span>
               </div>
               <div>
-                <span>Best of {match.numberOfSets || match.setsPerTie}</span>
+                <span>Best of {match.numberOfSets}</span>
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* Players / Teams */}
@@ -167,7 +133,7 @@ export default function MatchDetailsPage() {
                     {match.participants
                       ?.slice(0, 2)
                       .map((p: any, i: number) => (
-                        <p
+                        <div
                           key={i}
                           className="text-sm text-gray-600 flex items-center"
                         >
@@ -180,12 +146,12 @@ export default function MatchDetailsPage() {
                               className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
                             />
                           ) : (
-                            <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                            <p className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
                               {(p?.fullName?.[0] || "?").toUpperCase()}
-                            </div>
+                            </p>
                           )}
                           {p?.fullName || "Unnamed"}
-                        </p>
+                        </div>
                       ))}
                   </div>
                 ) : (
@@ -267,9 +233,9 @@ export default function MatchDetailsPage() {
                           {player?.user?.fullName ||
                             player?.user?.username ||
                             "Unnamed"}
-                          {match.team1.assignments?.get?.(player.user._id) && (
+                          {match.team1.assignments?.[player.user._id] && (
                             <span className="ml-2 text-xs text-gray-500">
-                              ({match.team1.assignments.get(player.user._id)})
+                              ({match.team1.assignments[player.user._id]})
                             </span>
                           )}
                         </li>
@@ -305,9 +271,9 @@ export default function MatchDetailsPage() {
                           {player?.user?.fullName ||
                             player?.user?.username ||
                             "Unnamed"}
-                          {match.team2.assignments?.get?.(player.user._id) && (
+                          {match.team2.assignments?.[player.user._id] && (
                             <span className="ml-2 text-xs text-gray-500">
-                              ({match.team2.assignments.get(player.user._id)})
+                              ({match.team2.assignments[player.user._id]})
                             </span>
                           )}
                         </li>
@@ -322,22 +288,26 @@ export default function MatchDetailsPage() {
           </div>
 
           {/* Games */}
-          {match.games?.length > 0 && (
-            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-              <h2 className="text-lg font-semibold mb-4">Games</h2>
-              <div className="divide-y divide-gray-100">
-                {match.games.map((g: any) => (
-                  <div
-                    key={g.gameNumber}
-                    className="flex justify-between py-2 text-sm font-medium"
-                  >
-                    <span>Game {g.gameNumber}</span>
-                    <span className="text-gray-700">
-                      {g.side1Score} - {g.side2Score}
-                    </span>
+          {isIndividualMatch(match) && (
+            <div>
+              {match.games?.length > 0 && (
+                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                  <h2 className="text-lg font-semibold mb-4">Games</h2>
+                  <div className="divide-y divide-gray-100">
+                    {match.games.map((g: any) => (
+                      <div
+                        key={g.gameNumber}
+                        className="flex justify-between py-2 text-sm font-medium"
+                      >
+                        <span>Game {g.gameNumber}</span>
+                        <span className="text-gray-700">
+                          {g.side1Score} - {g.side2Score}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -391,23 +361,28 @@ export default function MatchDetailsPage() {
           </div>
 
           {/* Score */}
-          {match.finalScore && (
-            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
-              <h2 className="text-lg font-semibold mb-6">Final Score</h2>
-              <div className="flex justify-center items-center gap-6">
-                <span className="text-4xl font-bold text-blue-600">
-                  {match.finalScore.side1Sets}
-                </span>
-                <span className="text-2xl text-gray-400">-</span>
-                <span className="text-4xl font-bold text-red-600">
-                  {match.finalScore.side2Sets}
-                </span>
-              </div>
-              {match.winner && (
-                <div className="mt-6">
-                  <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
-                    Winner: {match.winner === "side1" ? side1Name : side2Name}
-                  </Badge>
+          {isIndividualMatch(match) && (
+            <div>
+              {match.finalScore && (
+                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
+                  <h2 className="text-lg font-semibold mb-6">Final Score</h2>
+                  <div className="flex justify-center items-center gap-6">
+                    <span className="text-4xl font-bold text-blue-600">
+                      {match.finalScore.side1Sets}
+                    </span>
+                    <span className="text-2xl text-gray-400">-</span>
+                    <span className="text-4xl font-bold text-red-600">
+                      {match.finalScore.side2Sets}
+                    </span>
+                  </div>
+                  {match.winnerSide && (
+                    <div className="mt-6">
+                      <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
+                        Winner:{" "}
+                        {match.winnerSide === "side1" ? side1Name : side2Name}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

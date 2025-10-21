@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
+import InitialServerDialog from "@/components/ServerDialog";
 
 interface SwaythlingScorerProps {
   match: TeamMatch;
