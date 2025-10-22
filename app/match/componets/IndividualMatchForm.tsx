@@ -119,7 +119,7 @@ export default function IndividualMatchForm({
     <div className="rounded-2xl border bg-card p-6 sm:p-8 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-6">
         <h2 className="font-semibold text-lg text-foreground tracking-tight">
-          Match Details
+          Individual Match Setup
         </h2>
       </div>
 
@@ -204,7 +204,7 @@ export default function IndividualMatchForm({
                 {/* Team A */}
                 <div className="border rounded-xl p-4 sm:p-5 space-y-4 bg-muted/30">
                   <h3 className="text-sm font-semibold text-muted-foreground">
-                    Team A
+                    Side A
                   </h3>
                   <UserSearchInput
                     placeholder="Player A"
@@ -219,7 +219,7 @@ export default function IndividualMatchForm({
                 {/* Team B */}
                 <div className="border rounded-xl p-4 sm:p-5 space-y-4 bg-muted/30">
                   <h3 className="text-sm font-semibold text-muted-foreground">
-                    Team B
+                    Side B
                   </h3>
                   <UserSearchInput
                     placeholder="Player B"

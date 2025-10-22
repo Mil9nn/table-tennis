@@ -72,13 +72,11 @@ export default function MatchesList({
 }) {
   if (!matches || matches.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-400">
-        <p className="text-lg font-medium">No matches found.</p>
-        <Link href="/match/create">
-          <Button className="mt-4">
-            <PlusCircle className="size-5" /> Start New Match
-          </Button>
-        </Link>
+      <div className="text-center py-12">
+        <p className="text-gray-500 text-lg">No Individual matches found</p>
+        <p className="text-gray-400 text-sm mt-2">
+          Individual matches will appear here once they are created
+        </p>
       </div>
     );
   }

@@ -4,12 +4,14 @@ import { useEffect, useState, useMemo } from "react";
 import MatchesList from "@/components/MatchesList";
 import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import MatchesListSkeleton from "@/components/skeletons/MatchesListSkeleton";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function MatchesPage() {
   // Individual matches state
@@ -84,12 +86,19 @@ export default function MatchesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Matches</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Matches</h1>
+        <Button variant={"default"}>
+          <Link href="/match/create" className="text-sm hover:underline flex items-center gap-1">
+          <Plus strokeWidth={3} />
+          New Match</Link>
+        </Button>
+      </div>
 
       <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto mb-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <TabsTrigger value="individual">Individual Matches</TabsTrigger>
-          <TabsTrigger value="team">Team Matches</TabsTrigger>
+        <TabsList className="grid w-full max-w-md mx-auto mb-6 h-fit" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <TabsTrigger className="p-4" value="individual">Individual Matches</TabsTrigger>
+          <TabsTrigger className="p-4" value="team">Team Matches</TabsTrigger>
         </TabsList>
 
         {/* Individual Matches Tab */}
@@ -110,7 +119,7 @@ export default function MatchesPage() {
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="singles">Singles</SelectItem>
                 <SelectItem value="doubles">Doubles</SelectItem>
                 <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
@@ -143,7 +152,7 @@ export default function MatchesPage() {
                 <SelectValue placeholder="Filter by format" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Formats</SelectItem>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
                 <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
                 <SelectItem value="three_singles">Three Singles</SelectItem>

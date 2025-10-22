@@ -225,23 +225,22 @@ export default function TeamsPage() {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">Teams</h1>
-        <Link href="/teams/create">
-          <Button size="sm" className="gap-1.5">
-            <Plus className="w-4 h-4" /> New Team
-          </Button>
-        </Link>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Teams</h1>
+        <Button variant={"default"}>
+          <Link href="/teams/create" className="text-sm hover:underline flex items-center gap-1">
+          <Plus strokeWidth={3} />
+          New Team</Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="my-teams" className="w-full">
         <TabsList
-          className="grid w-full max-w-md mx-auto mb-6"
+          className="grid w-full max-w-md h-fit mx-auto mb-6"
           style={{ gridTemplateColumns: "1fr 1fr" }}
         >
-          <TabsTrigger value="my-teams">My Teams</TabsTrigger>
-          <TabsTrigger value="all-teams">All Teams</TabsTrigger>
+          <TabsTrigger className="p-2" value="my-teams">My Teams</TabsTrigger>
+          <TabsTrigger className="p-2" value="all-teams">All Teams</TabsTrigger>
         </TabsList>
 
         {/* Search and Filters (shared) */}

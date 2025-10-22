@@ -22,7 +22,7 @@ export default function CreateMatchPage() {
       </div>
 
       {/* Match Category Toggle */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="mt-8 grid grid-cols-1 xxs:grid-cols-2 gap-4">
         {[
           {
             type: "individual",

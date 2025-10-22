@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Menu,
   X,
-  User,
   LogIn,
   LogOut,
-  Sidebar,
-  SidebarClose,
 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useProfileStore } from "@/hooks/useProfileStore";
@@ -24,6 +20,8 @@ import {
 import Image from "next/image";
 
 export default function Navbar() {
+  const router = useRouter();
+
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
@@ -130,7 +128,10 @@ export default function Navbar() {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
-                    onClick={() => logout()}
+                    onClick={() => {
+                      logout();
+                      router.push("/");
+                    }}
                     className="flex items-center gap-2 text-red-500 focus:text-red-600"
                   >
                     <span className="font-semibold text-sm">Logout</span>
