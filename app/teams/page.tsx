@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import TeamListSkeleton from "@/components/skeletons/TeamListSkeleton";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { AnyARecord } from "dns";
+import axios, { isAxiosError } from "axios";
 
 type Team = {
   _id: string;
@@ -62,11 +63,11 @@ export default function TeamsPage() {
       await axiosInstance.delete(`/teams/${id}`);
       toast.success("Team deleted");
       fetchTeams();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Delete failed", err);
-      const errorMessage =
-        err.response?.data?.message || "Failed to delete team";
-      toast.error(errorMessage);
+      if (isAxiosError(err)) {
+      toast.error( err.response?.data?.message || "Failed to delete team");
+      }
     }
   };
 

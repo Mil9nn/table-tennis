@@ -38,6 +38,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
+  const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
 
   const lastMatchId = useRef<string | null>(null);
   const lastSubMatchIndex = useRef<number | null>(null);
@@ -74,12 +75,12 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
     side1: {
       name: player1Name!,
       playerId: player1?._id,
-      serverKey: "side1" as const,
+      serverKey: "team1" as const,
     },
     side2: {
       name: player2Name!,
       playerId: player2?._id,
-      serverKey: "side2" as const,
+      serverKey: "team2" as const,
     },
   };
 
@@ -242,7 +243,13 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 }}
                 onSubtractPoint={subtractPoint}
                 onReset={() => toast.info("Reset not yet implemented")}
-                onToggleMatch={toggleSubMatch}
+                onToggleMatch={() => {
+                  if (!isSubMatchActive && !currentSubMatch.serverConfig?.firstServer) {
+                    setServerDialogOpen(true);
+                  } else {
+                    toggleSubMatch();
+                  }
+                }}
                 teamMatchPlayers={teamMatchPlayers}
               />
 

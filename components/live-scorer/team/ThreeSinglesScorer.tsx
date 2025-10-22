@@ -77,12 +77,12 @@ export default function ThreeSinglesScorer({ match }: ThreeSinglesScorerProps) {
     side1: {
       name: player1Name,
       playerId: player1?._id,
-      serverKey: "side1" as const,
+      serverKey: "team1" as const,
     },
     side2: {
       name: player2Name,
       playerId: player2?._id,
-      serverKey: "side2" as const,
+      serverKey: "team2" as const,
     },
   };
 

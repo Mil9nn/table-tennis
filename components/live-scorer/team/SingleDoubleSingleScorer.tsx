@@ -97,12 +97,12 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
     side1: {
       name: player1.map(p => p?.fullName || p?.username || "Player").join(" & "),
       playerId: player1[0]?._id,
-      serverKey: "side1" as const,
+      serverKey: "team1" as const,
     },
     side2: {
       name: player2.map(p => p?.fullName || p?.username || "Player").join(" & "),
       playerId: player2[0]?._id,
-      serverKey: "side2" as const,
+      serverKey: "team2" as const,
     },
   };
 

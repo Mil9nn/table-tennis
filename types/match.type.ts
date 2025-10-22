@@ -24,7 +24,7 @@ export interface Player {
   role?: "player" | "captain";
 }
 
-export type PlayerKey = "side1" | "side2" | null;
+export type PlayerKey = "side1" | "side2" | "team1" | "team2";
 
 export type sideUnion = "side1" | "side2" | "team1" | "team2";
 
@@ -32,7 +32,11 @@ export type DoublesPlayerKey =
   | "side1_main"
   | "side1_partner"
   | "side2_main"
-  | "side2_partner";
+  | "side2_partner"
+  | "team1_main"
+  | "team1_partner"
+  | "team2_main"
+  | "team2_partner";
 
 export type ServerKey = PlayerKey | DoublesPlayerKey;
 

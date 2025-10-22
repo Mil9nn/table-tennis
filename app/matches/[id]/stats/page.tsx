@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -21,6 +21,11 @@ import { Shot } from "@/types/shot.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
+
+interface PlayerStatsData {
+  name: string;
+  strokes: Record<string, number>;
+}
 
 // --- Shared colors ---
 const COLORS = {
@@ -54,9 +59,8 @@ function computeStats(shots: Shot[]) {
   return { shotTypes };
 }
 
-// --- Compute per-player stats ---
-function computePlayerStats(shots: Shot[]) {
-  const playerStats: Record<string, Record<string, number>> = {};
+function computePlayerStats(shots: Shot[]): Record<string, PlayerStatsData> {
+  const playerStats: Record<string, PlayerStatsData> = {};
 
   (shots || []).forEach((s) => {
     if (!s || !s.player) return;
@@ -65,17 +69,21 @@ function computePlayerStats(shots: Shot[]) {
     const playerName = s.player.fullName || s.player.username || "Unknown";
 
     if (!playerStats[playerId]) {
-      playerStats[playerId] = { name: playerName };
+      playerStats[playerId] = {
+        name: playerName,
+        strokes: {},
+      };
     }
 
     if (s.stroke) {
-      playerStats[playerId][s.stroke] =
-        (playerStats[playerId][s.stroke] || 0) + 1;
+      playerStats[playerId].strokes[s.stroke] =
+        (playerStats[playerId].strokes[s.stroke] || 0) + 1;
     }
   });
 
   return playerStats;
 }
+
 
 function computeServeStats(games: any[]) {
   const serveStats: Record<
@@ -214,7 +222,7 @@ export default function MatchStatsPage() {
   let shots: Shot[] = [];
   let serveData: { player: string; Serve: number; Receive: number }[] = [];
   let shotTypes: Record<string, number> = {};
-  let playerStats: Record<string, Record<string, number>> = {};
+  let playerStats: Record<string, PlayerStatsData> = {};
 
   if (isIndividualMatch(match)) {
     const allGames = match.games || [];
@@ -266,14 +274,13 @@ export default function MatchStatsPage() {
 
   // Prepare pie chart data for each player
   const playerPieData = Object.entries(playerStats).map(([playerId, stats]) => {
-    const { name, ...strokes } = stats;
-    const pieData = Object.entries(strokes).map(([stroke, count]) => ({
+    const pieData = Object.entries(stats.strokes).map(([stroke, count]) => ({
       name: formatStrokeName(stroke),
-      value: count as number,
+      value: count
     }));
     return {
       playerId,
-      playerName: name,
+      playerName: stats.name,
       data: pieData,
     };
   });
