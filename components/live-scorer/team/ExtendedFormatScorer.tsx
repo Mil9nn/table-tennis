@@ -31,6 +31,7 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
     currentGame,
     isSubMatchActive,
     status,
+    currentServer, // ✅ NOW USING FROM HOOK
     setInitialTeamMatch,
     subtractPoint,
     toggleSubMatch,
@@ -38,6 +39,7 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
 
   console.log("Current SubMatch:", currentSubMatch);
   console.log("Current SubMatch Id:", currentSubMatch?._id);
+  console.log("Current Server from Hook:", currentServer); // ✅ DEBUG
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
@@ -229,7 +231,7 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
-                currentServer={null}
+                currentServer={currentServer}
                 side1Sets={team1Sets}
                 side2Sets={team2Sets}
                 status={currentSubMatch.status as MatchStatus}

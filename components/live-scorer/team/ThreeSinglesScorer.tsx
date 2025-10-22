@@ -35,6 +35,7 @@ export default function ThreeSinglesScorer({ match }: ThreeSinglesScorerProps) {
     setInitialTeamMatch,
     subtractPoint,
     toggleSubMatch,
+    currentServer,
   } = useTeamMatch();
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
@@ -228,7 +229,7 @@ export default function ThreeSinglesScorer({ match }: ThreeSinglesScorerProps) {
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
-                currentServer={null}
+                currentServer={currentServer}
                 side1Sets={team1Sets}
                 side2Sets={team2Sets}
                 status={currentSubMatch.status as MatchStatus}
