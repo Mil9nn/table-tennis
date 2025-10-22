@@ -20,7 +20,7 @@ interface TeamMatchState {
   team1Sets: number;
   team2Sets: number;
 
-  currentServer?: string | null;
+  currentServer: string | null;
 
   isMatchActive: boolean;
   isSubMatchActive: boolean;

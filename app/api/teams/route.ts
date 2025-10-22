@@ -1,12 +1,17 @@
+// app/api/teams/route.ts
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
+import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 
 export async function GET() {
   try {
+    await connectDB();
     const teams = await Team.find()
       .populate("captain", "username fullName")
-      .populate("players.user", "username fullName");
+      .populate("players.user", "username fullName profileImage");
 
     const formatted = teams.map((t) => {
       const playersWithAssignments = t.players.map((p: any) => ({
@@ -31,8 +36,21 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    await connectDB();
+
+    // ✅ Auth check
+    const token = getTokenFromRequest(req);
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { name, city, captain, players } = body;
 
@@ -41,6 +59,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { message: "Name, captain, and at least 2 players are required" },
         { status: 400 }
+      );
+    }
+
+    // ✅ Verify that the authenticated user is the captain
+    if (captain !== decoded.userId) {
+      return NextResponse.json(
+        { message: "You can only create a team where you are the captain" },
+        { status: 403 }
       );
     }
 
