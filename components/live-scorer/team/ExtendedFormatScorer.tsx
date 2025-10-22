@@ -36,6 +36,9 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
     toggleSubMatch,
   } = useTeamMatch();
 
+  console.log("Current SubMatch:", currentSubMatch);
+  console.log("Current SubMatch Id:", currentSubMatch?._id);
+
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
@@ -278,6 +281,8 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
           <InitialServerDialog 
             matchType="singles" 
             participants={[player1, player2] as any}
+            isTeamMatch={true}
+            subMatchId={currentSubMatch._id?.toString()}
           />
         </>
       )}

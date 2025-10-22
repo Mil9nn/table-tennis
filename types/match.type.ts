@@ -110,19 +110,13 @@ export interface TeamInfo {
 export interface SubMatch {
   _id?: Types.ObjectId;
   matchNumber: number;
-  matchType?: IndividualMatchType;
+  matchType: IndividualMatchType;
   numberOfSets: number;
 
   playerTeam1?: Participant | Types.ObjectId;
   playerTeam2?: Participant | Types.ObjectId;
   serverConfig?: InitialServerConfig | null;
-  currentServer?:
-    | "team1"
-    | "team2"
-    | "team1_main"
-    | "team1_partner"
-    | "team2_main"
-    | "team2_partner";
+  currentServer?: ServerKey | null;
 
   games: IndividualGame[];
   finalScore?: {

@@ -2,7 +2,12 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { TeamMatch, SubMatch, MatchStatus, sideUnion } from "@/types/match.type";
+import {
+  TeamMatch,
+  SubMatch,
+  MatchStatus,
+  sideUnion,
+} from "@/types/match.type";
 import { useMatchStore } from "./useMatchStore";
 
 interface TeamMatchState {
@@ -85,6 +90,12 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
 
     const activeGame = isGameComplete ? null : lastGame;
 
+    let serverToUse: string | null = null;
+
+    if (subMatch.currentServer) {
+      serverToUse = subMatch.currentServer;
+    }
+
     set({
       currentSubMatchIndex: currentIndex,
       currentSubMatch: subMatch,
@@ -95,7 +106,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       team2Sets: subMatch.finalScore?.team2Sets || 0,
       isSubMatchActive: subMatch.status === "in_progress",
       status: match.status,
-      currentServer: (subMatch as any).currentServer || null,
+      currentServer: serverToUse,
     });
   },
 

@@ -57,6 +57,7 @@ function generateFiveSinglesSubmatches(
     if (playerTeam1 && playerTeam2) {
       submatches.push({
         matchNumber: index + 1,
+        matchType: "singles",
         playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
         playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
         numberOfSets: setsPerTie,
@@ -107,6 +108,7 @@ function generateSingleDoubleSingleSubmatches(
   if (playerA && playerX) {
     submatches.push({
       matchNumber: 1,
+      matchType: "singles",
       playerTeam1: new mongoose.Types.ObjectId(playerA),
       playerTeam2: new mongoose.Types.ObjectId(playerX),
       numberOfSets: setsPerTie,
@@ -119,8 +121,6 @@ function generateSingleDoubleSingleSubmatches(
   }
 
   // Match 2: AB vs XY (doubles)
-  // For doubles, we'll use the first player of each team in the submatch,
-  // but the UI will show both players
   if (playerA && playerX) {
     submatches.push({
       matchNumber: 2,
@@ -140,6 +140,7 @@ function generateSingleDoubleSingleSubmatches(
   if (playerB && playerY) {
     submatches.push({
       matchNumber: 3,
+      matchType: "singles",
       playerTeam1: new mongoose.Types.ObjectId(playerB),
       playerTeam2: new mongoose.Types.ObjectId(playerY),
       numberOfSets: setsPerTie,
@@ -193,6 +194,7 @@ function generateThreeSinglesSubmatches(
     if (playerTeam1 && playerTeam2) {
       submatches.push({
         matchNumber: index + 1,
+        matchType: "singles",
         playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
         playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
         numberOfSets: setsPerTie,
@@ -251,6 +253,7 @@ function generateExtendedFormatSubmatches(
     if (playerTeam1 && playerTeam2) {
       submatches.push({
         matchNumber: index + 1,
+        matchType: "singles",
         playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
         playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
         numberOfSets: setsPerTie,

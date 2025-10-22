@@ -14,7 +14,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { buildDoublesRotation } from "./live-scorer/individual/helpers";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
-import { isTeamMatch } from "@/types/match.type";
+import { isTeamMatch, TeamMatch } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 
 interface InitialServerDialogProps {
@@ -28,7 +28,7 @@ interface InitialServerDialogProps {
 export default function InitialServerDialog({
   matchType,
   participants,
-  isTeamMatch: isTeam = false,
+  isTeamMatch,
   subMatchId,
 }: InitialServerDialogProps) {
   const isOpen = useMatchStore((s) => s.serverDialogOpen);
@@ -44,7 +44,7 @@ export default function InitialServerDialog({
   >(null);
   const [loading, setLoading] = useState(false);
 
-  const isSingles = matchType === "singles" || isTeam; // ✅ Team submatches are always singles
+  const isSingles = matchType === "singles" || isTeamMatch; // ✅ Team submatches are always singles
   const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
   const handleSave = async () => {
@@ -81,9 +81,12 @@ export default function InitialServerDialog({
         serverOrder: isDoubles ? serverOrder : undefined,
       };
 
+      console.log("isTeamMatch:", isTeamMatch);
+      console.log("SubmatchId:", subMatchId);
+
       // ✅ Different endpoint for team vs individual
       let endpoint: string;
-      if (isTeam && subMatchId) {
+      if (isTeamMatch && subMatchId) {
         endpoint = `/matches/team/${match._id}/submatch/${subMatchId}/server-config`;
       } else {
         endpoint = `/matches/individual/${match._id}/server-config`;
@@ -95,10 +98,15 @@ export default function InitialServerDialog({
         setMatch(data.match);
 
         // ✅ Update the appropriate store
-        if (!isTeam) {
+        if (!isTeamMatch) {
           useIndividualMatch.getState().setInitialMatch(data.match);
         } else {
-          useTeamMatch.getState().setInitialTeamMatch(data.match);
+          const updatedMatch = data.match as TeamMatch;
+          useTeamMatch.getState().setInitialTeamMatch(updatedMatch);
+
+          useTeamMatch.setState({
+            currentServer: selectedFirstServer as any,
+          });
         }
 
         toast.success("Server configuration saved!");
@@ -121,8 +129,7 @@ export default function InitialServerDialog({
 
   const getServerOptions = () => {
     if (isSingles) {
-      // ✅ Use correct keys based on match type
-      if (isTeam) {
+      if (isTeamMatch) {
         return [
           { value: "team1", label: getPlayerName(0) },
           { value: "team2", label: getPlayerName(1) },
@@ -136,7 +143,7 @@ export default function InitialServerDialog({
     }
 
     // ✅ For doubles
-    if (isTeam) {
+    if (isTeamMatch) {
       return [
         { value: "team1_main", label: `${getPlayerName(0)} (Team 1 Main)` },
         {
@@ -168,10 +175,10 @@ export default function InitialServerDialog({
   const getReceiverOptions = () => {
     if (!selectedFirstServer) return [];
 
-    const prefix = isTeam ? "team" : "side";
+    const prefix = isTeamMatch ? "team" : "side";
     const isFirstServerSide1 = selectedFirstServer.startsWith(`${prefix}1`);
 
-    if (isTeam) {
+    if (isTeamMatch) {
       return [
         {
           value: isFirstServerSide1 ? "team2_main" : "team1_main",
@@ -203,7 +210,7 @@ export default function InitialServerDialog({
           <DialogTitle>Select First Server</DialogTitle>
           <DialogDescription>
             Choose who will serve first in{" "}
-            {isTeam ? "this submatch" : "the match"}.
+            {isTeamMatch ? "this submatch" : "the match"}.
           </DialogDescription>
         </DialogHeader>
 

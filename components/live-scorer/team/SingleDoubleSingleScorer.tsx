@@ -65,14 +65,14 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
   }
 
   // Determine if current submatch is doubles (match 2 in the sequence)
-  const isDoublesMatch = currentSubMatch.matchNumber === 2;
+  const isDoublesMatch = currentSubMatch.matchType === "doubles";
   
   // Get players for current submatch
   const getPlayersForSubmatch = () => {
     if (isDoublesMatch) {
       // Doubles match - 2 players per team
-      const team1Players = match.team1.players.slice(0, 2);
-      const team2Players = match.team2.players.slice(0, 2);
+      const team1Players = match.team1.players.slice(0, 2); // make changes here
+      const team2Players = match.team2.players.slice(0, 2); // make changes here
       
       return {
         player1: team1Players.map(p => p.user as Participant),
