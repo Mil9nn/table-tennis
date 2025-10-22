@@ -24,9 +24,6 @@ export async function GET(request: NextRequest) {
 
     // Career counters
     const shotTotals: Record<string, number> = {};
-    const errorBreakdown: Record<string, number> = { net: 0, long: 0, serve: 0 };
-    let winners = 0;
-    let errors = 0;
 
     matches.forEach((match: any) => {
       match.games?.forEach((game: any) => {
@@ -35,16 +32,6 @@ export async function GET(request: NextRequest) {
 
           // Only count if the shot belongs to this player
           if (shot.player.toString() !== userId.toString()) return;
-
-          // Outcome
-          if (shot.outcome === "winner") {
-            winners++;
-          } else if (shot.outcome === "error") {
-            errors++;
-            if (shot.errorType) {
-              errorBreakdown[shot.errorType] = (errorBreakdown[shot.errorType] || 0) + 1;
-            }
-          }
 
           // Stroke
           if (shot.stroke) {
@@ -57,9 +44,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       stats: {
-        winners,
-        errors,
-        errorBreakdown,
         detailedShots: shotTotals,
       },
     });

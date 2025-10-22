@@ -31,27 +31,18 @@ const COLORS = {
 
 // --- Compute stats from shots ---
 function computeStats(shots: Shot[]) {
-  const winners = { side1: 0, side2: 0 };
-  const errors = { side1: 0, side2: 0 };
-  const errorBreakdown = { net: 0, long: 0, serve: 0 };
   const shotTypes: Record<string, number> = {};
 
   (shots || []).forEach((s) => {
     if (!s) return;
     const side = s.side;
 
-    if (s.outcome === "winner") winners[side]++;
-    else if (s.outcome === "error") {
-      errors[side]++;
-      if (s.errorType) errorBreakdown[s.errorType]++;
-    }
-
     if (s.stroke) {
       shotTypes[s.stroke] = (shotTypes[s.stroke] || 0) + 1;
     }
   });
 
-  return { winners, errors, errorBreakdown, shotTypes };
+  return { shotTypes };
 }
 
 function computeServeStats(games: any[]) {
@@ -62,9 +53,6 @@ function computeServeStats(games: any[]) {
 
   (games || []).forEach((g) => {
     (g.shots || []).forEach((shot: any, idx: number, arr: any[]) => {
-      // rally ends when outcome is "winner" or "error"
-      const isRallyEnd = shot.outcome === "winner" || shot.outcome === "error";
-      if (!isRallyEnd) return;
 
       const winnerId = shot.player?.toString();
       const serverId = shot.server?.toString();
@@ -164,8 +152,6 @@ export default function MatchStatsPage() {
   // --- Match-level stats ---
   let shots: Shot[] = [];
   let serveData: { player: string; Serve: number; Receive: number }[] = [];
-  let winners = { side1: 0, side2: 0 };
-  let errors = { side1: 0, side2: 0 };
   let shotTypes: Record<string, number> = {};
 
   if (isIndividualMatch(match)) {
@@ -173,7 +159,7 @@ export default function MatchStatsPage() {
     const allGames = match.games || [];
     shots = allGames.flatMap((g) => g.shots || []);
 
-    ({ winners, errors, shotTypes } = computeStats(shots));
+    ({ shotTypes } = computeStats(shots));
 
     const serveStats = computeServeStats(allGames);
     serveData = Object.entries(serveStats).map(([playerId, s]) => {
@@ -192,7 +178,7 @@ export default function MatchStatsPage() {
     const allGames = subMatches.flatMap((sm) => sm.games || []);
     shots = allGames.flatMap((g) => g.shots || []);
 
-    ({ winners, errors, shotTypes } = computeStats(shots));
+    ({ shotTypes } = computeStats(shots));
 
     const serveStats = computeServeStats(allGames);
     serveData = Object.entries(serveStats).map(([teamKey, s]) => {
@@ -209,12 +195,6 @@ export default function MatchStatsPage() {
       };
     });
   }
-
-  // Winners vs Errors chart
-  const winnerErrorData = [
-    { name: side1Name, Winners: winners.side1, Errors: errors.side1 },
-    { name: side2Name, Winners: winners.side2, Errors: errors.side2 },
-  ];
 
   // Shot Distribution
   const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
@@ -259,18 +239,6 @@ export default function MatchStatsPage() {
         <CardHeader>
           <CardTitle>Key Match Stats</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div>
-            <p className="text-2xl font-bold">
-              {winners.side1 + winners.side2}
-            </p>
-            <p className="text-sm text-gray-500">Winners</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold">{errors.side1 + errors.side2}</p>
-            <p className="text-sm text-gray-500">Errors</p>
-          </div>
-        </CardContent>
       </Card>
 
       {/* Charts */}
@@ -289,25 +257,6 @@ export default function MatchStatsPage() {
                 <Legend />
                 <Bar dataKey="Serve" fill={COLORS.serve} />
                 <Bar dataKey="Receive" fill={COLORS.receive} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Winners vs Errors */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Winners vs Errors</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={winnerErrorData}>
-                <XAxis dataKey="name" />
-                <YAxis width={25} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Winners" fill={COLORS.winners} />
-                <Bar dataKey="Errors" fill={COLORS.errors} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

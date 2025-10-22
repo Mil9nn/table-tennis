@@ -35,9 +35,4 @@ export const shotCategories = {
     { value: "forehand_drop", label: "Forehand Drop" },
     { value: "backhand_drop", label: "Backhand Drop" },
   ],
-  error: [
-    { value: "net_error", label: "Net Error" },
-    { value: "long_error", label: "Out / Long Error" },
-    { value: "serve_error", label: "Serve Error" },
-  ],
 };

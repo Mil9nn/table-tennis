@@ -20,7 +20,6 @@ import { useTeamMatch } from "@/hooks/useTeamMatch";
 interface InitialServerDialogProps {
   matchType: string;
   participants: any[];
-  // ✅ NEW: Optional props for team matches
   isTeamMatch?: boolean;
   subMatchId?: string;
 }
@@ -36,15 +35,11 @@ export default function InitialServerDialog({
   const match = useMatchStore((s) => s.match);
   const setMatch = useMatchStore((s) => s.setMatch);
 
-  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(
-    null
-  );
-  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<
-    string | null
-  >(null);
+  const [selectedFirstServer, setSelectedFirstServer] = useState<string | null>(null);
+  const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isSingles = matchType === "singles" || isTeamMatch; // ✅ Team submatches are always singles
+  const isSingles = matchType === "singles" || isTeamMatch;
   const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
   const handleSave = async () => {
@@ -81,10 +76,12 @@ export default function InitialServerDialog({
         serverOrder: isDoubles ? serverOrder : undefined,
       };
 
-      console.log("isTeamMatch:", isTeamMatch);
-      console.log("SubmatchId:", subMatchId);
+      console.log("🔄 Saving server config:", {
+        serverConfig,
+        isTeamMatch,
+        subMatchId,
+      });
 
-      // ✅ Different endpoint for team vs individual
       let endpoint: string;
       if (isTeamMatch && subMatchId) {
         endpoint = `/matches/team/${match._id}/submatch/${subMatchId}/server-config`;
@@ -95,22 +92,36 @@ export default function InitialServerDialog({
       const { data } = await axiosInstance.post(endpoint, serverConfig);
 
       if (data?.match) {
+        console.log("✅ Server config response:", data.match);
+
         setMatch(data.match);
 
-        // ✅ Update the appropriate store
         if (!isTeamMatch) {
           useIndividualMatch.getState().setInitialMatch(data.match);
         } else {
           const updatedMatch = data.match as TeamMatch;
           useTeamMatch.getState().setInitialTeamMatch(updatedMatch);
-
-          useTeamMatch.setState({
-            currentServer: selectedFirstServer as any,
+          
+          const currentSubMatch = updatedMatch.subMatches[
+            (updatedMatch.currentSubMatch || 1) - 1
+          ];
+          
+          console.log("🎯 Current submatch after save:", {
+            currentServer: currentSubMatch?.currentServer,
+            serverConfig: currentSubMatch?.serverConfig,
           });
         }
 
         toast.success("Server configuration saved!");
         setOpen(false);
+
+        // ✅ FIX #1: Auto-start the match after server selection for team matches
+        if (isTeamMatch) {
+          console.log("🚀 Auto-starting team submatch...");
+          setTimeout(() => {
+            useTeamMatch.getState().toggleSubMatch();
+          }, 300);
+        }
       }
     } catch (err) {
       console.error("Failed to save server config:", err);
@@ -142,32 +153,19 @@ export default function InitialServerDialog({
       }
     }
 
-    // ✅ For doubles
     if (isTeamMatch) {
       return [
         { value: "team1_main", label: `${getPlayerName(0)} (Team 1 Main)` },
-        {
-          value: "team1_partner",
-          label: `${getPlayerName(1)} (Team 1 Partner)`,
-        },
+        { value: "team1_partner", label: `${getPlayerName(1)} (Team 1 Partner)` },
         { value: "team2_main", label: `${getPlayerName(2)} (Team 2 Main)` },
-        {
-          value: "team2_partner",
-          label: `${getPlayerName(3)} (Team 2 Partner)`,
-        },
+        { value: "team2_partner", label: `${getPlayerName(3)} (Team 2 Partner)` },
       ];
     } else {
       return [
         { value: "side1_main", label: `${getPlayerName(0)} (Side 1 Main)` },
-        {
-          value: "side1_partner",
-          label: `${getPlayerName(1)} (Side 1 Partner)`,
-        },
+        { value: "side1_partner", label: `${getPlayerName(1)} (Side 1 Partner)` },
         { value: "side2_main", label: `${getPlayerName(2)} (Side 2 Main)` },
-        {
-          value: "side2_partner",
-          label: `${getPlayerName(3)} (Side 2 Partner)`,
-        },
+        { value: "side2_partner", label: `${getPlayerName(3)} (Side 2 Partner)` },
       ];
     }
   };
@@ -274,7 +272,7 @@ export default function InitialServerDialog({
                 loading
               }
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? "Saving..." : "Save & Start"}
             </Button>
           </div>
         </div>

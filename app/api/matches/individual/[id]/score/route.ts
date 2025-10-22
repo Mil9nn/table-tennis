@@ -165,8 +165,6 @@ export async function POST(
         side: body.shotData.side,
         player: body.shotData.player,
         stroke: body.shotData.stroke || null,
-        outcome: body.shotData.outcome,
-        errorType: body.shotData.errorType || null,
         server: body.shotData.server || null,
         timestamp: new Date(),
       };
@@ -181,44 +179,11 @@ export async function POST(
       if (!stats.playerStats) stats.playerStats = new Map();
       if (!stats.playerStats.get(playerId)) {
         stats.playerStats.set(playerId, {
-          winners: 0,
-          unforcedErrors: 0,
-          aces: 0,
-          serveErrors: 0,
           detailedShots: {},
-          errorsByType: {},
         });
       }
 
       const playerStats = stats.playerStats.get(playerId);
-
-      if (shot.outcome === "winner") {
-        stats.winners = (stats.winners || 0) + 1;
-        playerStats.winners += 1;
-
-        if (shot.stroke?.includes("serve")) {
-          stats.aces = (stats.aces || 0) + 1;
-          playerStats.aces += 1;
-        }
-
-        if (shot.stroke) {
-          playerStats.detailedShots[shot.stroke] =
-            (playerStats.detailedShots[shot.stroke] || 0) + 1;
-        }
-      }
-
-      if (shot.outcome === "error" && shot.errorType) {
-        stats.unforcedErrors = (stats.unforcedErrors || 0) + 1;
-        playerStats.unforcedErrors += 1;
-
-        if (shot.errorType === "serve") {
-          stats.serveErrors = (stats.serveErrors || 0) + 1;
-          playerStats.serveErrors += 1;
-        }
-
-        playerStats.errorsByType[shot.errorType] =
-          (playerStats.errorsByType[shot.errorType] || 0) + 1;
-      }
 
       match.statistics = stats;
       match.markModified("games");

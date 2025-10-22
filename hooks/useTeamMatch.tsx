@@ -154,21 +154,11 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
     };
 
     if (increment > 0 && shotType && playerId) {
-      const isError = shotType?.endsWith("_error");
 
       requestBody.shotData = {
         side,
         player: playerId,
-        stroke: isError ? null : shotType,
-        outcome: isError ? "error" : "winner",
-        errorType:
-          shotType === "net_error"
-            ? "net"
-            : shotType === "long_error"
-            ? "long"
-            : shotType === "serve_error"
-            ? "serve"
-            : null,
+        stroke: shotType,
         server: null, // Will be set by backend
       };
     }

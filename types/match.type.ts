@@ -175,8 +175,6 @@ export interface AddPointPayload {
   playerId?: string;
   shotData?: {
     stroke: string;
-    outcome: "winner" | "error";
-    errorType?: "net" | "long" | "serve";
   };
 }
 

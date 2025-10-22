@@ -32,18 +32,6 @@ const shotSchema = new mongoose.Schema({
     default: null,
   },
 
-  errorType: {
-    type: String,
-    enum: ["net", "long", "serve"],
-    default: null, // only used if outcome = "error"
-  },
-
-  outcome: {
-    type: String,
-    enum: ["winner", "error", "let"],
-    required: true,
-  },
-
   server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   timestamp: { type: Date, default: Date.now },
@@ -254,10 +242,6 @@ const TeamMatchSchema = new mongoose.Schema(
 
     // -------------------- STATISTICS --------------------
     statistics: {
-      winners: { type: Number, default: 0 },
-      unforcedErrors: { type: Number, default: 0 },
-      aces: { type: Number, default: 0 },
-      serveErrors: { type: Number, default: 0 },
       longestStreak: { type: Number, default: 0 },
       clutchPointsWon: { type: Number, default: 0 },
 
@@ -265,10 +249,6 @@ const TeamMatchSchema = new mongoose.Schema(
       playerStats: {
         type: Map,
         of: new mongoose.Schema({
-          winners: { type: Number, default: 0 },
-          unforcedErrors: { type: Number, default: 0 },
-          aces: { type: Number, default: 0 },
-          serveErrors: { type: Number, default: 0 },
 
           detailedShots: {
             forehand_drive: { type: Number, default: 0 },
@@ -290,12 +270,6 @@ const TeamMatchSchema = new mongoose.Schema(
             forehand_drop: { type: Number, default: 0 },
             backhand_drop: { type: Number, default: 0 },
           },
-
-          errorsByType: {
-            net: { type: Number, default: 0 },
-            long: { type: Number, default: 0 },
-            serve: { type: Number, default: 0 },
-          },
         }),
       },
     },
@@ -305,14 +279,6 @@ const TeamMatchSchema = new mongoose.Schema(
 
 /* -------------------- VIRTUALS -------------------- */
 
-// Winner/Error ratio (team-level)
-TeamMatchSchema.virtual("statistics.winnerErrorRatio").get(function () {
-  const winners = this.statistics?.winners || 0;
-  const errors = this.statistics?.unforcedErrors || 0;
-  const total = winners + errors;
-  return total > 0 ? (winners / total).toFixed(2) : "0.00";
-});
-
 // playerStatsWithRatio virtual for convenience (mirrors IndividualMatch)
 TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
   if (!this.statistics?.playerStats) return {};
@@ -321,15 +287,11 @@ TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
   // Map stored as native Map in mongoose doc; iterate safely
   try {
     this.statistics.playerStats.forEach((stats: any, playerId: string) => {
-      const winners = stats?.winners || 0;
-      const errors = stats?.unforcedErrors || 0;
-      const total = winners + errors;
 
       // stats may be a Mongoose subdocument; convert to plain object if possible
       const statsObj = stats.toObject ? stats.toObject() : { ...stats };
       result[playerId] = {
         ...statsObj,
-        winnerErrorRatio: total > 0 ? winners / total : 0,
       };
     });
   } catch (e) {
@@ -337,12 +299,8 @@ TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
     for (const [k, stats] of Object.entries(
       this.statistics.playerStats || {}
     )) {
-      const winners = stats?.winners || 0;
-      const errors = stats?.unforcedErrors || 0;
-      const total = winners + errors;
       result[k] = {
         ...(stats as any),
-        winnerErrorRatio: total > 0 ? winners / total : 0,
       };
     }
   }

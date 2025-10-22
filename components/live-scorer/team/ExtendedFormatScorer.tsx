@@ -31,7 +31,7 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
     currentGame,
     isSubMatchActive,
     status,
-    currentServer, // ✅ NOW USING FROM HOOK
+    currentServer,
     setInitialTeamMatch,
     subtractPoint,
     toggleSubMatch,
@@ -39,7 +39,7 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
 
   console.log("Current SubMatch:", currentSubMatch);
   console.log("Current SubMatch Id:", currentSubMatch?._id);
-  console.log("Current Server from Hook:", currentServer); // ✅ DEBUG
+  console.log("Current Server from Hook:", currentServer);
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
@@ -75,16 +75,17 @@ export default function ExtendedFormatScorer({ match }: ExtendedFormatScorerProp
   const player1Name = player1?.fullName || player1?.username || "Player 1";
   const player2Name = player2?.fullName || player2?.username || "Player 2";
 
+  // ✅ FIX #2: Use correct team keys instead of side keys
   const teamMatchPlayers = {
     side1: {
       name: player1Name,
       playerId: player1?._id,
-      serverKey: "side1" as const,
+      serverKey: "team1" as const, // ✅ Changed from "side1"
     },
     side2: {
       name: player2Name,
       playerId: player2?._id,
-      serverKey: "side2" as const,
+      serverKey: "team2" as const, // ✅ Changed from "side2"
     },
   };
 

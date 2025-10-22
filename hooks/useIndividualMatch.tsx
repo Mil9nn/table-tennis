@@ -269,7 +269,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         }
 
         if (shotPlayerId) {
-          const isError = shotType?.endsWith("_error");
           let serverId: string | null = null;
 
           const currentServer = get().currentServer;
@@ -288,16 +287,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           requestBody.shotData = {
             side: player,
             player: shotPlayerId,
-            stroke: isError ? null : shotType,
-            outcome: isError ? "error" : "winner",
-            errorType:
-              shotType === "net_error"
-                ? "net"
-                : shotType === "long_error"
-                ? "long"
-                : shotType === "serve_error"
-                ? "serve"
-                : null,
+            stroke: shotType,
             server: serverId,
           };
         }

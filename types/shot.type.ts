@@ -23,10 +23,6 @@ export type Stroke =
   | "forehand_drop"
   | "backhand_drop";
 
-export type ErrorType = "net" | "long" | "serve";
-
-export type Outcome = "winner" | "error" | "let";
-
 export interface Shot {
   _id: string;
   shotNumber?: number;
@@ -34,8 +30,6 @@ export interface Shot {
   side: Side;
   shotType?: string | null;
   stroke?: Stroke | null;
-  errorType?: ErrorType | null;
-  outcome: Outcome;
   server: Participant;
   timestamp?: string;
 }

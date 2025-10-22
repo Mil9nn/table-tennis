@@ -7,7 +7,6 @@ const shotSchema = new mongoose.Schema({
   side: { type: String, enum: ["side1", "side2"], required: true },
   player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-  // Separate stroke vs errors to avoid crashes
   stroke: {
     type: String,
     enum: [
@@ -31,18 +30,6 @@ const shotSchema = new mongoose.Schema({
       "backhand_drop",
     ],
     default: null,
-  },
-
-  errorType: {
-    type: String,
-    enum: ["net", "long", "serve"],
-    default: null, // only used if outcome = "error"
-  },
-
-  outcome: {
-    type: String,
-    enum: ["winner", "error", "let"],
-    required: true,
   },
 
   server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -165,21 +152,10 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     // Enhanced Match Statistics
     statistics: {
-      winners: { type: Number, default: 0 },
-      unforcedErrors: { type: Number, default: 0 },
-      aces: { type: Number, default: 0 },
-      serveErrors: { type: Number, default: 0 },
-      longestStreak: { type: Number, default: 0 },
-      clutchPointsWon: { type: Number, default: 0 },
-
       // Per-player stats (works for singles/doubles)
       playerStats: {
         type: Map,
         of: new mongoose.Schema({
-          winners: { type: Number, default: 0 },
-          unforcedErrors: { type: Number, default: 0 },
-          aces: { type: Number, default: 0 },
-          serveErrors: { type: Number, default: 0 },
 
           detailedShots: {
             forehand_drive: { type: Number, default: 0 },
@@ -201,12 +177,6 @@ const IndividualMatchSchema = new mongoose.Schema(
             forehand_drop: { type: Number, default: 0 },
             backhand_drop: { type: Number, default: 0 },
           },
-
-          errorsByType: {
-            net: { type: Number, default: 0 },
-            long: { type: Number, default: 0 },
-            serve: { type: Number, default: 0 },
-          },
         }),
       },
     },
@@ -214,26 +184,14 @@ const IndividualMatchSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// VIRTUALS
-IndividualMatchSchema.virtual("statistics.winnerErrorRatio").get(function () {
-  const winners = this.statistics?.winners || 0;
-  const errors = this.statistics?.unforcedErrors || 0;
-  const total = winners + errors;
-  return total > 0 ? (winners / total).toFixed(2) : "0.00";
-});
-
 IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
   if (!this.statistics?.playerStats) return {};
 
   const result: Record<string, any> = {};
   this.statistics.playerStats.forEach((stats: any, playerId: string) => {
-    const winners = stats?.winners || 0;
-    const errors = stats?.unforcedErrors || 0;
-    const total = winners + errors;
 
     result[playerId] = {
-      ...stats.toObject(),
-      winnerErrorRatio: total > 0 ? winners / total : 0,
+      ...stats.toObject()
     };
   });
 

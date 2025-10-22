@@ -16,6 +16,7 @@ import {
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { TriangleAlert } from "lucide-react";
+import { useEffect } from "react";
 
 type ScoreBoardProps = {
   match: IndividualMatch | TeamMatch;
@@ -31,7 +32,6 @@ type ScoreBoardProps = {
   onReset: () => void;
   onToggleMatch: () => void;
 
-  // For team matches: can be individual player info
   teamMatchPlayers?: {
     side1: { name: string; playerId?: string; serverKey: string };
     side2: { name: string; playerId?: string; serverKey: string };
@@ -55,6 +55,15 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     teamMatchPlayers,
   } = props;
 
+  // ✅ DEBUG: Log currentServer changes
+  useEffect(() => {
+    console.log("🎯 ScoreBoard - currentServer changed:", {
+      currentServer,
+      matchCategory: match?.matchCategory,
+      teamMatchPlayers,
+    });
+  }, [currentServer, match?.matchCategory]);
+
   const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
     gameWinner === "side1"
@@ -73,6 +82,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
     // Team Match - use the pre-resolved player info from teamMatchPlayers
     if (match.matchCategory === "team" && teamMatchPlayers) {
+      console.log("🏆 Team match - using teamMatchPlayers:", teamMatchPlayers);
       return {
         p1: [
           {
@@ -167,6 +177,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         ]
       : [];
 
+  // ✅ DEBUG: Log server name computation
+  console.log("🔍 Computing server name:", {
+    currentServer,
+    allParticipants: allParticipants.map((p) => p.fullName),
+    matchType: match.matchCategory === "individual" ? match.matchType : "singles",
+  });
+
   const serverName =
     currentServer &&
     getCurrentServerName(
@@ -174,6 +191,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       allParticipants,
       match.matchCategory === "individual" ? match.matchType : "singles"
     );
+
+  console.log("📝 Final server name:", serverName);
 
   return (
     <div className="space-y-2">

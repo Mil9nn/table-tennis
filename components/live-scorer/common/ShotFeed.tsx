@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Shot } from "@/types/shot.type";
-import Image from "next/image";
 import { ChevronDown, ChevronUp, Target } from "lucide-react";
 
 interface ShotFeedProps {
@@ -35,16 +34,18 @@ export default function ShotFeed({
   };
 
   if (!games?.length) {
-  return (
-    <div className="flex flex-col items-center justify-center text-gray-500 pb-4">
-      <div className="rounded-full bg-gray-100 p-3 mb-2">
-        <Target className="w-5 h-5 text-gray-400" />
+    return (
+      <div className="flex flex-col items-center justify-center text-gray-500 pb-4">
+        <div className="rounded-full bg-gray-100 p-3 mb-2">
+          <Target className="w-5 h-5 text-gray-400" />
+        </div>
+        <span className="text-sm font-medium">No shots recorded yet</span>
+        <p className="text-xs text-gray-400 mt-1">
+          Start tracking to see results here.
+        </p>
       </div>
-      <span className="text-sm font-medium">No shots recorded yet</span>
-      <p className="text-xs text-gray-400 mt-1">Start tracking to see results here.</p>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">
@@ -87,19 +88,7 @@ export default function ShotFeed({
                       shot.player.username ||
                       "Unknown Player";
 
-                    let displayText: string;
-                    let outcomeClass = "";
-
-                    if (shot.outcome === "error") {
-                      displayText = `${shot.errorType || "Unforced"}`;
-                      outcomeClass = "text-red-600";
-                    } else if (shot.outcome === "winner") {
-                      displayText = `${formatShotType(shot.stroke)}`;
-                      outcomeClass = "text-green-600";
-                    } else {
-                      displayText = formatShotType(shot.stroke);
-                      outcomeClass = "text-gray-600";
-                    }
+                    const shotType = formatShotType(shot.stroke);
 
                     return (
                       <li
@@ -110,13 +99,7 @@ export default function ShotFeed({
                         <div className="w-full flex items-center justify-between gap-2">
                           <span className="whitespace-nowrap">
                             <strong>{playerName}</strong> ({shot.side}) →{" "}
-                            {displayText}
-                          </span>
-                          <span
-                            className={`font-semibold text-xs ${outcomeClass}`}
-                          >
-                            {shot.outcome.charAt(0).toUpperCase() +
-                              shot.outcome.slice(0, 0)}
+                            {shotType}
                           </span>
                         </div>
                       </li>

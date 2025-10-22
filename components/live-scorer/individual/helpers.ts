@@ -40,7 +40,7 @@ export const getNextServer = (
     return getNextServerDoubles(totalPoints, isDeuce, rotation);
   } else {
     const firstServer: PlayerKey =
-      (initialConfig?.firstServer as PlayerKey) || "side1"; // only fallback if nothing selected
+      (initialConfig?.firstServer as PlayerKey) || "side1";
     return getNextServerSingles(totalPoints, isDeuce, firstServer);
   }
 };
@@ -51,7 +51,6 @@ const getNextServerSingles = (
   firstServer: PlayerKey
 ): ServerResult => {
   if (isDeuce) {
-    // In deuce, alternate every point
     const serverIndex = totalPoints % 2;
     const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
     return {
@@ -61,7 +60,6 @@ const getNextServerSingles = (
     };
   }
 
-  // Normal serving: 2 serves each
   const serveCycle = Math.floor(totalPoints / 2);
   const servers = firstServer === "side1" ? ["side1", "side2"] : ["side2", "side1"];
   const currentServerIndex = serveCycle % 2;
@@ -74,10 +72,10 @@ const getNextServerSingles = (
 };
 
 const defaultDoublesOrder: DoublesPlayerKey[] = [
-  "side1_main", // A1
-  "side2_main", // B1
-  "side1_partner", // A2
-  "side2_partner", // B2
+  "side1_main",
+  "side2_main",
+  "side1_partner",
+  "side2_partner",
 ];
 
 const getNextServerDoubles = (
@@ -85,10 +83,9 @@ const getNextServerDoubles = (
   isDeuce: boolean,
   rotation: DoublesPlayerKey[] = defaultDoublesOrder
 ): ServerResult => {
-  // rotation must be length 4 (safe fallback to default if not)
   if (!rotation || rotation.length !== 4) rotation = defaultDoublesOrder;
 
-  const serveCycle = Math.floor(totalPoints / 2); // each server serves 2 points
+  const serveCycle = Math.floor(totalPoints / 2);
   const serverIndex = serveCycle % rotation.length;
 
   return {
@@ -104,14 +101,13 @@ export const flipDoublesRotationForNextGame = (
   if (!currentRotation || currentRotation.length !== 4)
     return defaultDoublesOrder;
 
-  // Rule: first receiver of previous game serves first in next game
   const [prevServer, prevReceiver, prevServerPartner, prevReceiverPartner] = currentRotation;
 
   const nextRotation: DoublesPlayerKey[] = [
-    prevReceiver,          // new server
-    prevServerPartner,     // new receiver
-    prevReceiverPartner,   // new server's partner
-    prevServer,            // new receiver's partner
+    prevReceiver,
+    prevServerPartner,
+    prevReceiverPartner,
+    prevServer,
   ];
 
   return nextRotation;
@@ -143,7 +139,6 @@ export const buildDoublesRotation = (
     return fallback;
   }
 
-  // Validate server and receiver are on opposite sides
   const serverSide = firstServer.split("_")[0];
   const receiverSide = firstReceiver.split("_")[0];
   
@@ -159,7 +154,6 @@ export const buildDoublesRotation = (
     partnerOf(firstReceiver),
   ];
 
-  // Validate no duplicates
   const unique = Array.from(new Set(rotation));
   if (unique.length !== 4) {
     console.error("Rotation has duplicates, using fallback");
@@ -220,6 +214,7 @@ export const getPointsNeeded = (
   return Math.max(0, 11 - currentScore);
 };
 
+// ✅ FIXED: Support both individual (side1/side2) and team (team1/team2) keys
 export const getCurrentServerName = (
   server: ServerKey | null,
   participants: any[],
@@ -227,40 +222,56 @@ export const getCurrentServerName = (
 ): string | null => {
   if (!server || !participants) return null;
 
+  console.log("🔍 getCurrentServerName called with:", {
+    server,
+    matchType,
+    participants: participants.map(p => p.fullName || p.username),
+  });
+
   if (matchType === "singles") {
     switch (server) {
+      // ✅ Individual match keys
       case "side1":
-        return (
-          participants[0]?.fullName || participants[0]?.username || "Player 1"
-        );
+        return participants[0]?.fullName || participants[0]?.username || "Player 1";
       case "side2":
-        return (
-          participants[1]?.fullName || participants[1]?.username || "Player 2"
-        );
+        return participants[1]?.fullName || participants[1]?.username || "Player 2";
+      
+      // ✅ Team match keys (NEW!)
+      case "team1":
+        return participants[0]?.fullName || participants[0]?.username || "Team 1 Player";
+      case "team2":
+        return participants[1]?.fullName || participants[1]?.username || "Team 2 Player";
+      
       default:
+        console.warn("⚠️ Unknown server key for singles:", server);
         return null;
     }
   }
 
   // doubles / mixed_doubles
   switch (server) {
+    // ✅ Individual match doubles keys
     case "side1_main":
-      return (
-        participants[0]?.fullName || participants[0]?.username || "Player 1A"
-      );
+      return participants[0]?.fullName || participants[0]?.username || "Player 1A";
     case "side1_partner":
-      return (
-        participants[1]?.fullName || participants[1]?.username || "Player 1B"
-      );
+      return participants[1]?.fullName || participants[1]?.username || "Player 1B";
     case "side2_main":
-      return (
-        participants[2]?.fullName || participants[2]?.username || "Player 2A"
-      );
+      return participants[2]?.fullName || participants[2]?.username || "Player 2A";
     case "side2_partner":
-      return (
-        participants[3]?.fullName || participants[3]?.username || "Player 2B"
-      );
+      return participants[3]?.fullName || participants[3]?.username || "Player 2B";
+    
+    // ✅ Team match doubles keys (NEW!)
+    case "team1_main":
+      return participants[0]?.fullName || participants[0]?.username || "Team 1 Main";
+    case "team1_partner":
+      return participants[1]?.fullName || participants[1]?.username || "Team 1 Partner";
+    case "team2_main":
+      return participants[2]?.fullName || participants[2]?.username || "Team 2 Main";
+    case "team2_partner":
+      return participants[3]?.fullName || participants[3]?.username || "Team 2 Partner";
+    
     default:
+      console.warn("⚠️ Unknown server key for doubles:", server);
       return null;
   }
 };

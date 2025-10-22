@@ -111,16 +111,6 @@ export default function MatchStatistics({ matchId }: MatchStatisticsProps) {
                     <h3 className="font-semibold text-center">
                       {s.fullName || `Player ${playerId}`}
                     </h3>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <Badge variant="outline">Winners: {s.winners || 0}</Badge>
-                      <Badge variant="outline">
-                        Errors: {s.unforcedErrors || 0}
-                      </Badge>
-                      <Badge variant="outline">Aces: {s.aces || 0}</Badge>
-                      <Badge variant="outline">
-                        Total Shots: {s.totalShots || 0}
-                      </Badge>
-                    </div>
                   </div>
                 )
               )}
