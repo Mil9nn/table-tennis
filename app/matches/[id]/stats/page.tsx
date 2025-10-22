@@ -13,6 +13,8 @@ import {
   ResponsiveContainer,
   Legend,
   Cell,
+  PieChart,
+  Pie,
 } from "recharts";
 import Link from "next/link";
 import { Shot } from "@/types/shot.type";
@@ -26,7 +28,16 @@ const COLORS = {
   errors: "#EF4444",
   serve: "#4ADE80",
   receive: "#60A5FA",
-  strokes: ["#F59E0B", "#8B5CF6", "#14B8A6", "#6366F1", "#EC4899"],
+  strokes: [
+    "#F59E0B",
+    "#8B5CF6",
+    "#14B8A6",
+    "#6366F1",
+    "#EC4899",
+    "#10B981",
+    "#EF4444",
+    "#3B82F6",
+  ],
 };
 
 // --- Compute stats from shots ---
@@ -35,14 +46,35 @@ function computeStats(shots: Shot[]) {
 
   (shots || []).forEach((s) => {
     if (!s) return;
-    const side = s.side;
-
     if (s.stroke) {
       shotTypes[s.stroke] = (shotTypes[s.stroke] || 0) + 1;
     }
   });
 
   return { shotTypes };
+}
+
+// --- Compute per-player stats ---
+function computePlayerStats(shots: Shot[]) {
+  const playerStats: Record<string, Record<string, number>> = {};
+
+  (shots || []).forEach((s) => {
+    if (!s || !s.player) return;
+
+    const playerId = s.player._id || s.player.toString();
+    const playerName = s.player.fullName || s.player.username || "Unknown";
+
+    if (!playerStats[playerId]) {
+      playerStats[playerId] = { name: playerName };
+    }
+
+    if (s.stroke) {
+      playerStats[playerId][s.stroke] =
+        (playerStats[playerId][s.stroke] || 0) + 1;
+    }
+  });
+
+  return playerStats;
 }
 
 function computeServeStats(games: any[]) {
@@ -52,13 +84,11 @@ function computeServeStats(games: any[]) {
   > = {};
 
   (games || []).forEach((g) => {
-    (g.shots || []).forEach((shot: any, idx: number, arr: any[]) => {
-
+    (g.shots || []).forEach((shot: any) => {
       const winnerId = shot.player?.toString();
       const serverId = shot.server?.toString();
       if (!winnerId || !serverId) return;
 
-      // initialize server
       if (!serveStats[serverId]) {
         serveStats[serverId] = {
           servePoints: 0,
@@ -69,10 +99,8 @@ function computeServeStats(games: any[]) {
       serveStats[serverId].totalServes += 1;
 
       if (winnerId === serverId) {
-        // point won on serve
         serveStats[serverId].servePoints += 1;
       } else {
-        // point won on receive
         if (!serveStats[winnerId]) {
           serveStats[winnerId] = {
             servePoints: 0,
@@ -87,6 +115,43 @@ function computeServeStats(games: any[]) {
 
   return serveStats;
 }
+
+// Custom label for pie chart
+const renderCustomLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+  const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+  if (percent < 0.05) return null; // Don't show label for small slices
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      className="text-xs font-bold"
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
+// Format stroke names for display
+const formatStrokeName = (stroke: string) => {
+  return stroke
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 export default function MatchStatsPage() {
   const params = useParams();
@@ -123,7 +188,6 @@ export default function MatchStatsPage() {
     match.matchCategory === "individual" && match.participants?.length === 4;
 
   let side1Name: string;
-
   if (isIndividualMatch(match)) {
     side1Name = isSingles
       ? match.participants?.[0]?.fullName ||
@@ -137,29 +201,27 @@ export default function MatchStatsPage() {
   }
 
   let side2Name: string;
-
   if (isIndividualMatch(match)) {
     const side2 = match.participants?.[1]?.fullName || "Player 2";
     side2Name = isSingles ? side2 : isDoubles ? "Side 2" : "Player 2";
   } else if (isTeamMatch(match)) {
-    // ✅ Now TypeScript knows it's a TeamMatch
     side2Name = match.team2?.name || "Team 2";
   } else {
     side2Name = "Unknown";
   }
 
   // --- Match-level stats ---
-  // --- Match-level stats ---
   let shots: Shot[] = [];
   let serveData: { player: string; Serve: number; Receive: number }[] = [];
   let shotTypes: Record<string, number> = {};
+  let playerStats: Record<string, Record<string, number>> = {};
 
   if (isIndividualMatch(match)) {
-    // ✅ Individual match
     const allGames = match.games || [];
     shots = allGames.flatMap((g) => g.shots || []);
 
     ({ shotTypes } = computeStats(shots));
+    playerStats = computePlayerStats(shots);
 
     const serveStats = computeServeStats(allGames);
     serveData = Object.entries(serveStats).map(([playerId, s]) => {
@@ -173,12 +235,12 @@ export default function MatchStatsPage() {
       };
     });
   } else if (isTeamMatch(match)) {
-    // ✅ Team match
     const subMatches = match.subMatches || [];
     const allGames = subMatches.flatMap((sm) => sm.games || []);
     shots = allGames.flatMap((g) => g.shots || []);
 
     ({ shotTypes } = computeStats(shots));
+    playerStats = computePlayerStats(shots);
 
     const serveStats = computeServeStats(allGames);
     serveData = Object.entries(serveStats).map(([teamKey, s]) => {
@@ -196,14 +258,28 @@ export default function MatchStatsPage() {
     });
   }
 
-  // Shot Distribution
+  // Shot Distribution (overall)
   const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
-    name: type,
+    name: formatStrokeName(type),
     value,
   }));
 
+  // Prepare pie chart data for each player
+  const playerPieData = Object.entries(playerStats).map(([playerId, stats]) => {
+    const { name, ...strokes } = stats;
+    const pieData = Object.entries(strokes).map(([stroke, count]) => ({
+      name: formatStrokeName(stroke),
+      value: count as number,
+    }));
+    return {
+      playerId,
+      playerName: name,
+      data: pieData,
+    };
+  });
+
   return (
-    <div className="px-4 py-8 space-y-10 container mx-auto">
+    <div className="p-4 space-y-10 mx-auto">
       {/* Go Back */}
       <Link
         href={`/matches/${matchId}`}
@@ -219,26 +295,21 @@ export default function MatchStatsPage() {
           <CardTitle>Match Overview</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-3">
-          <h3 className="text-2xl font-bold text-indigo-600">
+          <h3 className="text-lg font-semibold text-indigo-500">
             {side1Name} vs {side2Name}
           </h3>
-          {isIndividualMatch(match) &&<p className="text-gray-500 text-sm">
-            Games:{" "}
-            {match.games
-              ?.map(
-                (g: any, i: number) =>
-                  `G${i + 1}: ${g.side1Score}-${g.side2Score}`
-              )
-              .join(" | ")}
-          </p>}
+          {isIndividualMatch(match) && (
+            <p className="text-gray-500 text-sm">
+              Games:{" "}
+              {match.games
+                ?.map(
+                  (g: any, i: number) =>
+                    `G${i + 1}: ${g.side1Score}-${g.side2Score}`
+                )
+                .join(" | ")}
+            </p>
+          )}
         </CardContent>
-      </Card>
-
-      {/* Key Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Key Match Stats</CardTitle>
-        </CardHeader>
       </Card>
 
       {/* Charts */}
@@ -248,8 +319,9 @@ export default function MatchStatsPage() {
           <CardHeader>
             <CardTitle>Serve vs Receive Points</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+          <CardContent>
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
               <BarChart data={serveData}>
                 <XAxis dataKey="player" />
                 <YAxis width={25} allowDecimals={false} />
@@ -259,34 +331,102 @@ export default function MatchStatsPage() {
                 <Bar dataKey="Receive" fill={COLORS.receive} />
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Overall Shot Distribution */}
+        {strokeData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Overall Shot Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={strokeData}>
+                  <XAxis dataKey="name" />
+                  <YAxis width={25} />
+                  <Tooltip />
+                  <Bar dataKey="value">
+                    {strokeData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={COLORS.strokes[i % COLORS.strokes.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Shot Distribution */}
-      {strokeData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Shot Distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={strokeData}>
-                <XAxis dataKey="name" />
-                <YAxis width={25} />
-                <Tooltip />
-                <Bar dataKey="value">
-                  {strokeData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={COLORS.strokes[i % COLORS.strokes.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Player-Specific Shot Distribution (Pie Charts) */}
+      {playerPieData.length > 0 && (
+        <>
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-6">
+              Individual Player Statistics
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {playerPieData.map((player, idx) => (
+              <section
+                key={player.playerId}
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white transition"
+              >
+                <header className=" px-4 py-3">
+                  <h2 className="text-lg font-semibold text-indigo-900">
+                    {player.playerName}'s shot distribution
+                  </h2>
+                </header>
+
+                <div className="h-96 p-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={player.data}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={renderCustomLabel}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {player.data.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS.strokes[index % COLORS.strokes.length]}
+                          />
+                        ))}
+                      </Pie>
+
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          padding: "8px",
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: "11px" }}
+                        iconType="circle"
+                        layout="horizontal"
+                        verticalAlign="bottom"
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -2,79 +2,163 @@
 
 import { useEffect, useState, useMemo } from "react";
 import MatchesList from "@/components/MatchesList";
+import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IndividualMatch } from "@/types/match.type";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import MatchesListSkeleton from "@/components/skeletons/MatchesListSkeleton";
 
 export default function MatchesPage() {
-  const [matches, setMatches] = useState<IndividualMatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("all");
+  // Individual matches state
+  const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>([]);
+  const [individualLoading, setIndividualLoading] = useState(true);
+  const [individualSearch, setIndividualSearch] = useState("");
+  const [individualFilterType, setIndividualFilterType] = useState("all");
 
+  // Team matches state
+  const [teamMatches, setTeamMatches] = useState<TeamMatch[]>([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [teamFilterFormat, setTeamFilterFormat] = useState("all");
+
+  // Fetch individual matches
   useEffect(() => {
-    const fetchMatches = async () => {
+    const fetchIndividualMatches = async () => {
       try {
         const { data } = await axiosInstance.get("/matches/individual");
-        setMatches(data.matches || []);
+        setIndividualMatches(data.matches || []);
       } catch (err) {
-        console.error("Error fetching matches:", err);
+        console.error("Error fetching individual matches:", err);
       } finally {
-        setLoading(false);
+        setIndividualLoading(false);
       }
     };
 
-    fetchMatches();
+    fetchIndividualMatches();
   }, []);
 
-  // Apply filters client-side
-  const filteredMatches = useMemo(() => {
-    return matches.filter((match) => {
+  // Fetch team matches
+  useEffect(() => {
+    const fetchTeamMatches = async () => {
+      try {
+        const { data } = await axiosInstance.get("/matches/team");
+        setTeamMatches(data.matches || []);
+      } catch (err) {
+        console.error("Error fetching team matches:", err);
+      } finally {
+        setTeamLoading(false);
+      }
+    };
+
+    fetchTeamMatches();
+  }, []);
+
+  // Filter individual matches
+  const filteredIndividualMatches = useMemo(() => {
+    return individualMatches.filter((match) => {
       const nameMatch = match.participants?.some((p) =>
-        p?.fullName?.toLowerCase().includes(search.toLowerCase())
+        p?.fullName?.toLowerCase().includes(individualSearch.toLowerCase())
       );
 
-      const typeMatch = filterType === "all" || match.matchType === filterType;
+      const typeMatch = individualFilterType === "all" || match.matchType === individualFilterType;
 
       return nameMatch && typeMatch;
     });
-  }, [matches, search, filterType]);
+  }, [individualMatches, individualSearch, individualFilterType]);
+
+  // Filter team matches
+  const filteredTeamMatches = useMemo(() => {
+    return teamMatches.filter((match) => {
+      const nameMatch =
+        match.team1?.name?.toLowerCase().includes(teamSearch.toLowerCase()) ||
+        match.team2?.name?.toLowerCase().includes(teamSearch.toLowerCase());
+
+      const formatMatch = teamFilterFormat === "all" || match.matchFormat === teamFilterFormat;
+
+      return nameMatch && formatMatch;
+    });
+  }, [teamMatches, teamSearch, teamFilterFormat]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Recent Matches</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Matches</h1>
 
-        {/* Search + Filter Controls */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-60">
-            <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
-            <Input
-              placeholder="Search by player name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 text-sm rounded-full"
-            />
+      <Tabs defaultValue="individual" className="w-full">
+        <TabsList className="grid w-full max-w-md mx-auto mb-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <TabsTrigger value="individual">Individual Matches</TabsTrigger>
+          <TabsTrigger value="team">Team Matches</TabsTrigger>
+        </TabsList>
+
+        {/* Individual Matches Tab */}
+        <TabsContent value="individual" className="space-y-6">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
+              <Input
+                placeholder="Search by player name..."
+                value={individualSearch}
+                onChange={(e) => setIndividualSearch(e.target.value)}
+                className="pl-9 text-sm rounded-full"
+              />
+            </div>
+
+            <Select value={individualFilterType} onValueChange={setIndividualFilterType}>
+              <SelectTrigger className="w-full sm:w-44 text-sm">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="singles">Singles</SelectItem>
+                <SelectItem value="doubles">Doubles</SelectItem>
+                <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-full sm:w-44 text-sm">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="singles">Singles</SelectItem>
-              <SelectItem value="doubles">Doubles</SelectItem>
-              <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          {individualLoading ? (
+            <MatchesListSkeleton />
+          ) : (
+            <MatchesList matches={filteredIndividualMatches} />
+          )}
+        </TabsContent>
 
-      {loading ? <MatchesListSkeleton /> : <MatchesList matches={filteredMatches} />}
+        {/* Team Matches Tab */}
+        <TabsContent value="team" className="space-y-6">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
+              <Input
+                placeholder="Search by team name..."
+                value={teamSearch}
+                onChange={(e) => setTeamSearch(e.target.value)}
+                className="pl-9 text-sm rounded-full"
+              />
+            </div>
+
+            <Select value={teamFilterFormat} onValueChange={setTeamFilterFormat}>
+              <SelectTrigger className="w-full sm:w-52 text-sm">
+                <SelectValue placeholder="Filter by format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Formats</SelectItem>
+                <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
+                <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
+                <SelectItem value="three_singles">Three Singles</SelectItem>
+                <SelectItem value="extended_format">Extended Format</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {teamLoading ? (
+            <MatchesListSkeleton />
+          ) : (
+            <TeamMatchesList matches={filteredTeamMatches} />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

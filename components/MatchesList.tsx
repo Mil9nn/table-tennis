@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
-import { formatTimeDuration } from "@/lib/utils";
-import { PlusCircle, Timer, Trophy, Watch } from "lucide-react";
+import { PlusCircle, Trophy } from "lucide-react";
 
 // Status styles + labels
 const statusStyles: Record<string, string> = {
