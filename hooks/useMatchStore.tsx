@@ -36,6 +36,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       _id: String(p._id),
       username: p.username,
       fullName: p.fullName,
+      profileImage: p.profileImage,
     }));
   }
 
@@ -65,6 +66,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
           city: raw.team2.city || "",
           stats: raw.team2.stats || {},
         },
+        city: raw.city,
+        venue: raw.venue,
         scorer: raw.scorer,
         subMatches: raw.subMatches || [],
         currentSubMatch: raw.currentSubMatch || 1,

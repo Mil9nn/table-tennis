@@ -1,17 +1,17 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Play,
-  Users,
   Calendar,
   MapPin,
   Loader2,
   ArrowLeftCircle,
   Eye,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -99,40 +99,65 @@ export default function MatchDetailsPage() {
                 {match.status}
               </Badge>
             </div>
-            {isIndividualMatch(match) && <div className="grid grid-cols-2 gap-y-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(match.createdAt)}</span>
+            {isIndividualMatch(match) ? (
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{formatDate(match.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{match.city}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span className="capitalize">{match.matchType}</span>
+                  </div>
+                  <div>
+                    <span>Best of {match.numberOfSets}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>{match.city}</span>
+            ) : (
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{formatDate(match.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{match.city}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize">{match.matchFormat}</span>
+                  </div>
+                  <div>
+                    <span>Best of {match.numberOfSetsPerSubMatch}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span className="capitalize">{match.matchType}</span>
-              </div>
-              <div>
-                <span>Best of {match.numberOfSets}</span>
-              </div>
-            </div>}
+            )}
           </div>
 
           {/* Players / Teams */}
-          <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-            <h2 className="text-lg font-semibold mb-4">
+          <div className="border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+            <h2 className="text-lg font-semibold py-4 px-2">
               {match.matchCategory === "individual" ? "Players" : "Teams"}
             </h2>
 
             {match.matchCategory === "individual" ? (
-              // 🎯 INDIVIDUAL MATCHES
-              <div className="font-semibold text-xl">
+              // INDIVIDUAL MATCHES
+              <div className="font-semibold text-xl p-2">
                 {match.matchType === "singles" ? (
                   // Singles: Two players
                   <div className="flex items-center justify-between">
-                    {match.participants
-                      ?.slice(0, 2)
-                      .map((p: any, i: number) => (
+                    {match.participants?.slice(0, 2).map((p: any, i: number) => (
                         <div
                           key={i}
                           className="text-sm text-gray-600 flex items-center"
@@ -150,12 +175,11 @@ export default function MatchDetailsPage() {
                               {(p?.fullName?.[0] || "?").toUpperCase()}
                             </p>
                           )}
-                          {p?.fullName || "Unnamed"}
+                          <p className="text-xs">{p?.fullName || "Unnamed"}</p>
                         </div>
                       ))}
                   </div>
                 ) : (
-                  // Doubles: 2 players per side (4 total)
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="space-y-2">
                       {match.participants
@@ -209,8 +233,8 @@ export default function MatchDetailsPage() {
               // 🏆 TEAM MATCHES
               <div className="grid grid-cols-2 gap-6">
                 {/* TEAM 1 */}
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">{side1Name}</h3>
+                <div className="border-r-2 p-2">
+                  <h3 className="font-semibold text-lg mb-2  mt-1">{side1Name}</h3>
                   <ul className="space-y-2 text-sm text-gray-600">
                     {match.team1?.players?.length ? (
                       match.team1.players.map((player: any, index: number) => (
@@ -247,8 +271,8 @@ export default function MatchDetailsPage() {
                 </div>
 
                 {/* TEAM 2 */}
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">{side2Name}</h3>
+                <div className="">
+                  <h3 className="font-semibold text-lg  mb-2">{side2Name}</h3>
                   <ul className="space-y-2 text-sm text-gray-600">
                     {match.team2?.players?.length ? (
                       match.team2.players.map((player: any, index: number) => (

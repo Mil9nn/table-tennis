@@ -43,8 +43,8 @@ export async function PUT(
       { $set: body },
       { new: true }
     )
-      .populate("scorer", "username fullName")
-      .populate("participants", "username fullName");
+      .populate("scorer", "username fullName profileImage")
+      .populate("participants", "username fullName profileImage");
 
     if (!match) {
       return NextResponse.json(
