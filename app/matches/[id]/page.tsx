@@ -379,7 +379,7 @@ export default function MatchDetailsPage() {
                 className="w-full gap-2 text-base py-6 mt-3"
                 asChild
               >
-                <Link href={`/matches/${matchId}/stats`}>View Statistics</Link>
+                <Link href={`/matches/${matchId}/stats?category=${match.matchCategory}`}>View Statistics</Link>
               </Button>
             )}
           </div>
