@@ -1,568 +1,418 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ArrowLeftCircle, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  Cell,
-  PieChart,
-  Pie,
-} from "recharts";
+  Play,
+  Calendar,
+  MapPin,
+  Loader2,
+  ArrowLeftCircle,
+  Eye,
+  User,
+} from "lucide-react";
 import Link from "next/link";
-import { Shot } from "@/types/shot.type";
-import { axiosInstance } from "@/lib/axiosInstance";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import Image from "next/image";
+import {
+  IndividualGame,
+  isIndividualMatch,
+  SubMatch,
+} from "@/types/match.type";
 import { useMatchStore } from "@/hooks/useMatchStore";
-import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
+import { formatDate } from "@/lib/utils";
 
-interface PlayerStatsData {
-  name: string;
-  strokes: Record<string, number>;
-}
-
-// const COLORS = {
-//   serve: "#4ADE80",
-//   receive: "#60A5FA",
-//   strokes: [
-//     "#F59E0B",
-//     "#8B5CF6",
-//     "#14B8A6",
-//     "#6366F1",
-//     "#EC4899",
-//     "#10B981",
-//     "#EF4444",
-//     "#3B82F6",
-//   ],
-// };
-
-const SHOT_TYPE_COLORS: Record<string, string> = {
-  forehand_drive: "#F59E0B",
-  backhand_drive: "#FBBF24",
-  forehand_topspin: "#8B5CF6",
-  backhand_topspin: "#A78BFA",
-  forehand_loop: "#14B8A6",
-  backhand_loop: "#2DD4BF",
-  forehand_smash: "#EF4444",
-  backhand_smash: "#F87171",
-  forehand_push: "#6366F1",
-  backhand_push: "#818CF8",
-  forehand_chop: "#EC4899",
-  backhand_chop: "#F472B6",
-  forehand_flick: "#10B981",
-  backhand_flick: "#34D399",
-  forehand_block: "#3B82F6",
-  backhand_block: "#60A5FA",
-  forehand_drop: "#F97316",
-  backhand_drop: "#FB923C",
-};
-
-const COLORS = {
-  serve: "#4ADE80",
-  receive: "#60A5FA",
-};
-
-// Helper function to get color for a shot type
-const getShotColor = (strokeName: string): string => {
-  const strokeKey = strokeName.toLowerCase().replace(/\s+/g, "_");
-  return SHOT_TYPE_COLORS[strokeKey] || "#94A3B8";
-};
-
-// Compute stats from shots
-function computeStats(shots: Shot[]) {
-  const shotTypes: Record<string, number> = {};
-
-  (shots || []).forEach((s) => {
-    if (!s) return;
-    if (s.stroke) {
-      shotTypes[s.stroke] = (shotTypes[s.stroke] || 0) + 1;
-    }
-  });
-
-  return { shotTypes };
-}
-
-function computePlayerStats(shots: Shot[]): Record<string, PlayerStatsData> {
-  const playerStats: Record<string, PlayerStatsData> = {};
-
-  (shots || []).forEach((s) => {
-    if (!s || !s.player) return;
-
-    const playerId = s.player._id || s.player.toString();
-    const playerName = s.player.fullName || s.player.username || "Unknown";
-
-    if (!playerStats[playerId]) {
-      playerStats[playerId] = {
-        name: playerName,
-        strokes: {},
-      };
-    }
-
-    if (s.stroke) {
-      playerStats[playerId].strokes[s.stroke] =
-        (playerStats[playerId].strokes[s.stroke] || 0) + 1;
-    }
-  });
-
-  return playerStats;
-}
-
-// ✅ FIXED: Compute serve stats correctly for both individual and team matches
-function computeServeStats(games: any[], matchCategory: string) {
-  console.log("🔍 computeServeStats called with:", {
-    gamesCount: games?.length,
-    matchCategory,
-    firstGame: games?.[0],
-  });
-
-  const serveStats: Record<
-    string,
-    { servePoints: number; receivePoints: number; totalServes: number }
-  > = {};
-
-  (games || []).forEach((g, gameIdx) => {
-    console.log(`\n📊 Processing Game ${gameIdx + 1}:`, {
-      shotsCount: g.shots?.length,
-    });
-
-    (g.shots || []).forEach((shot: any, shotIdx: number) => {
-      console.log(`\n  🎯 Shot ${shotIdx + 1}:`, {
-        rawShot: shot,
-        player: shot.player,
-        server: shot.server,
-        playerType: typeof shot.player,
-        serverType: typeof shot.server,
-      });
-
-      // The player who scored the point - try multiple ways to extract ID
-      let pointWinnerId: string | null = null;
-      if (typeof shot.player === 'string') {
-        pointWinnerId = shot.player;
-      } else if (shot.player?._id) {
-        pointWinnerId = shot.player._id.toString();
-      } else if (shot.player) {
-        pointWinnerId = shot.player.toString();
-      }
-
-      // The player who was serving - try multiple ways to extract ID
-      let serverId: string | null = null;
-      if (typeof shot.server === 'string') {
-        serverId = shot.server;
-      } else if (shot.server?._id) {
-        serverId = shot.server._id.toString();
-      } else if (shot.server) {
-        serverId = shot.server.toString();
-      }
-
-      console.log(`  📍 Extracted IDs:`, {
-        pointWinnerId,
-        serverId,
-        bothExist: !!(pointWinnerId && serverId),
-      });
-
-      if (!pointWinnerId || !serverId) {
-        console.log(`  ⚠️ Skipping shot - missing IDs`);
-        return;
-      }
-
-      // Initialize stats for server
-      if (!serveStats[serverId]) {
-        serveStats[serverId] = {
-          servePoints: 0,
-          receivePoints: 0,
-          totalServes: 0,
-        };
-        console.log(`  ✨ Created new stats for server: ${serverId}`);
-      }
-
-      // Initialize stats for point winner (they might be the receiver)
-      if (!serveStats[pointWinnerId]) {
-        serveStats[pointWinnerId] = {
-          servePoints: 0,
-          receivePoints: 0,
-          totalServes: 0,
-        };
-        console.log(`  ✨ Created new stats for point winner: ${pointWinnerId}`);
-      }
-
-      // Count this as a serve
-      serveStats[serverId].totalServes += 1;
-
-      // Determine who won the point
-      const isServerWinner = pointWinnerId === serverId;
-      console.log(`  🏆 Point outcome:`, {
-        isServerWinner,
-        action: isServerWinner ? 'servePoints++' : 'receivePoints++',
-      });
-
-      if (isServerWinner) {
-        // Server won the point
-        serveStats[serverId].servePoints += 1;
-      } else {
-        // Receiver won the point
-        serveStats[pointWinnerId].receivePoints += 1;
-      }
-    });
-  });
-
-  console.log("\n📈 Final serveStats:", serveStats);
-  return serveStats;
-}
-
-// Custom label for pie chart
-const renderCustomLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-}: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-  const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-
-  if (percent < 0.05) return null;
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="white"
-      textAnchor={x > cx ? "start" : "end"}
-      dominantBaseline="central"
-      className="text-xs font-bold"
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
-// Format stroke names
-const formatStrokeName = (stroke: string) => {
-  return stroke
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-export default function MatchStatsPage() {
+export default function MatchDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const matchId = params.id as string;
+  const categoryParam = searchParams.get("category"); // Get category from URL
 
-  const { match, fetchingMatch, fetchMatch } = useMatchStore();
+  const fetchMatch = useMatchStore((state) => state.fetchMatch);
+  const fetchingMatch = useMatchStore((state) => state.fetchingMatch);
+  const match = useMatchStore((state) => state.match);
+
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    if (!matchId) return;
-    
-    // Determine category from URL or default to individual
-    const searchParams = new URLSearchParams(window.location.search);
-    const category = (searchParams.get('category') as 'individual' | 'team') || 'individual';
-    
-    fetchMatch(matchId, category);
-  }, [matchId, fetchMatch]);
+    fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
+  }, [matchId, categoryParam]);
 
   if (fetchingMatch) {
     return (
       <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
-        <Loader2 className="animate-spin size-4" />
-        <span className="text-sm">Loading stats...</span>
+        <Loader2 className="animate-spin size-5 text-blue-600" />
+        <span className="text-sm font-medium">Loading match...</span>
       </div>
     );
   }
 
   if (!match) {
     return (
-      <div className="container mx-auto py-8 text-center">Match not found</div>
+      <div className="container mx-auto py-12 text-center text-lg font-semibold">
+        Match not found
+      </div>
     );
   }
 
-  // Names
-  const isSingles =
-    match.matchCategory === "individual" && match.participants?.length === 2;
-  const isDoubles =
-    match.matchCategory === "individual" && match.participants?.length === 4;
+  const side1Name =
+    match.matchCategory === "individual"
+      ? match.participants?.[0]?.fullName
+      : match.team1?.name;
+  const side2Name =
+    match.matchCategory === "individual"
+      ? match.participants?.[1]?.fullName
+      : match.team2?.name;
 
-  let side1Name: string;
-  if (isIndividualMatch(match)) {
-    side1Name = isSingles
-      ? match.participants?.[0]?.fullName ||
-        match.participants?.[0]?.username ||
-        "Player 1"
-      : isDoubles
-      ? "Side 1"
-      : "Player 1";
-  } else {
-    side1Name = match.team1?.name || "Team 1";
-  }
-
-  let side2Name: string;
-  if (isIndividualMatch(match)) {
-    const side2 = match.participants?.[1]?.fullName || "Player 2";
-    side2Name = isSingles ? side2 : isDoubles ? "Side 2" : "Player 2";
-  } else if (isTeamMatch(match)) {
-    side2Name = match.team2?.name || "Team 2";
-  } else {
-    side2Name = "Unknown";
-  }
-
-  // Match-level stats
-  let shots: Shot[] = [];
-  let serveData: { player: string; Serve: number; Receive: number }[] = [];
-  let shotTypes: Record<string, number> = {};
-  let playerStats: Record<string, PlayerStatsData> = {};
-
-  // ✅ Get all participants for name lookup
-  let allParticipants: any[] = [];
-
-  if (isIndividualMatch(match)) {
-    const allGames = match.games || [];
-    shots = allGames.flatMap((g) => g.shots || []);
-    allParticipants = match.participants || [];
-
-    console.log("👥 Individual Match Participants:", {
-      count: allParticipants.length,
-      participants: allParticipants.map(p => ({
-        id: p._id,
-        name: p.fullName || p.username,
-      })),
-    });
-
-    ({ shotTypes } = computeStats(shots));
-    playerStats = computePlayerStats(shots);
-
-    // ✅ Compute serve stats correctly
-    const serveStats = computeServeStats(allGames, match.matchCategory);
-    console.log("\n🎾 Mapping serve stats to player names:", {
-      serveStatsKeys: Object.keys(serveStats),
-      allParticipantIds: allParticipants.map(p => p._id.toString()),
-    });
-
-    serveData = Object.entries(serveStats).map(([playerId, s]) => {
-      const player = allParticipants.find(
-        (p) => p._id.toString() === playerId
-      );
-      
-      console.log(`  🔗 Mapping ${playerId}:`, {
-        found: !!player,
-        playerName: player?.fullName || player?.username,
-        stats: s,
-      });
-
-      return {
-        player: player?.fullName || player?.username || "Unknown",
-        Serve: s.servePoints,
-        Receive: s.receivePoints,
-      };
-    });
-
-    console.log("\n📊 Final serveData for chart:", serveData);
-  } else if (isTeamMatch(match)) {
-    const subMatches = match.subMatches || [];
-    const allGames = subMatches.flatMap((sm) => sm.games || []);
-    shots = allGames.flatMap((g) => g.shots || []);
-
-    // ✅ Get all participants from submatches
-    allParticipants = [];
-    subMatches.forEach((sm) => {
-      if (sm.playerTeam1) allParticipants.push(sm.playerTeam1);
-      if (sm.playerTeam2) allParticipants.push(sm.playerTeam2);
-    });
-
-    ({ shotTypes } = computeStats(shots));
-    playerStats = computePlayerStats(shots);
-
-    // ✅ Compute serve stats correctly for team matches
-    const serveStats = computeServeStats(allGames, match.matchCategory);
-    serveData = Object.entries(serveStats).map(([playerId, s]) => {
-      const player = allParticipants.find(
-        (p) => p._id?.toString() === playerId
-      );
-      return {
-        player: player?.fullName || player?.username || "Unknown Player",
-        Serve: s.servePoints,
-        Receive: s.receivePoints,
-      };
-    });
-  }
-
-  // Shot Distribution (overall)
-  const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
-    name: formatStrokeName(type),
-    value,
-  }));
-
-  // Prepare pie chart data for each player
-  const playerPieData = Object.entries(playerStats).map(([playerId, stats]) => {
-    const pieData = Object.entries(stats.strokes).map(([stroke, count]) => ({
-      name: formatStrokeName(stroke),
-      value: count
-    }));
-    return {
-      playerId,
-      playerName: stats.name,
-      data: pieData,
-    };
-  });
+  const isScorer = match.scorer?._id === user?._id;
 
   return (
-    <div className="p-4 space-y-10 mx-auto">
-      {/* Go Back */}
-      <Link
-        href={`/matches/${matchId}`}
-        className="flex items-center gap-2 text-sm shadow-sm hover:shadow-md w-fit rounded-full px-3 py-1 text-blue-800 transition-all"
-      >
-        <ArrowLeftCircle />
-        <span className="font-semibold">Go back</span>
-      </Link>
-
-      {/* Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Match Overview</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center space-y-3">
-          <h3 className="text-lg font-semibold text-indigo-500">
-            {side1Name} vs {side2Name}
-          </h3>
-          {isIndividualMatch(match) && (
-            <p className="text-gray-500 text-sm">
-              Games:{" "}
-              {match.games
-                ?.map(
-                  (g: any, i: number) =>
-                    `G${i + 1}: ${g.side1Score}-${g.side2Score}`
-                )
-                .join(" | ")}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Serve vs Receive */}
-        {serveData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Serve vs Receive Points</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={serveData}>
-                    <XAxis dataKey="player" />
-                    <YAxis width={25} allowDecimals={false} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Serve" fill={COLORS.serve} />
-                    <Bar dataKey="Receive" fill={COLORS.receive} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Overall Shot Distribution */}
-        {strokeData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Overall Shot Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={strokeData}>
-                    <XAxis dataKey="name" />
-                    <YAxis width={25} />
-                    <Tooltip />
-                    <Bar dataKey="value">
-                      {strokeData.map((entry, i) => (
-                        <Cell
-                          key={i}
-                          fill={getShotColor(entry.name)}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+    <div className="px-4 py-8 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-10">
+        <Link
+          href="/matches"
+          className="flex items-center gap-2 text-sm px-4 py-2 rounded-full shadow-sm hover:shadow-md text-blue-700 transition"
+        >
+          <ArrowLeftCircle className="w-4 h-4" />
+          <span className="font-semibold">Go back</span>
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">Match Details</h1>
       </div>
 
-      {/* Player-Specific Shot Distribution (Pie Charts) */}
-      {playerPieData.length > 0 && (
-        <>
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-6">
-              Individual Player Statistics
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {playerPieData.map((player, idx) => (
-              <section
-                key={player.playerId}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white transition"
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* Match Info + Players */}
+        <div className="space-y-6">
+          {/* Match Info */}
+          <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Match Information</h2>
+              <Badge
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  match.status === "completed"
+                    ? "text-green-600 border border-green-600 bg-green-50"
+                    : "bg-blue-500 text-white"
+                }`}
               >
-                <header className=" px-4 py-3">
-                  <h2 className="text-lg font-semibold text-indigo-900">
-                    {player.playerName}'s shot distribution
-                  </h2>
-                </header>
-
-                <div className="h-96 p-6">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={player.data}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={renderCustomLabel}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {player.data.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={getShotColor(entry.name)}
-                          />
-                        ))}
-                      </Pie>
-
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          padding: "8px",
-                        }}
-                      />
-                      <Legend
-                        wrapperStyle={{ fontSize: "11px" }}
-                        iconType="circle"
-                        layout="horizontal"
-                        verticalAlign="bottom"
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                {match.status}
+              </Badge>
+            </div>
+            {isIndividualMatch(match) ? (
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{formatDate(match.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{match.city}</span>
+                  </div>
                 </div>
-              </section>
-            ))}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span className="capitalize">{match.matchType}</span>
+                  </div>
+                  <div>
+                    <span>Best of {match.numberOfSets}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{formatDate(match.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{match.city}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize">{match.matchFormat}</span>
+                  </div>
+                  <div>
+                    <span>Best of {match.numberOfSetsPerSubMatch}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </>
-      )}
+
+          {/* Players / Teams */}
+          <div className="border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+            <h2 className="text-lg font-semibold py-4 px-2">
+              {match.matchCategory === "individual" ? "Players" : "Teams"}
+            </h2>
+
+            {match.matchCategory === "individual" ? (
+              // INDIVIDUAL MATCHES
+              <div className="font-semibold text-xl p-2">
+                {match.matchType === "singles" ? (
+                  // Singles: Two players
+                  <div className="flex items-center justify-between">
+                    {match.participants?.slice(0, 2).map((p: any, i: number) => (
+                        <div
+                          key={i}
+                          className="text-sm text-gray-600 flex items-center"
+                        >
+                          {p?.profileImage ? (
+                            <Image
+                              src={p.profileImage}
+                              alt={p.fullName || "Player"}
+                              width={40}
+                              height={40}
+                              className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                            />
+                          ) : (
+                            <p className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(p?.fullName?.[0] || "?").toUpperCase()}
+                            </p>
+                          )}
+                          <p className="text-xs">{p?.fullName || "Unnamed"}</p>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="space-y-2">
+                      {match.participants
+                        ?.slice(0, 2)
+                        .map((p: any, i: number) => (
+                          <div key={i} className="flex items-center">
+                            {p?.profileImage ? (
+                              <Image
+                                src={p.profileImage}
+                                alt={p.fullName || "Player"}
+                                width={40}
+                                height={40}
+                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                              />
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                                {(p?.fullName?.[0] || "?").toUpperCase()}
+                              </div>
+                            )}
+                            {p?.fullName || "Unnamed"}
+                          </div>
+                        ))}
+                    </div>
+
+                    <div className="space-y-2">
+                      {match.participants
+                        ?.slice(2, 4)
+                        .map((p: any, i: number) => (
+                          <div key={i} className="flex items-center">
+                            {p?.profileImage ? (
+                              <Image
+                                src={p.profileImage}
+                                alt={p.fullName || "Player"}
+                                width={40}
+                                height={40}
+                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                              />
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                                {(p?.fullName?.[0] || "?").toUpperCase()}
+                              </div>
+                            )}
+                            {p?.fullName || "Unnamed"}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // 🏆 TEAM MATCHES
+              <div className="grid grid-cols-2 gap-6">
+                {/* TEAM 1 */}
+                <div className="border-r-2 p-2">
+                  <h3 className="font-semibold text-lg mb-2  mt-1">{side1Name}</h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    {match.team1?.players?.length ? (
+                      match.team1.players.map((player: any, index: number) => (
+                        <li key={index} className="flex items-center">
+                          {player?.user?.profileImage ? (
+                            <Image
+                              src={player.user.profileImage}
+                              alt={player.user.fullName || "Player"}
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(
+                                player?.user?.fullName?.[0] || "?"
+                              ).toUpperCase()}
+                            </div>
+                          )}
+                          {player?.user?.fullName ||
+                            player?.user?.username ||
+                            "Unnamed"}
+                          {match.team1.assignments?.[player.user._id] && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({match.team1.assignments[player.user._id]})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 italic">No players found</li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* TEAM 2 */}
+                <div className="">
+                  <h3 className="font-semibold text-lg  mb-2">{side2Name}</h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    {match.team2?.players?.length ? (
+                      match.team2.players.map((player: any, index: number) => (
+                        <li key={index} className="flex items-center">
+                          {player?.user?.profileImage ? (
+                            <Image
+                              src={player.user.profileImage}
+                              alt={player.user.fullName || "Player"}
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(
+                                player?.user?.fullName?.[0] || "?"
+                              ).toUpperCase()}
+                            </div>
+                          )}
+                          {player?.user?.fullName ||
+                            player?.user?.username ||
+                            "Unnamed"}
+                          {match.team2.assignments?.[player.user._id] && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({match.team2.assignments[player.user._id]})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 italic">No players found</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Games */}
+          {isIndividualMatch(match) && (
+            <div>
+              {match.games?.length > 0 && (
+                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                  <h2 className="text-lg font-semibold mb-4">Games</h2>
+                  <div className="divide-y divide-gray-100">
+                    {match.games.map((g: any) => (
+                      <div
+                        key={g.gameNumber}
+                        className="flex justify-between py-2 text-sm font-medium"
+                      >
+                        <span>Game {g.gameNumber}</span>
+                        <span className="text-gray-700">
+                          {g.side1Score} - {g.side2Score}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions + Score */}
+        <div className="space-y-6">
+          {/* Actions */}
+          {/* ACTIONS */}
+          <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+            <h2 className="text-lg font-semibold mb-4">Actions</h2>
+
+            {["individual", "team"].includes(match.matchCategory) &&
+              ["scheduled", "in_progress"].includes(match.status) && (
+                <Button className="w-full gap-2 text-base py-6" asChild>
+                  <Link
+                    href={
+                      isScorer
+                        ? `/matches/${matchId}/score?category=${match.matchCategory}`
+                        : `/matches/${matchId}/live?category=${match.matchCategory}`
+                    }
+                  >
+                    {isScorer ? (
+                      <Play className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                    {isScorer
+                      ? match.status === "scheduled"
+                        ? "Start Match"
+                        : "Continue Match"
+                      : "View Live"}
+                  </Link>
+                </Button>
+              )}
+
+            {/* Stats button */}
+            {((match.matchCategory === "individual" &&
+              match.games?.some((g: IndividualGame) => g.shots?.length)) ||
+              (match.matchCategory === "team" &&
+                match.subMatches?.some((sm: SubMatch) =>
+                  sm.games?.some((g) => g.shots?.length)
+                ))) && (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-base py-6 mt-3"
+                asChild
+              >
+                <Link href={`/matches/${matchId}/stats`}>View Statistics</Link>
+              </Button>
+            )}
+          </div>
+
+          {/* Score */}
+          {isIndividualMatch(match) && (
+            <div>
+              {match.finalScore && (
+                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
+                  <h2 className="text-lg font-semibold mb-6">Final Score</h2>
+                  <div className="flex justify-center items-center gap-6">
+                    <span className="text-4xl font-bold text-blue-600">
+                      {match.finalScore.side1Sets}
+                    </span>
+                    <span className="text-2xl text-gray-400">-</span>
+                    <span className="text-4xl font-bold text-red-600">
+                      {match.finalScore.side2Sets}
+                    </span>
+                  </div>
+                  {match.winnerSide && (
+                    <div className="mt-6">
+                      <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
+                        Winner:{" "}
+                        {match.winnerSide === "side1" ? side1Name : side2Name}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
