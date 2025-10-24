@@ -92,48 +92,50 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
   const { player1, player2 } = getPlayersForSubmatch();
 
   const teamMatchPlayers = isDoublesMatch
-  ? {
-      side1: [
-        {
-          name: player1[0]?.fullName || player1[0]?.username || "Player 1",
-          playerId: player1[0]?._id,
-          serverKey: "team1_main" as const,
-        },
-        {
-          name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
-          playerId: player1[1]?._id,
-          serverKey: "team1_partner" as const,
-        },
-      ],
-      side2: [
-        {
-          name: player2[0]?.fullName || player2[0]?.username || "Player 2",
-          playerId: player2[0]?._id,
-          serverKey: "team2_main" as const,
-        },
-        {
-          name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
-          playerId: player2[1]?._id,
-          serverKey: "team2_partner" as const,
-        },
-      ],
-    }
-  : {
-      side1: [
-        {
-          name: player1[0]?.fullName || player1[0]?.username || "Team 1 Player",
-          playerId: player1[0]?._id,
-          serverKey: "team1" as const,
-        },
-      ],
-      side2: [
-        {
-          name: player2[0]?.fullName || player2[0]?.username || "Team 2 Player",
-          playerId: player2[0]?._id,
-          serverKey: "team2" as const,
-        },
-      ],
-    };
+    ? {
+        side1: [
+          {
+            name: player1[0]?.fullName || player1[0]?.username || "Player 1",
+            playerId: player1[0]?._id,
+            serverKey: "team1_main" as const,
+          },
+          {
+            name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
+            playerId: player1[1]?._id,
+            serverKey: "team1_partner" as const,
+          },
+        ],
+        side2: [
+          {
+            name: player2[0]?.fullName || player2[0]?.username || "Player 2",
+            playerId: player2[0]?._id,
+            serverKey: "team2_main" as const,
+          },
+          {
+            name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
+            playerId: player2[1]?._id,
+            serverKey: "team2_partner" as const,
+          },
+        ],
+      }
+    : {
+        side1: [
+          {
+            name:
+              player1[0]?.fullName || player1[0]?.username || "Team 1 Player",
+            playerId: player1[0]?._id,
+            serverKey: "team1" as const,
+          },
+        ],
+        side2: [
+          {
+            name:
+              player2[0]?.fullName || player2[0]?.username || "Team 2 Player",
+            playerId: player2[0]?._id,
+            serverKey: "team2" as const,
+          },
+        ],
+      };
 
   const goToSubMatch = (index: number) => {
     if (index < 0 || index >= match.subMatches.length) return;
@@ -335,11 +337,11 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               </div>
               <p className="text-sm text-gray-600">
                 <span className="font-medium">
-                  {teamMatchPlayers.side1.name}
+                  {teamMatchPlayers.side1.map((p) => p.name).join(" & ")}
                 </span>
                 <span className="mx-2 text-gray-400">vs</span>
                 <span className="font-medium">
-                  {teamMatchPlayers.side2.name}
+                  {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
                 </span>
               </p>
             </div>
@@ -373,8 +375,8 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                   Winner:{" "}
                   <span className="font-semibold">
                     {currentSubMatch.winnerSide === "team1"
-                      ? teamMatchPlayers.side1.name
-                      : teamMatchPlayers.side2.name}
+                      ? teamMatchPlayers.side1.map((p) => p.name).join(" & ")
+                      : teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
                   </span>
                 </p>
                 <p className="text-lg font-mono">

@@ -244,13 +244,23 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 onSubtractPoint={subtractPoint}
                 onReset={() => toast.info("Reset not yet implemented")}
                 onToggleMatch={() => {
-                  if (!isSubMatchActive && !currentSubMatch.serverConfig?.firstServer) {
+                  if (
+                    !isSubMatchActive &&
+                    !currentSubMatch.serverConfig?.firstServer
+                  ) {
                     setServerDialogOpen(true);
                   } else {
                     toggleSubMatch();
                   }
                 }}
-                teamMatchPlayers={teamMatchPlayers}
+                teamMatchPlayers={{
+                  side1: Array.isArray(teamMatchPlayers.side1)
+                    ? teamMatchPlayers.side1
+                    : [teamMatchPlayers.side1],
+                  side2: Array.isArray(teamMatchPlayers.side2)
+                    ? teamMatchPlayers.side2
+                    : [teamMatchPlayers.side2],
+                }}
               />
 
               <div className="mt-6">

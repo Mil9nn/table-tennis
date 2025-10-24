@@ -154,16 +154,16 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       ? match.participants || []
       : teamMatchPlayers
       ? [
-          {
-            _id: teamMatchPlayers.side1.playerId || "",
-            fullName: teamMatchPlayers.side1.name,
-            username: teamMatchPlayers.side1.name,
-          },
-          {
-            _id: teamMatchPlayers.side2.playerId || "",
-            fullName: teamMatchPlayers.side2.name,
-            username: teamMatchPlayers.side2.name,
-          },
+          ...teamMatchPlayers.side1.map(p => ({
+            _id: p.playerId || "",
+            fullName: p.name,
+            username: p.name,
+          })),
+          ...teamMatchPlayers.side2.map(p => ({
+            _id: p.playerId || "",
+            fullName: p.name,
+            username: p.name,
+          })),
         ]
       : [];
 

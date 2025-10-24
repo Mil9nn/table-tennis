@@ -20,7 +20,9 @@ interface SingleDoubleSingleScorerProps {
   match: TeamMatch;
 }
 
-export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleScorerProps) {
+export default function SingleDoubleSingleScorer({
+  match,
+}: SingleDoubleSingleScorerProps) {
   const {
     currentSubMatchIndex,
     currentSubMatch,
@@ -67,84 +69,84 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
 
   // Determine if current submatch is doubles (match 2 in the sequence)
   const isDoublesMatch = currentSubMatch.matchType === "doubles";
-  
+
   const getPlayersForSubmatch = () => {
-  if (isDoublesMatch) {
-    // Doubles match - get both players from playerTeam1/playerTeam2 arrays
-    const team1Players = Array.isArray(currentSubMatch.playerTeam1) 
-      ? currentSubMatch.playerTeam1 
-      : [currentSubMatch.playerTeam1];
-    
-    const team2Players = Array.isArray(currentSubMatch.playerTeam2)
-      ? currentSubMatch.playerTeam2
-      : [currentSubMatch.playerTeam2];
-    
-    return {
-      player1: team1Players as Participant[],
-      player2: team2Players as Participant[],
-    };
-  } else {
-    // Singles match - get single player from each side
-    const player1 = Array.isArray(currentSubMatch.playerTeam1)
-      ? currentSubMatch.playerTeam1[0]
-      : currentSubMatch.playerTeam1;
-    
-    const player2 = Array.isArray(currentSubMatch.playerTeam2)
-      ? currentSubMatch.playerTeam2[0]
-      : currentSubMatch.playerTeam2;
-    
-    return {
-      player1: [player1] as Participant[],
-      player2: [player2] as Participant[],
-    };
-  }
-};
+    if (isDoublesMatch) {
+      // Doubles match - get both players from playerTeam1/playerTeam2 arrays
+      const team1Players = Array.isArray(currentSubMatch.playerTeam1)
+        ? currentSubMatch.playerTeam1
+        : [currentSubMatch.playerTeam1];
+
+      const team2Players = Array.isArray(currentSubMatch.playerTeam2)
+        ? currentSubMatch.playerTeam2
+        : [currentSubMatch.playerTeam2];
+
+      return {
+        player1: team1Players as Participant[],
+        player2: team2Players as Participant[],
+      };
+    } else {
+      // Singles match - get single player from each side
+      const player1 = Array.isArray(currentSubMatch.playerTeam1)
+        ? currentSubMatch.playerTeam1[0]
+        : currentSubMatch.playerTeam1;
+
+      const player2 = Array.isArray(currentSubMatch.playerTeam2)
+        ? currentSubMatch.playerTeam2[0]
+        : currentSubMatch.playerTeam2;
+
+      return {
+        player1: [player1] as Participant[],
+        player2: [player2] as Participant[],
+      };
+    }
+  };
 
   const { player1, player2 } = getPlayersForSubmatch();
 
   const teamMatchPlayers = isDoublesMatch
-  ? {
-      side1: [
-        {
-          name: player1[0]?.fullName || player1[0]?.username || "Player 1",
-          playerId: player1[0]?._id,
-          serverKey: "team1_main" as const,
-        },
-        {
-          name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
-          playerId: player1[1]?._id,
-          serverKey: "team1_partner" as const,
-        },
-      ],
-      side2: [
-        {
-          name: player2[0]?.fullName || player2[0]?.username || "Player 2",
-          playerId: player2[0]?._id,
-          serverKey: "team2_main" as const,
-        },
-        {
-          name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
-          playerId: player2[1]?._id,
-          serverKey: "team2_partner" as const,
-        },
-      ],
-    }
-  : {
-      side1: [
-        {
-          name: player1[0]?.fullName || player1[0]?.username || "Player",
-          playerId: player1[0]?._id,
-          serverKey: "team1" as const,
-        },
-      ],
-      side2: [
-        {
-          name: player2[0]?.fullName || player2[0]?.username || "Player",
-          playerId: player2[0]?._id,
-          serverKey: "team2" as const,
-        },
-      ],
-    };
+    ? {
+        side1: [
+          {
+            name: player1[0]?.fullName || player1[0]?.username || "Player 1",
+            playerId: player1[0]?._id,
+            serverKey: "team1_main" as const,
+          },
+          {
+            name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
+            playerId: player1[1]?._id,
+            serverKey: "team1_partner" as const,
+          },
+        ],
+        side2: [
+          {
+            name: player2[0]?.fullName || player2[0]?.username || "Player 2",
+            playerId: player2[0]?._id,
+            serverKey: "team2_main" as const,
+          },
+          {
+            name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
+            playerId: player2[1]?._id,
+            serverKey: "team2_partner" as const,
+          },
+        ],
+      }
+    : {
+        side1: [
+          {
+            name: player1[0]?.fullName || player1[0]?.username || "Player",
+            playerId: player1[0]?._id,
+            serverKey: "team1" as const,
+          },
+        ],
+        side2: [
+          {
+            name: player2[0]?.fullName || player2[0]?.username || "Player",
+            playerId: player2[0]?._id,
+            serverKey: "team2" as const,
+          },
+        ],
+      };
 
   const goToSubMatch = (index: number) => {
     if (index < 0 || index >= match.subMatches.length) return;
@@ -267,7 +269,8 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
               </Badge>
             </CardTitle>
             <p className="text-xs font-semibold">
-              {teamMatchPlayers.side1.name} vs {teamMatchPlayers.side2.name}
+              {teamMatchPlayers.side1.map((p) => p.name).join(" & ")} vs{" "}
+              {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
             </p>
           </div>
         </CardHeader>
@@ -280,8 +283,8 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
               <p className="text-sm text-gray-500 mt-2">
                 Winner:{" "}
                 {currentSubMatch.winnerSide === "team1"
-                  ? teamMatchPlayers.side1.name
-                  : teamMatchPlayers.side2.name}
+                  ? teamMatchPlayers.side1.map((p) => p.name).join(" & ")
+                  : teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
               </p>
               <p className="text-sm text-gray-500">
                 Score: {currentSubMatch.finalScore?.team1Sets || 0} -{" "}
@@ -311,7 +314,10 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
                 onReset={() => toast.info("Reset not yet implemented")}
                 onToggleMatch={() => {
                   // Show server dialog if starting and no server config
-                  if (!isSubMatchActive && !currentSubMatch.serverConfig?.firstServer) {
+                  if (
+                    !isSubMatchActive &&
+                    !currentSubMatch.serverConfig?.firstServer
+                  ) {
                     setServerDialogOpen(true);
                   } else {
                     toggleSubMatch();
@@ -345,8 +351,8 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
       {!isCompleted && (
         <>
           <ShotSelector />
-          <InitialServerDialog 
-            matchType={isDoublesMatch ? "doubles" : "singles"} 
+          <InitialServerDialog
+            matchType={isDoublesMatch ? "doubles" : "singles"}
             participants={[...player1, ...player2] as any}
             isTeamMatch={true}
             subMatchId={currentSubMatch._id?.toString()}

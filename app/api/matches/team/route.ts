@@ -58,8 +58,8 @@ function generateFiveSinglesSubmatches(
       submatches.push({
         matchNumber: index + 1,
         matchType: "singles",
-        playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
-        playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
+        playerTeam1: playerTeam1 as any,
+        playerTeam2: playerTeam2 as any,
         numberOfSets: setsPerTie,
         games: [],
         finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -109,8 +109,8 @@ function generateSingleDoubleSingleSubmatches(
     submatches.push({
       matchNumber: 1,
       matchType: "singles",
-      playerTeam1: new mongoose.Types.ObjectId(playerA),
-      playerTeam2: new mongoose.Types.ObjectId(playerX),
+      playerTeam1: playerA as any,
+      playerTeam2: playerX as any,
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -125,14 +125,8 @@ function generateSingleDoubleSingleSubmatches(
     submatches.push({
       matchNumber: 2,
       matchType: "doubles",
-      playerTeam1: [
-        new mongoose.Types.ObjectId(playerA),
-        new mongoose.Types.ObjectId(playerB),
-      ],
-      playerTeam2: [
-        new mongoose.Types.ObjectId(playerX),
-        new mongoose.Types.ObjectId(playerY),
-      ],
+      playerTeam1: [playerA, playerB] as any,
+      playerTeam2: [playerX, playerY] as any,
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -147,8 +141,8 @@ function generateSingleDoubleSingleSubmatches(
     submatches.push({
       matchNumber: 3,
       matchType: "singles",
-      playerTeam1: new mongoose.Types.ObjectId(playerB),
-      playerTeam2: new mongoose.Types.ObjectId(playerY),
+      playerTeam1: playerB as any,
+      playerTeam2: playerY as any,
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -199,8 +193,8 @@ function generateCustomFormatSubmatches(
     submatches.push({
       matchNumber: index + 1,
       matchType,
-      playerTeam1: team1PlayerIds.map((id) => new mongoose.Types.ObjectId(id)),
-      playerTeam2: team2PlayerIds.map((id) => new mongoose.Types.ObjectId(id)),
+      playerTeam1: matchType === "singles" ? team1PlayerIds[0] as any : team1PlayerIds as any,
+      playerTeam2: matchType === "singles" ? team2PlayerIds[0] as any : team2PlayerIds as any,
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },

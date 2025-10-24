@@ -28,7 +28,7 @@ export default function MatchDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const matchId = params.id as string;
-  const categoryParam = searchParams.get("category"); // Get category from URL
+  const categoryParam = searchParams.get("category");
 
   const fetchMatch = useMatchStore((state) => state.fetchMatch);
   const fetchingMatch = useMatchStore((state) => state.fetchingMatch);
@@ -83,7 +83,7 @@ export default function MatchDetailsPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Match Info + Players */}
+        {/* Match Info + Players/Teams */}
         <div className="space-y-6">
           {/* Match Info */}
           <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
@@ -99,6 +99,7 @@ export default function MatchDetailsPage() {
                 {match.status}
               </Badge>
             </div>
+
             {isIndividualMatch(match) ? (
               <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                 <div>
@@ -135,7 +136,9 @@ export default function MatchDetailsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="capitalize">{match.matchFormat}</span>
+                    <span className="capitalize">
+                      {match.matchFormat.replace(/_/g, " ")}
+                    </span>
                   </div>
                   <div>
                     <span>Best of {match.numberOfSetsPerSubMatch}</span>
@@ -146,22 +149,43 @@ export default function MatchDetailsPage() {
           </div>
 
           {/* Players / Teams */}
-          <div className="border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
-            <h2 className="text-lg font-semibold py-4 px-2">
-              {match.matchCategory === "individual" ? "Players" : "Teams"}
-            </h2>
+          {match.matchCategory === "individual" ? (
+            // INDIVIDUAL MATCHES - Players
+            <div className="border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+              <h2 className="text-lg font-semibold py-4 px-6">Players</h2>
 
-            {match.matchCategory === "individual" ? (
-              // INDIVIDUAL MATCHES
-              <div className="font-semibold text-xl p-2">
+              <div className="font-semibold text-xl p-6 pt-0">
                 {match.matchType === "singles" ? (
                   // Singles: Two players
                   <div className="flex items-center justify-between">
                     {match.participants?.slice(0, 2).map((p: any, i: number) => (
-                        <div
-                          key={i}
-                          className="text-sm text-gray-600 flex items-center"
-                        >
+                      <div
+                        key={i}
+                        className="text-sm text-gray-600 flex items-center"
+                      >
+                        {p?.profileImage ? (
+                          <Image
+                            src={p.profileImage}
+                            alt={p.fullName || "Player"}
+                            width={40}
+                            height={40}
+                            className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                          />
+                        ) : (
+                          <p className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                            {(p?.fullName?.[0] || "?").toUpperCase()}
+                          </p>
+                        )}
+                        <p className="text-xs">{p?.fullName || "Unnamed"}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Doubles
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="space-y-2">
+                      {match.participants?.slice(0, 2).map((p: any, i: number) => (
+                        <div key={i} className="flex items-center">
                           {p?.profileImage ? (
                             <Image
                               src={p.profileImage}
@@ -171,157 +195,199 @@ export default function MatchDetailsPage() {
                               className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
                             />
                           ) : (
-                            <p className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                            <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
                               {(p?.fullName?.[0] || "?").toUpperCase()}
-                            </p>
+                            </div>
                           )}
-                          <p className="text-xs">{p?.fullName || "Unnamed"}</p>
+                          {p?.fullName || "Unnamed"}
                         </div>
                       ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <div className="space-y-2">
-                      {match.participants
-                        ?.slice(0, 2)
-                        .map((p: any, i: number) => (
-                          <div key={i} className="flex items-center">
-                            {p?.profileImage ? (
-                              <Image
-                                src={p.profileImage}
-                                alt={p.fullName || "Player"}
-                                width={40}
-                                height={40}
-                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
-                              />
-                            ) : (
-                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                                {(p?.fullName?.[0] || "?").toUpperCase()}
-                              </div>
-                            )}
-                            {p?.fullName || "Unnamed"}
-                          </div>
-                        ))}
                     </div>
 
                     <div className="space-y-2">
-                      {match.participants
-                        ?.slice(2, 4)
-                        .map((p: any, i: number) => (
-                          <div key={i} className="flex items-center">
-                            {p?.profileImage ? (
-                              <Image
-                                src={p.profileImage}
-                                alt={p.fullName || "Player"}
-                                width={40}
-                                height={40}
-                                className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
-                              />
-                            ) : (
-                              <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                                {(p?.fullName?.[0] || "?").toUpperCase()}
-                              </div>
-                            )}
-                            {p?.fullName || "Unnamed"}
-                          </div>
-                        ))}
+                      {match.participants?.slice(2, 4).map((p: any, i: number) => (
+                        <div key={i} className="flex items-center">
+                          {p?.profileImage ? (
+                            <Image
+                              src={p.profileImage}
+                              alt={p.fullName || "Player"}
+                              width={40}
+                              height={40}
+                              className="inline-block w-10 h-10 rounded-full mr-2 object-cover border-gray-400 border"
+                            />
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
+                              {(p?.fullName?.[0] || "?").toUpperCase()}
+                            </div>
+                          )}
+                          {p?.fullName || "Unnamed"}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
-            ) : (
-              // 🏆 TEAM MATCHES
-              <div className="grid grid-cols-2 gap-6">
-                {/* TEAM 1 */}
-                <div className="border-r-2 p-2">
-                  <h3 className="font-semibold text-lg mb-2  mt-1">{side1Name}</h3>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    {match.team1?.players?.length ? (
-                      match.team1.players.map((player: any, index: number) => (
-                        <li key={index} className="flex items-center">
-                          {player?.user?.profileImage ? (
-                            <Image
-                              src={player.user.profileImage}
-                              alt={player.user.fullName || "Player"}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
-                            />
-                          ) : (
-                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                              {(
-                                player?.user?.fullName?.[0] || "?"
-                              ).toUpperCase()}
-                            </div>
-                          )}
-                          {player?.user?.fullName ||
-                            player?.user?.username ||
-                            "Unnamed"}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="text-gray-500 italic">No players found</li>
-                    )}
-                  </ul>
-                </div>
-
-                {/* TEAM 2 */}
-                <div className="">
-                  <h3 className="font-semibold text-lg  mb-2">{side2Name}</h3>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    {match.team2?.players?.length ? (
-                      match.team2.players.map((player: any, index: number) => (
-                        <li key={index} className="flex items-center">
-                          {player?.user?.profileImage ? (
-                            <Image
-                              src={player.user.profileImage}
-                              alt={player.user.fullName || "Player"}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8 rounded-full mr-2 object-cover border border-gray-400"
-                            />
-                          ) : (
-                            <div className="inline-flex items-center justify-center w-8 h-8 mr-2 rounded-full bg-gray-200 text-gray-700 font-semibold border-gray-400 border">
-                              {(
-                                player?.user?.fullName?.[0] || "?"
-                              ).toUpperCase()}
-                            </div>
-                          )}
-                          {player?.user?.fullName ||
-                            player?.user?.username ||
-                            "Unnamed"}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="text-gray-500 italic">No players found</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Games */}
-          {isIndividualMatch(match) && (
-            <div>
-              {match.games?.length > 0 && (
-                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-                  <h2 className="text-lg font-semibold mb-4">Games</h2>
-                  <div className="divide-y divide-gray-100">
-                    {match.games.map((g: any) => (
-                      <div
-                        key={g.gameNumber}
-                        className="flex justify-between py-2 text-sm font-medium"
-                      >
-                        <span>Game {g.gameNumber}</span>
-                        <span className="text-gray-700">
-                          {g.side1Score} - {g.side2Score}
-                        </span>
-                      </div>
-                    ))}
+            </div>
+          ) : (
+            // TEAM MATCHES - Format Info & Lineup
+            <>
+              {/* Match Format Info */}
+              <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                <h2 className="text-lg font-semibold mb-4">Match Format</h2>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Format:</span>
+                    <span className="font-medium capitalize">
+                      {match.matchFormat.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Matches:</span>
+                    <span className="font-medium">
+                      {match.subMatches?.length || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Sets per Match:</span>
+                    <span className="font-medium">
+                      Best of {match.numberOfSetsPerSubMatch}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{match.team1.name}:</span>
+                    <span className="font-medium">
+                      {match.team1.players?.length || 0} players
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{match.team2.name}:</span>
+                    <span className="font-medium">
+                      {match.team2.players?.length || 0} players
+                    </span>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Match Lineup/Schedule */}
+              <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                <h2 className="text-lg font-semibold mb-4">Match Lineup</h2>
+                <div className="space-y-3">
+                  {match.subMatches?.map((subMatch: SubMatch, idx: number) => {
+                    const isCompleted = subMatch.status === "completed";
+                    const isInProgress = subMatch.status === "in_progress";
+
+                    // Get player names
+                    const team1Players = Array.isArray(subMatch.playerTeam1)
+                      ? subMatch.playerTeam1
+                      : [subMatch.playerTeam1];
+                    const team2Players = Array.isArray(subMatch.playerTeam2)
+                      ? subMatch.playerTeam2
+                      : [subMatch.playerTeam2];
+
+                    const team1Names = team1Players
+                      .map(
+                        (p: any) => p?.fullName || p?.username || "TBD"
+                      )
+                      .join(" & ");
+                    const team2Names = team2Players
+                      .map(
+                        (p: any) => p?.fullName || p?.username || "TBD"
+                      )
+                      .join(" & ");
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isInProgress
+                            ? "border-blue-500 bg-blue-50"
+                            : isCompleted
+                            ? "border-green-300 bg-green-50"
+                            : "border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              Match {idx + 1}
+                            </Badge>
+                            <Badge
+                              className={`rounded-full text-xs ${subMatch.matchType === "singles" ? "bg-blue-200 text-black" : "bg-indigo-500 text-white"}`}
+                            >
+                              {subMatch.matchType === "singles"
+                                ? "Singles"
+                                : "Doubles"}
+                            </Badge>
+                          </div>
+                          <Badge
+                            className={`text-xs ${
+                              isCompleted
+                                ? "bg-green-100 text-green-700"
+                                : isInProgress
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {isCompleted
+                              ? "Completed"
+                              : isInProgress
+                              ? "Live"
+                              : "Scheduled"}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium truncate">
+                            {team1Names}
+                          </span>
+                          <span className="text-gray-400 mx-2">vs</span>
+                          <span className="font-medium truncate">
+                            {team2Names}
+                          </span>
+                        </div>
+
+                        {isCompleted && subMatch.finalScore && (
+                          <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs flex-wrap gap-2">
+                            <span className="text-gray-600">Final Score:</span>
+                            <span className="font-semibold">
+                              {subMatch.finalScore.team1Sets} -{" "}
+                              {subMatch.finalScore.team2Sets}
+                            </span>
+                            {subMatch.winnerSide && (
+                              <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                Won by{" "}
+                                {subMatch.winnerSide === "team1"
+                                  ? team1Names
+                                  : team2Names}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Games History - Only for Individual Matches */}
+          {isIndividualMatch(match) && match.games?.length > 0 && (
+            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+              <h2 className="text-lg font-semibold mb-4">Games</h2>
+              <div className="divide-y divide-gray-100">
+                {match.games.map((g: any) => (
+                  <div
+                    key={g.gameNumber}
+                    className="flex justify-between py-2 text-sm font-medium"
+                  >
+                    <span>Game {g.gameNumber}</span>
+                    <span className="text-gray-700">
+                      {g.side1Score} - {g.side2Score}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -329,7 +395,6 @@ export default function MatchDetailsPage() {
         {/* Actions + Score */}
         <div className="space-y-6">
           {/* Actions */}
-          {/* ACTIONS */}
           <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
             <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
@@ -367,36 +432,70 @@ export default function MatchDetailsPage() {
               <Button
                 variant="outline"
                 className="w-full gap-2 text-base py-6 mt-3"
-                asChild
-              >
-                <Link href={`/matches/${matchId}/stats?category=${match.matchCategory}`}>View Statistics</Link>
+                asChild>
+                <Link
+                  href={`/matches/${matchId}/stats?category=${match.matchCategory}`}
+                >
+                  View Statistics
+                </Link>
               </Button>
             )}
           </div>
 
-          {/* Score */}
-          {isIndividualMatch(match) && (
-            <div>
-              {match.finalScore && (
-                <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
-                  <h2 className="text-lg font-semibold mb-6">Final Score</h2>
-                  <div className="flex justify-center items-center gap-6">
-                    <span className="text-4xl font-bold text-blue-600">
-                      {match.finalScore.side1Sets}
-                    </span>
-                    <span className="text-2xl text-gray-400">-</span>
-                    <span className="text-4xl font-bold text-red-600">
-                      {match.finalScore.side2Sets}
-                    </span>
+          {/* Score - Individual Matches */}
+          {isIndividualMatch(match) && match.finalScore && (
+            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
+              <h2 className="text-lg font-semibold mb-6">Final Score</h2>
+              <div className="flex justify-center items-center gap-6">
+                <span className="text-4xl font-bold text-blue-600">
+                  {match.finalScore.side1Sets}
+                </span>
+                <span className="text-2xl text-gray-400">-</span>
+                <span className="text-4xl font-bold text-red-600">
+                  {match.finalScore.side2Sets}
+                </span>
+              </div>
+              {match.winnerSide && (
+                <div className="mt-6">
+                  <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
+                    Winner: {match.winnerSide === "side1" ? side1Name : side2Name}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Score - Team Matches */}
+          {match.matchCategory === "team" && (
+            <div className="border rounded-2xl p-6 shadow-sm hover:shadow-md transition text-center">
+              <h2 className="text-lg font-semibold mb-6">Team Score</h2>
+              <div className="flex justify-center items-center gap-6">
+                <div className="text-center">
+                  <div className="text-sm text-gray-500 mb-2">
+                    {match.team1.name}
                   </div>
-                  {match.winnerSide && (
-                    <div className="mt-6">
-                      <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
-                        Winner:{" "}
-                        {match.winnerSide === "side1" ? side1Name : side2Name}
-                      </Badge>
-                    </div>
-                  )}
+                  <span className="text-4xl font-bold text-blue-600">
+                    {match.finalScore.team1Matches}
+                  </span>
+                </div>
+                <span className="text-2xl text-gray-400">-</span>
+                <div className="text-center">
+                  <div className="text-sm text-gray-500 mb-2">
+                    {match.team2.name}
+                  </div>
+                  <span className="text-4xl font-bold text-red-600">
+                    {match.finalScore.team2Matches}
+                  </span>
+                </div>
+              </div>
+              {match.status === "completed" && match.winnerTeam && (
+                <div className="mt-6">
+                  <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
+                    Winner:{" "}
+                    {match.winnerTeam === "team1"
+                      ? match.team1.name
+                      : match.team2.name}
+                  </Badge>
                 </div>
               )}
             </div>
