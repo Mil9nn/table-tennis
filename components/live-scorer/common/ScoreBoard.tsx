@@ -17,6 +17,7 @@ import {
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { TriangleAlert } from "lucide-react";
 import { useEffect } from "react";
+import { useTeamMatch } from "@/hooks/useTeamMatch";
 
 type ScoreBoardProps = {
   match: IndividualMatch | TeamMatch;
@@ -33,8 +34,8 @@ type ScoreBoardProps = {
   onToggleMatch: () => void;
 
   teamMatchPlayers?: {
-    side1: { name: string; playerId?: string; serverKey: string };
-    side2: { name: string; playerId?: string; serverKey: string };
+    side1: { name: string; playerId?: string; serverKey: string }[];
+    side2: { name: string; playerId?: string; serverKey: string }[];
   };
 };
 
@@ -74,87 +75,76 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   const isGameWon = gameWinner !== null;
 
   const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
+  const isUpdatingTeamScore = useTeamMatch((s) => s.isUpdatingTeamScore);
 
   const buildPlayers = () => {
-    if (!match) {
-      return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
-    }
+  if (!match) {
+    return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
+  }
 
-    // Team Match - use the pre-resolved player info from teamMatchPlayers
-    if (match.matchCategory === "team" && teamMatchPlayers) {
-      console.log("🏆 Team match - using teamMatchPlayers:", teamMatchPlayers);
-      return {
-        p1: [
-          {
-            name: teamMatchPlayers.side1.name,
-            playerId: teamMatchPlayers.side1.playerId,
-            serverKey: teamMatchPlayers.side1.serverKey,
-          },
-        ],
-        p2: [
-          {
-            name: teamMatchPlayers.side2.name,
-            playerId: teamMatchPlayers.side2.playerId,
-            serverKey: teamMatchPlayers.side2.serverKey,
-          },
-        ],
-      };
-    }
+  // Team Match - use the pre-resolved player info from teamMatchPlayers
+  if (match.matchCategory === "team" && teamMatchPlayers) {
+    console.log("🏆 Team match - using teamMatchPlayers:", teamMatchPlayers);
+    return {
+      p1: teamMatchPlayers.side1,
+      p2: teamMatchPlayers.side2,
+    };
+  }
 
-    // Individual match
-    if (match.matchCategory === "individual") {
-      // Singles
-      if (match.matchType === "singles") {
-        return {
-          p1: [
-            {
-              name: match.participants?.[0]?.fullName || "Player 1",
-              playerId: match.participants?.[0]?._id,
-              serverKey: "side1",
-            },
-          ],
-          p2: [
-            {
-              name: match.participants?.[1]?.fullName || "Player 2",
-              playerId: match.participants?.[1]?._id,
-              serverKey: "side2",
-            },
-          ],
-        };
-      }
-
-      // Doubles / mixed_doubles
+  // Individual match
+  if (match.matchCategory === "individual") {
+    // Singles
+    if (match.matchType === "singles") {
       return {
         p1: [
           {
             name: match.participants?.[0]?.fullName || "Player 1",
             playerId: match.participants?.[0]?._id,
-            serverKey: "side1_main",
-          },
-          {
-            name: match.participants?.[1]?.fullName || "Partner 1",
-            playerId: match.participants?.[1]?._id,
-            serverKey: "side1_partner",
+            serverKey: "side1",
           },
         ],
         p2: [
           {
-            name: match.participants?.[2]?.fullName || "Player 2",
-            playerId: match.participants?.[2]?._id,
-            serverKey: "side2_main",
-          },
-          {
-            name: match.participants?.[3]?.fullName || "Partner 2",
-            playerId: match.participants?.[3]?._id,
-            serverKey: "side2_partner",
+            name: match.participants?.[1]?.fullName || "Player 2",
+            playerId: match.participants?.[1]?._id,
+            serverKey: "side2",
           },
         ],
       };
     }
 
-    // Fallback
-    return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
-  };
+    // Doubles / mixed_doubles
+    return {
+      p1: [
+        {
+          name: match.participants?.[0]?.fullName || "Player 1",
+          playerId: match.participants?.[0]?._id,
+          serverKey: "side1_main",
+        },
+        {
+          name: match.participants?.[1]?.fullName || "Partner 1",
+          playerId: match.participants?.[1]?._id,
+          serverKey: "side1_partner",
+        },
+      ],
+      p2: [
+        {
+          name: match.participants?.[2]?.fullName || "Player 2",
+          playerId: match.participants?.[2]?._id,
+          serverKey: "side2_main",
+        },
+        {
+          name: match.participants?.[3]?.fullName || "Partner 2",
+          playerId: match.participants?.[3]?._id,
+          serverKey: "side2_partner",
+        },
+      ],
+    };
+  }
+
+  // Fallback
+  return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
+};
 
   const { p1, p2 } = buildPlayers();
 
@@ -231,7 +221,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
-          disabled={isUpdatingScore || status === "completed" || isGameWon}
+          disabled={isUpdatingScore || isUpdatingTeamScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 
@@ -243,7 +233,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
-          disabled={isUpdatingScore || status === "completed" || isGameWon}
+          disabled={isUpdatingScore || isUpdatingTeamScore || status === "completed" || isGameWon}
           currentServer={currentServer}
         />
 

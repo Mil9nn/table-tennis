@@ -26,7 +26,7 @@ interface TeamMatchState {
   isSubMatchActive: boolean;
   status: MatchStatus;
 
-  isUpdatingScore: boolean;
+  isUpdatingTeamScore: boolean;
   isStartingSubMatch: boolean;
 
   setInitialTeamMatch: (match: TeamMatch) => void;
@@ -57,7 +57,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
   isSubMatchActive: false,
   status: "scheduled" as MatchStatus,
 
-  isUpdatingScore: false,
+  isUpdatingTeamScore: false,
   isStartingSubMatch: false,
 
   setInitialTeamMatch: (match: TeamMatch) => {
@@ -163,7 +163,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       };
     }
 
-    set({ isUpdatingScore: true });
+    set({ isUpdatingTeamScore: true });
     try {
       const { data } = await axiosInstance.post(
         `/matches/team/${match._id}/submatch/${subMatchId}/score`,
@@ -182,7 +182,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       console.error("Score update error:", err);
       toast.error("Failed to update score");
     } finally {
-      set({ isUpdatingScore: false });
+      set({ isUpdatingTeamScore: false });
     }
   },
 

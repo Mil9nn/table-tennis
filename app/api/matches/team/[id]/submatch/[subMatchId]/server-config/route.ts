@@ -34,22 +34,33 @@ export async function POST(
       );
     }
 
-    // ✅ Find the submatch and update its server config
     const subMatch = match.subMatches.id(subMatchId);
     if (!subMatch) {
       return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
     }
 
-    // Initialize serverConfig if it doesn't exist
     if (!subMatch.serverConfig) {
       subMatch.serverConfig = {};
     }
 
-    subMatch.serverConfig.firstServer = serverConfig.firstServer;
-    subMatch.serverConfig.firstReceiver = serverConfig.firstReceiver;
-    subMatch.serverConfig.serverOrder = serverConfig.serverOrder ?? [];
+    // ✅ MAP side1/side2 keys to team1/team2 for team matches
+    const mapToTeamKeys = (key: string) => {
+      return key
+        .replace("side1", "team1")
+        .replace("side2", "team2");
+    };
 
-    (subMatch as any).currentServer = serverConfig.firstServer;
+    subMatch.serverConfig.firstServer = mapToTeamKeys(serverConfig.firstServer);
+    subMatch.serverConfig.firstReceiver = serverConfig.firstReceiver 
+      ? mapToTeamKeys(serverConfig.firstReceiver) 
+      : null;
+    
+    // Map serverOrder array if it exists
+    subMatch.serverConfig.serverOrder = serverConfig.serverOrder
+      ? serverConfig.serverOrder.map((key: string) => mapToTeamKeys(key))
+      : [];
+
+    (subMatch as any).currentServer = mapToTeamKeys(serverConfig.firstServer);
 
     match.markModified("subMatches");
     await match.save();

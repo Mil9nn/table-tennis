@@ -257,11 +257,6 @@ export default function MatchDetailsPage() {
                           {player?.user?.fullName ||
                             player?.user?.username ||
                             "Unnamed"}
-                          {match.team1.assignments?.[player.user._id] && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              ({match.team1.assignments[player.user._id]})
-                            </span>
-                          )}
                         </li>
                       ))
                     ) : (
@@ -295,11 +290,6 @@ export default function MatchDetailsPage() {
                           {player?.user?.fullName ||
                             player?.user?.username ||
                             "Unnamed"}
-                          {match.team2.assignments?.[player.user._id] && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              ({match.team2.assignments[player.user._id]})
-                            </span>
-                          )}
                         </li>
                       ))
                     ) : (

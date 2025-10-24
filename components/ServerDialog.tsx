@@ -39,7 +39,7 @@ export default function InitialServerDialog({
   const [selectedFirstReceiver, setSelectedFirstReceiver] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isSingles = matchType === "singles" || isTeamMatch;
+  const isSingles = matchType === "singles";
   const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
   const handleSave = async () => {
@@ -171,35 +171,48 @@ export default function InitialServerDialog({
   };
 
   const getReceiverOptions = () => {
-    if (!selectedFirstServer) return [];
+  if (!selectedFirstServer) return [];
 
-    const prefix = isTeamMatch ? "team" : "side";
-    const isFirstServerSide1 = selectedFirstServer.startsWith(`${prefix}1`);
+  // Determine which team the server belongs to
+  let isServerTeam1 = false;
+  
+  if (isTeamMatch) {
+    isServerTeam1 = selectedFirstServer === "team1" || 
+                    selectedFirstServer === "team1_main" || 
+                    selectedFirstServer === "team1_partner";
+  } else {
+    isServerTeam1 = selectedFirstServer === "side1" || 
+                    selectedFirstServer === "side1_main" || 
+                    selectedFirstServer === "side1_partner";
+  }
 
-    if (isTeamMatch) {
-      return [
-        {
-          value: isFirstServerSide1 ? "team2_main" : "team1_main",
-          label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
-        },
-        {
-          value: isFirstServerSide1 ? "team2_partner" : "team1_partner",
-          label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
-        },
-      ];
-    } else {
-      return [
-        {
-          value: isFirstServerSide1 ? "side2_main" : "side1_main",
-          label: `${getPlayerName(isFirstServerSide1 ? 2 : 0)} (Main)`,
-        },
-        {
-          value: isFirstServerSide1 ? "side2_partner" : "side1_partner",
-          label: `${getPlayerName(isFirstServerSide1 ? 3 : 1)} (Partner)`,
-        },
-      ];
-    }
-  };
+  if (isTeamMatch) {
+    // If server is from team1, receiver must be from team2 (indices 2, 3)
+    // If server is from team2, receiver must be from team1 (indices 0, 1)
+    return [
+      {
+        value: isServerTeam1 ? "team2_main" : "team1_main",
+        label: `${getPlayerName(isServerTeam1 ? 2 : 0)} (Main)`,
+      },
+      {
+        value: isServerTeam1 ? "team2_partner" : "team1_partner",
+        label: `${getPlayerName(isServerTeam1 ? 3 : 1)} (Partner)`,
+      },
+    ];
+  } else {
+    // Individual doubles logic
+    return [
+      {
+        value: isServerTeam1 ? "side2_main" : "side1_main",
+        label: `${getPlayerName(isServerTeam1 ? 2 : 0)} (Main)`,
+      },
+      {
+        value: isServerTeam1 ? "side2_partner" : "side1_partner",
+        label: `${getPlayerName(isServerTeam1 ? 3 : 1)} (Partner)`,
+      },
+    ];
+  }
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>

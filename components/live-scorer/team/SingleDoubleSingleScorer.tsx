@@ -102,29 +102,49 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
 
   const { player1, player2 } = getPlayersForSubmatch();
 
-  const teamMatchPlayers = isDoublesMatch ? {
-  side1: {
-    name: player1.map(p => p?.fullName || p?.username || "Player").join(" & "),
-    playerId: player1[0]?._id,
-    serverKey: "team1_main" as const,
-  },
-  side2: {
-    name: player2.map(p => p?.fullName || p?.username || "Player").join(" & "),
-    playerId: player2[0]?._id,
-    serverKey: "team2_main" as const,
-  },
-} : {
-  side1: {
-    name: player1[0]?.fullName || player1[0]?.username || "Player",
-    playerId: player1[0]?._id,
-    serverKey: "team1" as const,
-  },
-  side2: {
-    name: player2[0]?.fullName || player2[0]?.username || "Player",
-    playerId: player2[0]?._id,
-    serverKey: "team2" as const,
-  },
-};
+  const teamMatchPlayers = isDoublesMatch
+  ? {
+      side1: [
+        {
+          name: player1[0]?.fullName || player1[0]?.username || "Player 1",
+          playerId: player1[0]?._id,
+          serverKey: "team1_main" as const,
+        },
+        {
+          name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
+          playerId: player1[1]?._id,
+          serverKey: "team1_partner" as const,
+        },
+      ],
+      side2: [
+        {
+          name: player2[0]?.fullName || player2[0]?.username || "Player 2",
+          playerId: player2[0]?._id,
+          serverKey: "team2_main" as const,
+        },
+        {
+          name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
+          playerId: player2[1]?._id,
+          serverKey: "team2_partner" as const,
+        },
+      ],
+    }
+  : {
+      side1: [
+        {
+          name: player1[0]?.fullName || player1[0]?.username || "Player",
+          playerId: player1[0]?._id,
+          serverKey: "team1" as const,
+        },
+      ],
+      side2: [
+        {
+          name: player2[0]?.fullName || player2[0]?.username || "Player",
+          playerId: player2[0]?._id,
+          serverKey: "team2" as const,
+        },
+      ],
+    };
 
   const goToSubMatch = (index: number) => {
     if (index < 0 || index >= match.subMatches.length) return;

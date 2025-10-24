@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, MoveUp, MoveDown, AlertCircle } from "lucide-react";
+import { Plus, Trash2, MoveUp, MoveDown, AlertCircle, AlertCircleIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -170,14 +170,6 @@ export default function CustomFormatConfig({
             Add Match
           </Button>
         </CardTitle>
-        {!canAddMatch() && (
-          <Alert variant="destructive" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              Complete the current match configuration before adding a new one
-            </AlertDescription>
-          </Alert>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {matches.length === 0 && (
@@ -192,14 +184,14 @@ export default function CustomFormatConfig({
           const availableTeam2 = getAvailablePlayers(team2Players, index, 'team2');
 
           return (
-            <Card key={index} className={`border-2 ${isComplete ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+            <Card key={index} className={`border-2 p-0 ${isComplete ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
               <CardContent className="p-4 space-y-4">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Match {index + 1}</Badge>
+                  <div className="flex items-center gap-6">
+                    <Badge className="border-black/30 bg-black/80 rounded-none text-white" variant="outline">Match {index + 1}</Badge>
                     {isComplete && (
-                      <Badge className="bg-green-100 text-green-700 border-green-300">
+                      <Badge className="bg-green-100 rounded-full text-green-700 border-green-300">
                         Complete
                       </Badge>
                     )}
@@ -400,10 +392,10 @@ export default function CustomFormatConfig({
 
                 {/* Validation Message */}
                 {!isComplete && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      Please select all players to complete this match
+                  <Alert className="p-0 w-fit border-none">
+                    <AlertCircleIcon className="h-4 w-4 text-yellow-600 ml-2" />
+                    <AlertDescription className="text-xs font-semibold italic">
+                      Complete the current match details before adding a new one
                     </AlertDescription>
                   </Alert>
                 )}
@@ -411,18 +403,6 @@ export default function CustomFormatConfig({
             </Card>
           );
         })}
-
-        {matches.length > 0 && (
-          <div className="pt-2 text-sm text-muted-foreground space-y-1">
-            <p className="font-medium">Match Summary:</p>
-            <p>• Total matches: {matches.length}</p>
-            <p>• Complete: {matches.filter(isMatchComplete).length}</p>
-            <p>• Incomplete: {matches.filter(m => !isMatchComplete(m)).length}</p>
-            <p className="text-xs mt-2 italic">
-              First team to win {Math.ceil(matches.length / 2)} matches wins the tie
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
