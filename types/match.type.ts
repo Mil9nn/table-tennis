@@ -117,8 +117,8 @@ export interface SubMatch {
   matchType: IndividualMatchType;
   numberOfSets: number;
 
-  playerTeam1?: Participant | Types.ObjectId;
-  playerTeam2?: Participant | Types.ObjectId;
+  playerTeam1?: Participant | Types.ObjectId | Participant[];
+  playerTeam2?: Participant | Types.ObjectId | Participant[];
   serverConfig?: InitialServerConfig | null;
   currentServer?: ServerKey | null;
 

@@ -92,13 +92,14 @@ const serverConfigSchema = new mongoose.Schema({
 
 const subMatchSchema = new mongoose.Schema({
   matchNumber: { type: Number, required: true },
+  matchType: { type: String, enum: ["singles", "doubles"], default: "singles" },
 
-  playerTeam1: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  playerTeam2: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  // Change to arrays to support doubles
+  playerTeam1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  playerTeam2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
   numberOfSets: { type: Number, enum: [3, 5, 7], default: 5 },
 
-  // Per-submatch server / rotation config (optional; falls back to match-level)
   serverConfig: {
     type: serverConfigSchema,
     default: null,

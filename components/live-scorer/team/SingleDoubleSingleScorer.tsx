@@ -68,43 +68,63 @@ export default function SingleDoubleSingleScorer({ match }: SingleDoubleSingleSc
   // Determine if current submatch is doubles (match 2 in the sequence)
   const isDoublesMatch = currentSubMatch.matchType === "doubles";
   
-  // Get players for current submatch
   const getPlayersForSubmatch = () => {
-    if (isDoublesMatch) {
-      // Doubles match - 2 players per team
-      const team1Players = match.team1.players.slice(0, 2); // make changes here
-      const team2Players = match.team2.players.slice(0, 2); // make changes here
-      
-      return {
-        player1: team1Players.map(p => p.user as Participant),
-        player2: team2Players.map(p => p.user as Participant),
-      };
-    } else {
-      // Singles match
-      const player1 = currentSubMatch.playerTeam1 as Participant;
-      const player2 = currentSubMatch.playerTeam2 as Participant;
-      
-      return {
-        player1: [player1],
-        player2: [player2],
-      };
-    }
-  };
+  if (isDoublesMatch) {
+    // Doubles match - get both players from playerTeam1/playerTeam2 arrays
+    const team1Players = Array.isArray(currentSubMatch.playerTeam1) 
+      ? currentSubMatch.playerTeam1 
+      : [currentSubMatch.playerTeam1];
+    
+    const team2Players = Array.isArray(currentSubMatch.playerTeam2)
+      ? currentSubMatch.playerTeam2
+      : [currentSubMatch.playerTeam2];
+    
+    return {
+      player1: team1Players as Participant[],
+      player2: team2Players as Participant[],
+    };
+  } else {
+    // Singles match - get single player from each side
+    const player1 = Array.isArray(currentSubMatch.playerTeam1)
+      ? currentSubMatch.playerTeam1[0]
+      : currentSubMatch.playerTeam1;
+    
+    const player2 = Array.isArray(currentSubMatch.playerTeam2)
+      ? currentSubMatch.playerTeam2[0]
+      : currentSubMatch.playerTeam2;
+    
+    return {
+      player1: [player1] as Participant[],
+      player2: [player2] as Participant[],
+    };
+  }
+};
 
   const { player1, player2 } = getPlayersForSubmatch();
 
-  const teamMatchPlayers = {
-    side1: {
-      name: player1.map(p => p?.fullName || p?.username || "Player").join(" & "),
-      playerId: player1[0]?._id,
-      serverKey: "team1" as const,
-    },
-    side2: {
-      name: player2.map(p => p?.fullName || p?.username || "Player").join(" & "),
-      playerId: player2[0]?._id,
-      serverKey: "team2" as const,
-    },
-  };
+  const teamMatchPlayers = isDoublesMatch ? {
+  side1: {
+    name: player1.map(p => p?.fullName || p?.username || "Player").join(" & "),
+    playerId: player1[0]?._id,
+    serverKey: "team1_main" as const,
+  },
+  side2: {
+    name: player2.map(p => p?.fullName || p?.username || "Player").join(" & "),
+    playerId: player2[0]?._id,
+    serverKey: "team2_main" as const,
+  },
+} : {
+  side1: {
+    name: player1[0]?.fullName || player1[0]?.username || "Player",
+    playerId: player1[0]?._id,
+    serverKey: "team1" as const,
+  },
+  side2: {
+    name: player2[0]?.fullName || player2[0]?.username || "Player",
+    playerId: player2[0]?._id,
+    serverKey: "team2" as const,
+  },
+};
 
   const goToSubMatch = (index: number) => {
     if (index < 0 || index >= match.subMatches.length) return;

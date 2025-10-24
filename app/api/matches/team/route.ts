@@ -121,12 +121,18 @@ function generateSingleDoubleSingleSubmatches(
   }
 
   // Match 2: AB vs XY (doubles)
-  if (playerA && playerX) {
+  if (playerA && playerB && playerX && playerY) {
     submatches.push({
       matchNumber: 2,
       matchType: "doubles",
-      playerTeam1: new mongoose.Types.ObjectId(playerA),
-      playerTeam2: new mongoose.Types.ObjectId(playerX),
+      playerTeam1: [
+        new mongoose.Types.ObjectId(playerA),
+        new mongoose.Types.ObjectId(playerB),
+      ],
+      playerTeam2: [
+        new mongoose.Types.ObjectId(playerX),
+        new mongoose.Types.ObjectId(playerY),
+      ],
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -193,8 +199,8 @@ function generateCustomFormatSubmatches(
     submatches.push({
       matchNumber: index + 1,
       matchType,
-      playerTeam1: new mongoose.Types.ObjectId(team1PlayerIds[0]),
-      playerTeam2: new mongoose.Types.ObjectId(team2PlayerIds[0]),
+      playerTeam1: team1PlayerIds.map((id) => new mongoose.Types.ObjectId(id)),
+      playerTeam2: team2PlayerIds.map((id) => new mongoose.Types.ObjectId(id)),
       numberOfSets: setsPerTie,
       games: [],
       finalScore: { team1Sets: 0, team2Sets: 0 },

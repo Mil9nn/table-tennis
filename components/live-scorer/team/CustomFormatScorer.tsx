@@ -63,7 +63,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
         <div className="text-center space-y-3">
           <Users className="w-16 h-16 mx-auto text-gray-300" />
           <p className="text-gray-500 font-medium">No active match</p>
-          <p className="text-sm text-gray-400">Please select a match to continue</p>
+          <p className="text-sm text-gray-400">
+            Please select a match to continue
+          </p>
         </div>
       </div>
     );
@@ -71,25 +73,53 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
 
   // Get player info for current submatch
   const isDoublesMatch = currentSubMatch.matchType === "doubles";
-  
-  const player1 = currentSubMatch.playerTeam1 as Participant;
-  const player2 = currentSubMatch.playerTeam2 as Participant;
 
-  const player1Name = player1?.fullName || player1?.username || "Team 1 Player";
-  const player2Name = player2?.fullName || player2?.username || "Team 2 Player";
+  const getPlayersForSubmatch = () => {
+    const team1Players = Array.isArray(currentSubMatch.playerTeam1)
+      ? currentSubMatch.playerTeam1
+      : [currentSubMatch.playerTeam1];
 
-  const teamMatchPlayers = {
-    side1: {
-      name: player1Name,
-      playerId: player1?._id,
-      serverKey: "team1" as const,
-    },
-    side2: {
-      name: player2Name,
-      playerId: player2?._id,
-      serverKey: "team2" as const,
-    },
+    const team2Players = Array.isArray(currentSubMatch.playerTeam2)
+      ? currentSubMatch.playerTeam2
+      : [currentSubMatch.playerTeam2];
+
+    return {
+      player1: team1Players as Participant[],
+      player2: team2Players as Participant[],
+    };
   };
+
+  const { player1, player2 } = getPlayersForSubmatch();
+
+  const teamMatchPlayers = isDoublesMatch
+    ? {
+        side1: {
+          name: player1
+            .map((p) => p?.fullName || p?.username || "Player")
+            .join(" & "),
+          playerId: player1[0]?._id,
+          serverKey: "team1_main" as const,
+        },
+        side2: {
+          name: player2
+            .map((p) => p?.fullName || p?.username || "Player")
+            .join(" & "),
+          playerId: player2[0]?._id,
+          serverKey: "team2_main" as const,
+        },
+      }
+    : {
+        side1: {
+          name: player1[0]?.fullName || player1[0]?.username || "Team 1 Player",
+          playerId: player1[0]?._id,
+          serverKey: "team1" as const,
+        },
+        side2: {
+          name: player2[0]?.fullName || player2[0]?.username || "Team 2 Player",
+          playerId: player2[0]?._id,
+          serverKey: "team2" as const,
+        },
+      };
 
   const goToSubMatch = (index: number) => {
     if (index < 0 || index >= match.subMatches.length) return;
@@ -111,11 +141,17 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
 
   const getMatchTypeBadge = (type: string) => {
     return type === "singles" ? (
-      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+      <Badge
+        variant="outline"
+        className="bg-blue-50 text-blue-700 border-blue-200"
+      >
         Singles
       </Badge>
     ) : (
-      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+      <Badge
+        variant="outline"
+        className="bg-purple-50 text-purple-700 border-purple-200"
+      >
         Doubles
       </Badge>
     );
@@ -139,7 +175,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
           <div className="grid grid-cols-3 gap-8 items-center">
             {/* Team 1 */}
             <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-600">{match.team1.name}</p>
+              <p className="text-sm font-medium text-gray-600">
+                {match.team1.name}
+              </p>
               <p className="text-5xl font-bold text-emerald-600">
                 {match.finalScore.team1Matches}
               </p>
@@ -157,7 +195,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
 
             {/* Team 2 */}
             <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-600">{match.team2.name}</p>
+              <p className="text-sm font-medium text-gray-600">
+                {match.team2.name}
+              </p>
               <p className="text-5xl font-bold text-rose-600">
                 {match.finalScore.team2Matches}
               </p>
@@ -170,14 +210,23 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <span>Match Progress</span>
               <span className="ml-auto">
-                {match.subMatches.filter((sm) => sm.status === "completed").length} / {match.subMatches.length} completed
+                {
+                  match.subMatches.filter((sm) => sm.status === "completed")
+                    .length
+                }{" "}
+                / {match.subMatches.length} completed
               </span>
             </div>
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-500"
                 style={{
-                  width: `${(match.subMatches.filter((sm) => sm.status === "completed").length / match.subMatches.length) * 100}%`,
+                  width: `${
+                    (match.subMatches.filter((sm) => sm.status === "completed")
+                      .length /
+                      match.subMatches.length) *
+                    100
+                  }%`,
                 }}
               ></div>
             </div>
@@ -189,7 +238,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
       <Card className="border-none shadow-md">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Match Sequence</CardTitle>
+            <CardTitle className="text-lg font-semibold">
+              Match Sequence
+            </CardTitle>
             <Badge variant="secondary" className="text-sm">
               Match {currentSubMatchIndex + 1} of {match.subMatches.length}
             </Badge>
@@ -229,7 +280,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                     `}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs font-semibold">{matchTypeIcon}</span>
+                      <span className="text-xs font-semibold">
+                        {matchTypeIcon}
+                      </span>
                       <span>#{idx + 1}</span>
                     </div>
                     {isCompleted && (
@@ -262,12 +315,18 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {getMatchTypeBadge(currentSubMatch.matchType)}
-                <span className="text-lg font-bold">Match {currentSubMatchIndex + 1}</span>
+                <span className="text-lg font-bold">
+                  Match {currentSubMatchIndex + 1}
+                </span>
               </div>
               <p className="text-sm text-gray-600">
-                <span className="font-medium">{teamMatchPlayers.side1.name}</span>
+                <span className="font-medium">
+                  {teamMatchPlayers.side1.name}
+                </span>
                 <span className="mx-2 text-gray-400">vs</span>
-                <span className="font-medium">{teamMatchPlayers.side2.name}</span>
+                <span className="font-medium">
+                  {teamMatchPlayers.side2.name}
+                </span>
               </p>
             </div>
             <Badge
@@ -293,7 +352,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             <div className="text-center py-12 space-y-4">
               <Trophy className="w-16 h-16 mx-auto text-yellow-500" />
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-green-600">Match Completed!</p>
+                <p className="text-2xl font-bold text-green-600">
+                  Match Completed!
+                </p>
                 <p className="text-sm text-gray-600">
                   Winner:{" "}
                   <span className="font-semibold">
@@ -330,7 +391,10 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                 onSubtractPoint={subtractPoint}
                 onReset={() => toast.info("Reset not yet implemented")}
                 onToggleMatch={() => {
-                  if (!isSubMatchActive && !currentSubMatch.serverConfig?.firstServer) {
+                  if (
+                    !isSubMatchActive &&
+                    !currentSubMatch.serverConfig?.firstServer
+                  ) {
                     setServerDialogOpen(true);
                   } else {
                     toggleSubMatch();
@@ -364,7 +428,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
           <ShotSelector />
           <InitialServerDialog
             matchType={isDoublesMatch ? "doubles" : "singles"}
-            participants={[player1, player2] as any}
+            participants={[...player1, ...player2] as any}
             isTeamMatch={true}
             subMatchId={currentSubMatch._id?.toString()}
           />
