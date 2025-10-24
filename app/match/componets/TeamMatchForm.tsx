@@ -143,7 +143,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   };
 
   return (
-    <div className="rounded-2xl border bg-card p-6 sm:p-8 shadow-sm backdrop-blur-sm">
+    <div className="rounded-2xl border bg-card p-4 sm:p-8 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-6">
         <h2 className="font-semibold text-lg text-foreground tracking-tight">
           Team Match Setup

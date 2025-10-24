@@ -156,9 +156,9 @@ export default function CustomFormatConfig({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+    <div className="space-y-4">
+      <header>
+        <h3 className="flex items-center justify-between text-sm font-medium">
           <span>Custom Match Sequence</span>
           <Button 
             onClick={addMatch} 
@@ -166,12 +166,12 @@ export default function CustomFormatConfig({
             variant="outline"
             disabled={!canAddMatch()}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="size-4" />
             Add Match
           </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </h3>
+      </header>
+      <div className="space-y-4">
         {matches.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-4">
             No matches configured. Click "Add Match" to start.
@@ -184,8 +184,8 @@ export default function CustomFormatConfig({
           const availableTeam2 = getAvailablePlayers(team2Players, index, 'team2');
 
           return (
-            <Card key={index} className={`border-2 p-0 ${isComplete ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
-              <CardContent className="p-4 space-y-4">
+            <div key={index} className={`border-2 ${isComplete ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+              <div className="p-4 space-y-4">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-6">
@@ -399,11 +399,11 @@ export default function CustomFormatConfig({
                     </AlertDescription>
                   </Alert>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

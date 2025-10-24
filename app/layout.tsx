@@ -45,7 +45,7 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider user={plainUser}>
           <Navbar />
-          <div className="pt-14">
+          <div className="pt-14 w-full">
             {children}
             <Toaster position="top-right" />
           </div>
