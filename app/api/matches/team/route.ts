@@ -155,120 +155,6 @@ function generateSingleDoubleSingleSubmatches(
   return submatches;
 }
 
-/**
- * Generate submatches for Three Singles format
- * Match 1: A vs X
- * Match 2: B vs Y
- * Match 3: C vs Z
- */
-function generateThreeSinglesSubmatches(
-  team1: any,
-  team2: any,
-  setsPerTie: number
-) {
-  const submatches = [] as SubMatch[];
-  
-  const team1AssignmentsRaw = team1.assignments || {};
-  const team2AssignmentsRaw = team2.assignments || {};
-
-  const team1PositionMap = new Map();
-  for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
-    if (position) team1PositionMap.set(position, playerId);
-  }
-
-  const team2PositionMap = new Map();
-  for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
-    if (position) team2PositionMap.set(position, playerId);
-  }
-
-  const order = [
-    ["A", "X"],
-    ["B", "Y"],
-    ["C", "Z"],
-  ];
-
-  order.forEach((pair, index) => {
-    const playerTeam1 = team1PositionMap.get(pair[0]);
-    const playerTeam2 = team2PositionMap.get(pair[1]);
-
-    if (playerTeam1 && playerTeam2) {
-      submatches.push({
-        matchNumber: index + 1,
-        matchType: "singles",
-        playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
-        playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
-        numberOfSets: setsPerTie,
-        games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
-        winnerSide: null,
-        status: "scheduled",
-        completed: false,
-      });
-    }
-  });
-
-  return submatches;
-}
-
-/**
- * Generate submatches for Extended Format (5 singles, different order)
- * Match 1: A vs X
- * Match 2: B vs Y
- * Match 3: C vs Z
- * Match 4: D vs P
- * Match 5: E vs Q
- */
-function generateExtendedFormatSubmatches(
-  team1: any,
-  team2: any,
-  setsPerTie: number
-) {
-  const submatches = [] as SubMatch[];
-  
-  const team1AssignmentsRaw = team1.assignments || {};
-  const team2AssignmentsRaw = team2.assignments || {};
-
-  const team1PositionMap = new Map();
-  for (const [playerId, position] of Object.entries(team1AssignmentsRaw)) {
-    if (position) team1PositionMap.set(position, playerId);
-  }
-
-  const team2PositionMap = new Map();
-  for (const [playerId, position] of Object.entries(team2AssignmentsRaw)) {
-    if (position) team2PositionMap.set(position, playerId);
-  }
-
-  const order = [
-    ["A", "X"],
-    ["B", "Y"],
-    ["C", "Z"],
-    ["D", "P"],
-    ["E", "Q"],
-  ];
-
-  order.forEach((pair, index) => {
-    const playerTeam1 = team1PositionMap.get(pair[0]);
-    const playerTeam2 = team2PositionMap.get(pair[1]);
-
-    if (playerTeam1 && playerTeam2) {
-      submatches.push({
-        matchNumber: index + 1,
-        matchType: "singles",
-        playerTeam1: new mongoose.Types.ObjectId(playerTeam1),
-        playerTeam2: new mongoose.Types.ObjectId(playerTeam2),
-        numberOfSets: setsPerTie,
-        games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
-        winnerSide: null,
-        status: "scheduled",
-        completed: false,
-      });
-    }
-  });
-
-  return submatches;
-}
-
 function generateCustomFormatSubmatches(
   team1: any,
   team2: any,
@@ -415,7 +301,7 @@ export async function POST(request: NextRequest) {
     const team2AssignmentsObj = team2.assignments || {};
 
     // Check if assignments exist for formats that need them
-    const needsAssignments = ["five_singles", "single_double_single", "three_singles", "extended_format"].includes(matchFormat);
+    const needsAssignments = ["five_singles", "single_double_single"].includes(matchFormat);
     
     if (needsAssignments) {
       const hasTeam1Assignments = Object.keys(team1AssignmentsObj).length > 0;
@@ -446,14 +332,6 @@ export async function POST(request: NextRequest) {
 
       case "single_double_single":
         subMatches = generateSingleDoubleSingleSubmatches(team1, team2, Number(setsPerTie));
-        break;
-
-      case "three_singles":
-        subMatches = generateThreeSinglesSubmatches(team1, team2, Number(setsPerTie));
-        break;
-
-      case "extended_format":
-        subMatches = generateExtendedFormatSubmatches(team1, team2, Number(setsPerTie));
         break;
 
       case "custom":

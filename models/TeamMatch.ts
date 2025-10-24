@@ -192,8 +192,6 @@ const TeamMatchSchema = new mongoose.Schema(
       enum: [
         "five_singles",
         "single_double_single",
-        "extended_format",
-        "three_singles",
         "custom",
       ],
       required: true,

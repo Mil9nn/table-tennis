@@ -41,8 +41,6 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
     const formatLabels: Record<string, string> = {
       five_singles: "Swaythling",
       single_double_single: "Single-Double-Single",
-      three_singles: "Three Singles",
-      extended_format: "Extended Format",
       custom: "Custom",
     };
     return formatLabels[format] || format;

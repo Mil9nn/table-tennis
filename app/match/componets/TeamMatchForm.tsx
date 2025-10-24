@@ -82,8 +82,6 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const teamMatchFormats = [
     { value: "five_singles", label: "Swaythling Format [5 singles]" },
     { value: "single_double_single", label: "Single–Double–Single" },
-    { value: "extended_format", label: "Extended Format" },
-    { value: "three_singles", label: "3 Singles" },
     { value: "custom", label: "Custom Format" },
   ];
 

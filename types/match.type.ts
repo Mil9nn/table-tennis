@@ -164,8 +164,6 @@ export interface TeamMatch {
 export type TeamMatchFormat =
   | "five_singles"
   | "single_double_single"
-  | "extended_format"
-  | "three_singles"
   | "custom";
 
 // ============================================
@@ -205,8 +203,6 @@ export function isTeamMatch(match: NormalizedMatch): match is TeamMatch {
 export const FORMAT_DISPLAY_NAMES: Record<TeamMatchFormat, string> = {
   five_singles: "Swaythling Cup (Best of 5)",
   single_double_single: "Single-Double-Single",
-  extended_format: "Extended Format (5 Singles)",
-  three_singles: "Three Singles",
   custom: "Custom Format",
 };
 
@@ -227,16 +223,6 @@ export const FORMAT_REQUIREMENTS: Record<
     team1: ["A", "B"],
     team2: ["X", "Y"],
     minPlayers: 2,
-  },
-  extended_format: {
-    team1: ["A", "B", "C", "D", "E"],
-    team2: ["X", "Y", "Z", "P", "Q"],
-    minPlayers: 5,
-  },
-  three_singles: {
-    team1: ["A", "B", "C"],
-    team2: ["X", "Y", "Z"],
-    minPlayers: 3,
   },
   custom: {
     team1: [],

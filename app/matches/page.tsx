@@ -155,8 +155,6 @@ export default function MatchesPage() {
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
                 <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
-                <SelectItem value="three_singles">Three Singles</SelectItem>
-                <SelectItem value="extended_format">Extended Format</SelectItem>
               </SelectContent>
             </Select>
           </div>
