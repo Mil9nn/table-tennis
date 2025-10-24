@@ -136,7 +136,8 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
 
                 {/* Match Info */}
                 <div className="pt-3 border-t space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>{formatDate(match.createdAt)}</span>
                   </div>
@@ -147,10 +148,11 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                       {match.city || match.venue || "Unknown Location"}
                     </span>
                   </div>
+                  </div>
 
                   {/* Winner Badge */}
                   {isCompleted && match.winnerTeam && (
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex items-center justify-center gap-2 pt-2">
                       <Trophy className="w-4 h-4 text-yellow-500" />
                       <span className="text-xs font-semibold text-green-600">
                         {match.winnerTeam === "team1"

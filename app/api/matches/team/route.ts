@@ -269,6 +269,58 @@ function generateExtendedFormatSubmatches(
   return submatches;
 }
 
+function generateCustomFormatSubmatches(
+  team1: any,
+  team2: any,
+  setsPerTie: number,
+  customConfig: {
+    matches: Array<{
+      type: "singles" | "doubles";
+      team1Players: string[]; // player IDs
+      team2Players: string[];
+    }>;
+  }
+) {
+  const submatches = [] as SubMatch[];
+
+  if (!customConfig?.matches || customConfig.matches.length === 0) {
+    throw new Error("Custom format requires match configuration");
+  }
+
+  customConfig.matches.forEach((matchConfig, index) => {
+    const matchType = matchConfig.type;
+
+    // Validate players exist
+    const team1PlayerIds = matchConfig.team1Players;
+    const team2PlayerIds = matchConfig.team2Players;
+
+    if (matchType === "singles") {
+      if (team1PlayerIds.length !== 1 || team2PlayerIds.length !== 1) {
+        throw new Error(`Match ${index + 1}: Singles requires exactly 1 player per team`);
+      }
+    } else if (matchType === "doubles") {
+      if (team1PlayerIds.length !== 2 || team2PlayerIds.length !== 2) {
+        throw new Error(`Match ${index + 1}: Doubles requires exactly 2 players per team`);
+      }
+    }
+
+    submatches.push({
+      matchNumber: index + 1,
+      matchType,
+      playerTeam1: new mongoose.Types.ObjectId(team1PlayerIds[0]),
+      playerTeam2: new mongoose.Types.ObjectId(team2PlayerIds[0]),
+      numberOfSets: setsPerTie,
+      games: [],
+      finalScore: { team1Sets: 0, team2Sets: 0 },
+      winnerSide: null,
+      status: "scheduled",
+      completed: false,
+    });
+  });
+
+  return submatches;
+}
+
 /**
  * POST /api/matches/team
  * Create a new team match
@@ -303,6 +355,7 @@ export async function POST(request: NextRequest) {
       city,
       venue,
       serverConfig,
+      customConfig,
     } = body;
 
     if (!matchFormat || !setsPerTie || !city || !team1Id || !team2Id) {
@@ -401,6 +454,16 @@ export async function POST(request: NextRequest) {
 
       case "extended_format":
         subMatches = generateExtendedFormatSubmatches(team1, team2, Number(setsPerTie));
+        break;
+
+      case "custom":
+        if (!customConfig) {
+          return NextResponse.json(
+            { error: "Custom format requires customConfig" },
+            { status: 400 }
+          );
+        }
+        subMatches = generateCustomFormatSubmatches(team1, team2, Number(setsPerTie), customConfig);
         break;
 
       default:

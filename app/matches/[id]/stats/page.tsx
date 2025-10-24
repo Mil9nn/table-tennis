@@ -415,13 +415,13 @@
      <div className="p-4 space-y-10 mx-auto">
        {/* Go Back */}
        <Link
-         href={`/matches/${matchId}`}
+         href={`/matches/${matchId}?category=${match.matchCategory}`}
          className="flex items-center gap-2 text-sm shadow-sm hover:shadow-md w-fit rounded-full px-3 py-1 text-blue-800 transition-all"
        >
          <ArrowLeftCircle />
          <span className="font-semibold">Go back</span>
        </Link>
- 
+        
        {/* Overview */}
        <Card>
          <CardHeader>

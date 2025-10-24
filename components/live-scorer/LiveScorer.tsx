@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { TeamMatch } from "@/types/match.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
+import CustomFormatScorer from "./team/CustomFormatScorer";
 
 export default function LiveScorer({
   matchId,
@@ -121,5 +122,39 @@ export default function LiveScorer({
     }
 
     return <div>Unsupported match type</div>;
+  }
+
+  // Team Matches
+  if (match.matchCategory === "team") {
+    const teamMatch = match as TeamMatch;
+
+    switch (teamMatch.matchFormat) {
+      case "five_singles":
+        return <SwaythlingFormatScorer match={teamMatch} />;
+
+      case "single_double_single":
+        return <SingleDoubleSingleScorer match={teamMatch} />;
+
+      case "three_singles":
+        return <ThreeSinglesScorer match={teamMatch} />;
+
+      case "extended_format":
+        return <ExtendedFormatScorer match={teamMatch} />;
+
+      case "custom":
+        return <CustomFormatScorer match={teamMatch} />;
+
+      default:
+        return (
+          <div className="p-8 text-center">
+            <p className="text-red-600 font-semibold">
+              Format "{teamMatch.matchFormat}" is not yet supported
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Please contact support or select a different format
+            </p>
+          </div>
+        );
+    }
   }
 }

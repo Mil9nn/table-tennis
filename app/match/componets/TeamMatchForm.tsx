@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Users2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
+import CustomFormatConfig from "./CustomFormatConfig";
 
 const schema = z.object({
   matchFormat: z.string().min(1, "Select a team format"),
@@ -40,6 +41,9 @@ type TeamMatchFormValues = z.infer<typeof schema>;
 
 export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [team1Data, setTeam1Data] = useState<any>(null);
+  const [team2Data, setTeam2Data] = useState<any>(null);
+  const [customConfig, setCustomConfig] = useState<any>(null);
   const router = useRouter();
 
   const form = useForm<TeamMatchFormValues>({
@@ -53,6 +57,27 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       venue: "",
     },
   });
+
+  const matchFormat = form.watch("matchFormat");
+  const team1Id = form.watch("team1Id");
+  const team2Id = form.watch("team2Id");
+
+  // Fetch team details when team is selected
+  useEffect(() => {
+    if (team1Id) {
+      axiosInstance.get(`/teams/${team1Id}`).then((res) => {
+        setTeam1Data(res.data.team);
+      });
+    }
+  }, [team1Id]);
+
+  useEffect(() => {
+    if (team2Id) {
+      axiosInstance.get(`/teams/${team2Id}`).then((res) => {
+        setTeam2Data(res.data.team);
+      });
+    }
+  }, [team2Id]);
 
   const teamMatchFormats = [
     { value: "five_singles", label: "Swaythling Format [5 singles]" },
@@ -70,7 +95,31 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
         return setIsSubmitting(false);
       }
 
-      const matchData = {
+      // Validate custom format
+      if (data.matchFormat === "custom") {
+        if (!customConfig || !customConfig.matches || customConfig.matches.length === 0) {
+          toast.error("Please configure at least one match for custom format");
+          return setIsSubmitting(false);
+        }
+
+        // Validate all matches have players selected
+        const invalidMatch = customConfig.matches.findIndex((m: any) => {
+          const requiredPlayers = m.type === "singles" ? 1 : 2;
+          return (
+            m.team1Players.length !== requiredPlayers ||
+            m.team2Players.length !== requiredPlayers ||
+            m.team1Players.some((p: string) => !p) ||
+            m.team2Players.some((p: string) => !p)
+          );
+        });
+
+        if (invalidMatch !== -1) {
+          toast.error(`Match ${invalidMatch + 1} has incomplete player selection`);
+          return setIsSubmitting(false);
+        }
+      }
+
+      const matchData: any = {
         matchFormat: data.matchFormat,
         setsPerTie: Number(data.setsPerTie),
         city: data.city,
@@ -78,6 +127,11 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
         team1Id: data.team1Id,
         team2Id: data.team2Id,
       };
+
+      // Add custom config if custom format
+      if (data.matchFormat === "custom") {
+        matchData.customConfig = customConfig;
+      }
 
       const response = await axiosInstance.post(endpoint, matchData);
       toast.success("Team match created successfully!");
@@ -92,7 +146,6 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
 
   return (
     <div className="rounded-2xl border bg-card p-6 sm:p-8 shadow-sm backdrop-blur-sm">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <h2 className="font-semibold text-lg text-foreground tracking-tight">
           Team Match Setup
@@ -187,6 +240,17 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
               )}
             />
           </div>
+
+          {/* Custom Format Configuration */}
+          {matchFormat === "custom" && team1Data && team2Data && (
+            <CustomFormatConfig
+              team1Players={team1Data.players || []}
+              team2Players={team2Data.players || []}
+              team1Name={team1Data.name}
+              team2Name={team2Data.name}
+              onChange={setCustomConfig}
+            />
+          )}
 
           {/* City */}
           <FormField
