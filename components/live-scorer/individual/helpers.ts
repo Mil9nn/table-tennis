@@ -16,10 +16,53 @@ export const checkGameWon = (
 };
 
 type ServerResult = {
-  server: ServerKey;
+  server: ServerKey | string;
   isDeuce: boolean;
   serveCount: number;
 };
+
+export function getNextServerForTeamMatch(
+  p1: number,
+  p2: number,
+  isDoubles: boolean,
+  initialConfig?: any,
+  currentGame?: number
+): { server: string; isDeuce: boolean; serveCount: number } {
+  // Map team keys to side keys for computation
+  const teamToSideMap: Record<string, string> = {
+    'team1': 'side1',
+    'team2': 'side2',
+    'team1_main': 'side1_main',
+    'team1_partner': 'side1_partner',
+    'team2_main': 'side2_main',
+    'team2_partner': 'side2_partner'
+  };
+
+  const sideToTeamMap: Record<string, string> = {
+    'side1': 'team1',
+    'side2': 'team2',
+    'side1_main': 'team1_main',
+    'side1_partner': 'team1_partner',
+    'side2_main': 'team2_main',
+    'side2_partner': 'team2_partner'
+  };
+
+  // Convert config to side keys
+  const sideConfig = {
+    firstServer: initialConfig?.firstServer ? teamToSideMap[initialConfig.firstServer] || initialConfig.firstServer : undefined,
+    firstReceiver: initialConfig?.firstReceiver ? teamToSideMap[initialConfig.firstReceiver] || initialConfig.firstReceiver : undefined,
+    serverOrder: initialConfig?.serverOrder?.map((key: string) => teamToSideMap[key] || key)
+  };
+
+  // Use existing logic with side keys
+  const result = getNextServer(p1, p2, isDoubles, sideConfig, currentGame);
+
+  // Convert result back to team keys
+  return {
+    ...result,
+    server: sideToTeamMap[result.server] || result.server
+  };
+}
 
 export const getNextServer = (
   p1: number,
@@ -100,15 +143,20 @@ const defaultDoublesOrder: DoublesPlayerKey[] = [
 const getNextServerDoubles = (
   totalPoints: number,
   isDeuce: boolean,
-  rotation: DoublesPlayerKey[] = defaultDoublesOrder
+  rotation: string[] = []
 ): ServerResult => {
-  if (!rotation || rotation.length !== 4) rotation = defaultDoublesOrder;
+  // ✅ Support both side and team key defaults
+  const defaultRotation = rotation[0]?.startsWith('team')
+    ? ["team1_main", "team2_main", "team1_partner", "team2_partner"]
+    : ["side1_main", "side2_main", "side1_partner", "side2_partner"];
+  
+  const actualRotation = (rotation && rotation.length === 4) ? rotation : defaultRotation;
 
   const serveCycle = Math.floor(totalPoints / 2);
-  const serverIndex = serveCycle % rotation.length;
+  const serverIndex = serveCycle % actualRotation.length;
 
   return {
-    server: rotation[serverIndex],
+    server: actualRotation[serverIndex],
     isDeuce,
     serveCount: isDeuce ? 0 : totalPoints % 2,
   };
@@ -131,6 +179,63 @@ export const flipDoublesRotationForNextGame = (
   ];
 
   return nextRotation;
+};
+
+export const buildDoublesRotationForTeamMatch = (
+  firstServer?: string | null,
+  firstReceiver?: string | null
+): string[] => {
+  const allTeam: string[] = [
+    "team1_main",
+    "team1_partner",
+    "team2_main",
+    "team2_partner",
+  ];
+
+  const partnerOf = (k: string): string =>
+    k.endsWith("_main")
+      ? k.startsWith("team1")
+        ? "team1_partner"
+        : "team2_partner"
+      : k.startsWith("team1")
+      ? "team1_main"
+      : "team2_main";
+
+  const fallback = allTeam.slice();
+
+  if (
+    !firstServer ||
+    !allTeam.includes(firstServer) ||
+    !firstReceiver ||
+    !allTeam.includes(firstReceiver)
+  ) {
+    return fallback;
+  }
+
+  const serverSide = firstServer.split("_")[0];
+  const receiverSide = firstReceiver.split("_")[0];
+
+  if (serverSide === receiverSide) {
+    console.error(
+      "Server and receiver must be on opposite sides, using fallback"
+    );
+    return fallback;
+  }
+
+  const rotation: string[] = [
+    firstServer,
+    firstReceiver,
+    partnerOf(firstServer),
+    partnerOf(firstReceiver),
+  ];
+
+  const unique = Array.from(new Set(rotation));
+  if (unique.length !== 4) {
+    console.error("Rotation has duplicates, using fallback");
+    return fallback;
+  }
+
+  return rotation;
 };
 
 export const buildDoublesRotation = (
@@ -257,30 +362,14 @@ export const getCurrentServerName = (
 
   if (matchType === "singles") {
     switch (server) {
-      // ✅ Individual match keys
       case "side1":
-        return (
-          participants[0]?.fullName || participants[0]?.username || "Player 1"
-        );
+        return participants[0]?.fullName || participants[0]?.username || "Player 1";
       case "side2":
-        return (
-          participants[1]?.fullName || participants[1]?.username || "Player 2"
-        );
-
-      // ✅ Team match keys (NEW!)
+        return participants[1]?.fullName || participants[1]?.username || "Player 2";
       case "team1":
-        return (
-          participants[0]?.fullName ||
-          participants[0]?.username ||
-          "Team 1 Player"
-        );
+        return participants[0]?.fullName || participants[0]?.username || "Team 1 Player";
       case "team2":
-        return (
-          participants[1]?.fullName ||
-          participants[1]?.username ||
-          "Team 2 Player"
-        );
-
+        return participants[1]?.fullName || participants[1]?.username || "Team 2 Player";
       default:
         console.warn("⚠️ Unknown server key for singles:", server);
         return null;
@@ -289,46 +378,22 @@ export const getCurrentServerName = (
 
   // doubles / mixed_doubles
   switch (server) {
-    // ✅ Individual match doubles keys
     case "side1_main":
-      return (
-        participants[0]?.fullName || participants[0]?.username || "Player 1A"
-      );
+      return participants[0]?.fullName || participants[0]?.username || "Player 1A";
     case "side1_partner":
-      return (
-        participants[1]?.fullName || participants[1]?.username || "Player 1B"
-      );
+      return participants[1]?.fullName || participants[1]?.username || "Player 1B";
     case "side2_main":
-      return (
-        participants[2]?.fullName || participants[2]?.username || "Player 2A"
-      );
+      return participants[2]?.fullName || participants[2]?.username || "Player 2A";
     case "side2_partner":
-      return (
-        participants[3]?.fullName || participants[3]?.username || "Player 2B"
-      );
-
-    // ✅ Team match doubles keys (NEW!)
+      return participants[3]?.fullName || participants[3]?.username || "Player 2B";
     case "team1_main":
-      return (
-        participants[0]?.fullName || participants[0]?.username || "Team 1 Main"
-      );
+      return participants[0]?.fullName || participants[0]?.username || "Team 1 Main";
     case "team1_partner":
-      return (
-        participants[1]?.fullName ||
-        participants[1]?.username ||
-        "Team 1 Partner"
-      );
+      return participants[1]?.fullName || participants[1]?.username || "Team 1 Partner";
     case "team2_main":
-      return (
-        participants[2]?.fullName || participants[2]?.username || "Team 2 Main"
-      );
+      return participants[2]?.fullName || participants[2]?.username || "Team 2 Main";
     case "team2_partner":
-      return (
-        participants[3]?.fullName ||
-        participants[3]?.username ||
-        "Team 2 Partner"
-      );
-
+      return participants[3]?.fullName || participants[3]?.username || "Team 2 Partner";
     default:
       console.warn("⚠️ Unknown server key for doubles:", server);
       return null;

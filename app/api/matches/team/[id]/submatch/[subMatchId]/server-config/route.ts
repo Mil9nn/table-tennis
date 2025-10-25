@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
+import { buildDoublesRotationForTeamMatch } from "@/components/live-scorer/individual/helpers";
 
 export async function POST(
   req: NextRequest,
@@ -43,24 +44,28 @@ export async function POST(
       subMatch.serverConfig = {};
     }
 
-    // ✅ MAP side1/side2 keys to team1/team2 for team matches
-    const mapToTeamKeys = (key: string) => {
-      return key
-        .replace("side1", "team1")
-        .replace("side2", "team2");
-    };
+    subMatch.serverConfig.firstServer = serverConfig.firstServer;
+    subMatch.serverConfig.firstReceiver = serverConfig.firstReceiver || null;
 
-    subMatch.serverConfig.firstServer = mapToTeamKeys(serverConfig.firstServer);
-    subMatch.serverConfig.firstReceiver = serverConfig.firstReceiver 
-      ? mapToTeamKeys(serverConfig.firstReceiver) 
-      : null;
-    
-    // Map serverOrder array if it exists
-    subMatch.serverConfig.serverOrder = serverConfig.serverOrder
-      ? serverConfig.serverOrder.map((key: string) => mapToTeamKeys(key))
-      : [];
+    const isDoubles = (subMatch as any).matchType === "doubles";
+    if (isDoubles && serverConfig.firstServer && serverConfig.firstReceiver) {
+      const rotation = buildDoublesRotationForTeamMatch(
+        serverConfig.firstServer,
+        serverConfig.firstReceiver
+      );
+      subMatch.serverConfig.serverOrder = rotation;
+    } else {
+      subMatch.serverConfig.serverOrder = [];
+    }
 
-    (subMatch as any).currentServer = mapToTeamKeys(serverConfig.firstServer);
+    (subMatch as any).currentServer = serverConfig.firstServer;
+
+    console.log("✅ Saved server config:", {
+      firstServer: subMatch.serverConfig.firstServer,
+      firstReceiver: subMatch.serverConfig.firstReceiver,
+      serverOrder: subMatch.serverConfig.serverOrder,
+      currentServer: (subMatch as any).currentServer
+    });
 
     match.markModified("subMatches");
     await match.save();

@@ -71,7 +71,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
 
   return (
     <div className="space-y-6">
-      {status === "completed" ? (
+      {status == "completed" ? (
         <MatchCompletedCard match={match} />
       ) : (
         <>

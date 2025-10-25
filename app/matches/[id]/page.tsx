@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Play,
-  Calendar,
   MapPin,
   Loader2,
   ArrowLeftCircle,
   Eye,
-  User,
   Settings,
   ListOrdered,
+  Users2,
+  User2,
+  CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -80,7 +81,7 @@ export default function MatchDetailsPage() {
           href="/matches"
           className="flex items-center gap-2 text-sm px-4 py-2 rounded-full shadow-sm hover:shadow-md text-blue-700 transition w-fit"
         >
-          <ArrowLeftCircle className="w-4 h-4" />
+          <ArrowLeftCircle className="size-4" />
           <span className="font-semibold">Go back</span>
         </Link>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
@@ -93,7 +94,7 @@ export default function MatchDetailsPage() {
         <div className="space-y-6">
           {/* Match Info */}
           <div className="border rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md transition">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
               <h2 className="text-base sm:text-lg font-semibold">
                 Match Information
               </h2>
@@ -101,27 +102,28 @@ export default function MatchDetailsPage() {
             </div>
 
             {isIndividualMatch(match) ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                <div className="space-y-2">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 justify-between flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 shrink-0" />
+                    <CalendarDays className="size-4 shrink-0" />
                     <span className="truncate">
                       {formatDate(match.createdAt)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 shrink-0" />
+                    <MapPin className="size-4 shrink-0" />
                     <span className="truncate">{match.city}</span>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="flex items-center gap-2 justify-between flex-wrap">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 shrink-0" />
+                    {match.matchType === "singles" ? <User2 className="size-4 shrink-0" /> : <Users2 className="size-4 shrink-0" />}
                     <span className="capitalize truncate">
                       {match.matchType}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <ListOrdered className="size-4 shrink-0" />
                     <span className="truncate">
                       Best of {match.numberOfSets}
                     </span>
@@ -132,13 +134,13 @@ export default function MatchDetailsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 shrink-0" />
+                    <CalendarDays className="size-4 shrink-0" />
                     <span className="truncate">
                       {formatDate(match.createdAt)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 shrink-0" />
+                    <MapPin className="size-4 shrink-0" />
                     <span className="truncate">{match.city}</span>
                   </div>
                 </div>
@@ -171,7 +173,7 @@ export default function MatchDetailsPage() {
               <div className="font-semibold text-base sm:text-xl p-4 sm:p-6 pt-0">
                 {match.matchType === "singles" ? (
                   // Singles: Two players
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
                     {match.participants
                       ?.slice(0, 2)
                       .map((p: any, i: number) => (
@@ -200,7 +202,7 @@ export default function MatchDetailsPage() {
                   </div>
                 ) : (
                   // Doubles
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm text-gray-600 gap-4">
+                  <div className="flex items-center justify-between flex-wrap text-sm text-gray-600 gap-4">
                     <div className="space-y-2 w-full sm:w-auto">
                       {match.participants
                         ?.slice(0, 2)
@@ -433,9 +435,9 @@ export default function MatchDetailsPage() {
                     }
                   >
                     {isScorer ? (
-                      <Play className="w-4 h-4" />
+                      <Play className="size-4" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="size-4" />
                     )}
                     {isScorer
                       ? match.status === "scheduled"

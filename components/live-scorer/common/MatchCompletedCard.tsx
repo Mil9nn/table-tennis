@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatTimeDuration } from "@/lib/utils";
+import { formatDate, formatTimeDuration } from "@/lib/utils";
 import { IndividualMatch } from "@/types/match.type";
+import { ArrowBigLeft, ArrowBigLeftDash, ArrowLeft, ArrowLeftFromLine, LucideTrophy, Trophy } from "lucide-react";
 
 interface MatchCompletedCardProps {
   match: IndividualMatch | null;
@@ -38,10 +39,11 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
   const matchScore = `${finalScore?.side1Sets ?? 0} - ${finalScore?.side2Sets ?? 0}`;
 
   return (
-    <Card className="border border-green-300 bg-gradient-to-br from-green-50 to-emerald-100 shadow-lg rounded-2xl">
+    <Card className="h-[calc(100vh-60px)] border border-green-300 bg-gradient-to-br from-green-50 to-emerald-100 shadow-lg rounded-none">
       <CardContent className="p-8 text-center space-y-5">
-        <div className="text-5xl">🏆</div>
-        
+        <div className="p-4 w-fit mx-auto rounded-full bg-emerald-300 ">
+        <Trophy className="size-8 text-amber-400 mx-auto" />
+        </div>
         <h2 className="text-3xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
           MATCH COMPLETED
         </h2>
@@ -63,13 +65,14 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
         </div>
 
         <div className="pt-2 text-xs text-gray-500">
-          Match completed at {new Date().toLocaleString()}
+          Match completed at {formatDate(new Date())}
         </div>
 
         <div className="pt-6">
           <Link href="/matches">
             <Button variant="default" className="px-6 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition">
-              ← Return to Matches
+              <ArrowBigLeft className="size-4" />
+              <span className="pb-0.5">Return to Matches</span>
             </Button>
           </Link>
         </div>

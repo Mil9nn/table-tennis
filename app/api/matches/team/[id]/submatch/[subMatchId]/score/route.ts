@@ -33,19 +33,13 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // ✅ Use Mongoose subdocument lookup by _id
     const subMatch = match.subMatches.id(subMatchId);
     if (!subMatch) {
-      return NextResponse.json(
-        { error: "SubMatch not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
     }
 
     const gameNumber = body.gameNumber || subMatch.games.length + 1;
-    let currentGame = subMatch.games.find(
-      (g: any) => g.gameNumber === gameNumber
-    );
+    let currentGame = subMatch.games.find((g: any) => g.gameNumber === gameNumber);
 
     if (!currentGame) {
       subMatch.games.push({
@@ -58,6 +52,39 @@ export async function POST(
       });
       currentGame = subMatch.games[subMatch.games.length - 1];
     }
+
+    const isDoubles = (subMatch as any).matchType === "doubles";
+    const serverConfig = (subMatch as any).serverConfig || {};
+
+    // ✅ Helper: compute next server using the SAME logic as individual
+    const computeNextServer = (t1Score: number, t2Score: number, gameNum: number): string => {
+      const totalPoints = t1Score + t2Score;
+      const isDeuce = t1Score >= 10 && t2Score >= 10;
+
+      if (isDoubles) {
+        // Use rotation array
+        const rotation = serverConfig.serverOrder || [
+          "team1_main", "team2_main", "team1_partner", "team2_partner"
+        ];
+        
+        const serveCycle = Math.floor(totalPoints / 2);
+        const serverIndex = serveCycle % rotation.length;
+        return rotation[serverIndex];
+      } else {
+        // Singles
+        if (isDeuce) {
+          return totalPoints % 2 === 0 
+            ? (serverConfig.firstServer || "team1")
+            : (serverConfig.firstServer === "team1" ? "team2" : "team1");
+        }
+        
+        const serveCycle = Math.floor(totalPoints / 2);
+        const servers = serverConfig.firstServer === "team1" 
+          ? ["team1", "team2"] 
+          : ["team2", "team1"];
+        return servers[serveCycle % 2];
+      }
+    };
 
     // Handle subtract action
     if (body.action === "subtract" && body.side) {
@@ -74,51 +101,26 @@ export async function POST(
 
       if (lastIndex !== -1) {
         currentGame.shots.splice(currentGame.shots.length - 1 - lastIndex, 1);
-
-        // ✅ ADD: Recompute server after subtract
-        const isDoubles = (subMatch as any).matchType === "doubles";
-        const serverConfig = (subMatch as any).serverConfig || {};
-        const serverResult = getNextServer(
-          currentGame.team1Score,
-          currentGame.team2Score,
-          isDoubles,
-          serverConfig,
-          gameNumber
-        );
-
-        // 🔥 MAP side1/side2 to team1/team2 for team matches
-        let mappedServer = serverResult.server;
-        if (mappedServer === "side1") mappedServer = "team1";
-        if (mappedServer === "side2") mappedServer = "team2";
-
-        (subMatch as any).currentServer = mappedServer;
       }
+
+      // ✅ Recompute server with NEW scores
+      (subMatch as any).currentServer = computeNextServer(
+        currentGame.team1Score,
+        currentGame.team2Score,
+        gameNumber
+      );
     } else {
       // Normal score update
-      if (
-        typeof body.team1Score === "number" &&
-        typeof body.team2Score === "number"
-      ) {
+      if (typeof body.team1Score === "number" && typeof body.team2Score === "number") {
         currentGame.team1Score = body.team1Score;
         currentGame.team2Score = body.team2Score;
 
-        // ✅ ADD: Compute next server after point
-        const isDoubles = (subMatch as any).matchType === "doubles";
-        const serverConfig = (subMatch as any).serverConfig || {};
-        const serverResult = getNextServer(
+        // ✅ Compute next server with NEW scores
+        (subMatch as any).currentServer = computeNextServer(
           body.team1Score,
           body.team2Score,
-          isDoubles,
-          serverConfig,
           gameNumber
         );
-
-        // 🔥 MAP side1/side2 to team1/team2 for team matches
-        let mappedServer = serverResult.server;
-        if (mappedServer === "side1") mappedServer = "team1";
-        if (mappedServer === "side2") mappedServer = "team2";
-
-        (subMatch as any).currentServer = mappedServer;
       }
     }
 
@@ -134,8 +136,7 @@ export async function POST(
 
       if (!subMatch.finalScore)
         subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
-      if (currentGame.winnerSide === "team1")
-        subMatch.finalScore.team1Sets += 1;
+      if (currentGame.winnerSide === "team1") subMatch.finalScore.team1Sets += 1;
       else subMatch.finalScore.team2Sets += 1;
 
       const setsNeeded = Math.ceil((subMatch.numberOfSets || 5) / 2);
@@ -168,23 +169,8 @@ export async function POST(
             nextSubIndex !== -1 ? nextSubIndex + 1 : match.currentSubMatch;
         }
       } else {
-        // ✅ ADD: Reset server for next game
-        const isDoubles = (subMatch as any).matchType === "doubles";
-        const serverConfig = (subMatch as any).serverConfig || {};
-        const serverResult = getNextServer(
-          0,
-          0,
-          isDoubles,
-          serverConfig,
-          gameNumber + 1
-        );
-
-        // 🔥 MAP side1/side2 to team1/team2 for team matches
-        let mappedServer = serverResult.server;
-        if (mappedServer === "side1") mappedServer = "team1";
-        if (mappedServer === "side2") mappedServer = "team2";
-
-        (subMatch as any).currentServer = mappedServer;
+        // ✅ Reset server for next game (0-0)
+        (subMatch as any).currentServer = computeNextServer(0, 0, gameNumber + 1);
       }
     }
 
@@ -208,25 +194,13 @@ export async function POST(
     const updatedMatch = await TeamMatch.findById(match._id)
       .populate("scorer", "username fullName")
       .populate("team1.captain team2.captain", "username fullName")
-      .populate(
-        "team1.players.user team2.players.user",
-        "username fullName profileImage"
-      )
-      .populate(
-        "subMatches.playerTeam1 subMatches.playerTeam2",
-        "username fullName profileImage"
-      )
-      .populate(
-        "subMatches.games.shots.player",
-        "username fullName profileImage"
-      );
+      .populate("team1.players.user team2.players.user", "username fullName profileImage")
+      .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
+      .populate("subMatches.games.shots.player", "username fullName profileImage");
 
     return NextResponse.json({
       match: updatedMatch,
-      message:
-        match.status === "completed"
-          ? "Team match completed!"
-          : "Score updated",
+      message: match.status === "completed" ? "Team match completed!" : "Score updated",
     });
   } catch (err) {
     console.error("SubMatch score update error:", err);

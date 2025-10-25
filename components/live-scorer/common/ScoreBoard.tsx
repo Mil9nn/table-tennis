@@ -174,12 +174,16 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     matchType: match.matchCategory === "individual" ? match.matchType : "singles",
   });
 
+  const effectiveMatchType = match.matchCategory === "individual" 
+  ? match.matchType 
+  : (teamMatchPlayers?.side1.length === 1 ? "singles" : "doubles");
+
   const serverName =
     currentServer &&
     getCurrentServerName(
       currentServer as any,
       allParticipants,
-      match.matchCategory === "individual" ? match.matchType : "singles"
+      effectiveMatchType
     );
 
   console.log("📝 Final server name:", serverName);
@@ -201,7 +205,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         <div className="bg-yellow-50 rounded-md p-1 px-2 w-fit mx-auto">
           {serverName ? (
             <p className="text-sm font-medium text-yellow-600">
-              <span>Serving: {serverName}</span>
+              <span>{serverName} is serving...</span>
             </p>
           ) : (
             <p className="flex items-center justify-center gap-1 text-sm italic text-yellow-400">

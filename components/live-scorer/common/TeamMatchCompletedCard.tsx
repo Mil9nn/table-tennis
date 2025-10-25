@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TeamMatch } from "@/types/match.type";
-import { Trophy } from "lucide-react";
+import { ArrowBigLeft, Trophy } from "lucide-react";
 
 interface TeamMatchCompletedCardProps {
   match: TeamMatch | null;
@@ -65,7 +65,8 @@ export default function TeamMatchCompletedCard({ match }: TeamMatchCompletedCard
         <div className="pt-6">
           <Link href="/matches">
             <Button variant="default" className="px-6 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition">
-              ← Return to Matches
+              <ArrowBigLeft className="size-4" />
+               <span className="pb-0.5">Return to Matches</span>
             </Button>
           </Link>
         </div>
