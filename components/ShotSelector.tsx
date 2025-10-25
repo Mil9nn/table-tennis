@@ -25,8 +25,11 @@ const ShotSelector = () => {
   const match = useMatchStore((state) => state.match);
 
   // Only use individual match hook now
-  const updateScoreIndividual = useIndividualMatch((state) => state.updateScore);
+  const updateScoreIndividual = useIndividualMatch(
+    (state) => state.updateScore
+  );
   const updateScoreTeam = useTeamMatch((state) => state.updateSubMatchScore);
+  const currentSubMatch = useTeamMatch((state) => state.currentSubMatch);
 
   const handleShotSelect = async (shotValue: string) => {
     try {
@@ -41,7 +44,8 @@ const ShotSelector = () => {
       }
 
       if (isTeamMatch(match)) {
-        const teamSide = side === "side1" ? "team1" : "team2";
+        const teamSide =
+          side === "side1" ? "team1" : side === "side2" ? "team2" : side;
         updateScoreTeam(teamSide as any, 1, shotValue, playerId);
       }
 
@@ -70,16 +74,26 @@ const ShotSelector = () => {
       }
     }
 
-    if (isTeamMatch(match)) {
-      return [];
+    if (isTeamMatch(match) && currentSubMatch) {
+      const isTeam1 =
+        pendingPlayer.side === "team1" || pendingPlayer.side === "side1";
+
+      const players = isTeam1
+        ? Array.isArray(currentSubMatch.playerTeam1)
+          ? currentSubMatch.playerTeam1
+          : [currentSubMatch.playerTeam1]
+        : Array.isArray(currentSubMatch.playerTeam2)
+        ? currentSubMatch.playerTeam2
+        : [currentSubMatch.playerTeam2];
+
+      return players;
     }
 
     return [];
   };
 
   const players = getPlayersForSide();
-  const needsPlayerSelection =
-    !pendingPlayer?.playerId && players.length > 1;
+  const needsPlayerSelection = !pendingPlayer?.playerId && players.length > 1;
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={setShotDialogOpen}>

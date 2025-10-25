@@ -49,12 +49,20 @@ export default function PlayerCard({
     return currentServer === player.serverKey;
   };
 
+  const handleClick = () => {
+    if (disabled) return;
+
+    if (players.length === 1) {
+      onAddPoint({ side, playerId: players[0]?.playerId });
+    } else {
+      onAddPoint({ side });
+    }
+  }
+
   return (
     <div>
       <section
-        onClick={() =>
-          !disabled && onAddPoint({ side, playerId: players[0]?.playerId })
-        }
+        onClick={handleClick}
         className={`relative flex flex-col justify-between items-center
           p-8 shadow-lg cursor-pointer select-none
           bg-gradient-to-br ${colors[color].bg} transition

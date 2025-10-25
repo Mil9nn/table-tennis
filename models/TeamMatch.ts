@@ -98,7 +98,7 @@ const subMatchSchema = new mongoose.Schema({
   playerTeam1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   playerTeam2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
-  numberOfSets: { type: Number, enum: [3, 5, 7], default: 5 },
+  numberOfSets: { type: Number, enum: [1, 3, 5, 7], default: 3 },
 
   serverConfig: {
     type: serverConfigSchema,
@@ -199,7 +199,7 @@ const TeamMatchSchema = new mongoose.Schema(
     },
 
     // per-submatch number of sets (best of 5 typical for ITTF team)
-    numberOfSetsPerSubMatch: { type: Number, enum: [3, 5, 7], default: 5 },
+    numberOfSetsPerSubMatch: { type: Number, enum: [1, 3, 5, 7], default: 3 },
 
     // number of submatches (usually 5 for Swaythling)
     numberOfSubMatches: { type: Number, default: 5 },

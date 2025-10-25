@@ -216,7 +216,6 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await request.json();
 
-    // 🔐 Auth check
     const token = getTokenFromRequest(request);
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
