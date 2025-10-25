@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
 import InitialServerDialog from "@/components/ServerDialog";
+import MatchStatusBadge from "@/components/MatchStatusBadge";
 
 interface SwaythlingScorerProps {
   match: TeamMatch;
@@ -192,13 +193,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
           <div className="flex flex-col gap-2">
             <CardTitle className="w-full flex items-center justify-between gap-2">
               <span>Match {currentSubMatchIndex + 1}:</span>
-              <Badge className="rounded-full">
-                {currentSubMatch.status === "completed"
-                  ? "Completed"
-                  : currentSubMatch.status === "in_progress"
-                  ? "In Progress"
-                  : "Scheduled"}
-              </Badge>
+              <MatchStatusBadge status={currentSubMatch.status as MatchStatus} size="sm" showIcon={false} />
             </CardTitle>
             <p className="text-xs font-semibold">
               {player1Name} vs {player2Name}

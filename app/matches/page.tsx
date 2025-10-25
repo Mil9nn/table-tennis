@@ -97,8 +97,8 @@ export default function MatchesPage() {
 
       <Tabs defaultValue="individual" className="w-full">
         <TabsList className="grid w-full max-w-md mx-auto mb-6 h-fit" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <TabsTrigger className="p-4" value="individual">Individual Matches</TabsTrigger>
-          <TabsTrigger className="p-4" value="team">Team Matches</TabsTrigger>
+          <TabsTrigger className="p-2" value="individual">Individual Matches</TabsTrigger>
+          <TabsTrigger className="p-2" value="team">Team Matches</TabsTrigger>
         </TabsList>
 
         {/* Individual Matches Tab */}

@@ -25,6 +25,8 @@ import {
 } from "@/types/match.type";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { formatDate } from "@/lib/utils";
+import MatchStatusBadge from "@/components/MatchStatusBadge";
+import MatchTypeBadge from "@/components/MatchTypeBadge";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -95,15 +97,7 @@ export default function MatchDetailsPage() {
               <h2 className="text-base sm:text-lg font-semibold">
                 Match Information
               </h2>
-              <Badge
-                className={`rounded-full px-3 py-1 text-xs font-medium w-fit ${
-                  match.status === "completed"
-                    ? "text-green-600 border border-green-600 bg-green-50"
-                    : "bg-blue-500 text-white"
-                }`}
-              >
-                {match.status}
-              </Badge>
+              <MatchStatusBadge status={match.status} size="sm" showIcon={false} />
             </div>
 
             {isIndividualMatch(match) ? (
@@ -344,17 +338,7 @@ export default function MatchDetailsPage() {
                             <h3 className="text-sm font-semibold">
                               Match {idx + 1}
                             </h3>
-                            <Badge
-                              className={`rounded-full text-xs text-white ${
-                                subMatch.matchType === "singles"
-                                  ? "bg-indigo-400"
-                                  : "bg-indigo-500"
-                              }`}
-                            >
-                              {subMatch.matchType === "singles"
-                                ? "Singles"
-                                : "Doubles"}
-                            </Badge>
+                            <MatchTypeBadge type={subMatch.matchType} size="sm" showIcon={false} />
                           </div>
                           <Badge
                             variant={"outline"}

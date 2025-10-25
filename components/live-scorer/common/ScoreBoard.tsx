@@ -212,7 +212,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:gap-6 gap-2 items-center">
+      <div className="grid grid-cols-2 sm:gap-6 items-center">
         <PlayerCard
           players={p1}
           score={side1Score}

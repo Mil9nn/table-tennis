@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
 import { PlusCircle, Trophy } from "lucide-react";
+import MatchStatusBadge from "./MatchStatusBadge";
 
 // Status styles + labels
 const statusStyles: Record<string, string> = {
@@ -94,8 +95,6 @@ export default function MatchesList({
             ? match.participants?.[1]?.fullName || "Side 2"
             : null;
 
-        const statusClass = statusStyles[match.status || "scheduled"] || "";
-        const statusLabel = statusLabels[match.status || "scheduled"];
 
         return (
           <Link key={match._id} href={`/matches/${match._id}`}>
@@ -107,9 +106,7 @@ export default function MatchesList({
                     {match.matchType.toUpperCase()} • Best of{" "}
                     {match.numberOfSets}
                   </span>
-                  <Badge className={`rounded-full text-xs px-3 ${statusClass}`}>
-                    {statusLabel}
-                  </Badge>
+                  <MatchStatusBadge status={match.status} size="sm" showIcon={false} />
                 </div>
 
                 {/* Participants */}

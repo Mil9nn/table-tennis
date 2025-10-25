@@ -2,28 +2,14 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Trophy } from "lucide-react";
 import { TeamMatch } from "@/types/match.type";
 import { formatDate } from "@/lib/utils";
+import MatchStatusBadge from "./MatchStatusBadge";
 
 interface TeamMatchesListProps {
   matches: TeamMatch[];
 }
-
-const statusStyles: Record<string, string> = {
-  completed: "bg-white text-emerald-700 border-emerald-400",
-  in_progress: "bg-white text-yellow-700 border-yellow-400",
-  scheduled: "bg-white text-blue-700 border-blue-400",
-  cancelled: "bg-white text-red-700 border-red-400",
-};
-
-const statusLabels: Record<string, string> = {
-  completed: "Completed",
-  in_progress: "In Progress",
-  scheduled: "Scheduled",
-  cancelled: "Cancelled",
-};
 
 export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
   if (!matches || matches.length === 0) {
@@ -37,23 +23,10 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
     );
   }
 
-  const getFormatLabel = (format: string) => {
-    const formatLabels: Record<string, string> = {
-      five_singles: "Swaythling",
-      single_double_single: "Single-Double-Single",
-      custom: "Custom",
-    };
-    return formatLabels[format] || format;
-  };
-
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
-        const isInProgress = match.status === "in_progress";
-
-        const statusClass = statusStyles[match.status || "scheduled"] || "";
-        const statusLabel = statusLabels[match.status || "scheduled"];
 
         return (
           <Link key={match._id} href={`/matches/${match._id}?category=team`}>
@@ -65,9 +38,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                     {match.matchFormat.toUpperCase()} • Best of{" "}
                     {match.numberOfSetsPerSubMatch}
                   </span>
-                  <Badge className={`rounded-full font-semibold px-3 ${statusClass}`}>
-                    {statusLabel}
-                  </Badge>
+                  <MatchStatusBadge status={match.status} size="sm" showIcon={false} />
                 </div>
 
                 {/* Team Names and Score */}

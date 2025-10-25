@@ -15,6 +15,14 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Trophy, Users } from "lucide-react";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
 import InitialServerDialog from "@/components/ServerDialog";
+import MatchStatusBadge from "@/components/MatchStatusBadge";
+import MatchTypeBadge from "@/components/MatchTypeBadge";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 interface CustomFormatScorerProps {
   match: TeamMatch;
@@ -151,141 +159,132 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
 
   const isCompleted = status === "completed";
 
-  const getMatchTypeLabel = (type: string) => {
-    return type === "singles" ? "Singles" : "Doubles";
-  };
-
-  const getMatchTypeBadge = (type: string) => {
-    return type === "singles" ? (
-      <Badge
-        variant="outline"
-        className="bg-blue-50 text-blue-700 border-blue-200"
-      >
-        Singles
-      </Badge>
-    ) : (
-      <Badge
-        variant="outline"
-        className="bg-purple-50 text-purple-700 border-purple-200"
-      >
-        Doubles
-      </Badge>
-    );
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-4 p-4">
-      {/* Team Match Score Overview - Modern Card */}
-      <Card className="border-none shadow-lg bg-gradient-to-br from-slate-50 to-white">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Custom Format Match
-            </CardTitle>
-            <Badge variant="outline" className="text-sm px-3 py-1">
-              {match.subMatches.length} Matches
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-8 items-center">
-            {/* Team 1 */}
-            <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-600">
-                {match.team1.name}
-              </p>
-              <p className="text-5xl font-bold text-emerald-600">
-                {match.finalScore.team1Matches}
-              </p>
-              <p className="text-xs text-gray-500">Matches Won</p>
+      <Accordion type="single" collapsible defaultValue="">
+        <AccordionItem value="custom-format">
+          {/* Accordion Header */}
+          <AccordionTrigger className="border-none bg-gradient-to-br from-slate-50 to-white px-4 py-3">
+            <div className="flex items-center justify-between w-full">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Custom Format Match
+              </h3>
+              <Badge variant="outline" className="text-sm px-3 py-1">
+                {match.subMatches.length} Matches
+              </Badge>
             </div>
+          </AccordionTrigger>
 
-            {/* VS Divider */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-full border-t-2 border-dashed border-gray-300"></div>
-              <span className="text-sm font-semibold text-gray-400 bg-white px-3 py-1 rounded-full border">
-                VS
-              </span>
-              <div className="w-full border-t-2 border-dashed border-gray-300"></div>
-            </div>
+          {/* Accordion Expanded Content */}
+          <AccordionContent>
+            {/* --- MATCH SUMMARY CARD --- */}
+            <Card className="border-none rounded-none bg-gradient-to-br from-slate-50 to-white mt-2">
+              <CardContent>
+                <div className="grid grid-cols-3 gap-8 items-center">
+                  {/* Team 1 */}
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      {match.team1.name}
+                    </p>
+                    <p className="text-5xl font-bold text-emerald-600">
+                      {match.finalScore.team1Matches}
+                    </p>
+                    <p className="text-xs text-gray-500">Matches Won</p>
+                  </div>
 
-            {/* Team 2 */}
-            <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-600">
-                {match.team2.name}
-              </p>
-              <p className="text-5xl font-bold text-rose-600">
-                {match.finalScore.team2Matches}
-              </p>
-              <p className="text-xs text-gray-500">Matches Won</p>
-            </div>
-          </div>
+                  {/* VS Divider */}
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="w-full border-t-2 border-dashed border-gray-300"></div>
+                    <span className="text-sm font-semibold text-gray-400 bg-white px-3 py-1 rounded-full border">
+                      VS
+                    </span>
+                    <div className="w-full border-t-2 border-dashed border-gray-300"></div>
+                  </div>
 
-          {/* Progress Bar */}
-          <div className="mt-6">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-              <span>Match Progress</span>
-              <span className="ml-auto">
-                {
-                  match.subMatches.filter((sm) => sm.status === "completed")
-                    .length
-                }{" "}
-                / {match.subMatches.length} completed
-              </span>
-            </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-500"
-                style={{
-                  width: `${
-                    (match.subMatches.filter((sm) => sm.status === "completed")
-                      .length /
-                      match.subMatches.length) *
-                    100
-                  }%`,
-                }}
-              ></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                  {/* Team 2 */}
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      {match.team2.name}
+                    </p>
+                    <p className="text-5xl font-bold text-rose-600">
+                      {match.finalScore.team2Matches}
+                    </p>
+                    <p className="text-xs text-gray-500">Matches Won</p>
+                  </div>
+                </div>
 
-      {/* SubMatch Navigator - Modern Design */}
-      <Card className="border-none shadow-md">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">
-              Match Sequence
-            </CardTitle>
-            <Badge variant="secondary" className="text-sm">
-              Match {currentSubMatchIndex + 1} of {match.subMatches.length}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
-              disabled={currentSubMatchIndex === 0}
-              className="shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
+                {/* Progress Bar */}
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                    <span>Match Progress</span>
+                    <span className="ml-auto">
+                      {
+                        match.subMatches.filter(
+                          (sm) => sm.status === "completed"
+                        ).length
+                      }{" "}
+                      / {match.subMatches.length} completed
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 transition-all duration-500"
+                      style={{
+                        width: `${
+                          (match.subMatches.filter(
+                            (sm) => sm.status === "completed"
+                          ).length /
+                            match.subMatches.length) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="flex gap-2 flex-1">
-              {match.subMatches.map((sm, idx) => {
-                const isActive = idx === currentSubMatchIndex;
-                const isCompleted = sm.status === "completed";
-                const matchTypeIcon = sm.matchType === "singles" ? "S" : "D";
+            {/* --- SUBMATCH NAVIGATOR CARD --- */}
+            <Card className="border-none rounded-none py-2 mt-4">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">
+                    Match Sequence
+                  </CardTitle>
+                  <Badge variant="secondary" className="text-sm">
+                    Match {currentSubMatchIndex + 1} of{" "}
+                    {match.subMatches.length}
+                  </Badge>
+                </div>
+              </CardHeader>
 
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => goToSubMatch(idx)}
-                    className={`
-                      relative flex-shrink-0 px-4 py-3 rounded-xl border-2 font-medium text-sm transition-all duration-200
+              <CardContent>
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {/* Previous Button */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+                    disabled={currentSubMatchIndex === 0}
+                    className="shrink-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+
+                  {/* SubMatch Buttons */}
+                  <div className="flex gap-2 flex-1 p-2">
+                    {match.subMatches.map((sm, idx) => {
+                      const isActive = idx === currentSubMatchIndex;
+                      const isCompleted = sm.status === "completed";
+                      const matchTypeIcon =
+                        sm.matchType === "singles" ? "S" : "D";
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => goToSubMatch(idx)}
+                          className={`
+                      relative flex-shrink-0 px-4 rounded-xl border-2 font-medium text-sm transition-all duration-200
                       ${
                         isActive
                           ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105"
@@ -294,46 +293,57 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                           : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       }
                     `}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs font-semibold">
-                        {matchTypeIcon}
-                      </span>
-                      <span>#{idx + 1}</span>
-                    </div>
-                    {isCompleted && (
-                      <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
-                        <span className="text-xs">✓</span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>#{idx + 1}</span>
+                            <span className="text-xs font-semibold">
+                              {matchTypeIcon}
+                            </span>
+                          </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
-              disabled={currentSubMatchIndex === match.subMatches.length - 1}
-              className="shrink-0"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                          {isCompleted && (
+                            <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                              <span className="text-xs">✓</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Button */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+                    disabled={
+                      currentSubMatchIndex === match.subMatches.length - 1
+                    }
+                    className="shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Current SubMatch Details - Modern Card */}
       <Card className="border-none shadow-lg">
         <CardHeader className="bg-gradient-to-r from-slate-50 to-white">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {getMatchTypeBadge(currentSubMatch.matchType)}
+              <div className="flex items-center gap-4">
                 <span className="text-lg font-bold">
                   Match {currentSubMatchIndex + 1}
                 </span>
+                <MatchTypeBadge
+                  type={currentSubMatch.matchType}
+                  size="sm"
+                  showIcon={false}
+                />
               </div>
               <p className="text-sm text-gray-600">
                 <span className="font-medium">
@@ -345,21 +355,11 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                 </span>
               </p>
             </div>
-            <Badge
-              className={`self-start sm:self-center px-4 py-1 ${
-                currentSubMatch.status === "completed"
-                  ? "bg-green-100 text-green-700 border-green-300"
-                  : currentSubMatch.status === "in_progress"
-                  ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                  : "bg-gray-100 text-gray-700 border-gray-300"
-              }`}
-            >
-              {currentSubMatch.status === "completed"
-                ? "Completed"
-                : currentSubMatch.status === "in_progress"
-                ? "In Progress"
-                : "Scheduled"}
-            </Badge>
+            <MatchStatusBadge
+              status={currentSubMatch.status as MatchStatus}
+              size="sm"
+              showIcon={false}
+            />
           </div>
         </CardHeader>
 
