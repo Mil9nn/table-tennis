@@ -70,8 +70,8 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-[calc(100vh-65px)] bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <ProfileHeader user={user} stats={stats} />
+      <div className="max-w-7xl mx-auto px-2 py-4">
+        <ProfileHeader user={user} stats={stats} detailedStats={detailedStats} />
 
         <div className="mt-8">
           <TabsNav 

@@ -22,6 +22,7 @@ interface PerformanceTabProps {
 }
 
 const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
+  // Detailed shot breakdown from shotStats
   const shotData = shotStats?.detailedShots
     ? Object.entries(shotStats.detailedShots).map(([name, value]) => ({
         name: name.replaceAll("_", " "),
@@ -33,7 +34,7 @@ const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
     ? [
         { name: "FH", value: detailedStats.shotAnalysis.forehand },
         { name: "BH", value: detailedStats.shotAnalysis.backhand },
-      ]
+      ].filter((item) => item.value > 0)
     : [];
 
   const playStyleData = detailedStats?.shotAnalysis
@@ -41,14 +42,14 @@ const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
         { name: "Offensive", value: detailedStats.shotAnalysis.offensive },
         { name: "Defensive", value: detailedStats.shotAnalysis.defensive },
         { name: "Neutral", value: detailedStats.shotAnalysis.neutral },
-      ]
+      ].filter((item) => item.value > 0)
     : [];
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {playingStyleData.length > 0 && (
-          <div className="p-2">
+          <div className="bg-white rounded-2xl p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Forehand vs Backhand</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -75,7 +76,7 @@ const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
         )}
 
         {playStyleData.length > 0 && (
-          <div className="p-2">
+          <div className="bg-white rounded-2xl p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Playing Style</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -104,7 +105,7 @@ const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
       </div>
 
       {shotData.length > 0 && (
-        <div className="p-2">
+        <div className="bg-white rounded-2xl p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Career Shot Distribution</h3>
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">

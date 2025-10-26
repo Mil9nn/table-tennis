@@ -1,4 +1,3 @@
-// app/profile/components/ProfileHeader.tsx
 "use client";
 
 import { useProfileStore } from "@/hooks/useProfileStore";
@@ -13,15 +12,22 @@ import GenderEditModal from "./GenderEditModal";
 interface ProfileHeaderProps {
   user: any;
   stats: any;
+  detailedStats: any;
 }
 
-const ProfileHeader = ({ user, stats }: ProfileHeaderProps) => {
-  const { previewUrl, setPreviewUrl, uploadImage, isUploadingProfile } =
-    useProfileStore();
+const ProfileHeader = ({ user, stats, detailedStats }: ProfileHeaderProps) => {
+  const { previewUrl, setPreviewUrl, uploadImage, isUploadingProfile } = useProfileStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isEditingGender, setIsEditingGender] = useState(false);
 
   const profileImage = user?.profileImage || null;
+
+  // Prefer detailedStats.overall which includes both individual AND team matches
+  const totalMatches = detailedStats?.overall?.totalMatches ?? stats?.totalMatches ?? 0;
+  const totalWins = detailedStats?.overall?.totalWins ?? stats?.totalWins ?? 0;
+  const winPercentage = totalMatches > 0 
+    ? ((totalWins / totalMatches) * 100).toFixed(1)
+    : "0";
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -73,9 +79,6 @@ const ProfileHeader = ({ user, stats }: ProfileHeaderProps) => {
       return "N/A";
     }
   };
-
-  console.log("ProfileHeader - user:", user);
-  console.log("ProfileHeader - stats:", stats);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -157,26 +160,15 @@ const ProfileHeader = ({ user, stats }: ProfileHeaderProps) => {
 
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-gray-800">
-                {stats?.totalMatches ?? user?.stats?.totalMatches ?? 0}
-              </p>
+              <p className="text-2xl font-bold text-gray-800">{totalMatches}</p>
               <p className="text-xs text-gray-600">Matches</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-600">
-                {stats?.totalWins ?? user?.stats?.totalWins ?? 0}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{totalWins}</p>
               <p className="text-xs text-gray-600">Wins</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-800">
-                {stats?.winPercentage
-                  ? stats.winPercentage.toFixed(1)
-                  : user?.stats?.winPercentage
-                  ? user.stats.winPercentage.toFixed(1)
-                  : "0"}
-                %
-              </p>
+              <p className="text-2xl font-bold text-gray-800">{winPercentage}%</p>
               <p className="text-xs text-gray-600">Win Rate</p>
             </div>
           </div>

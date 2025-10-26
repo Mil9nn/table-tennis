@@ -1,8 +1,6 @@
-// app/profile/components/RecentMatches.tsx
 "use client";
 
 import Link from "next/link";
-import MatchTypeBadge from "@/components/MatchTypeBadge";
 
 interface RecentMatchesProps {
   detailedStats: any;
@@ -10,11 +8,16 @@ interface RecentMatchesProps {
 
 const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return "N/A";
+    }
   };
 
   if (!detailedStats?.recentMatches || detailedStats.recentMatches.length === 0) {
@@ -28,27 +31,32 @@ const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
         {detailedStats.recentMatches.map((match: any) => (
           <Link
             key={match._id}
-            href={`/matches/${match._id}`}
+            href={`/matches/${match.type}/${match._id}`}
             className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
-                {/* <MatchTypeBadge matchType={match.matchType} /> */}
+                <span className="text-xs font-medium text-gray-500 uppercase">
+                  {match.type === "team" ? match.matchFormat : match.matchType}
+                </span>
                 <p
                   className={`font-semibold ${
-                    match.won ? "text-green-600" : "text-red-600"
+                    match.result === "win" ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {match.won ? "Won" : "Lost"}
+                  {match.result === "win" ? "Won" : "Lost"}
                 </p>
               </div>
               <p className="text-sm text-gray-600">
-                {formatDate(match.createdAt)}
+                {match.type === "team" ? match.teams : match.opponent}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {formatDate(match.date)}
               </p>
             </div>
             <div className="text-right">
               <p className="text-lg font-bold text-gray-800">
-                {match?.finalScore?.userSide}-{match?.finalScore?.opponentSide}
+                {match.score}
               </p>
             </div>
           </Link>
