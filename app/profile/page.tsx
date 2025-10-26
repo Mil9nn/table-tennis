@@ -171,8 +171,8 @@ const ProfilePage = () => {
 
   const playingStyleData = detailedStats?.shotAnalysis
     ? [
-        { name: "Forehand", value: detailedStats.shotAnalysis.forehand },
-        { name: "Backhand", value: detailedStats.shotAnalysis.backhand },
+        { name: "FH", value: detailedStats.shotAnalysis.forehand },
+        { name: "BH", value: detailedStats.shotAnalysis.backhand },
       ]
     : [];
 
@@ -224,21 +224,11 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen py-2">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between px-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-            <p className="text-gray-600 mt-1">
-              Comprehensive stats and performance analysis
-            </p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Sidebar - Profile Info */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 p-2 space-y-2">
             {/* Profile Card */}
-            <div className="bg-white p-6">
+            <div className="p-4">
               <div className="relative mx-auto w-32 h-32 mb-4">
                 <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-indigo-200 ">
                   {authLoading ? (
@@ -284,12 +274,12 @@ const ProfilePage = () => {
               <h2 className="text-xl font-bold text-center text-gray-800">
                 {user.fullName}
               </h2>
-              <p className="text-center text-gray-600 text-sm">
+              <p className="text-center text-gray-600 text-xs">
                 @{user.username}
               </p>
 
               {user?.gender && !isEditingGender ? (
-                <div className="flex items-center justify-between gap-2 border-blue-200 border p-2 rounded-xl px-4 mt-4">
+                <div className="flex items-center justify-between gap-2 border-blue-200 border-b-2 py-2 mt-4">
                   <span className="flex items-center gap-1 text-sm font-medium capitalize text-gray-800">
                     {user.gender}
                     {user.gender === "male" ? (
@@ -357,7 +347,7 @@ const ProfilePage = () => {
 
             {/* Current Streak */}
             {detailedStats?.overall?.currentStreak && (
-              <div className="bg-gradient-to-br from-orange-100 to-red-200 space-y-4 rounded-sm shadow-md p-2">
+              <div className="bg-gradient-to-br from-orange-100 to-red-200 space-y-4 shadow-md p-4">
                 <h3 className="text-sm font-semibold text-gray-700">
                   Current Streak
                 </h3>
@@ -372,15 +362,15 @@ const ProfilePage = () => {
 
             {/* Teams */}
             {detailedStats?.teams && detailedStats.teams.length > 0 && (
-              <div className="bg-white rounded-2xl  p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <div className="p-4 space-y-2">
+                <h3 className="text-sm font-semibold text-gray-700">
                   My Teams
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {detailedStats.teams.map((team: any) => (
                     <div
                       key={team._id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-200 rounded-lg"
                     >
                       <div>
                         <p className="font-semibold text-sm">{team.name}</p>
@@ -396,7 +386,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6 border-l-2 p-6">
+          <div className="lg:col-span-2 space-y-2 md:border-l-2 p-2">
             <TabsNav tabs={tabs} value={activeTab} onChange={setActiveTab} />
 
             {/* Overview Tab */}
@@ -692,7 +682,7 @@ const ProfilePage = () => {
                 {/* Team Format Breakdown */}
                 {teamFormatData.length > 0 && (
                   <div className="bg-white rounded-2xl  p-6">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">
                       Matches by Format
                     </h3>
                     <div className="h-64">
@@ -724,7 +714,7 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Forehand vs Backhand */}
                   {playingStyleData.length > 0 && (
-                    <div className="bg-white rounded-2xl  p-6">
+                    <div className="p-2 bg-blue-50">
                       <h3 className="text-lg font-bold text-gray-800 mb-4">
                         Forehand vs Backhand
                       </h3>
@@ -757,7 +747,7 @@ const ProfilePage = () => {
 
                   {/* Playing Style */}
                   {playStyleData.length > 0 && (
-                    <div className="bg-white rounded-2xl  p-6">
+                    <div className="p-2 bg-blue-50">
                       <h3 className="text-lg font-bold text-gray-800 mb-4">
                         Playing Style
                       </h3>
@@ -792,7 +782,7 @@ const ProfilePage = () => {
 
                 {/* Shot Distribution */}
                 {shotData.length > 0 && (
-                  <div className="bg-white rounded-2xl  p-6">
+                  <div className="bg-blue-50 p-2">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                       Career Shot Distribution
                     </h3>

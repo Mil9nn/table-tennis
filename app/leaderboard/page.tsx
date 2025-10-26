@@ -224,26 +224,26 @@ export default function LeaderboardPage() {
                 return (
                   <Card
                     key={stats.teamName}
-                    className={`transition-all hover:shadow-lg ${
+                    className={`transition-all rounded-none p-0 border-0 ${
                       isTopThree
-                        ? "border-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50"
+                        ? "border-b-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50"
                         : ""
                     }`}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
+                    <CardContent>
+                      <div className="flex items-center gap-2">
                         {/* Rank */}
-                        <div className="flex-shrink-0 w-12 flex items-center justify-center">
+                        <div className="flex-shrink-0 w-10 flex items-center justify-center">
                           {getRankIcon(rank)}
                         </div>
 
                         {/* Team Info */}
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
                             {stats.teamName.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate">
+                            <h3 className="font-semibold text-sm truncate">
                               {stats.teamName}
                             </h3>
                             {stats.city && (
@@ -255,21 +255,21 @@ export default function LeaderboardPage() {
                         {/* Stats */}
                         <div className="hidden sm:flex items-center gap-6 text-sm">
                           <div className="text-center">
-                            <p className="font-bold text-lg">{stats.wins}</p>
+                            <p className="font-bold text-sm">{stats.wins}</p>
                             <p className="text-gray-500 text-xs">Wins</p>
                           </div>
                           <div className="text-center">
-                            <p className="font-bold text-lg">{stats.losses}</p>
+                            <p className="font-bold text-sm">{stats.losses}</p>
                             <p className="text-gray-500 text-xs">Losses</p>
                           </div>
                           <div className="text-center">
                             <Badge
                               variant="outline"
-                              className="font-bold text-base border-green-300 bg-green-50 text-green-700"
+                              className="font-bold text-xs border-green-300 rounded-full text-green-700"
                             >
                               {stats.winRate}%
                             </Badge>
-                            <p className="text-gray-500 text-xs mt-1">Win Rate</p>
+                            <p className="text-gray-500 text-xs">Win Rate</p>
                           </div>
                         </div>
                       </div>

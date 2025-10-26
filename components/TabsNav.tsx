@@ -24,7 +24,7 @@ export default function TabsNav({ tabs, value, onChange, className }: TabsNavPro
       )}
     >
       <Tabs value={value} onValueChange={onChange}>
-        <TabsList className="grid w-full bg-zinc-100 dark:bg-zinc-800" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        <TabsList className="grid w-full rounded-none dark:bg-zinc-800" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
