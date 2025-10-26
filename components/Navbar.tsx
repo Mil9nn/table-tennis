@@ -32,6 +32,7 @@ export default function Navbar() {
     { label: "Home", href: "/" },
     { label: "Matches", href: "/matches" },
     { label: "Teams", href: "/teams" },
+    { label: "Leaderboard", href: "/leaderboard"}
   ];
 
   function isActive(href: string) {

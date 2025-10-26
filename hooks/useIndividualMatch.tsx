@@ -13,10 +13,9 @@ import {
   MatchStatus,
   IndividualGame,
   InitialServerConfig,
-  PlayerKey,
   sideUnion,
 } from "@/types/match.type";
-import { updateCurrentServerInDB } from "@/lib/updateCurrentServer";
+import { updateCurrentServerInDB } from "@/lib/updateCurrentServer"; 
 
 type ServerKey =
   | "side1"

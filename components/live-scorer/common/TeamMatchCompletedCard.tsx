@@ -20,7 +20,7 @@ export default function TeamMatchCompletedCard({ match }: TeamMatchCompletedCard
   const finalScore = `${match.finalScore.team1Matches} - ${match.finalScore.team2Matches}`;
 
   return (
-    <Card className="border border-green-300 bg-gradient-to-br from-green-50 to-emerald-100 shadow-lg rounded-2xl">
+    <Card className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-none">
       <CardContent className="p-8 text-center space-y-6">
         <div className="flex justify-center">
           <Trophy className="w-20 h-20 text-yellow-500 drop-shadow-lg" />

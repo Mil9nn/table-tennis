@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatTimeDuration } from "@/lib/utils";
 import { IndividualMatch } from "@/types/match.type";
-import { ArrowBigLeft, ArrowBigLeftDash, ArrowLeft, ArrowLeftFromLine, LucideTrophy, Trophy } from "lucide-react";
+import { ArrowBigLeft, Trophy } from "lucide-react";
 
 interface MatchCompletedCardProps {
   match: IndividualMatch | null;

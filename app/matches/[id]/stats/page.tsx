@@ -364,7 +364,7 @@ export default function MatchStatsPage() {
                 >
                   <header className="px-4 py-3">
                     <h2 className="text-lg font-semibold text-indigo-900">
-                      {player.playerName}'s shot distribution
+                      {player.playerName}
                     </h2>
                   </header>
 

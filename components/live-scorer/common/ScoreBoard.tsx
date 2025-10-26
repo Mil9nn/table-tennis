@@ -58,11 +58,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   // ✅ DEBUG: Log currentServer changes
   useEffect(() => {
-    console.log("🎯 ScoreBoard - currentServer changed:", {
-      currentServer,
-      matchCategory: match?.matchCategory,
-      teamMatchPlayers,
-    });
   }, [currentServer, match?.matchCategory]);
 
   const gameWinner = checkGameWon(side1Score, side2Score);
@@ -84,7 +79,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   // Team Match - use the pre-resolved player info from teamMatchPlayers
   if (match.matchCategory === "team" && teamMatchPlayers) {
-    console.log("🏆 Team match - using teamMatchPlayers:", teamMatchPlayers);
     return {
       p1: teamMatchPlayers.side1,
       p2: teamMatchPlayers.side2,
@@ -167,13 +161,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         ]
       : [];
 
-  // ✅ DEBUG: Log server name computation
-  console.log("🔍 Computing server name:", {
-    currentServer,
-    allParticipants: allParticipants.map((p) => p.fullName),
-    matchType: match.matchCategory === "individual" ? match.matchType : "singles",
-  });
-
   const effectiveMatchType = match.matchCategory === "individual" 
   ? match.matchType 
   : (teamMatchPlayers?.side1.length === 1 ? "singles" : "doubles");
@@ -185,8 +172,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       allParticipants,
       effectiveMatchType
     );
-
-  console.log("📝 Final server name:", serverName);
 
   return (
     <div className="space-y-2">

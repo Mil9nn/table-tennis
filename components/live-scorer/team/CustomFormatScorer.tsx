@@ -45,6 +45,8 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     toggleSubMatch,
   } = useTeamMatch();
 
+  console.log("Match status:", status);
+
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
@@ -157,14 +159,12 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     });
   };
 
-  const isCompleted = status === "completed";
-
   return (
-    <div className="max-w-7xl mx-auto space-y-4 p-4">
+    <div className="max-w-7xl mx-auto space-y-4 bg-blue-100">
       <Accordion type="single" collapsible defaultValue="">
         <AccordionItem value="custom-format">
           {/* Accordion Header */}
-          <AccordionTrigger className="border-none bg-gradient-to-br from-slate-50 to-white px-4 py-3">
+          <AccordionTrigger className="border-none rounded-none bg-gradient-to-br from-slate-50 to-white px-4 py-3">
             <div className="flex items-center justify-between w-full">
               <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Custom Format Match
@@ -178,7 +178,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
           {/* Accordion Expanded Content */}
           <AccordionContent>
             {/* --- MATCH SUMMARY CARD --- */}
-            <Card className="border-none rounded-none bg-gradient-to-br from-slate-50 to-white mt-2">
+            <Card className="border-none rounded-none">
               <CardContent>
                 <div className="grid grid-cols-3 gap-8 items-center">
                   {/* Team 1 */}
@@ -189,7 +189,6 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                     <p className="text-5xl font-bold text-emerald-600">
                       {match.finalScore.team1Matches}
                     </p>
-                    <p className="text-xs text-gray-500">Matches Won</p>
                   </div>
 
                   {/* VS Divider */}
@@ -209,7 +208,6 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                     <p className="text-5xl font-bold text-rose-600">
                       {match.finalScore.team2Matches}
                     </p>
-                    <p className="text-xs text-gray-500">Matches Won</p>
                   </div>
                 </div>
 
@@ -245,7 +243,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             </Card>
 
             {/* --- SUBMATCH NAVIGATOR CARD --- */}
-            <Card className="border-none rounded-none py-2 mt-4">
+            <Card className="border-none rounded-none py-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold">
@@ -275,7 +273,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                   <div className="flex gap-2 flex-1 p-2">
                     {match.subMatches.map((sm, idx) => {
                       const isActive = idx === currentSubMatchIndex;
-                      const isCompleted = sm.status === "completed";
+                      sm.status === "completed"
                       const matchTypeIcon =
                         sm.matchType === "singles" ? "S" : "D";
 
@@ -288,7 +286,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                       ${
                         isActive
                           ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105"
-                          : isCompleted
+                          : sm.status === "completed"
                           ? "border-green-300 bg-green-50 text-green-700 hover:shadow-md"
                           : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       }
@@ -301,7 +299,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                             </span>
                           </div>
 
-                          {isCompleted && (
+                          {sm.status === "completed" && (
                             <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
                               <span className="text-xs">✓</span>
                             </div>
@@ -331,8 +329,8 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
       </Accordion>
 
       {/* Current SubMatch Details - Modern Card */}
-      <Card className="border-none shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-white">
+      <Card className="border-none rounded-none">
+        <CardHeader className="">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-2">
               <div className="flex items-center gap-4">
@@ -437,10 +435,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
         </CardContent>
       </Card>
 
-      {isCompleted && <TeamMatchCompletedCard match={match} />}
-
-      {!isCompleted && (
-        <>
+      {match.status === "completed" ? <TeamMatchCompletedCard match={match} /> : <>
           <ShotSelector />
           <InitialServerDialog
             matchType={isDoublesMatch ? "doubles" : "singles"}
@@ -448,8 +443,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             isTeamMatch={true}
             subMatchId={currentSubMatch._id?.toString()}
           />
-        </>
-      )}
+        </>}
     </div>
   );
 }

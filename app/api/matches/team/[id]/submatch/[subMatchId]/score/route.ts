@@ -3,7 +3,6 @@ import TeamMatch from "@/models/TeamMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import { SubMatch } from "@/types/match.type";
-import { getNextServer } from "@/components/live-scorer/individual/helpers";
 
 export async function POST(
   req: NextRequest,
@@ -35,11 +34,16 @@ export async function POST(
 
     const subMatch = match.subMatches.id(subMatchId);
     if (!subMatch) {
-      return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "SubMatch not found" },
+        { status: 404 }
+      );
     }
 
     const gameNumber = body.gameNumber || subMatch.games.length + 1;
-    let currentGame = subMatch.games.find((g: any) => g.gameNumber === gameNumber);
+    let currentGame = subMatch.games.find(
+      (g: any) => g.gameNumber === gameNumber
+    );
 
     if (!currentGame) {
       subMatch.games.push({
@@ -57,31 +61,41 @@ export async function POST(
     const serverConfig = (subMatch as any).serverConfig || {};
 
     // ✅ Helper: compute next server using the SAME logic as individual
-    const computeNextServer = (t1Score: number, t2Score: number, gameNum: number): string => {
+    const computeNextServer = (
+      t1Score: number,
+      t2Score: number,
+      gameNum: number
+    ): string => {
       const totalPoints = t1Score + t2Score;
       const isDeuce = t1Score >= 10 && t2Score >= 10;
 
       if (isDoubles) {
         // Use rotation array
         const rotation = serverConfig.serverOrder || [
-          "team1_main", "team2_main", "team1_partner", "team2_partner"
+          "team1_main",
+          "team2_main",
+          "team1_partner",
+          "team2_partner",
         ];
-        
+
         const serveCycle = Math.floor(totalPoints / 2);
         const serverIndex = serveCycle % rotation.length;
         return rotation[serverIndex];
       } else {
         // Singles
         if (isDeuce) {
-          return totalPoints % 2 === 0 
-            ? (serverConfig.firstServer || "team1")
-            : (serverConfig.firstServer === "team1" ? "team2" : "team1");
+          return totalPoints % 2 === 0
+            ? serverConfig.firstServer || "team1"
+            : serverConfig.firstServer === "team1"
+            ? "team2"
+            : "team1";
         }
-        
+
         const serveCycle = Math.floor(totalPoints / 2);
-        const servers = serverConfig.firstServer === "team1" 
-          ? ["team1", "team2"] 
-          : ["team2", "team1"];
+        const servers =
+          serverConfig.firstServer === "team1"
+            ? ["team1", "team2"]
+            : ["team2", "team1"];
         return servers[serveCycle % 2];
       }
     };
@@ -111,7 +125,10 @@ export async function POST(
       );
     } else {
       // Normal score update
-      if (typeof body.team1Score === "number" && typeof body.team2Score === "number") {
+      if (
+        typeof body.team1Score === "number" &&
+        typeof body.team2Score === "number"
+      ) {
         currentGame.team1Score = body.team1Score;
         currentGame.team2Score = body.team2Score;
 
@@ -136,13 +153,19 @@ export async function POST(
 
       if (!subMatch.finalScore)
         subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
-      if (currentGame.winnerSide === "team1") subMatch.finalScore.team1Sets += 1;
+      if (currentGame.winnerSide === "team1")
+        subMatch.finalScore.team1Sets += 1;
       else subMatch.finalScore.team2Sets += 1;
 
       const setsNeeded = Math.ceil((subMatch.numberOfSets || 5) / 2);
       const isSubMatchWon =
         subMatch.finalScore.team1Sets >= setsNeeded ||
         subMatch.finalScore.team2Sets >= setsNeeded;
+
+      console.log("Sets Needed: ", setsNeeded);
+      console.log("Team1 Sets: ", subMatch.finalScore.team1Sets);
+      console.log("Team2 Sets: ", subMatch.finalScore.team2Sets);
+      console.log("isSubMatchWon: ", isSubMatchWon);
 
       if (isSubMatchWon) {
         subMatch.winnerSide =
@@ -153,14 +176,18 @@ export async function POST(
         if (subMatch.winnerSide === "team1") match.finalScore.team1Matches += 1;
         else match.finalScore.team2Matches += 1;
 
+        const matchesNeeded = Math.ceil((match.numberOfSubMatches || match.subMatches.length) / 2);
+
         const isTeamMatchWon =
-          match.finalScore.team1Matches >= 3 ||
-          match.finalScore.team2Matches >= 3;
+          match.finalScore.team1Matches >= matchesNeeded ||
+          match.finalScore.team2Matches >= matchesNeeded;
 
         if (isTeamMatchWon) {
           match.status = "completed";
           match.winnerTeam =
-            match.finalScore.team1Matches >= 3 ? "team1" : "team2";
+            match.finalScore.team1Matches >= matchesNeeded
+              ? "team1"
+              : "team2";
         } else {
           const nextSubIndex = match.subMatches.findIndex(
             (sm: SubMatch) => !sm.completed
@@ -170,7 +197,11 @@ export async function POST(
         }
       } else {
         // ✅ Reset server for next game (0-0)
-        (subMatch as any).currentServer = computeNextServer(0, 0, gameNumber + 1);
+        (subMatch as any).currentServer = computeNextServer(
+          0,
+          0,
+          gameNumber + 1
+        );
       }
     }
 
@@ -194,13 +225,25 @@ export async function POST(
     const updatedMatch = await TeamMatch.findById(match._id)
       .populate("scorer", "username fullName")
       .populate("team1.captain team2.captain", "username fullName")
-      .populate("team1.players.user team2.players.user", "username fullName profileImage")
-      .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
-      .populate("subMatches.games.shots.player", "username fullName profileImage");
+      .populate(
+        "team1.players.user team2.players.user",
+        "username fullName profileImage"
+      )
+      .populate(
+        "subMatches.playerTeam1 subMatches.playerTeam2",
+        "username fullName profileImage"
+      )
+      .populate(
+        "subMatches.games.shots.player",
+        "username fullName profileImage"
+      );
 
     return NextResponse.json({
       match: updatedMatch,
-      message: match.status === "completed" ? "Team match completed!" : "Score updated",
+      message:
+        match.status === "completed"
+          ? "Team match completed!"
+          : "Score updated",
     });
   } catch (err) {
     console.error("SubMatch score update error:", err);

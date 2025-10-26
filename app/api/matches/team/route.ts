@@ -362,6 +362,7 @@ export async function POST(request: NextRequest) {
       matchFormat,
       matchCategory: "team",
       numberOfSetsPerSubMatch: Number(setsPerTie),
+      numberOfSubMatches: subMatches.length,
       city,
       venue: venue || city,
       scorer: scorer._id,

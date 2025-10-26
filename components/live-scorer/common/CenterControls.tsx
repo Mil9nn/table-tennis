@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
+import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { RotateCcw, Play, Pause, Square } from "lucide-react";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { isIndividualMatch } from "@/types/match.type";
@@ -17,13 +18,20 @@ export default function CenterControls({
   onToggleMatch,
   onReset,
 }: CenterControlsProps) {
-  const isStartingMatch = useIndividualMatch((s) => s.isStartingMatch);
-  const status = useIndividualMatch((s) => s.status);
   const match = useMatchStore((s) => s.match);
+  const isIndividual = match && isIndividualMatch(match);
+
+  const isStartingMatch = useIndividualMatch((s) => s.isStartingMatch);
+  const individualStatus = useIndividualMatch((s) => s.status);
+  
+  const isStartingSubMatch = useTeamMatch((s) => s.isStartingSubMatch);
+  const teamStatus = useTeamMatch((s) => s.status);
+
+  const status = isIndividual ? individualStatus : teamStatus;
+  const isStarting = isIndividual ? isStartingMatch : isStartingSubMatch;
 
   const handleToggleMatch = () => {
-    // Show server dialog if starting match without server config
-    if (!isMatchActive && match && isIndividualMatch(match) && !match.serverConfig?.firstServer) {
+    if (!isMatchActive && match && isIndividual && !match.serverConfig?.firstServer) {
       onToggleMatch();
       return;
     }
@@ -31,7 +39,7 @@ export default function CenterControls({
   };
 
   const getButtonContent = () => {
-    if (isStartingMatch) {
+    if (isStarting) {
       return <span>Processing...</span>;
     }
 
@@ -66,8 +74,8 @@ export default function CenterControls({
       <div className="flex max-xxs:flex-col gap-2 justify-center space-x-2">
         <Button 
           onClick={handleToggleMatch} 
-          disabled={isStartingMatch || status === "completed"} 
-          className={`cursor-pointer w-full gap-2 text-base py-6 ${ isMatchActive ? "bg-orange-100" : ""   }`}
+          disabled={isStarting || status === "completed"} 
+          className={`cursor-pointer w-full gap-2 text-base py-6 ${isMatchActive ? "bg-orange-100" : ""}`}
           variant={isMatchActive ? "destructive" : "default"}
         >
           {getButtonContent()}
