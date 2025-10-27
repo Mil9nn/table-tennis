@@ -11,7 +11,7 @@ import AuthProvider from "./providers/AuthProvider";
 // For Vercel Dashboard
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { useEffect } from "react";
+import SWRegister from "./components/sw-register";
 
 export const metadata = {
   title: "Table Tennis Scorer",
@@ -37,12 +37,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-    }
-  }, []);
-
+  
   await connectDB();
 
   const cookieStore = await cookies();
@@ -65,6 +60,7 @@ export default async function RootLayout({
         <AuthProvider user={plainUser}>
           <Navbar />
           <div className="pt-14 w-full">
+            <SWRegister />
             {children}
             <Analytics />
             <SpeedInsights />
