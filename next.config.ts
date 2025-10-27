@@ -1,23 +1,26 @@
-import type { NextConfig } from "next";
+import withPWA from "next-pwa";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
-        protocol: "https",
+        protocol: "https" as const,
         hostname: "randomuser.me",
-        port: "",
-        pathname: "/**",
       },
       {
-        protocol: "https",
+        protocol: "https" as const,
         hostname: "res.cloudinary.com",
-        port: "",
-        pathname: "/**",
-      }
+      },
     ],
   },
 };
 
-export default nextConfig;
+// enable PWA support
+const config = withPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+})(nextConfig);
+
+export default config;

@@ -8,6 +8,19 @@ import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import AuthProvider from "./providers/AuthProvider";
 
+// For Vercel Dashboard
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
+export const metadata = {
+  title: "Table Tennis Scorer",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192.png"
+  },
+  manifest: "/manifest.json"
+};
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -47,6 +60,8 @@ export default async function RootLayout({
           <Navbar />
           <div className="pt-14 w-full">
             {children}
+            <Analytics />
+            <SpeedInsights />
             <Toaster position="top-right" />
           </div>
         </AuthProvider>

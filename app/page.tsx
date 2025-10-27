@@ -5,8 +5,6 @@ import Link from "next/link";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { timeAgo } from "@/lib/utils";
 import { IndividualMatch } from "@/types/match.type";
-import { useIndividualMatch } from "@/hooks/useIndividualMatch";
-import { set } from "mongoose";
 import RecentMatchesSkeleton from "@/components/skeletons/RecentMatchesSkeleton";
 import Image from "next/image";
 
