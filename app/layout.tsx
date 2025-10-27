@@ -11,6 +11,7 @@ import AuthProvider from "./providers/AuthProvider";
 // For Vercel Dashboard
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { useEffect } from "react";
 
 export const metadata = {
   title: "Table Tennis Scorer",
@@ -36,6 +37,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+    }
+  }, []);
 
   await connectDB();
 
