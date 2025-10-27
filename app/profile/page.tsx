@@ -11,14 +11,15 @@ import IndividualTab from "./components/IndividualTab";
 import TeamTab from "./components/TeamTab";
 import PerformanceTab from "./components/PerformanceTab";
 import IndividualTabSkeleton from "./skeletons/IndividualTabSkeleton";
+import OverviewTabSkeleton from "./skeletons/OverviewTabSkeleton";
+import ProfileHeaderSkeleton from "./skeletons/ProfileHeaderSkeleton";
 
 const ProfilePage = () => {
   const { user, fetchUser } = useAuthStore();
-  const [stats, setStats] = useState<any>(null);
+
   const [shotStats, setShotStats] = useState<any>(null);
   const [detailedStats, setDetailedStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
 
   const [loadingProfileStats, setLoadingProfileStats] = useState(false);
   const [loadingDetailedStats, setLoadingDetailedStats] = useState(false);
@@ -32,25 +33,11 @@ const ProfilePage = () => {
   ];
 
   useEffect(() => {
-    const fetchProfileStats = async () => {
-      setLoadingProfileStats(true);
-      try {
-        const response = await axiosInstance.get("/profile/stats");
-        setStats(response.data.stats);
-      } catch (error) {
-        console.log("Failed to fetch profile stats:", error);
-      } finally {
-        setLoadingProfileStats(false);
-      }
-    }
-  }, [])
-
-  useEffect(() => {
   const fetchDetailedStats = async () => {
     setLoadingDetailedStats(true);
     try {
       const response = await axiosInstance.get("/profile/detailed-stats");
-      setDetailedStats(response.data.detailedStats);
+      setDetailedStats(response.data.stats);
     } catch (error) {
       console.log("Failed to fetch detailed stats:", error);
     } finally {
@@ -66,7 +53,7 @@ useEffect(() => {
     setLoadingShotStats(true);
     try {
       const response = await axiosInstance.get("/profile/shot-stats");
-      setShotStats(response.data.shotStats);
+      setShotStats(response.data.stats);
     } catch (error) {
       console.log("Failed to fetch shot stats:", error);
     } finally {
@@ -77,23 +64,10 @@ useEffect(() => {
   fetchShotStats();
 }, []);
 
-
-
-  if (!user) {
-    return (
-      <div className="min-h-[calc(100vh-65px)] flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="animate-spin text-indigo-500" />
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-[calc(100vh-65px)] bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto py-4">
-        <ProfileHeader user={user} />
+        {user ? <ProfileHeader user={user} /> : <ProfileHeaderSkeleton />}
 
         <div className="mt-8">
           <TabsNav 
@@ -104,10 +78,10 @@ useEffect(() => {
 
           <div className="mt-6 space-y-6">
             {activeTab === "overview" && (
-              loadingDetailedStats ? <IndividualTabSkeleton /> : <OverviewTab stats={stats} detailedStats={detailedStats} />
+              loadingDetailedStats ? <OverviewTabSkeleton /> : <OverviewTab detailedStats={detailedStats} />
             )}
             {activeTab === "individual" && (
-              loadingDetailedStats ? <IndividualTabSkeleton /> : <IndividualTab detailedStats={detailedStats} />
+              <IndividualTab detailedStats={detailedStats} />
             )}
             {activeTab === "team" && <TeamTab detailedStats={detailedStats} />}
             {activeTab === "performance" && (

@@ -3,15 +3,14 @@
 import { Flame } from "lucide-react";
 
 interface StatsCardsProps {
-  stats: any;
   detailedStats: any;
 }
 
-const StatsCards = ({ stats, detailedStats }: StatsCardsProps) => {
+const StatsCards = ({ detailedStats }: StatsCardsProps) => {
   // Prefer detailedStats.overall which includes both individual AND team matches
-  const totalMatches = detailedStats?.overall?.totalMatches ?? stats?.totalMatches ?? 0;
-  const totalWins = detailedStats?.overall?.totalWins ?? stats?.totalWins ?? 0;
-  const totalLosses = detailedStats?.overall?.totalLosses ?? stats?.totalLosses ?? 0;
+  const totalMatches = detailedStats?.overall?.totalMatches ?? 0
+  const totalWins = detailedStats?.overall?.totalWins ?? 0;
+  const totalLosses = detailedStats?.overall?.totalLosses ?? 0;
   
   const winPercentage = totalMatches > 0 
     ? ((totalWins / totalMatches) * 100).toFixed(1)
