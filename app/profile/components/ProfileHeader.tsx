@@ -1,7 +1,7 @@
 "use client";
 
 import { useProfileStore } from "@/hooks/useProfileStore";
-import { Camera, Loader2, Mars, Venus, Edit2 } from "lucide-react";
+import { Camera, Loader2, Mars, Venus, Edit2, Check, CheckCircle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cropImageToSquare } from "@/lib/utils";
@@ -11,23 +11,14 @@ import GenderEditModal from "./GenderEditModal";
 
 interface ProfileHeaderProps {
   user: any;
-  stats: any;
-  detailedStats: any;
 }
 
-const ProfileHeader = ({ user, stats, detailedStats }: ProfileHeaderProps) => {
+const ProfileHeader = ({ user }: ProfileHeaderProps) => {
   const { previewUrl, setPreviewUrl, uploadImage, isUploadingProfile } = useProfileStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isEditingGender, setIsEditingGender] = useState(false);
 
   const profileImage = user?.profileImage || null;
-
-  // Prefer detailedStats.overall which includes both individual AND team matches
-  const totalMatches = detailedStats?.overall?.totalMatches ?? stats?.totalMatches ?? 0;
-  const totalWins = detailedStats?.overall?.totalWins ?? stats?.totalWins ?? 0;
-  const winPercentage = totalMatches > 0 
-    ? ((totalWins / totalMatches) * 100).toFixed(1)
-    : "0";
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -81,7 +72,7 @@ const ProfileHeader = ({ user, stats, detailedStats }: ProfileHeaderProps) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="bg-white shadow-sm border border-gray-100 p-6">
       <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
         <div className="relative group">
           <div className="w-32 h-32 rounded-full border-4 border-blue-200 overflow-hidden bg-gray-100">
@@ -116,7 +107,8 @@ const ProfileHeader = ({ user, stats, detailedStats }: ProfileHeaderProps) => {
           </label>
         </div>
 
-        <div className="flex-1 text-center md:text-left">
+        <div className="flex-1 space-y-4 text-center md:text-left">
+          <div>
           <div className="flex items-center gap-3 justify-center md:justify-start">
             <h1 className="text-3xl font-black text-gray-800">{user.fullName}</h1>
             {user.gender && (
@@ -137,41 +129,30 @@ const ProfileHeader = ({ user, stats, detailedStats }: ProfileHeaderProps) => {
               </div>
             )}
           </div>
-
-          <div className="mt-2 space-y-1">
-            <p
+          <p
               onClick={() => copyToClipboard(user.username, "Username")}
-              className="text-gray-600 cursor-pointer hover:text-blue-500 transition-colors"
+              className="flex items-center text-sm text-gray-600 font-semibold cursor-pointer hover:text-blue-500 transition-colors"
             >
               @{user.username}
-              {copiedField === "Username" && " ✓"}
-            </p>
-            <p
-              onClick={() => copyToClipboard(user.email, "Email")}
-              className="text-gray-600 cursor-pointer hover:text-blue-500 transition-colors"
-            >
-              {user.email}
-              {copiedField === "Email" && " ✓"}
-            </p>
-            <p className="text-sm text-gray-500">
-              Member since {formatDate(user.createdAt)}
+              {copiedField === "Username" && <CheckCircle className="size-4" />}
             </p>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-gray-800">{totalMatches}</p>
-              <p className="text-xs text-gray-600">Matches</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-green-600">{totalWins}</p>
-              <p className="text-xs text-gray-600">Wins</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-800">{winPercentage}%</p>
-              <p className="text-xs text-gray-600">Win Rate</p>
-            </div>
+          <div>
+            
+            <p
+              onClick={() => copyToClipboard(user.email, "Email")}
+              className="flex items-center text-sm text-gray-600 font-semibold cursor-pointer hover:text-blue-500 transition-colors"
+            >
+              {user.email}
+              {copiedField === "Email" && <CheckCircle className="size-4" />}
+            </p>
+            <p className="text-sm text-gray-500">
+              Member since <span className="font-semibold">{formatDate(user.createdAt)}</span>
+            </p>
           </div>
+
+          
         </div>
       </div>
 
