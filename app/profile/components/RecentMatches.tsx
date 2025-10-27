@@ -25,14 +25,14 @@ const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6">
+    <div className="bg-white p-4">
       <h3 className="text-lg font-medium text-gray-800 mb-4">Recent Matches</h3>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {detailedStats.recentMatches.map((match: any) => (
           <Link
             key={match._id}
             href={`/matches/${match.type}/${match._id}`}
-            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center justify-between p-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -40,7 +40,7 @@ const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
                   {match.type === "team" ? match.matchFormat : match.matchType}
                 </span>
                 <p
-                  className={`font-semibold ${
+                  className={`font-semibold text-xs ${
                     match.result === "win" ? "text-green-600" : "text-red-600"
                   }`}
                 >

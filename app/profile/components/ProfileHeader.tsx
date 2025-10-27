@@ -72,7 +72,7 @@ const ProfileHeader = ({ user }: ProfileHeaderProps) => {
   };
 
   return (
-    <div className="bg-white shadow-sm border border-gray-100 p-6">
+    <div className="bg-white border border-gray-100 p-6">
       <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
         <div className="relative group">
           <div className="w-32 h-32 rounded-full border-4 border-blue-200 overflow-hidden bg-gray-100">

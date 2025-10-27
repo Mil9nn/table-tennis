@@ -11,12 +11,12 @@ const HeadToHead = ({ detailedStats }: HeadToHeadProps) => {
   if (!detailedStats?.headToHead?.length) return null;
 
   return (
-    <div className="bg-white rounded-2xl p-6">
+    <div className="bg-white p-4">
       <h3 className="text-lg font-medium text-gray-800 mb-4">Head-to-Head Records</h3>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {detailedStats.headToHead.map((h: any) => (
-          <div key={h.opponent._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
+          <div key={h.opponent._id} className="flex items-center justify-between p-2 bg-gray-100 rounded-md">
+            <div className="flex items-center gap-2">
               {h.opponent.profileImage && (
                 <Image
                   src={h.opponent.profileImage}

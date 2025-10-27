@@ -17,7 +17,7 @@ const StatsCards = ({ detailedStats }: StatsCardsProps) => {
     : "0";
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
       <div className="border-blue-100 border-2 rounded-xl p-4">
         <h3 className="text-xs font-semibold text-gray-600 mb-2">Total Matches</h3>
         <p className="text-2xl font-black text-gray-800">{totalMatches}</p>

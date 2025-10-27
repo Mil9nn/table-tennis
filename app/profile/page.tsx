@@ -10,7 +10,6 @@ import OverviewTab from "./components/OverviewTab";
 import IndividualTab from "./components/IndividualTab";
 import TeamTab from "./components/TeamTab";
 import PerformanceTab from "./components/PerformanceTab";
-import IndividualTabSkeleton from "./skeletons/IndividualTabSkeleton";
 import OverviewTabSkeleton from "./skeletons/OverviewTabSkeleton";
 import ProfileHeaderSkeleton from "./skeletons/ProfileHeaderSkeleton";
 
@@ -66,7 +65,7 @@ useEffect(() => {
 
   return (
     <div className="min-h-[calc(100vh-65px)] bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="max-w-7xl mx-auto py-4">
+      <div className="max-w-7xl mx-auto">
         {user ? <ProfileHeader user={user} /> : <ProfileHeaderSkeleton />}
 
         <div className="mt-8">
@@ -76,7 +75,7 @@ useEffect(() => {
             onChange={setActiveTab} 
           />
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 space-y-2">
             {activeTab === "overview" && (
               loadingDetailedStats ? <OverviewTabSkeleton /> : <OverviewTab detailedStats={detailedStats} />
             )}
