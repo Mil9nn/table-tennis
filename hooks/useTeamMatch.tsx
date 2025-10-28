@@ -6,7 +6,7 @@ import {
   TeamMatch,
   SubMatch,
   MatchStatus,
-  sideUnion,
+  PlayerKey,
 } from "@/types/match.type";
 import { useMatchStore } from "./useMatchStore";
 
@@ -36,7 +36,7 @@ interface TeamMatchState {
     shotType?: string,
     playerId?: string
   ) => Promise<void>;
-  subtractPoint: (side: sideUnion) => Promise<void>;
+  subtractPoint: (side: PlayerKey) => Promise<void>;
   toggleSubMatch: () => Promise<void>;
   resetSubMatch: () => Promise<void>;
 }

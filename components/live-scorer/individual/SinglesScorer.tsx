@@ -9,7 +9,7 @@ import ShotSelector from "@/components/ShotSelector";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import ShotFeed from "../common/ShotFeed";
-import type { AddPointPayload, IndividualMatch, MatchStatus, sideUnion } from "@/types/match.type";
+import type { AddPointPayload, IndividualMatch, MatchStatus, PlayerKey } from "@/types/match.type";
 import InitialServerDialog from "@/components/ServerDialog";
 
 interface SinglesScorerProps {
@@ -81,7 +81,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
   );
 
   const handleSubtractPoint = useCallback(
-    (side: sideUnion) => {
+    (side: PlayerKey) => {
       if (status === "completed") {
         toast.error("Match is completed!");
         return;
