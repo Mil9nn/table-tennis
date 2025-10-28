@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import TabsNav from "@/components/TabsNav";
@@ -16,13 +15,9 @@ import ProfileHeaderSkeleton from "./skeletons/ProfileHeaderSkeleton";
 const ProfilePage = () => {
   const { user, fetchUser } = useAuthStore();
 
-  const [shotStats, setShotStats] = useState<any>(null);
   const [detailedStats, setDetailedStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
-
-  const [loadingProfileStats, setLoadingProfileStats] = useState(false);
   const [loadingDetailedStats, setLoadingDetailedStats] = useState(false);
-  const [loadingShotStats, setLoadingShotStats] = useState(false);
 
   const tabs = [
     { value: "overview", label: "Overview" },
@@ -32,36 +27,20 @@ const ProfilePage = () => {
   ];
 
   useEffect(() => {
-  const fetchDetailedStats = async () => {
-    setLoadingDetailedStats(true);
-    try {
-      const response = await axiosInstance.get("/profile/detailed-stats");
-      setDetailedStats(response.data.stats);
-    } catch (error) {
-      console.log("Failed to fetch detailed stats:", error);
-    } finally {
-      setLoadingDetailedStats(false);
-    }
-  };
+    const fetchDetailedStats = async () => {
+      setLoadingDetailedStats(true);
+      try {
+        const response = await axiosInstance.get("/profile/detailed-stats");
+        setDetailedStats(response.data.stats);
+      } catch (error) {
+        console.log("Failed to fetch detailed stats:", error);
+      } finally {
+        setLoadingDetailedStats(false);
+      }
+    };
 
-  fetchDetailedStats();
-}, []);
-
-useEffect(() => {
-  const fetchShotStats = async () => {
-    setLoadingShotStats(true);
-    try {
-      const response = await axiosInstance.get("/profile/shot-stats");
-      setShotStats(response.data.stats);
-    } catch (error) {
-      console.log("Failed to fetch shot stats:", error);
-    } finally {
-      setLoadingShotStats(false);
-    }
-  };
-
-  fetchShotStats();
-}, []);
+    fetchDetailedStats();
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-65px)] bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -84,7 +63,7 @@ useEffect(() => {
             )}
             {activeTab === "team" && <TeamTab detailedStats={detailedStats} />}
             {activeTab === "performance" && (
-              <PerformanceTab shotStats={shotStats} detailedStats={detailedStats} />
+              <PerformanceTab detailedStats={detailedStats} />
             )}
           </div>
         </div>

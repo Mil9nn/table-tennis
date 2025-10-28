@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
 
     const userId = decoded.userId;
 
-    // Fetch all individual matches
     const individualMatches = await IndividualMatch.find({
       participants: userId,
       status: "completed",
@@ -27,7 +26,6 @@ export async function GET(request: NextRequest) {
       .populate("participants", "username fullName profileImage")
       .lean();
 
-    // Fetch all team matches where user participated
     const teamMatches = await TeamMatch.find({
       status: "completed",
       $or: [
@@ -38,7 +36,6 @@ export async function GET(request: NextRequest) {
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .lean();
 
-    // Get user's teams
     const userTeams = await Team.find({
       "players.user": userId,
     })
@@ -46,7 +43,6 @@ export async function GET(request: NextRequest) {
       .populate("players.user", "username fullName profileImage")
       .lean();
 
-    // === INDIVIDUAL MATCH STATS ===
     const individualStats = {
       total: individualMatches.length,
       byType: { singles: 0, doubles: 0, mixed_doubles: 0 },
@@ -86,7 +82,6 @@ export async function GET(request: NextRequest) {
         else { streakType = "loss"; currentStreak = 1; }
       }
 
-      // Head to head
       const opponentIndex = isSide1 ? (matchType === "singles" ? 1 : 2) : 0;
       const opponent = match.participants[opponentIndex];
       const oppId = opponent._id.toString();
@@ -97,7 +92,6 @@ export async function GET(request: NextRequest) {
       if (isWin) headToHead[oppId].wins++;
       else headToHead[oppId].losses++;
 
-      // Recent matches
       recentMatches.push({
         _id: match._id,
         type: "individual",
@@ -108,12 +102,10 @@ export async function GET(request: NextRequest) {
         score: `${match.finalScore?.side1Sets || 0}-${match.finalScore?.side2Sets || 0}`,
       });
 
-      // Monthly activity
       const month = new Date(match.createdAt).toISOString().slice(0, 7);
       monthlyActivity[month] = (monthlyActivity[month] || 0) + 1;
     });
 
-    // === TEAM MATCH STATS ===
     const teamStats = {
       total: 0,
       byFormat: { five_singles: 0, single_double_single: 0, custom: 0 },
@@ -133,7 +125,6 @@ export async function GET(request: NextRequest) {
       if (isWin) teamStats.wins++;
       else teamStats.losses++;
 
-      // Count submatches where user participated
       match.subMatches?.forEach((sub: any) => {
         const playerIds = [
           ...(Array.isArray(sub.playerTeam1) ? sub.playerTeam1 : [sub.playerTeam1]),
@@ -167,14 +158,15 @@ export async function GET(request: NextRequest) {
       monthlyActivity[month] = (monthlyActivity[month] || 0) + 1;
     });
 
-    // === SHOT ANALYSIS ===
     const shotBreakdown = {
       forehand: 0,
       backhand: 0,
-      offensive: 0, // smashes, loops, topspins
-      defensive: 0, // pushes, blocks, chops
-      neutral: 0, // drives, flicks, drops
+      offensive: 0,
+      defensive: 0,
+      neutral: 0,
     };
+
+    const detailedShots: Record<string, number> = {};
 
     const allMatches = [...individualMatches, ...teamMatches];
     allMatches.forEach((match: any) => {
@@ -182,24 +174,26 @@ export async function GET(request: NextRequest) {
         game.shots?.forEach((shot: any) => {
           if (shot.player?.toString() !== userId.toString()) return;
 
-          if (shot.stroke?.startsWith("forehand")) shotBreakdown.forehand++;
-          if (shot.stroke?.startsWith("backhand")) shotBreakdown.backhand++;
+          if (shot.stroke) {
+            detailedShots[shot.stroke] = (detailedShots[shot.stroke] || 0) + 1;
 
-          if (shot.stroke?.includes("smash") || shot.stroke?.includes("loop") || shot.stroke?.includes("topspin")) {
-            shotBreakdown.offensive++;
-          } else if (shot.stroke?.includes("push") || shot.stroke?.includes("block") || shot.stroke?.includes("chop")) {
-            shotBreakdown.defensive++;
-          } else {
-            shotBreakdown.neutral++;
+            if (shot.stroke?.startsWith("forehand")) shotBreakdown.forehand++;
+            if (shot.stroke?.startsWith("backhand")) shotBreakdown.backhand++;
+
+            if (shot.stroke?.includes("smash") || shot.stroke?.includes("loop") || shot.stroke?.includes("topspin")) {
+              shotBreakdown.offensive++;
+            } else if (shot.stroke?.includes("push") || shot.stroke?.includes("block") || shot.stroke?.includes("chop")) {
+              shotBreakdown.defensive++;
+            } else {
+              shotBreakdown.neutral++;
+            }
           }
         });
       });
     });
 
-    // Sort recent matches
     recentMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Convert headToHead to array
     const headToHeadArray = Object.values(headToHead)
       .map((h) => ({
         opponent: h.opponent,
@@ -210,7 +204,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Monthly activity array
     const monthlyActivityArray = Object.entries(monthlyActivity)
       .map(([month, count]) => ({ month, count }))
       .sort((a, b) => a.month.localeCompare(b.month));
@@ -227,7 +220,10 @@ export async function GET(request: NextRequest) {
           currentStreak: { type: streakType, count: currentStreak },
           bestWinStreak,
         },
-        shotAnalysis: shotBreakdown,
+        shotAnalysis: {
+          ...shotBreakdown,
+          detailedShots,
+        },
         headToHead: headToHeadArray,
         recentMatches: recentMatches.slice(0, 10),
         monthlyActivity: monthlyActivityArray,

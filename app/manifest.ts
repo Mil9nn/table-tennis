@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/",
+    id: "/",   
     name: "Table Tennis Scorer",
     short_name: "TT Scorer",
     start_url: "/",

@@ -1,4 +1,3 @@
-// app/profile/components/PerformanceTab.tsx
 "use client";
 
 import {
@@ -17,14 +16,12 @@ import {
 const COLORS = ["#F59E0B", "#8B5CF6", "#14B8A6", "#6366F1", "#EC4899", "#10B981", "#EF4444"];
 
 interface PerformanceTabProps {
-  shotStats: any;
   detailedStats: any;
 }
 
-const PerformanceTab = ({ shotStats, detailedStats }: PerformanceTabProps) => {
-  // Detailed shot breakdown from shotStats
-  const shotData = shotStats?.detailedShots
-    ? Object.entries(shotStats.detailedShots).map(([name, value]) => ({
+const PerformanceTab = ({ detailedStats }: PerformanceTabProps) => {
+  const shotData = detailedStats?.shotAnalysis?.detailedShots
+    ? Object.entries(detailedStats.shotAnalysis.detailedShots).map(([name, value]) => ({
         name: name.replaceAll("_", " "),
         value,
       }))

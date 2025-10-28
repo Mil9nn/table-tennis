@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
-import { flipDoublesRotationForNextGame } from "@/components/live-scorer/individual/helpers";
+import { flipDoublesRotationForNextGame, getNextServer } from "@/components/live-scorer/individual/helpers";
 
 export async function POST(
   request: NextRequest,
@@ -81,6 +81,16 @@ export async function POST(
           1
         );
       }
+
+      // ✅ Compute server after subtraction
+      const serverResult = getNextServer(
+        currentGame.side1Score,
+        currentGame.side2Score,
+        match.matchType !== "singles",
+        match.serverConfig || {},
+        gameNumber
+      );
+      match.currentServer = serverResult.server as any;
     }
 
     // Handle normal score update
@@ -90,11 +100,16 @@ export async function POST(
     ) {
       currentGame.side1Score = body.side1Score;
       currentGame.side2Score = body.side2Score;
-    }
 
-    // Handle current server update if provided
-    if (body.currentServer) {
-      match.currentServer = body.currentServer;
+      // ✅ Compute server after score update
+      const serverResult = getNextServer(
+        body.side1Score,
+        body.side2Score,
+        match.matchType !== "singles",
+        match.serverConfig || {},
+        gameNumber
+      );
+      match.currentServer = serverResult.server as any;
     }
 
     // Check if game is won
@@ -134,26 +149,30 @@ export async function POST(
           // Ensure serverConfig object exists
           match.serverConfig = match.serverConfig || {};
 
-          // Determine current server order (fallback to buildDoublesRotation if missing)
+          // Determine current server order
           let currentOrder = match.serverConfig.serverOrder;
           if (!Array.isArray(currentOrder) || currentOrder.length !== 4) {
-            // NOTE: if you implemented buildDoublesRotation on backend, call it here.
-            // Otherwise fall back to the existing order (avoid raising exceptions).
             currentOrder = match.serverConfig.serverOrder || [];
           }
 
-          // Flip rotation for next game (if we have a valid order)
+          // Flip rotation for next game
           if (Array.isArray(currentOrder) && currentOrder.length === 4) {
             const newOrder = flipDoublesRotationForNextGame(currentOrder);
             match.serverConfig.serverOrder = newOrder;
-
-            // Persist the *first server* of the new rotation as the authoritative currentServer
-            // This prevents recompute mismatch on reload.
             match.currentServer = newOrder[0] || null;
           } else {
-            // If no valid serverOrder exists, clear currentServer so frontend will compute reliably
             match.currentServer = null;
           }
+        } else {
+          // ✅ Singles: compute server for next game (0-0)
+          const serverResult = getNextServer(
+            0,
+            0,
+            false,
+            match.serverConfig || {},
+            gameNumber + 1
+          );
+          match.currentServer = serverResult.server as any;
         }
       }
     }

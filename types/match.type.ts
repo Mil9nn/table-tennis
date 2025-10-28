@@ -13,7 +13,7 @@ export type WinnerSide = "side1" | "side2" | null;
 
 export interface Participant {
   _id: string;
-  username?: string;
+  username: string;
   fullName?: string;
   profileImage?: string;
 }
@@ -25,8 +25,6 @@ export interface Player {
 }
 
 export type PlayerKey = "side1" | "side2" | "team1" | "team2";
-
-export type sideUnion = "side1" | "side2" | "team1" | "team2";
 
 export type DoublesPlayerKey =
   | "side1_main"

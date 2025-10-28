@@ -1,4 +1,3 @@
-// app/profile/components/GenderEditModal.tsx
 "use client";
 
 import { useState } from "react";
@@ -33,7 +32,7 @@ const GenderEditModal = ({ isOpen, onClose, currentGender }: GenderEditModalProp
 
     setIsSaving(true);
     try {
-      const response = await axiosInstance.patch("/profile/update", {
+      const response = await axiosInstance.patch("/profile/gender", {
         gender: selectedGender,
       });
 

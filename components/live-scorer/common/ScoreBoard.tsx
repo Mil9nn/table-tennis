@@ -12,7 +12,7 @@ import {
   MatchStatus,
   IndividualMatch,
   TeamMatch,
-  sideUnion,
+  PlayerKey,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { TriangleAlert } from "lucide-react";
@@ -29,7 +29,7 @@ type ScoreBoardProps = {
   side2Sets: number;
   status: MatchStatus;
   onAddPoint: (payload: AddPointPayload) => void;
-  onSubtractPoint: (side: sideUnion) => void;
+  onSubtractPoint: (side: PlayerKey) => void;
   onReset: () => void;
   onToggleMatch: () => void;
 

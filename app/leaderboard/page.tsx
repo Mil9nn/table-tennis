@@ -8,14 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp, Users, Medal, Crown } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Participant } from "@/types/match.type";
 
 interface IndividualStats {
-  player: {
-    _id: string;
-    username: string;
-    fullName?: string;
-    profileImage?: string;
-  };
+  player: Participant;
   totalMatches: number;
   wins: number;
   losses: number;
