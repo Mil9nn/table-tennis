@@ -356,12 +356,6 @@ export const getCurrentServerName = (
 ): string | null => {
   if (!server || !participants) return null;
 
-  console.log("🔍 getCurrentServerName called with:", {
-    server,
-    matchType,
-    participants: participants.map((p) => p.fullName || p.username),
-  });
-
   if (matchType === "singles") {
     switch (server) {
       case "side1":
@@ -373,7 +367,6 @@ export const getCurrentServerName = (
       case "team2":
         return participants[1]?.fullName || participants[1]?.username || "Team 2 Player";
       default:
-        console.warn("⚠️ Unknown server key for singles:", server);
         return null;
     }
   }
@@ -397,7 +390,6 @@ export const getCurrentServerName = (
     case "team2_partner":
       return participants[3]?.fullName || participants[3]?.username || "Team 2 Partner";
     default:
-      console.warn("⚠️ Unknown server key for doubles:", server);
       return null;
   }
 };

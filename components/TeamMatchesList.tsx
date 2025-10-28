@@ -17,7 +17,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">No team matches found</p>
         <p className="text-gray-400 text-sm mt-2">
-          Team matches will appear here once they are created
+          Team matches will appear here once they are created.
         </p>
       </div>
     );

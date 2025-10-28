@@ -105,12 +105,12 @@ export default function MatchesPage() {
         <TabsContent value="individual" className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
             <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
+              <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
               <Input
                 placeholder="Search by player name..."
                 value={individualSearch}
                 onChange={(e) => setIndividualSearch(e.target.value)}
-                className="pl-9 text-sm rounded-full"
+                className="pl-8 border-2 border-gray-500 text-sm rounded-full"
               />
             </div>
 
@@ -138,12 +138,12 @@ export default function MatchesPage() {
         <TabsContent value="team" className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
             <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
+              <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
               <Input
                 placeholder="Search by team name..."
                 value={teamSearch}
                 onChange={(e) => setTeamSearch(e.target.value)}
-                className="pl-9 text-sm rounded-full"
+                className="pl-8 border-2 border-gray-500 text-sm rounded-full"
               />
             </div>
 

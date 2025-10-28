@@ -76,12 +76,6 @@ export default function InitialServerDialog({
         serverOrder: isDoubles ? serverOrder : undefined,
       };
 
-      console.log("🔄 Saving server config:", {
-        serverConfig,
-        isTeamMatch,
-        subMatchId,
-      });
-
       let endpoint: string;
       if (isTeamMatch && subMatchId) {
         endpoint = `/matches/team/${match._id}/submatch/${subMatchId}/server-config`;
@@ -92,7 +86,6 @@ export default function InitialServerDialog({
       const { data } = await axiosInstance.post(endpoint, serverConfig);
 
       if (data?.match) {
-        console.log("✅ Server config response:", data.match);
 
         setMatch(data.match);
 
@@ -105,11 +98,6 @@ export default function InitialServerDialog({
           const currentSubMatch = updatedMatch.subMatches[
             (updatedMatch.currentSubMatch || 1) - 1
           ];
-          
-          console.log("🎯 Current submatch after save:", {
-            currentServer: currentSubMatch?.currentServer,
-            serverConfig: currentSubMatch?.serverConfig,
-          });
         }
 
         toast.success("Server configuration saved!");
@@ -117,7 +105,6 @@ export default function InitialServerDialog({
 
         // ✅ FIX #1: Auto-start the match after server selection for team matches
         if (isTeamMatch) {
-          console.log("🚀 Auto-starting team submatch...");
           setTimeout(() => {
             useTeamMatch.getState().toggleSubMatch();
           }, 300);

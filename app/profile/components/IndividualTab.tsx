@@ -25,8 +25,6 @@ interface IndividualTabProps {
 }
 
 const IndividualTab = ({ detailedStats }: IndividualTabProps) => {
-  console.log("IndividualTab - detailedStats:", detailedStats);
-  console.log("IndividualTab - individual data:", detailedStats?.individual);
 
   const individualTypeData = detailedStats?.individual
     ? [

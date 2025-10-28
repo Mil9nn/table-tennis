@@ -1,5 +1,6 @@
 "use client";
 
+import MatchTypeBadge from "@/components/MatchTypeBadge";
 import Link from "next/link";
 
 interface RecentMatchesProps {
@@ -31,13 +32,14 @@ const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
         {detailedStats.recentMatches.map((match: any) => (
           <Link
             key={match._id}
-            href={`/matches/${match.type}/${match._id}`}
+            href={`/matches/${match._id}?category=${match.type}`}
             className="flex items-center justify-between p-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
+                {match.type === "individual" && <MatchTypeBadge type={match.matchType} size="sm" showIcon={false} />}
                 <span className="text-xs font-medium text-gray-500 uppercase">
-                  {match.type === "team" ? match.matchFormat : match.matchType}
+                  {match.type === "team" && match.matchFormat}
                 </span>
                 <p
                   className={`font-semibold text-xs ${
@@ -47,7 +49,7 @@ const RecentMatches = ({ detailedStats }: RecentMatchesProps) => {
                   {match.result === "win" ? "Won" : "Lost"}
                 </p>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 font-semibold">
                 {match.type === "team" ? match.teams : match.opponent}
               </p>
               <p className="text-xs text-gray-500 mt-1">

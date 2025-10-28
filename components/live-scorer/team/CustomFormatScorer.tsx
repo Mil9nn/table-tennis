@@ -45,8 +45,6 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     toggleSubMatch,
   } = useTeamMatch();
 
-  console.log("Match status:", status);
-
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);

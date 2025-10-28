@@ -33,7 +33,7 @@ const ProfilePage = () => {
         const response = await axiosInstance.get("/profile/detailed-stats");
         setDetailedStats(response.data.stats);
       } catch (error) {
-        console.log("Failed to fetch detailed stats:", error);
+        console.error("Failed to fetch detailed stats:", error);
       } finally {
         setLoadingDetailedStats(false);
       }

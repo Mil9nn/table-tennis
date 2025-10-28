@@ -51,7 +51,7 @@ const Page = () => {
   return (
     <div className="min-h-[calc(100vh-105px)] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl bg-white/70 backdrop-blur-md shadow-xl border border-gray-100 p-8 space-y-6">
+        <div className="bg-white/70 p-8 space-y-4">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
             <p className="text-gray-500 text-sm mt-1">
@@ -73,7 +73,7 @@ const Page = () => {
                     <FormControl>
                       <Input
                         placeholder="Username"
-                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
                         {...field}
                       />
                     </FormControl>
@@ -89,7 +89,7 @@ const Page = () => {
                     <FormControl>
                       <Input
                         placeholder="Full name"
-                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
                         {...field}
                       />
                     </FormControl>
@@ -108,7 +108,7 @@ const Page = () => {
                       <Input
                         placeholder="Email address"
                         type="email"
-                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
                         {...field}
                       />
                     </FormControl>
@@ -126,7 +126,7 @@ const Page = () => {
                       <Input
                         placeholder="Password"
                         type="password"
-                        className="h-11 rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
                         {...field}
                       />
                     </FormControl>
@@ -137,7 +137,7 @@ const Page = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow hover:opacity-90 transition"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 transition"
               >
                 {authLoading ? <Loader2 className="animate-spin" /> : <span>Register</span>}
               </Button>

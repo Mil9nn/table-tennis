@@ -162,11 +162,6 @@ export async function POST(
         subMatch.finalScore.team1Sets >= setsNeeded ||
         subMatch.finalScore.team2Sets >= setsNeeded;
 
-      console.log("Sets Needed: ", setsNeeded);
-      console.log("Team1 Sets: ", subMatch.finalScore.team1Sets);
-      console.log("Team2 Sets: ", subMatch.finalScore.team2Sets);
-      console.log("isSubMatchWon: ", isSubMatchWon);
-
       if (isSubMatchWon) {
         subMatch.winnerSide =
           subMatch.finalScore.team1Sets >= setsNeeded ? "team1" : "team2";

@@ -60,13 +60,6 @@ export async function POST(
 
     (subMatch as any).currentServer = serverConfig.firstServer;
 
-    console.log("✅ Saved server config:", {
-      firstServer: subMatch.serverConfig.firstServer,
-      firstReceiver: subMatch.serverConfig.firstReceiver,
-      serverOrder: subMatch.serverConfig.serverOrder,
-      currentServer: (subMatch as any).currentServer
-    });
-
     match.markModified("subMatches");
     await match.save();
 

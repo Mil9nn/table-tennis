@@ -208,7 +208,7 @@ export default function TeamsPage() {
             )}
           </div>
 
-          <div className="pt-2 flex gap-2">
+          {isOwner && <div className="pt-2 flex gap-2">
             <Link href={`/teams/${team._id}/assign`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full">
                 Assign
@@ -217,7 +217,7 @@ export default function TeamsPage() {
             <Button variant="outline" size="sm" className="flex-1">
               <Trophy className="w-4 h-4" />
             </Button>
-          </div>
+          </div>}
         </CardContent>
       </Card>
     );
@@ -245,16 +245,16 @@ export default function TeamsPage() {
 
         {/* Search and Filters (shared) */}
         <div className="space-y-3 mb-6">
-          {/* Search */}
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by team, captain, or player..."
-              className="pl-8 rounded-full border-2 border-black/60"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+
+          <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
+              <Input
+                placeholder="Search by team captain or player..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 border-2 border-gray-500 text-sm rounded-full"
+              />
+            </div>
 
           {/* Filters */}
           <div className="flex gap-3 flex-wrap">
