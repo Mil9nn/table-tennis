@@ -218,8 +218,8 @@ export async function POST(
     await match.save();
 
     const updatedMatch = await TeamMatch.findById(match._id)
-      .populate("scorer", "username fullName")
-      .populate("team1.captain team2.captain", "username fullName")
+      .populate("scorer", "username fullName profileImage")
+      .populate("team1.captain team2.captain", "username fullName profileImage")
       .populate(
         "team1.players.user team2.players.user",
         "username fullName profileImage"

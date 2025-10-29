@@ -3,6 +3,7 @@
 import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
 import SetTracker from "@/components/SetTracker";
+import MatchInfo from "./MatchInfo";
 import {
   checkGameWon,
   getCurrentServerName,
@@ -15,7 +16,6 @@ import {
   PlayerKey,
 } from "@/types/match.type";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
-import { TriangleAlert } from "lucide-react";
 import { useEffect } from "react";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 
@@ -34,8 +34,8 @@ type ScoreBoardProps = {
   onToggleMatch: () => void;
 
   teamMatchPlayers?: {
-    side1: { name: string; playerId?: string; serverKey: string }[];
-    side2: { name: string; playerId?: string; serverKey: string }[];
+    side1: { name: string; playerId?: string; serverKey: string; profileImage?: string }[];
+    side2: { name: string; playerId?: string; serverKey: string; profileImage?: string }[];
   };
 };
 
@@ -56,8 +56,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     teamMatchPlayers,
   } = props;
 
-  // ✅ DEBUG: Log currentServer changes
   useEffect(() => {
+    // Log for debugging
   }, [currentServer, match?.matchCategory]);
 
   const gameWinner = checkGameWon(side1Score, side2Score);
@@ -73,87 +73,91 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   const isUpdatingTeamScore = useTeamMatch((s) => s.isUpdatingTeamScore);
 
   const buildPlayers = () => {
-  if (!match) {
-    return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
-  }
+    if (!match) {
+      return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
+    }
 
-  // Team Match - use the pre-resolved player info from teamMatchPlayers
-  if (match.matchCategory === "team" && teamMatchPlayers) {
-    return {
-      p1: teamMatchPlayers.side1,
-      p2: teamMatchPlayers.side2,
-    };
-  }
+    // Team Match
+    if (match.matchCategory === "team" && teamMatchPlayers) {
+      return {
+        p1: teamMatchPlayers.side1,
+        p2: teamMatchPlayers.side2,
+      };
+    }
 
-  // Individual match
-  if (match.matchCategory === "individual") {
-    // Singles
-    if (match.matchType === "singles") {
+    // Individual match
+    if (match.matchCategory === "individual") {
+      // Singles
+      if (match.matchType === "singles") {
+        return {
+          p1: [
+            {
+              name: match.participants?.[0]?.fullName || "Player 1",
+              playerId: match.participants?.[0]?._id,
+              serverKey: "side1",
+              profileImage: match.participants?.[0]?.profileImage,
+            },
+          ],
+          p2: [
+            {
+              name: match.participants?.[1]?.fullName || "Player 2",
+              playerId: match.participants?.[1]?._id,
+              serverKey: "side2",
+              profileImage: match.participants?.[1]?.profileImage,
+            },
+          ],
+        };
+      }
+
+      // Doubles / mixed_doubles
       return {
         p1: [
           {
             name: match.participants?.[0]?.fullName || "Player 1",
             playerId: match.participants?.[0]?._id,
-            serverKey: "side1",
+            serverKey: "side1_main",
+            profileImage: match.participants?.[0]?.profileImage,
+          },
+          {
+            name: match.participants?.[1]?.fullName || "Partner 1",
+            playerId: match.participants?.[1]?._id,
+            serverKey: "side1_partner",
+            profileImage: match.participants?.[1]?.profileImage,
           },
         ],
         p2: [
           {
-            name: match.participants?.[1]?.fullName || "Player 2",
-            playerId: match.participants?.[1]?._id,
-            serverKey: "side2",
+            name: match.participants?.[2]?.fullName || "Player 2",
+            playerId: match.participants?.[2]?._id,
+            serverKey: "side2_main",
+            profileImage: match.participants?.[2]?.profileImage,
+          },
+          {
+            name: match.participants?.[3]?.fullName || "Partner 2",
+            playerId: match.participants?.[3]?._id,
+            serverKey: "side2_partner",
+            profileImage: match.participants?.[3]?.profileImage,
           },
         ],
       };
     }
 
-    // Doubles / mixed_doubles
-    return {
-      p1: [
-        {
-          name: match.participants?.[0]?.fullName || "Player 1",
-          playerId: match.participants?.[0]?._id,
-          serverKey: "side1_main",
-        },
-        {
-          name: match.participants?.[1]?.fullName || "Partner 1",
-          playerId: match.participants?.[1]?._id,
-          serverKey: "side1_partner",
-        },
-      ],
-      p2: [
-        {
-          name: match.participants?.[2]?.fullName || "Player 2",
-          playerId: match.participants?.[2]?._id,
-          serverKey: "side2_main",
-        },
-        {
-          name: match.participants?.[3]?.fullName || "Partner 2",
-          playerId: match.participants?.[3]?._id,
-          serverKey: "side2_partner",
-        },
-      ],
-    };
-  }
-
-  // Fallback
-  return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
-};
+    return { p1: [{ name: "Side 1" }], p2: [{ name: "Side 2" }] };
+  };
 
   const { p1, p2 } = buildPlayers();
 
-  // Get all participants for server name lookup
   const allParticipants =
     match.matchCategory === "individual"
       ? match.participants || []
       : teamMatchPlayers
       ? [
-          ...teamMatchPlayers.side1.map(p => ({
+          ...teamMatchPlayers.side1.map((p) => ({
             _id: p.playerId || "",
             fullName: p.name,
             username: p.name,
           })),
-          ...teamMatchPlayers.side2.map(p => ({
+          ...teamMatchPlayers.side2.map((p) => ({
             _id: p.playerId || "",
             fullName: p.name,
             username: p.name,
@@ -161,9 +165,12 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         ]
       : [];
 
-  const effectiveMatchType = match.matchCategory === "individual" 
-  ? match.matchType 
-  : (teamMatchPlayers?.side1.length === 1 ? "singles" : "doubles");
+  const effectiveMatchType =
+    match.matchCategory === "individual"
+      ? match.matchType
+      : teamMatchPlayers?.side1.length === 1
+      ? "singles"
+      : "doubles";
 
   const serverName =
     currentServer &&
@@ -173,35 +180,36 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       effectiveMatchType
     );
 
+  const currentGame =
+    match.matchCategory === "individual"
+      ? match.currentGame
+      : (match as TeamMatch).subMatches[(match as TeamMatch).currentSubMatch - 1]
+          ?.games?.length || 1;
+
+  const totalGames =
+    match.matchCategory === "individual"
+      ? match.numberOfSets
+      : (match as TeamMatch).numberOfSetsPerSubMatch || 3;
+
   return (
-    <div className="space-y-2">
+    <div>
+      {/* Set Tracker */}
       <SetTracker
-        bestOf={
-          match.matchCategory === "individual"
-            ? match.numberOfSets
-            : match.numberOfSetsPerSubMatch || 3
-        }
+        bestOf={totalGames}
         side1Sets={side1Sets}
         side2Sets={side2Sets}
         status={status}
       />
 
-      {!isGameWon && (
-        <div className="bg-yellow-50 rounded-md p-1 px-2 w-fit mx-auto">
-          {serverName ? (
-            <p className="text-sm font-medium text-yellow-600">
-              <span>{serverName} is serving...</span>
-            </p>
-          ) : (
-            <p className="flex items-center justify-center gap-1 text-sm italic text-yellow-400">
-              <TriangleAlert className="size-4 text-yellow-500" />
-              <span>No server selected</span>
-            </p>
-          )}
-        </div>
-      )}
+      {/* Match Info */}
+      <MatchInfo
+        currentGame={currentGame}
+        totalGames={totalGames}
+        matchStartTime={isMatchActive ? match.createdAt : undefined}
+      />
 
-      <div className="grid grid-cols-2 sm:gap-6 items-center">
+      {/* Score Cards */}
+      <div className="grid grid-cols-2">
         <PlayerCard
           players={p1}
           score={side1Score}
@@ -210,7 +218,12 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
-          disabled={isUpdatingScore || isUpdatingTeamScore || status === "completed" || isGameWon}
+          disabled={
+            isUpdatingScore ||
+            isUpdatingTeamScore ||
+            status === "completed" ||
+            isGameWon
+          }
           currentServer={currentServer}
         />
 
@@ -222,37 +235,47 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
-          disabled={isUpdatingScore || isUpdatingTeamScore || status === "completed" || isGameWon}
+          disabled={
+            isUpdatingScore ||
+            isUpdatingTeamScore ||
+            status === "completed" ||
+            isGameWon
+          }
           currentServer={currentServer}
         />
-
-        <div className="col-span-2 flex justify-center mt-4">
-          <CenterControls
-            isMatchActive={isMatchActive}
-            onToggleMatch={onToggleMatch}
-            onReset={onReset}
-          />
-        </div>
-
-        {isGameWon && status !== "completed" && (
-          <div className="col-span-2 text-center mt-4">
-            <span className="text-lg font-bold text-green-600">
-              🏆 Game Won by {gameWinnerName}!
-            </span>
-            <div className="text-sm text-gray-600 mt-1">
-              Starting next game...
-            </div>
-          </div>
-        )}
-
-        {status === "completed" && (
-          <div className="col-span-2 text-center mt-4">
-            <span className="text-lg font-bold text-green-600">
-              🏆 Match Completed
-            </span>
-          </div>
-        )}
       </div>
+
+      {/* Center Controls */}
+      <div className="flex justify-center mt-4">
+        <CenterControls
+          isMatchActive={isMatchActive}
+          onToggleMatch={onToggleMatch}
+          onReset={onReset}
+        />
+      </div>
+
+      {/* Game Won Message */}
+      {isGameWon && status !== "completed" && (
+        <div className="text-center py-4 bg-gradient-to-r from-green-50 to-emerald-50 
+          rounded-xl border-2 border-green-200 shadow-lg">
+          <p className="text-xl font-black text-green-700 mb-1">
+            🏆 Game Won by {gameWinnerName}!
+          </p>
+          <p className="text-sm text-green-600 font-medium">
+            Starting next game...
+          </p>
+        </div>
+      )}
+
+      {/* Match Completed Message */}
+      {status === "completed" && (
+        <div className="text-center py-6 bg-gradient-to-r from-amber-50 to-yellow-50 
+          rounded-xl border-2 border-amber-200 shadow-lg">
+          <p className="text-2xl font-black text-amber-700">
+            Match Completed!
+          </p>
+        </div>
+      )}
     </div>
   );
 }

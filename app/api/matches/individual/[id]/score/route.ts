@@ -212,8 +212,8 @@ export async function POST(
     await match.save();
     
     const updatedMatchDoc = await IndividualMatch.findById(match._id).populate([
-      { path: "participants", select: "username fullName" },
-      { path: "games.shots.player", select: "username fullName" },
+      { path: "participants", select: "username fullName profileImage" },
+      { path: "games.shots.player", select: "username fullName profileImage" },
     ]);
 
     // ✅ Convert to plain object safely and include all schema-defined fields
