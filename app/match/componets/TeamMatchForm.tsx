@@ -143,7 +143,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   };
 
   return (
-    <div className="rounded-2xl border bg-card p-4 sm:p-8 shadow-sm backdrop-blur-sm">
+    <div className="border-t-2  border-black/30 bg-card p-6 sm:p-8">
       <div className="flex items-center gap-2 mb-6">
         <h2 className="font-semibold text-lg text-foreground tracking-tight">
           Team Match Setup
@@ -151,7 +151,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           {/* Match Format */}
           <FormField
             control={form.control}
@@ -280,12 +280,12 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
 
           <Button
             type="submit"
-            className="w-full text-base font-semibold"
+            className="w-full p-8 text-base font-semibold"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                <Loader2 className="animate-spin size-5" />
                 Creating...
               </>
             ) : (

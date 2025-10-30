@@ -42,11 +42,7 @@ export default function CreateMatchPage() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setMatchCategory(option.type as any)}
-              className={`cursor-pointer rounded-xl border-2 p-5 flex flex-col items-center justify-center gap-2 transition-all ${
-                isActive
-                  ? "border-indigo-500 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-md"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
+              className={`cursor-pointer p-2 flex flex-col items-center justify-center gap-2 transition-all`}
             >
               <div
                 className={`p-3 rounded-full ${
@@ -75,7 +71,6 @@ export default function CreateMatchPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="mt-10"
       >
         {matchCategory === "individual" ? (
           <IndividualMatchForm endpoint="/matches/individual" />
