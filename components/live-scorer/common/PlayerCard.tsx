@@ -1,4 +1,3 @@
-// components/live-scorer/common/PlayerCard.tsx
 "use client";
 
 import { AddPointPayload } from "@/types/match.type";
@@ -18,7 +17,6 @@ interface PlayerCardProps {
   score: number;
   side: "side1" | "side2" | "team1" | "team2";
   onAddPoint: (payload: AddPointPayload) => void;
-  onSubtractPoint: (side: "side1" | "side2" | "team1" | "team2") => void;
   setsWon: number;
   color?: "emerald" | "rose";
   disabled?: boolean;
@@ -30,7 +28,6 @@ export default function PlayerCard({
   score,
   side,
   onAddPoint,
-  onSubtractPoint,
   setsWon,
   color = "emerald",
   disabled = false,
@@ -86,21 +83,6 @@ export default function PlayerCard({
         ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:shadow-3xl"}
         transition-all duration-300 backdrop-blur-sm`}
     >
-      {/* Subtract Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          !disabled && onSubtractPoint(side);
-        }}
-        disabled={disabled}
-        className={`absolute top-0 right-0 bg-white/90 hover:bg-white text-gray-800 
-          p-4 transition-all
-          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          z-10`}
-      >
-        <Minus className="w-5 h-5" />
-      </button>
-
       {/* Players Section */}
       <div className="flex flex-col gap-2 mb-4">
         {players.map((player, idx) => {
@@ -133,7 +115,7 @@ export default function PlayerCard({
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className={`absolute -bottom-0 size-2 -right-0 ${colors[color].server} 
+                    className={`absolute bottom-1 right-0 size-2 ${colors[color].server} 
                       rounded-full ring-2 ring-white flex items-center justify-center`}
                   >
                   </motion.div>
@@ -167,13 +149,12 @@ export default function PlayerCard({
 
       {/* Sets Won Badge */}
       <div className="flex items-center justify-between">
-        <div className={`${colors[color].badge} rounded-full px-4 py-2 
+        <div className={`text-muted rounded-full px-4 py-2 
           flex items-center gap-2`}>
-          <Trophy className="w-4 h-4" />
           <span className="font-bold text-sm">
             {players.length === 1 && players[0].name?.startsWith("Team")
               ? `${setsWon} Ties`
-              : `${setsWon} Sets`}
+              : `Sets won: ${setsWon}`}
           </span>
         </div>
       </div>

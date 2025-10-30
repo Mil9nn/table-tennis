@@ -80,16 +80,28 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
     [status, isMatchActive, setPendingPlayer, setShotDialogOpen]
   );
 
-  const handleSubtractPoint = useCallback(
-    (side: PlayerKey) => {
-      if (status === "completed") {
-        toast.error("Match is completed!");
-        return;
-      }
-      subtractPoint(side);
-    },
-    [status, subtractPoint]
-  );
+  const handleUndo = useCallback(async () => {
+    if (side1Score === 0 && side2Score === 0) {
+      toast.error("No points to undo");
+      return;
+    }
+
+    // Determine which side scored last based on total score
+    const totalPoints = side1Score + side2Score;
+    const games = match.games || [];
+    const currentGameData = games.find((g: any) => g.gameNumber === currentGame);
+    
+    if (!currentGameData || !currentGameData.shots || currentGameData.shots.length === 0) {
+      toast.error("No shots to undo");
+      return;
+    }
+
+    // Get the last shot to determine which side scored
+    const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
+    const lastSide = lastShot.side as PlayerKey;
+
+    await subtractPoint(lastSide);
+  }, [side1Score, side2Score, match, currentGame, subtractPoint]);
 
   const handleReset = useCallback(() => {
     const fullReset = status === "completed";
@@ -114,9 +126,9 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
             side2Sets={side2Sets}
             status={status}
             onAddPoint={handleAddPoint}
-            onSubtractPoint={handleSubtractPoint}
             onReset={handleReset}
             onToggleMatch={toggleMatch}
+            onUndo={handleUndo}
           />
 
           <GamesHistory

@@ -48,6 +48,7 @@ export interface IndividualMatchState {
   subtractPoint: (player: PlayerKey) => Promise<void>;
   toggleMatch: () => Promise<void>;
   isUpdatingScore?: boolean;
+  isUndoing?: boolean;
 }
 
 export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
@@ -139,6 +140,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     status: "scheduled" as MatchStatus,
     isStartingMatch: false,
     isUpdatingScore: false,
+    isUndoing: false,
 
     // initialize state from server match payload
     // inside useIndividualMatch.tsx — replace setInitialMatch implementation
@@ -367,6 +369,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       if (!match) return;
 
+      set({ isUndoing: true })
       try {
         const { data } = await axiosInstance.post(
           `/matches/individual/${match._id}/score`,
@@ -395,6 +398,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       } catch (err) {
         console.error("subtractPoint error", err);
         toast.error("❌ Failed to subtract point");
+      } finally {
+        set({ isUndoing: false });
       }
     },
 

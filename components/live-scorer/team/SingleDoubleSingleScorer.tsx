@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { TeamMatch, MatchStatus, Participant } from "@/types/match.type";
+import { TeamMatch, MatchStatus, Participant, PlayerKey } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import ScoreBoard from "../common/ScoreBoard";
@@ -171,6 +171,27 @@ export default function SingleDoubleSingleScorer({
     return `Match ${index + 1}`;
   };
 
+  const handleUndo = async () => {
+  if (team1Score === 0 && team2Score === 0) {
+    toast.error("No points to undo");
+    return;
+  }
+
+  const currentGameData = currentSubMatch?.games?.find(
+    (g: any) => g.gameNumber === currentGame
+  );
+  
+  if (!currentGameData || !currentGameData.shots || currentGameData.shots.length === 0) {
+    toast.error("No shots to undo");
+    return;
+  }
+
+  const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
+  const lastSide = lastShot.side as PlayerKey;
+
+  await subtractPoint(lastSide);
+};
+
   return (
     <div className="max-w-6xl mx-auto space-y-2">
       {/* Team Match Score Overview */}
@@ -305,7 +326,7 @@ export default function SingleDoubleSingleScorer({
                   setPendingPlayer({ side, playerId });
                   setShotDialogOpen(true);
                 }}
-                onSubtractPoint={subtractPoint}
+                onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}
                 onToggleMatch={() => {
                   // Show server dialog if starting and no server config

@@ -77,14 +77,17 @@ export default function Navbar() {
             className="sm:hidden p-2 text-gray-700 hover:text-indigo-600"
           >
             {open ? (
-              <X className="w-6 h-6" />
+              <X className="size-5" />
             ) : (
-              <Image
+              <div className="p-2 shadow-md rounded-full">
+                <Image
                 src="/svgs/menu.svg"
                 alt="menu-icon"
                 width={25}
                 height={25}
+                className="w-4"
               />
+              </div>
             )}
           </button>
 
@@ -93,7 +96,7 @@ export default function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="cursor-pointer w-9 h-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
+                  <button className="cursor-pointer size-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
                     {user?.profileImage ? (
                       <Image
                         src={previewUrl || user.profileImage}
@@ -145,7 +148,7 @@ export default function Navbar() {
                 href="/auth/login"
                 className="flex items-center gap-2 text-xs bg-purple-500 rounded-full px-4 py-2 text-white font-medium hover:bg-purple-600 transition"
               >
-                <LogIn className="w-4 h-4" />
+                <LogIn className="size-4" />
                 Login
               </Link>
             )}
@@ -166,7 +169,7 @@ export default function Navbar() {
             alt="logo"
             width={48}
             height={48}
-            className="w-12 h-12"
+            className="size-12"
           />
           <span className="font-semibold text-gray-800 text-lg italic">
             TTPro

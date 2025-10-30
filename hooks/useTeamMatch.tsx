@@ -28,6 +28,7 @@ interface TeamMatchState {
 
   isUpdatingTeamScore: boolean;
   isStartingSubMatch: boolean;
+  isUndoing?: boolean;
 
   setInitialTeamMatch: (match: TeamMatch) => void;
   updateSubMatchScore: (
@@ -59,6 +60,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
 
   isUpdatingTeamScore: false,
   isStartingSubMatch: false,
+  isUndoing: false,
 
   setInitialTeamMatch: (match: TeamMatch) => {
     if (!match) return;
@@ -209,6 +211,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       return;
     }
 
+    set({ isUndoing: true })
     try {
       const { data } = await axiosInstance.post(
         `/matches/team/${match._id}/submatch/${subMatchId}/score`,
@@ -226,6 +229,8 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
     } catch (err) {
       console.error("Subtract point error:", err);
       toast.error("Failed to subtract point");
+    } finally {
+      set({ isUndoing: false });
     }
   },
 

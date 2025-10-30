@@ -29,13 +29,23 @@ type ScoreBoardProps = {
   side2Sets: number;
   status: MatchStatus;
   onAddPoint: (payload: AddPointPayload) => void;
-  onSubtractPoint: (side: PlayerKey) => void;
   onReset: () => void;
   onToggleMatch: () => void;
+  onUndo: () => void;
 
   teamMatchPlayers?: {
-    side1: { name: string; playerId?: string; serverKey: string; profileImage?: string }[];
-    side2: { name: string; playerId?: string; serverKey: string; profileImage?: string }[];
+    side1: {
+      name: string;
+      playerId?: string;
+      serverKey: string;
+      profileImage?: string;
+    }[];
+    side2: {
+      name: string;
+      playerId?: string;
+      serverKey: string;
+      profileImage?: string;
+    }[];
   };
 };
 
@@ -50,15 +60,17 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     side2Sets,
     status,
     onAddPoint,
-    onSubtractPoint,
     onReset,
     onToggleMatch,
+    onUndo,
     teamMatchPlayers,
   } = props;
 
   useEffect(() => {
     // Log for debugging
   }, [currentServer, match?.matchCategory]);
+
+  const canUndo = side1Score > 0 || side2Score > 0;
 
   const gameWinner = checkGameWon(side1Score, side2Score);
   const gameWinnerName =
@@ -71,6 +83,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const isUpdatingScore = useIndividualMatch((s) => s.isUpdatingScore);
   const isUpdatingTeamScore = useTeamMatch((s) => s.isUpdatingTeamScore);
+  const isUndoingIndividual = useIndividualMatch((s) => s.isUndoing);
+  const isUndoingTeam = useTeamMatch((s) => s.isUndoing);
+
+  const isUndoing =
+    match?.matchCategory === "individual" ? isUndoingIndividual : isUndoingTeam;
+  const isAnyOperationInProgress =
+    isUpdatingScore || isUpdatingTeamScore || isUndoing;
 
   const buildPlayers = () => {
     if (!match) {
@@ -183,8 +202,9 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   const currentGame =
     match.matchCategory === "individual"
       ? match.currentGame
-      : (match as TeamMatch).subMatches[(match as TeamMatch).currentSubMatch - 1]
-          ?.games?.length || 1;
+      : (match as TeamMatch).subMatches[
+          (match as TeamMatch).currentSubMatch - 1
+        ]?.games?.length || 1;
 
   const totalGames =
     match.matchCategory === "individual"
@@ -215,14 +235,10 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           score={side1Score}
           side="side1"
           onAddPoint={onAddPoint}
-          onSubtractPoint={onSubtractPoint}
           setsWon={side1Sets}
           color="emerald"
           disabled={
-            isUpdatingScore ||
-            isUpdatingTeamScore ||
-            status === "completed" ||
-            isGameWon
+            isAnyOperationInProgress || status === "completed" || isGameWon
           }
           currentServer={currentServer}
         />
@@ -232,14 +248,10 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           score={side2Score}
           side="side2"
           onAddPoint={onAddPoint}
-          onSubtractPoint={onSubtractPoint}
           setsWon={side2Sets}
           color="rose"
           disabled={
-            isUpdatingScore ||
-            isUpdatingTeamScore ||
-            status === "completed" ||
-            isGameWon
+            isAnyOperationInProgress || status === "completed" || isGameWon
           }
           currentServer={currentServer}
         />
@@ -251,13 +263,17 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           isMatchActive={isMatchActive}
           onToggleMatch={onToggleMatch}
           onReset={onReset}
+          onUndo={onUndo}
+          canUndo={canUndo}
         />
       </div>
 
       {/* Game Won Message */}
       {isGameWon && status !== "completed" && (
-        <div className="text-center py-4 bg-gradient-to-r from-green-50 to-emerald-50 
-          rounded-xl border-2 border-green-200 shadow-lg">
+        <div
+          className="text-center py-4 bg-gradient-to-r from-green-50 to-emerald-50 
+          rounded-xl border-2 border-green-200 shadow-lg"
+        >
           <p className="text-xl font-black text-green-700 mb-1">
             🏆 Game Won by {gameWinnerName}!
           </p>
@@ -269,11 +285,11 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
       {/* Match Completed Message */}
       {status === "completed" && (
-        <div className="text-center py-6 bg-gradient-to-r from-amber-50 to-yellow-50 
-          rounded-xl border-2 border-amber-200 shadow-lg">
-          <p className="text-2xl font-black text-amber-700">
-            Match Completed!
-          </p>
+        <div
+          className="text-center py-6 bg-gradient-to-r from-amber-50 to-yellow-50 
+          rounded-xl border-2 border-amber-200 shadow-lg"
+        >
+          <p className="text-2xl font-black text-amber-700">Match Completed!</p>
         </div>
       )}
     </div>
