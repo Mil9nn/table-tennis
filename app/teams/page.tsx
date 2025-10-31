@@ -145,9 +145,9 @@ export default function TeamsPage() {
           className="border rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer"
           onClick={() => setSelectedTeam(team)}
         >
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
+              <div className="space-y-2 flex-1">
                 <CardTitle className="text-lg font-semibold">{team.name}</CardTitle>
                 {team.city && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -159,17 +159,17 @@ export default function TeamsPage() {
               {isOwner && (
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   <Link href={`/teams/${team._id}/edit`}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <Edit2 className="w-3.5 h-3.5" />
+                    <Button variant="ghost" size="icon" className="hover:text-blue-500 border-2 rounded-full">
+                      <Edit2 className="size-4" />
                     </Button>
                   </Link>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 hover:text-red-600"
+                    className="hover:text-red-500 border-2 rounded-full"
                     onClick={() => deleteTeam(team._id)}
                   >
-                    <Trash className="w-3.5 h-3.5" />
+                    <Trash className="size-4" />
                   </Button>
                 </div>
               )}
@@ -197,7 +197,7 @@ export default function TeamsPage() {
               </span>
             </div>
 
-            <div className="pt-2 border-t">
+            <div className="border-t-2 flex items-center gap-2 justify-between flex-wrap pt-2">
               <p className="text-xs text-muted-foreground mb-2">Captain</p>
               <p className="text-sm font-medium">
                 {team.captain?.fullName || team.captain?.username || "-"}
@@ -217,9 +217,9 @@ export default function TeamsPage() {
         </Card>
 
         <Dialog open={selectedTeam?._id === team._id} onOpenChange={(open) => !open && setSelectedTeam(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-md max-h-[80vh] overflow-y-auto rounded-none">
             <DialogHeader>
-              <DialogTitle className="text-2xl">{team.name}</DialogTitle>
+              <DialogTitle className="text-2xl text-left">{team.name}</DialogTitle>
               {team.city && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="w-4 h-4" />
@@ -313,7 +313,7 @@ export default function TeamsPage() {
                           </div>
                         </div>
                         {p.assignment && (
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                          <span className="text-xs font-semibold p-2 px-3 rounded-full bg-primary/10 text-primary">
                             {p.assignment}
                           </span>
                         )}
@@ -334,8 +334,8 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
+    <div className="p-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
         <h1 className="text-2xl font-bold text-gray-800">Teams</h1>
         <Button variant="default">
           <Link href="/teams/create" className="text-sm hover:underline flex items-center gap-1">
@@ -354,7 +354,7 @@ export default function TeamsPage() {
           <TabsTrigger className="p-2" value="all-teams">All Teams</TabsTrigger>
         </TabsList>
 
-        <div className="space-y-3 mb-6">
+        <div className="space-y-2 mb-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="relative w-full sm:w-60">
             <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
             <Input
