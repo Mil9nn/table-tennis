@@ -226,8 +226,8 @@ export default function UserProfilePage() {
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {team.role}
-                      </p>
+                      {team.role}
+                    </p>
                   </div>
                 ))}
               </div>
