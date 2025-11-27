@@ -62,11 +62,13 @@ const CompleteProfilePage = () => {
     "playingStyle",
   ];
 
+  type FormValues = z.infer<typeof profileSchema>;
+
   const total = requiredFields.length;
   const watchedValues = form.watch();
 
   const completed = requiredFields.filter((field) => {
-    const value = watchedValues[field];
+    const value = watchedValues[field as keyof FormValues];
     return value !== undefined && value !== "" && value !== null;
   }).length;
 

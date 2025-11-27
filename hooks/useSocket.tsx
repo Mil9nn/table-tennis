@@ -35,77 +35,72 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const socketRef = useRef<SocketType | null>(null);
 
   useEffect(() => {
-    if (!enabled || !autoConnect) {
-      return;
-    }
+  if (!enabled || !autoConnect) {
+    return;
+  }
 
-    // Create socket connection
-    const socketUrl =
-      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
+  const socketUrl =
+    process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
-    console.log("[Socket] Connecting to:", socketUrl);
+  console.log("[Socket] Connecting to:", socketUrl);
 
-    const newSocket: SocketType = io(socketUrl, {
-      path: "/socket.io/",
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-    });
+  const newSocket: SocketType = io(socketUrl, {
+    path: "/socket.io/",
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000,
+  });
 
-    socketRef.current = newSocket;
-    setSocket(newSocket);
+  socketRef.current = newSocket;
+  setSocket(newSocket);
 
-    // Connection event handlers
-    newSocket.on("connect", () => {
-      console.log("[Socket] Connected:", newSocket.id);
-      setIsConnected(true);
-      setError(null);
-    });
+  // Socket events
+  newSocket.on("connect", () => {
+    console.log("[Socket] Connected:", newSocket.id);
+    setIsConnected(true);
+    setError(null);
+  });
 
-    newSocket.on("disconnect", (reason) => {
-      console.log("[Socket] Disconnected:", reason);
-      setIsConnected(false);
-    });
+  newSocket.on("disconnect", (reason) => {
+    console.log("[Socket] Disconnected:", reason);
+    setIsConnected(false);
+  });
 
-    newSocket.on("connect_error", (err) => {
-      console.error("[Socket] Connection error:", err);
-      setError(err as Error);
-      setIsConnected(false);
-    });
+  newSocket.on("connect_error", (err) => {
+    console.error("[Socket] Connection error:", err);
+    setError(err);
+    setIsConnected(false);
+  });
 
-    newSocket.on("reconnect", (attemptNumber) => {
-      console.log("[Socket] Reconnected after", attemptNumber, "attempts");
-      setIsConnected(true);
-      setError(null);
-    });
+  // Manager events (reconnect logic lives on io.Manager)
+  newSocket.io.on("reconnect", (attemptNumber) => {
+    console.log("[Socket] Reconnected after", attemptNumber, "attempts");
+    setIsConnected(true);
+    setError(null);
+  });
 
-    newSocket.on("reconnect_attempt", (attemptNumber) => {
-      console.log("[Socket] Reconnection attempt:", attemptNumber);
-    });
+  newSocket.io.on("reconnect_attempt", (attemptNumber) => {
+    console.log("[Socket] Reconnection attempt:", attemptNumber);
+  });
 
-    newSocket.on("reconnect_failed", () => {
-      console.error("[Socket] Reconnection failed");
-      setError(new Error("Failed to reconnect to server"));
-    });
+  newSocket.io.on("reconnect_failed", () => {
+    console.error("[Socket] Reconnection failed");
+    setError(new Error("Failed to reconnect to server"));
+  });
 
-    // Heartbeat
-    newSocket.on("pong", () => {
-      // Server responded to ping
-    });
-
-    // Cleanup on unmount
-    return () => {
-      console.log("[Socket] Cleaning up connection");
-      newSocket.removeAllListeners();
-      newSocket.close();
-      socketRef.current = null;
-      setSocket(null);
-      setIsConnected(false);
-    };
-  }, [enabled, autoConnect]);
+  return () => {
+    console.log("[Socket] Cleaning up connection");
+    newSocket.removeAllListeners();
+    newSocket.io.removeAllListeners();
+    newSocket.close();
+    socketRef.current = null;
+    setSocket(null);
+    setIsConnected(false);
+  };
+}, [enabled, autoConnect]);
 
   return { socket, isConnected, error };
 }

@@ -1,4 +1,4 @@
-// app/api/tournaments/join/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import { connectDB } from "@/lib/mongodb";
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Check if user is already a participant
     const isAlreadyParticipant = tournament.participants.some(
-      (p) => p.toString() === decoded.userId
+      (p: any) => p.toString() === decoded.userId
     );
 
     if (isAlreadyParticipant) {

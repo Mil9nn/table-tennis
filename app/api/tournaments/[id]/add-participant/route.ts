@@ -1,7 +1,6 @@
-// app/api/tournaments/[id]/add-participant/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
-import User from "@/models/User";
+import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 
@@ -67,7 +66,7 @@ export async function POST(
 
     // Check if user is already a participant
     const isAlreadyParticipant = tournament.participants.some(
-      (p) => p.toString() === participantId
+      (p: any) => p.toString() === participantId
     );
 
     if (isAlreadyParticipant) {
@@ -163,12 +162,12 @@ export async function DELETE(
 
     // Remove participant
     tournament.participants = tournament.participants.filter(
-      (p) => p.toString() !== participantId
+      (p: any) => p.toString() !== participantId
     );
 
     // Also remove from seeding if present
     tournament.seeding = tournament.seeding.filter(
-      (s) => s.participant.toString() !== participantId
+      (s: any) => s.participant.toString() !== participantId
     );
 
     await tournament.save();
