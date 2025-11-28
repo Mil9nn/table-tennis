@@ -133,7 +133,7 @@ export default function MatchesList({
 
             {/* Line 2: Meta info + Status */}
             <div className="flex items-center justify-between mt-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-400 capitalize">
                   {match.matchType?.replace("_", " ")}
                 </span>

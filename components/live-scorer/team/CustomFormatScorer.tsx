@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import {
   TeamMatch,
   MatchStatus,
@@ -48,6 +48,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     setInitialTeamMatch,
     subtractPoint,
     toggleSubMatch,
+    swapSides,
   } = useTeamMatch();
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
@@ -435,6 +436,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                     toggleSubMatch();
                   }
                 }}
+                onSwap={swapSides}
                 teamMatchPlayers={teamMatchPlayers}
               />
 

@@ -198,7 +198,7 @@ export default function TournamentSeedingPage() {
             Back to Tournament
           </Button>
 
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl md:text-4xl font-bold text-gray-900 mb-2">
             Player Seeding & Order
           </h1>
           <p className="text-gray-600">{tournament.title}</p>
@@ -220,8 +220,8 @@ export default function TournamentSeedingPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Registration Order (Default)</SelectItem>
-                  <SelectItem value="manual">Custom Order (Drag & Drop)</SelectItem>
+                  <SelectItem value="none">Registration Based (Default)</SelectItem>
+                  <SelectItem value="manual">Custom (Drag & Drop)</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -314,7 +314,6 @@ export default function TournamentSeedingPage() {
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
                 Save Player Order
               </>
             )}

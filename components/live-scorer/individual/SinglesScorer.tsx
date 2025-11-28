@@ -30,6 +30,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
     resetGame,
     toggleMatch,
     setInitialMatch,
+    swapSides,
   } = useIndividualMatch();
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
@@ -125,6 +126,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
             onReset={handleReset}
             onToggleMatch={toggleMatch}
             onUndo={handleUndo}
+            onSwap={swapSides}
           />
 
           <GamesHistory

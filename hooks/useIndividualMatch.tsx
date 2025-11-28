@@ -53,6 +53,7 @@ export interface IndividualMatchState {
   ) => Promise<void>;
   subtractPoint: (player: PlayerKey) => Promise<void>;
   toggleMatch: () => Promise<void>;
+  swapSides: () => Promise<void>;
   isUpdatingScore?: boolean;
   isUndoing?: boolean;
 }
@@ -502,6 +503,28 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         toast.error("Failed to update match status");
       } finally {
         set({ isStartingMatch: false });
+      }
+    },
+
+    // swap player sides (data-based swap)
+    swapSides: async () => {
+      const match = useMatchStore.getState().match as IndividualMatch | null;
+      if (!match) return;
+
+      set({ isUpdatingScore: true });
+      try {
+        const { data } = await axiosInstance.post(
+          `/matches/individual/${match._id}/swap`
+        );
+
+        if (data?.match) {
+          useMatchStore.getState().setMatch(data.match);
+          toast.success("Players swapped!");
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || "Failed to swap players");
+      } finally {
+        set({ isUpdatingScore: false });
       }
     },
   };

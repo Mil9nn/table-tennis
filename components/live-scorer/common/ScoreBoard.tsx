@@ -32,6 +32,7 @@ type ScoreBoardProps = {
   onReset: () => void;
   onToggleMatch: () => void;
   onUndo: () => void;
+  onSwap: () => void;
 
   teamMatchPlayers?: {
     side1: {
@@ -63,6 +64,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
     onReset,
     onToggleMatch,
     onUndo,
+    onSwap,
     teamMatchPlayers,
   } = props;
 
@@ -166,6 +168,20 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const { p1, p2 } = buildPlayers();
 
+  // Direct display without visual swap - players are now swapped in data
+  const leftSide = p1;
+  const rightSide = p2;
+  const leftScore = side1Score;
+  const rightScore = side2Score;
+  const leftSets = side1Sets;
+  const rightSets = side2Sets;
+  const leftColor = "emerald";
+  const rightColor = "rose";
+  const leftSide_actual = "side1";
+  const rightSide_actual = "side2";
+
+  const canSwap = (side1Score === 0 && side2Score === 0) && status !== "completed" && !isAnyOperationInProgress;
+
   const allParticipants =
     match.matchCategory === "individual"
       ? match.participants || []
@@ -231,12 +247,12 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       {/* Score Cards */}
       <div className="grid grid-cols-2">
         <PlayerCard
-          players={p1}
-          score={side1Score}
-          side="side1"
+          players={leftSide}
+          score={leftScore}
+          side={leftSide_actual as any}
           onAddPoint={onAddPoint}
-          setsWon={side1Sets}
-          color="emerald"
+          setsWon={leftSets}
+          color={leftColor as any}
           disabled={
             isAnyOperationInProgress || status === "completed" || isGameWon
           }
@@ -244,12 +260,12 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         />
 
         <PlayerCard
-          players={p2}
-          score={side2Score}
-          side="side2"
+          players={rightSide}
+          score={rightScore}
+          side={rightSide_actual as any}
           onAddPoint={onAddPoint}
-          setsWon={side2Sets}
-          color="rose"
+          setsWon={rightSets}
+          color={rightColor as any}
           disabled={
             isAnyOperationInProgress || status === "completed" || isGameWon
           }
@@ -265,6 +281,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           onReset={onReset}
           onUndo={onUndo}
           canUndo={canUndo}
+          onSwap={onSwap}
+          canSwap={canSwap}
         />
       </div>
 

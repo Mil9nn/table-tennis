@@ -31,7 +31,7 @@ export default function Navbar() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Matches", href: "/matches" },
-    { label: "Tournaments", href: "/tournament-matches" },
+    { label: "Tournaments", href: "/tournaments" },
     { label: "Teams", href: "/teams" },
     { label: "Leaderboard", href: "/leaderboard"}
   ];

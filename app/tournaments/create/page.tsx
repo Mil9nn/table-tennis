@@ -430,20 +430,13 @@ export default function CreateTournamentPage() {
 
           {/* Groups/Pools */}
           <div className="p-4 space-y-4">
-            <h2 className="font-semibold text-[#1A73E8] text-lg">
-              Divide Into Groups
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Split players into smaller groups for the first stage
-            </p>
-
             <FormField
               control={form.control}
               name="useGroups"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base text-[#495057]">
+                    <FormLabel className="font-semibold text-[#1A73E8] text-lg">
                       Use Groups/Pools
                     </FormLabel>
                     <FormDescription>

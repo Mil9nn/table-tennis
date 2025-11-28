@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { TeamMatch, MatchStatus, Participant, PlayerKey } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
@@ -38,6 +38,7 @@ export default function SingleDoubleSingleScorer({
     subtractPoint,
     toggleSubMatch,
     currentServer,
+    swapSides,
   } = useTeamMatch();
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
@@ -336,6 +337,7 @@ export default function SingleDoubleSingleScorer({
                     toggleSubMatch();
                   }
                 }}
+                onSwap={swapSides}
                 teamMatchPlayers={teamMatchPlayers}
               />
 

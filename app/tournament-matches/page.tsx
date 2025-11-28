@@ -89,16 +89,16 @@ export default function TournamentMatchesPage() {
     const grouped: Record<string, TournamentGroup> = {};
 
     filteredMatches.forEach((match) => {
-      const tournamentId = match.tournament?._id || "unknown";
+      // Skip matches without a valid tournament
+      if (!match.tournament || !match.tournament._id) {
+        return;
+      }
+
+      const tournamentId = match.tournament._id;
 
       if (!grouped[tournamentId]) {
         grouped[tournamentId] = {
-          tournament: match.tournament || {
-            _id: "",
-            name: "Tournament",
-            format: "",
-            status: "",
-          },
+          tournament: match.tournament,
           matches: [],
           completedCount: 0,
           totalCount: 0,

@@ -1,63 +1,231 @@
 "use client";
 
-import { useAuthStore } from "@/hooks/useAuthStore";
 import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import OverviewTab from "../components/OverviewTab";
-import PerformanceTab from "../components/PerformanceTab";
-import OverviewTabSkeleton from "../skeletons/OverviewTabSkeleton";
-import { ArrowLeft } from "lucide-react";
+import {
+  TrendingUp,
+  MoveLeft,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 const PerformanceInsightsPage = () => {
   const router = useRouter();
-  const [detailedStats, setDetailedStats] = useState<any>(null);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchDetailedStats = async () => {
+    const fetchInsights = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
-        setDetailedStats(response.data.stats);
+        const response = await axiosInstance.get(`/profile/insights`);
+        setData(response.data.data);
       } catch (error) {
-        console.error("Failed to fetch detailed stats:", error);
+        console.error("Failed to fetch insights:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDetailedStats();
+    fetchInsights();
   }, []);
 
+  const stats = data?.stats || {};
+  const graphs = data?.graphs || { matchPoints: [], serveAccuracy: [] };
+
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-gray-50">
-
+    <div className="min-h-[calc(100vh-65px)]">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Profile</span>
-        </button>
-
         {/* Page Title */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Performance Insights</h1>
-          <p className="text-gray-600 mt-2">
-            Analyze your performance, track your form, and understand your playing style
+        <div className="mb-8">
+          <h1 className="text-sm flex items-center gap-2 font-bold text-gray-800">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 p-1 border-2 rounded-full text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <MoveLeft className="size-4" />
+            </button>
+            <span>Performance Insights</span>
+          </h1>
+          <p className=" text-xs mt-2">
+            Key performance metrics and analytics
           </p>
         </div>
 
         {/* Content */}
         {loading ? (
-          <OverviewTabSkeleton />
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin" />
+          </div>
+        ) : !data || graphs.matchPoints.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
+            <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              No Insights Available
+            </h3>
+            <p className="text-gray-600">
+              Play more matches to generate performance insights!
+            </p>
+          </div>
         ) : (
-          <div className="space-y-6">
-            <OverviewTab detailedStats={detailedStats} />
-            <PerformanceTab detailedStats={detailedStats} />
+          <div className="space-y-4">
+            {/* Key Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2">
+              {/* Overall Win Rate */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
+                    Overall Win Rate
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.overallWinRate}%
+                </p>
+              </div>
+
+              {/* Singles Win Rate */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
+                    Singles Win Rate
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.singlesWinRate}%
+                </p>
+              </div>
+
+              {/* Doubles Win Rate */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  
+                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
+                    Doubles Win Rate
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.doublesWinRate}%
+                </p>
+              </div>
+
+              {/* Avg Points/Match */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  
+                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
+                    Avg Points/Match
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.avgPointsPerMatch}
+                </p>
+              </div>
+
+              {/* Serve Accuracy */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  
+                  <h3 className="text-xs font-semibold text-yellow-500 tracking-wide">
+                    Serve Accuracy
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.serveAccuracy}%
+                </p>
+              </div>
+
+              {/* Best Win Streak */}
+              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
+                    Best Win Streak
+                  </h3>
+                </div>
+                <p className="text-xl font-bold text-gray-700">
+                  {stats.bestWinStreak}
+                </p>
+              </div>
+            </div>
+
+            {/* Points Scored vs Conceded */}
+            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-800 mb-6">
+                Points Scored vs Conceded
+              </h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={graphs.matchPoints}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="match" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar
+                      dataKey="scored"
+                      fill="#10B981"
+                      radius={[8, 8, 0, 0]}
+                      name="Scored"
+                    />
+                    <Bar
+                      dataKey="conceded"
+                      fill="#EF4444"
+                      radius={[8, 8, 0, 0]}
+                      name="Conceded"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Serve Accuracy Over Time */}
+            {graphs.serveAccuracy.length > 0 && (
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-6">
+                  Serve Accuracy Over Time
+                </h3>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={graphs.serveAccuracy}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="match" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 12 }}
+                        label={{
+                          value: "Accuracy (%)",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <Tooltip
+                        formatter={(value: any) => `${value.toFixed(1)}%`}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="accuracy"
+                        stroke="#8B5CF6"
+                        strokeWidth={2}
+                        dot={{ fill: "#8B5CF6", r: 4 }}
+                        name="Serve Accuracy"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

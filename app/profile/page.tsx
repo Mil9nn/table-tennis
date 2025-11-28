@@ -15,9 +15,9 @@ import {
   Calendar,
   Shield,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import ProfileHeader from "./components/ProfileHeader";
-import ProfileHeaderSkeleton from "./skeletons/ProfileHeaderSkeleton";
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -106,7 +106,7 @@ const ProfilePage = () => {
           user={user}
         />
       ) : (
-        <ProfileHeaderSkeleton />
+        <Loader2 />
       )}
 
       <div className="max-w-7xl mx-auto px-6 py-8">

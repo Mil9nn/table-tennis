@@ -128,6 +128,9 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
+    // Ensure Tournament model is registered
+    Tournament;
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const format = searchParams.get("format");

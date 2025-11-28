@@ -29,12 +29,14 @@ export default function MatchesPage() {
   const [individualLoading, setIndividualLoading] = useState(true);
   const [individualSearch, setIndividualSearch] = useState("");
   const [individualFilterType, setIndividualFilterType] = useState("all");
+  const [individualFilterStatus, setIndividualFilterStatus] = useState("all");
 
   // Team
   const [teamMatches, setTeamMatches] = useState<TeamMatch[]>([]);
   const [teamLoading, setTeamLoading] = useState(true);
   const [teamSearch, setTeamSearch] = useState("");
   const [teamFilterFormat, setTeamFilterFormat] = useState("all");
+  const [teamFilterStatus, setTeamFilterStatus] = useState("all");
 
   useEffect(() => {
     const fetchIndividualMatches = async () => {
@@ -74,9 +76,12 @@ export default function MatchesPage() {
       const typeMatch =
         individualFilterType === "all" ||
         match.matchType === individualFilterType;
-      return nameMatch && typeMatch;
+      const statusMatch =
+        individualFilterStatus === "all" ||
+        match.status === individualFilterStatus;
+      return nameMatch && typeMatch && statusMatch;
     });
-  }, [individualMatches, individualSearch, individualFilterType]);
+  }, [individualMatches, individualSearch, individualFilterType, individualFilterStatus]);
 
   const filteredTeamMatches = useMemo(() => {
     return teamMatches.filter((match) => {
@@ -87,9 +92,12 @@ export default function MatchesPage() {
       const formatMatch =
         teamFilterFormat === "all" || match.matchFormat === teamFilterFormat;
 
-      return nameMatch && formatMatch;
+      const statusMatch =
+        teamFilterStatus === "all" || match.status === teamFilterStatus;
+
+      return nameMatch && formatMatch && statusMatch;
     });
-  }, [teamMatches, teamSearch, teamFilterFormat]);
+  }, [teamMatches, teamSearch, teamFilterFormat, teamFilterStatus]);
 
   return (
     <div>
@@ -125,19 +133,34 @@ export default function MatchesPage() {
               />
             </div>
 
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex gap-3 flex-wrap">
               <Select
                 value={individualFilterType}
                 onValueChange={setIndividualFilterType}
               >
-                <SelectTrigger className="w-full sm:w-30 bg-white text-sm">
-                  <SelectValue placeholder="Filter by type" />
+                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+                  <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="singles">Singles</SelectItem>
                   <SelectItem value="doubles">Doubles</SelectItem>
                   <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={individualFilterStatus}
+                onValueChange={setIndividualFilterStatus}
+              >
+                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -156,23 +179,40 @@ export default function MatchesPage() {
               />
             </div>
 
-            <Select
-              value={teamFilterFormat}
-              onValueChange={setTeamFilterFormat}
-            >
-              <SelectTrigger className="w-full sm:w-30 bg-white text-sm">
-                <SelectValue placeholder="Filter by format" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="five_singles">
-                  Swaythling (5 Singles)
-                </SelectItem>
-                <SelectItem value="single_double_single">
-                  Single-Double-Single
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3 flex-wrap">
+              <Select
+                value={teamFilterFormat}
+                onValueChange={setTeamFilterFormat}
+              >
+                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Formats</SelectItem>
+                  <SelectItem value="five_singles">
+                    Swaythling (5 Singles)
+                  </SelectItem>
+                  <SelectItem value="single_double_single">
+                    Single-Double-Single
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={teamFilterStatus}
+                onValueChange={setTeamFilterStatus}
+              >
+                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </div>

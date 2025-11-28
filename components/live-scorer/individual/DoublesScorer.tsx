@@ -32,6 +32,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
     resetGame,
     toggleMatch,
     setInitialMatch,
+    swapSides,
   } = useIndividualMatch() as IndividualMatchState;
 
   const status = useIndividualMatch((s) => s.status);
@@ -136,6 +137,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             }}
             onToggleMatch={toggleMatch}
             onUndo={handleUndo}
+            onSwap={swapSides}
           />
 
           <GamesHistory

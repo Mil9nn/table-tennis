@@ -491,5 +491,7 @@ const tournamentSchema = new Schema<ITournament>(
   { timestamps: true }
 );
 
-export default mongoose.models.Tournament || 
+const Tournament = mongoose.models.Tournament ||
   mongoose.model<ITournament>("Tournament", tournamentSchema);
+
+export default Tournament;

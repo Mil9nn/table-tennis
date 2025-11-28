@@ -46,6 +46,7 @@ interface TeamMatchState {
   subtractPoint: (side: PlayerKey) => Promise<void>;
   toggleSubMatch: () => Promise<void>;
   resetSubMatch: () => Promise<void>;
+  swapSides: () => Promise<void>;
 }
 
 export const useTeamMatch = create<TeamMatchState>((set, get) => ({
@@ -322,5 +323,27 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
 
     // Implement reset logic if needed
     toast.info("Reset functionality not yet implemented");
+  },
+
+  swapSides: async () => {
+    const match = useMatchStore.getState().match as TeamMatch | null;
+    if (!match) return;
+
+    set({ isUpdatingTeamScore: true });
+    try {
+      const { data } = await axiosInstance.post(
+        `/matches/team/${match._id}/swap`
+      );
+
+      if (data?.match) {
+        useMatchStore.getState().setMatch(data.match);
+        get().setInitialTeamMatch(data.match);
+        toast.success("Teams swapped!");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to swap teams");
+    } finally {
+      set({ isUpdatingTeamScore: false });
+    }
   },
 }));

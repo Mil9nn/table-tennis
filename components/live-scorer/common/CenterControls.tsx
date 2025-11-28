@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
-import { RotateCcw, Undo2 } from "lucide-react";
+import { ArrowRightLeft, RotateCcw, Undo2 } from "lucide-react";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { isIndividualMatch } from "@/types/match.type";
 
@@ -13,6 +13,8 @@ interface CenterControlsProps {
   onReset: () => void;
   onUndo: () => void;
   canUndo: boolean;
+  onSwap: () => void;
+  canSwap: boolean;
 }
 
 export default function CenterControls({
@@ -21,6 +23,8 @@ export default function CenterControls({
   onReset,
   onUndo,
   canUndo,
+  onSwap,
+  canSwap,
 }: CenterControlsProps) {
   const match = useMatchStore((s) => s.match);
   const isIndividual = match && isIndividualMatch(match);
@@ -55,6 +59,17 @@ export default function CenterControls({
         >
           <Undo2 className="size-4" />
           Undo
+        </Button>
+
+        <Button
+          onClick={onSwap}
+          className="cursor-pointer py-5 text-gray-600"
+          variant="outline"
+          disabled={!canSwap || isAnyOperationInProgress}
+          title="Swap sides (only available between games)"
+        >
+          <ArrowRightLeft className="size-4" />
+          Swap
         </Button>
 
         <Button
