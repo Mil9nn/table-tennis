@@ -2,22 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { User } from "@/models/User";
 import Tournament from "@/models/Tournament";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const auth = await withAuth(request);
+    if (!auth.success) return auth.response;
+
     const body = await request.json();
 
-    const token = getTokenFromRequest(request);
-    if (!token) return NextResponse.json({ error: "Unauthorized! Please login or register." }, { status: 401 });
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId)
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-    const scorer = await User.findById(decoded.userId);
+    const scorer = await User.findById(auth.userId);
     if (!scorer) return NextResponse.json({ error: "invalid scorer, user not found" }, { status: 401 });
 
     // ✅ Validate

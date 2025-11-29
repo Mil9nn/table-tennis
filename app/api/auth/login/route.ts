@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
           username: user.username,
           fullName: user.fullName,
           email: user.email,
+          profileImage: user.profileImage,
+          isProfileComplete: user.isProfileComplete,
         },
       },
       { status: 200 }

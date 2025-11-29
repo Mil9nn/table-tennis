@@ -1,34 +1,25 @@
 // app/api/matches/team/[id]/submatch/[subMatchId]/reset/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/mongodb";
+import { withAuth } from "@/lib/api-utils";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string; subMatchId: string }> }
 ) {
   try {
-    await connectDB();
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
+
     const { id, subMatchId } = await context.params;
     const { resetType } = await req.json();
-
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
 
     const match = await TeamMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== decoded.userId) {
+    if (match.scorer?.toString() !== auth.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

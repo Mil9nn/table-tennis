@@ -309,10 +309,21 @@ export function generateKnockoutBracket(
   seeding: ISeeding[],
   options: {
     consolationBracket?: boolean;
+    customMatches?: Array<{
+      participant1: mongoose.Types.ObjectId;
+      participant2: mongoose.Types.ObjectId;
+    }>;
   } = {}
 ): IKnockoutBracket {
   if (participants.length < 2) {
     throw new Error("At least 2 participants required");
+  }
+
+  // If custom matches are provided, use them for first round
+  if (options.customMatches && options.customMatches.length > 0) {
+    return generateCustomKnockoutBracket(participants, options.customMatches, {
+      consolationBracket: options.consolationBracket,
+    });
   }
 
   const { bracketSize, byesNeeded } = calculateBracketSize(participants.length);
@@ -356,6 +367,178 @@ export function generateKnockoutBracket(
       };
 
       // Add as separate round or append to final round
+      rounds[rounds.length - 1].matches.push(thirdPlaceMatch);
+      bracket.thirdPlaceMatchPosition = thirdPlaceMatch.bracketPosition;
+    }
+  }
+
+  return bracket;
+}
+
+/**
+ * Generate knockout bracket from custom first-round matches
+ * Allows organizers to manually set up matchups
+ */
+export function generateCustomKnockoutBracket(
+  participants: mongoose.Types.ObjectId[],
+  customMatches: Array<{
+    participant1: mongoose.Types.ObjectId;
+    participant2: mongoose.Types.ObjectId;
+  }>,
+  options: {
+    consolationBracket?: boolean;
+  } = {}
+): IKnockoutBracket {
+  // Calculate bracket size based on total participants (including unmatched ones as byes)
+  const matchedParticipants = new Set<string>();
+  customMatches.forEach((m) => {
+    matchedParticipants.add(m.participant1.toString());
+    matchedParticipants.add(m.participant2.toString());
+  });
+
+  const unmatchedParticipants = participants.filter(
+    (p) => !matchedParticipants.has(p.toString())
+  );
+
+  // Total slots needed = matched count + unmatched count
+  const totalSlots = matchedParticipants.size + unmatchedParticipants.length;
+  const { bracketSize } = calculateBracketSize(totalSlots);
+
+  const totalRounds = Math.log2(bracketSize);
+  const rounds: IKnockoutRound[] = [];
+
+  // Build first round from custom matches + byes for unmatched
+  const round1Matches: IBracketMatch[] = [];
+  let currentMatchPosition = 0;
+
+  // Add custom matches
+  for (const customMatch of customMatches) {
+    round1Matches.push({
+      bracketPosition: currentMatchPosition,
+      roundNumber: 1,
+      participant1: {
+        type: "direct",
+        participantId: customMatch.participant1,
+      },
+      participant2: {
+        type: "direct",
+        participantId: customMatch.participant2,
+      },
+      nextMatchPosition: Math.floor(currentMatchPosition / 2),
+      completed: false,
+    });
+    currentMatchPosition++;
+  }
+
+  // Add bye matches for unmatched participants
+  for (const unmatchedP of unmatchedParticipants) {
+    round1Matches.push({
+      bracketPosition: currentMatchPosition,
+      roundNumber: 1,
+      participant1: {
+        type: "direct",
+        participantId: unmatchedP,
+      },
+      participant2: {
+        type: "bye",
+      },
+      nextMatchPosition: Math.floor(currentMatchPosition / 2),
+      completed: true, // Bye match is auto-completed
+      winner: unmatchedP, // Winner is the non-bye participant
+    });
+    currentMatchPosition++;
+  }
+
+  // Fill remaining slots with bye vs bye if needed to complete the bracket
+  const neededFirstRoundMatches = bracketSize / 2;
+  while (round1Matches.length < neededFirstRoundMatches) {
+    round1Matches.push({
+      bracketPosition: currentMatchPosition,
+      roundNumber: 1,
+      participant1: { type: "bye" },
+      participant2: { type: "bye" },
+      nextMatchPosition: Math.floor(currentMatchPosition / 2),
+      completed: true,
+    });
+    currentMatchPosition++;
+  }
+
+  rounds.push({
+    roundNumber: 1,
+    name: getRoundName(bracketSize, 1),
+    matches: round1Matches,
+    completed: false,
+  });
+
+  // Generate subsequent rounds
+  let previousRoundMatches = round1Matches.length;
+  for (let roundNum = 2; roundNum <= totalRounds; roundNum++) {
+    const roundMatches: IBracketMatch[] = [];
+    const matchesInRound = previousRoundMatches / 2;
+
+    const roundStartPosition = currentMatchPosition;
+
+    for (let i = 0; i < matchesInRound; i++) {
+      const match: IBracketMatch = {
+        bracketPosition: currentMatchPosition,
+        roundNumber: roundNum,
+        participant1: {
+          type: "from_match",
+          fromMatchPosition: roundStartPosition - previousRoundMatches + i * 2,
+          isWinnerOf: true,
+        },
+        participant2: {
+          type: "from_match",
+          fromMatchPosition: roundStartPosition - previousRoundMatches + i * 2 + 1,
+          isWinnerOf: true,
+        },
+        completed: false,
+      };
+
+      if (roundNum < totalRounds) {
+        match.nextMatchPosition = roundStartPosition + matchesInRound + Math.floor(i / 2);
+      }
+
+      roundMatches.push(match);
+      currentMatchPosition++;
+    }
+
+    rounds.push({
+      roundNumber: roundNum,
+      name: getRoundName(bracketSize, roundNum),
+      matches: roundMatches,
+      completed: false,
+    });
+
+    previousRoundMatches = matchesInRound;
+  }
+
+  const bracket: IKnockoutBracket = {
+    size: bracketSize,
+    rounds,
+    consolationBracket: options.consolationBracket || false,
+  };
+
+  // Add 3rd place match if requested
+  if (options.consolationBracket && bracketSize >= 4) {
+    const semiFinalRound = rounds.find((r) => r.name === "Semi Finals");
+    if (semiFinalRound && semiFinalRound.matches.length >= 2) {
+      const thirdPlaceMatch: IBracketMatch = {
+        bracketPosition: rounds[rounds.length - 1].matches[0].bracketPosition + 1,
+        roundNumber: rounds.length,
+        participant1: {
+          type: "from_match",
+          fromMatchPosition: semiFinalRound.matches[0].bracketPosition,
+          isWinnerOf: false,
+        },
+        participant2: {
+          type: "from_match",
+          fromMatchPosition: semiFinalRound.matches[1].bracketPosition,
+          isWinnerOf: false,
+        },
+        completed: false,
+      };
+
       rounds[rounds.length - 1].matches.push(thirdPlaceMatch);
       bracket.thirdPlaceMatchPosition = thirdPlaceMatch.bracketPosition;
     }

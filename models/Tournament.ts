@@ -162,6 +162,12 @@ export interface ITournament extends Document {
     tiebreakRules: string[]; // Order of tiebreakers
   };
 
+  // Custom bracket matching (for knockout tournaments)
+  customBracketMatches?: Array<{
+    participant1: mongoose.Types.ObjectId;
+    participant2: mongoose.Types.ObjectId;
+  }>;
+
   // Draw management
   drawGenerated: boolean;
   drawGeneratedAt?: Date;
@@ -472,6 +478,14 @@ const tournamentSchema = new Schema<ITournament>(
         ],
       },
     },
+
+    // Custom bracket matching (for knockout tournaments)
+    customBracketMatches: [
+      {
+        participant1: { type: Schema.Types.ObjectId, ref: "User" },
+        participant2: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
 
     // Draw management
     drawGenerated: { type: Boolean, default: false },

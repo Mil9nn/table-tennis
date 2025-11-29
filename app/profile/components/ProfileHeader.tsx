@@ -86,11 +86,6 @@ const ProfileHeader = ({
       ? value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
       : "Not specified";
 
-  const formatStyle = (value: string) =>
-    value
-      ? value.replace(/_/g, "-").replace(/\b\w/g, (l) => l.toUpperCase())
-      : "Not specified";
-
   return (
     <div className="space-y-2">
       {/* Profile Card */}
@@ -162,11 +157,6 @@ const ProfileHeader = ({
                 {user.handedness && (
                   <div className="px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-md text-gray-800">
                     {formatHand(user.handedness)} Handed
-                  </div>
-                )}
-                {user.playingStyle && (
-                  <div className="px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-md text-gray-800">
-                    {formatStyle(user.playingStyle)} Style
                   </div>
                 )}
                 {user.location && (

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/mongodb";
+import { withAuth } from "@/lib/api-utils";
 import { SubMatch } from "@/types/match.type";
 
 export async function POST(
@@ -9,26 +8,18 @@ export async function POST(
   context: { params: Promise<{ id: string; subMatchId: string }> }
 ) {
   try {
-    await connectDB();
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
+
     const { id, subMatchId } = await context.params;
     const body = await req.json();
-
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
 
     const match = await TeamMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== decoded.userId) {
+    if (match.scorer?.toString() !== auth.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

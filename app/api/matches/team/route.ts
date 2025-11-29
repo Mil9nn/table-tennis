@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { SubMatch } from "@/types/match.type";
 import mongoose from "mongoose";
@@ -213,18 +213,12 @@ function generateCustomFormatSubmatches(
  */
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const auth = await withAuth(request);
+    if (!auth.success) return auth.response;
+
     const body = await request.json();
 
-    const token = getTokenFromRequest(request);
-    if (!token)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId)
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-    const scorer = await User.findById(decoded.userId);
+    const scorer = await User.findById(auth.userId);
     if (!scorer)
       return NextResponse.json(
         { error: "Invalid scorer, user not found" },

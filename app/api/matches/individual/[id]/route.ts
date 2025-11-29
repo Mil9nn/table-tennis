@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { withAuth } from "@/lib/api-utils";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -35,18 +35,8 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
-
-    // Auth check
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const { id } = await context.params;
     const body = await req.json();
@@ -62,7 +52,7 @@ export async function PUT(
 
     // Only scorer can update match
     const scorerId = existingMatch.scorer?.toString();
-    if (scorerId && scorerId !== decoded.userId) {
+    if (scorerId && scorerId !== auth.userId) {
       return NextResponse.json(
         { error: "Only the scorer can update this match" },
         { status: 403 }
@@ -104,18 +94,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
-
-    // Auth check
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const { id } = await context.params;
 
@@ -130,7 +110,7 @@ export async function DELETE(
 
     // Only scorer can delete match
     const scorerId = match.scorer?.toString();
-    if (scorerId && scorerId !== decoded.userId) {
+    if (scorerId && scorerId !== auth.userId) {
       return NextResponse.json(
         { error: "Only the scorer can delete this match" },
         { status: 403 }

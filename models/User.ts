@@ -15,7 +15,6 @@ const userSchema = new mongoose.Schema(
     phoneNumber: { type: String },
     location: { type: String },
     bio: { type: String, maxlength: 500 },
-    playingStyle: { type: String, enum: ["offensive", "defensive", "all_round"] },
 
     // Profile completion tracking
     isProfileComplete: { type: Boolean, default: false },

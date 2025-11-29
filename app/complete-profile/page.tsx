@@ -32,9 +32,6 @@ const profileSchema = z.object({
   phoneNumber: z.string().optional(),
   location: z.string().optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
-  playingStyle: z.enum(["offensive", "defensive", "all_round"], {
-    message: "Please select your playing style",
-  }),
 });
 
 const CompleteProfilePage = () => {
@@ -59,7 +56,6 @@ const CompleteProfilePage = () => {
     "dateOfBirth",
     "gender",
     "handedness",
-    "playingStyle",
   ];
 
   type FormValues = z.infer<typeof profileSchema>;
@@ -229,43 +225,6 @@ const CompleteProfilePage = () => {
                               {option === "right"
                                 ? "Right-handed"
                                 : "Left-handed"}
-                            </button>
-                          ))}
-                        </div>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Playing Style */}
-                  <FormField
-                    control={form.control}
-                    name="playingStyle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Playing Style
-                        </FormLabel>
-
-                        <div className="flex gap-2 mt-2">
-                          {[
-                            { value: "offensive", label: "Offensive" },
-                            { value: "defensive", label: "Defensive" },
-                            { value: "all_round", label: "All-Rounder" },
-                          ].map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => field.onChange(option.value)}
-                              className={`px-4 py-2 text-xs rounded-md border transition
-                                ${
-                                  field.value === option.value
-                                    ? "bg-blue-500 text-white"
-                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                                }`}
-                            >
-                              {option.label}
                             </button>
                           ))}
                         </div>

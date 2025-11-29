@@ -1,29 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { verifyToken } from "@/lib/jwt";
+import { withAuth } from "@/lib/api-utils";
 
 export async function PUT(req: NextRequest) {
   try {
-    await connectDB();
-
-    // Get token from cookies
-    const token = req.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Verify token and get user ID
-    const decoded = verifyToken(token) as { userId: string };
-    if (!decoded?.userId) {
-      return NextResponse.json(
-        { message: "Invalid token" },
-        { status: 401 }
-      );
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const body = await req.json();
     const {
@@ -34,7 +16,6 @@ export async function PUT(req: NextRequest) {
       phoneNumber,
       location,
       bio,
-      playingStyle,
     } = body;
 
     // Build update object with only provided fields
@@ -46,11 +27,10 @@ export async function PUT(req: NextRequest) {
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (location !== undefined) updateData.location = location;
     if (bio !== undefined) updateData.bio = bio;
-    if (playingStyle !== undefined) updateData.playingStyle = playingStyle;
 
     // Update user profile
     const user = await User.findByIdAndUpdate(
-      decoded.userId,
+      auth.userId,
       updateData,
       { new: true }
     ).select("-password");

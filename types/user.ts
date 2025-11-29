@@ -12,7 +12,6 @@ export interface User {
   phoneNumber?: string;
   location?: string;
   bio?: string;
-  playingStyle?: "offensive" | "defensive" | "all_round";
 
   // Profile completion tracking
   isProfileComplete?: boolean;

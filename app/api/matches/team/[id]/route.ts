@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { connectDB } from "@/lib/mongodb";
+import { withAuth } from "@/lib/api-utils";
 import { statsService } from "@/services/statsService";
 import { TeamMatch as TeamMatchType } from "@/types/match.type";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -28,18 +28,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    await connectDB();
-
-    // Auth check
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const { id } = await context.params;
 
@@ -51,7 +41,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     // Only scorer can update match
     const scorerId = oldMatch.scorer?.toString();
-    if (scorerId && scorerId !== decoded.userId) {
+    if (scorerId && scorerId !== auth.userId) {
       return NextResponse.json(
         { error: "Only the scorer can update this match" },
         { status: 403 }
@@ -93,18 +83,8 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    await connectDB();
-
-    // Auth check
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const { id } = await context.params;
 
@@ -116,7 +96,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
     // Only scorer can delete match
     const scorerId = match.scorer?.toString();
-    if (scorerId && scorerId !== decoded.userId) {
+    if (scorerId && scorerId !== auth.userId) {
       return NextResponse.json(
         { error: "Only the scorer can delete this match" },
         { status: 403 }

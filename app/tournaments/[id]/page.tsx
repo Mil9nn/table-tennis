@@ -14,6 +14,7 @@ import {
   Users2,
   QrCode,
   UserPlus,
+  Swords,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import KnockoutBracket from "@/components/tournaments/KnockoutBracket";
 import TournamentLeaderboard from "@/components/tournaments/TournamentLeaderboard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { JoinCodeDialog } from "@/components/tournaments/JoinCodeDialog";
+import { ManageParticipantsDialog } from "@/components/tournaments/ManageParticipantsDialog";
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -43,6 +45,7 @@ export default function TournamentDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [generatingKnockout, setGeneratingKnockout] = useState(false);
   const [joinCodeDialogOpen, setJoinCodeDialogOpen] = useState(false);
+  const [manageParticipantsOpen, setManageParticipantsOpen] = useState(false);
   const [knockoutStatus, setKnockoutStatus] = useState<{
     canGenerateKnockout: boolean;
     roundRobinComplete: boolean;
@@ -135,6 +138,17 @@ export default function TournamentDetailPage() {
             ...prev,
             joinCode,
             allowJoinByCode,
+          }
+        : null
+    );
+  };
+
+  const handleParticipantsUpdate = (participants: any[]) => {
+    setTournament((prev) =>
+      prev
+        ? {
+            ...prev,
+            participants,
           }
         : null
     );
@@ -281,14 +295,39 @@ export default function TournamentDetailPage() {
           {/* Right action buttons */}
           <div className="flex items-center gap-2">
             {isOrganizer && !tournament.drawGenerated && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setManageParticipantsOpen(true)}
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <UserPlus className="size-4" />
+                  <span className="ml-1 hidden sm:inline">Manage Players</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setJoinCodeDialogOpen(true)}
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                >
+                  <QrCode className="size-4" />
+                  <span className="ml-1 hidden sm:inline">Join Code</span>
+                </Button>
+              </>
+            )}
+
+            {isOrganizer && !tournament.drawGenerated && tournament.format === "knockout" && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setJoinCodeDialogOpen(true)}
-                className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                onClick={() =>
+                  router.push(`/tournaments/${tournamentId}/custom-matching`)
+                }
+                className="border-orange-300 text-orange-700 hover:bg-orange-50"
               >
-                <QrCode className="size-4" />
-                <span className="ml-1 hidden sm:inline">Join Code</span>
+                <Swords className="size-4" />
+                <span className="ml-1 hidden sm:inline">Custom Matches</span>
               </Button>
             )}
 
@@ -936,6 +975,17 @@ export default function TournamentDetailPage() {
           joinCode={tournament.joinCode}
           allowJoinByCode={tournament.allowJoinByCode || false}
           onUpdate={handleJoinCodeUpdate}
+        />
+      )}
+
+      {/* Manage Participants Dialog */}
+      {tournament && (
+        <ManageParticipantsDialog
+          open={manageParticipantsOpen}
+          onOpenChange={setManageParticipantsOpen}
+          tournamentId={tournament._id}
+          participants={tournament.participants}
+          onUpdate={handleParticipantsUpdate}
         />
       )}
     </div>

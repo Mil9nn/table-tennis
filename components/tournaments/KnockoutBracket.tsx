@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { KnockoutBracket as IKnockoutBracket, Participant } from "@/types/tournament.type";
-import { Trophy, Medal, Award, Loader2, ChevronRight } from "lucide-react";
+import { Trophy, Medal, Award, Loader2, ChevronRight, Plus } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface KnockoutBracketProps {
   bracket: IKnockoutBracket;
@@ -184,15 +185,20 @@ export default function KnockoutBracket({
                     const isPending = participant1Name === "TBD" || participant2Name === "TBD" ||
                                      participant1Name.includes("Winner") || participant2Name.includes("Winner");
 
+                    // Match is ready to be created: participants determined but no matchId yet
+                    const isReadyToCreate = isPlayable && !match.matchId && !match.completed;
+
                     return (
                       <div
                         key={match.bracketPosition}
-                        onClick={() => !isCreating && handleMatchClick(match)}
+                        onClick={() => !isCreating && match.matchId && handleMatchClick(match)}
                         className={`
                           group relative rounded-lg border transition-all duration-200
-                          ${isPlayable || match.matchId ? "cursor-pointer" : "cursor-not-allowed opacity-60"}
+                          ${match.matchId ? "cursor-pointer" : "cursor-default"}
                           ${isActuallyCompleted 
-                            ? " border-emerald-400 border-2 shadow-sm" 
+                            ? "border-emerald-400 border-2 shadow-sm" 
+                            : isReadyToCreate
+                            ? "bg-indigo-50/50 border-indigo-300 border-2 shadow-md ring-2 ring-indigo-200/50"
                             : isPending
                             ? "bg-neutral-50/80 border-neutral-200"
                             : "bg-white border-neutral-200 hover:border-neutral-300 hover:shadow-md"
@@ -205,6 +211,14 @@ export default function KnockoutBracket({
                           <div className="absolute -top-2.5 left-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                             <Award className="w-2.5 h-2.5" />
                             3RD PLACE
+                          </div>
+                        )}
+
+                        {/* Ready to Create Badge */}
+                        {isReadyToCreate && !isThirdPlaceMatch && (
+                          <div className="absolute -top-2.5 left-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm animate-pulse">
+                            <Plus className="w-2.5 h-2.5" />
+                            READY
                           </div>
                         )}
 
@@ -283,11 +297,24 @@ export default function KnockoutBracket({
                               <span className="text-emerald-600 font-semibold">
                                 Complete
                               </span>
-                            ) : !isPending ? (
+                            ) : match.matchId ? (
                               <span className="text-blue-600 font-medium flex items-center gap-1">
-                                Ready
+                                View Match
                                 <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                               </span>
+                            ) : isPlayable ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-6 px-2 text-[10px] bg-indigo-600 hover:bg-indigo-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMatchClick(match);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Create Match
+                              </Button>
                             ) : (
                               <span className="text-neutral-400 font-medium">Pending</span>
                             )}

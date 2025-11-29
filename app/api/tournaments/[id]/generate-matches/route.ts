@@ -18,6 +18,53 @@ import mongoose from "mongoose";
 import { BracketRound } from "@/types/tournamentDraw";
 
 /**
+ * Helper: Get match participants for singles or doubles
+ */
+function getMatchParticipants(pairing: any, isDoubles: boolean, participantIds: string[]) {
+  if (!isDoubles) {
+    return [pairing.player1, pairing.player2];
+  }
+  
+  const team1Idx = participantIds.findIndex(
+    (id: any) => id === pairing.player1.toString()
+  );
+  const team2Idx = participantIds.findIndex(
+    (id: any) => id === pairing.player2.toString()
+  );
+  
+  return [
+    new mongoose.Types.ObjectId(participantIds[team1Idx]),
+    new mongoose.Types.ObjectId(participantIds[team1Idx + 1]),
+    new mongoose.Types.ObjectId(participantIds[team2Idx]),
+    new mongoose.Types.ObjectId(participantIds[team2Idx + 1]),
+  ];
+}
+
+/**
+ * Helper: Create and save a scheduled match
+ */
+async function createScheduledMatch(
+  matchParticipants: any[],
+  tournament: any,
+  userId: string
+) {
+  const match = new IndividualMatch({
+    matchType: tournament.matchType,
+    matchCategory: "individual",
+    numberOfSets: tournament.rules.setsPerMatch,
+    city: tournament.city,
+    venue: tournament.venue || tournament.city,
+    participants: matchParticipants,
+    scorer: userId,
+    status: "scheduled",
+    tournament: tournament._id,
+  });
+  
+  await match.save();
+  return match;
+}
+
+/**
  * Generate tournament matches with ITTF-compliant scheduling
  * Supports: Round Robin and Knockout formats
  * Features: seeding, groups/pools, bye allocation, bracket generation
@@ -133,37 +180,8 @@ export async function POST(
           const roundMatches = [];
 
           for (const pairing of round.matches) {
-            let matchParticipants;
-            if (isDoubles) {
-              const team1Idx = participantIds.findIndex(
-                (id: any) => id === pairing.player1.toString()
-              );
-              const team2Idx = participantIds.findIndex(
-                (id: any) => id === pairing.player2.toString()
-              );
-              matchParticipants = [
-                new mongoose.Types.ObjectId(participantIds[team1Idx]),
-                new mongoose.Types.ObjectId(participantIds[team1Idx + 1]),
-                new mongoose.Types.ObjectId(participantIds[team2Idx]),
-                new mongoose.Types.ObjectId(participantIds[team2Idx + 1]),
-              ];
-            } else {
-              matchParticipants = [pairing.player1, pairing.player2];
-            }
-
-            const match = new IndividualMatch({
-              matchType: tournament.matchType,
-              matchCategory: "individual",
-              numberOfSets: tournament.rules.setsPerMatch,
-              city: tournament.city,
-              venue: tournament.venue || tournament.city,
-              participants: matchParticipants,
-              scorer: decoded.userId,
-              status: "scheduled",
-              tournament: tournament._id,
-            });
-
-            await match.save();
+            const matchParticipants = getMatchParticipants(pairing, isDoubles, participantIds);
+            const match = await createScheduledMatch(matchParticipants, tournament, decoded.userId);
             roundMatches.push(match._id);
           }
 
@@ -260,37 +278,8 @@ export async function POST(
             const roundMatches = [];
 
             for (const pairing of round.matches) {
-              let matchParticipants;
-              if (isDoubles) {
-                const team1Idx = participantIds.findIndex(
-                  (id: any) => id === pairing.player1.toString()
-                );
-                const team2Idx = participantIds.findIndex(
-                  (id: any) => id === pairing.player2.toString()
-                );
-                matchParticipants = [
-                  new mongoose.Types.ObjectId(participantIds[team1Idx]),
-                  new mongoose.Types.ObjectId(participantIds[team1Idx + 1]),
-                  new mongoose.Types.ObjectId(participantIds[team2Idx]),
-                  new mongoose.Types.ObjectId(participantIds[team2Idx + 1]),
-                ];
-              } else {
-                matchParticipants = [pairing.player1, pairing.player2];
-              }
-
-              const match = new IndividualMatch({
-                matchType: tournament.matchType,
-                matchCategory: "individual",
-                numberOfSets: tournament.rules.setsPerMatch,
-                city: tournament.city,
-                venue: tournament.venue || tournament.city,
-                participants: matchParticipants,
-                scorer: decoded.userId,
-                status: "scheduled",
-                tournament: tournament._id,
-              });
-
-              await match.save();
+              const matchParticipants = getMatchParticipants(pairing, isDoubles, participantIds);
+              const match = await createScheduledMatch(matchParticipants, tournament, decoded.userId);
               roundMatches.push(match._id);
             }
 
@@ -389,9 +378,16 @@ export async function POST(
         );
       }
 
+      // Check for custom bracket matches
+      const customMatches = tournament.customBracketMatches?.map((m: any) => ({
+        participant1: new mongoose.Types.ObjectId(m.participant1.toString()),
+        participant2: new mongoose.Types.ObjectId(m.participant2.toString()),
+      }));
+
       // Generate knockout bracket
       const bracket = generateKnockoutBracket(bracketParticipants, seeding, {
         consolationBracket: tournament.rules.advanceTop === 3, // Include 3rd place match
+        customMatches: customMatches && customMatches.length > 0 ? customMatches : undefined,
       });
 
       // Process byes (automatically advance players facing byes)
@@ -445,19 +441,7 @@ export async function POST(
           matchParticipants = [participant1Id, participant2Id];
         }
 
-        const individualMatch = new IndividualMatch({
-          matchType: tournament.matchType,
-          matchCategory: "individual",
-          numberOfSets: tournament.rules.setsPerMatch,
-          city: tournament.city,
-          venue: tournament.venue || tournament.city,
-          participants: matchParticipants,
-          scorer: decoded.userId,
-          status: "scheduled",
-          tournament: tournament._id,
-        });
-
-        await individualMatch.save();
+        const individualMatch = await createScheduledMatch(matchParticipants, tournament, decoded.userId);
 
         // Update bracket match with actual match ID
         match.matchId = individualMatch._id;
@@ -515,41 +499,8 @@ export async function POST(
           const roundMatches = [];
 
           for (const pairing of round.matches) {
-            // For doubles, expand team indices to 4 players
-            let matchParticipants;
-            if (isDoubles) {
-              const team1Idx = participantIds.findIndex(
-                (id: any) => id === pairing.player1.toString()
-              );
-              const team2Idx = participantIds.findIndex(
-                (id: any) => id === pairing.player2.toString()
-              );
-
-              // Each team consists of 2 consecutive participants
-              matchParticipants = [
-                new mongoose.Types.ObjectId(participantIds[team1Idx]),
-                new mongoose.Types.ObjectId(participantIds[team1Idx + 1]),
-                new mongoose.Types.ObjectId(participantIds[team2Idx]),
-                new mongoose.Types.ObjectId(participantIds[team2Idx + 1]),
-              ];
-            } else {
-              matchParticipants = [pairing.player1, pairing.player2];
-            }
-
-            const match = new IndividualMatch({
-              matchType: tournament.matchType,
-              matchCategory: "individual",
-              numberOfSets: tournament.rules.setsPerMatch,
-              city: tournament.city,
-              venue: tournament.venue || tournament.city,
-              participants: matchParticipants,
-              scorer: decoded.userId,
-              status: "scheduled",
-              tournament: tournament._id,
-            });
-
-            await match.save();
-
+            const matchParticipants = getMatchParticipants(pairing, isDoubles, participantIds);
+            const match = await createScheduledMatch(matchParticipants, tournament, decoded.userId);
             roundMatches.push(match._id);
           }
 
@@ -644,41 +595,8 @@ export async function POST(
         const roundMatches = [];
 
         for (const pairing of round.matches) {
-          // For doubles, expand team indices to 4 players
-          let matchParticipants;
-          if (isDoubles) {
-            const team1Idx = participantIds.findIndex(
-              (id: any) => id === pairing.player1.toString()
-            );
-            const team2Idx = participantIds.findIndex(
-              (id: any) => id === pairing.player2.toString()
-            );
-
-            // Each team consists of 2 consecutive participants
-            matchParticipants = [
-              new mongoose.Types.ObjectId(participantIds[team1Idx]),
-              new mongoose.Types.ObjectId(participantIds[team1Idx + 1]),
-              new mongoose.Types.ObjectId(participantIds[team2Idx]),
-              new mongoose.Types.ObjectId(participantIds[team2Idx + 1]),
-            ];
-          } else {
-            matchParticipants = [pairing.player1, pairing.player2];
-          }
-
-          const match = new IndividualMatch({
-            matchType: tournament.matchType,
-            matchCategory: "individual",
-            numberOfSets: tournament.rules.setsPerMatch,
-            city: tournament.city,
-            venue: tournament.venue || tournament.city,
-            participants: matchParticipants,
-            scorer: decoded.userId,
-            status: "scheduled",
-            tournament: tournament._id,
-          });
-
-          await match.save();
-
+          const matchParticipants = getMatchParticipants(pairing, isDoubles, participantIds);
+          const match = await createScheduledMatch(matchParticipants, tournament, decoded.userId);
           roundMatches.push(match._id);
         }
 

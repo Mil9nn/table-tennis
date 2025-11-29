@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 
@@ -38,18 +37,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDB();
-
-    // ✅ Auth check
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded?.userId) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     // Parse multipart/form-data
     const formData = await req.formData();
@@ -73,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ Verify that the authenticated user is the captain
-    if (captain !== decoded.userId) {
+    if (captain !== auth.userId) {
       return NextResponse.json(
         { message: "You can only create a team where you are the captain" },
         { status: 403 }
