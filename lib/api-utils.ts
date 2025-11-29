@@ -72,3 +72,4 @@ export const ApiErrors = {
   serverError: (message?: string) => errorResponse(message || "Something went wrong", 500),
 };
 
+

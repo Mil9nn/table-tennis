@@ -116,6 +116,32 @@ export function formatDate(isoString?: string | Date): string {
   });
 }
 
+export function formatDateShort(dateString?: string | Date): string {
+  if (!dateString) return "";
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "N/A";
+  }
+}
+
+export function formatDateLong(dateString?: string | Date): string {
+  if (!dateString) return "";
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "N/A";
+  }
+}
+
 export const formatStrokeName = (stroke: string) => {
   const parts = stroke.split("_");
   if (parts.length === 2) {
@@ -135,4 +161,31 @@ export const formatStrokeName = (stroke: string) => {
  */
 export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Get initials from a name (first character, uppercase)
+ */
+export function getInitial(name?: string): string {
+  return name?.charAt(0)?.toUpperCase() || "?";
+}
+
+/**
+ * Get initials from a name (first letter of each word, max 2 chars)
+ * e.g., "John Doe" -> "JD", "John" -> "JO"
+ */
+export function getInitials(name?: string): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0]?.[0] + parts[1]?.[0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
+/**
+ * Get display name (fullName or username fallback)
+ */
+export function getDisplayName(item: { fullName?: string; username?: string; name?: string }): string {
+  return item.fullName || item.username || item.name || "Unknown";
 }

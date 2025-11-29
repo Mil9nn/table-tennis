@@ -21,7 +21,9 @@ export type Stroke =
   | "forehand_block"
   | "backhand_block"
   | "forehand_drop"
-  | "backhand_drop";
+  | "backhand_drop"
+  | "net_point"
+  | "serve_point";
 
 export interface Shot {
   _id: string;

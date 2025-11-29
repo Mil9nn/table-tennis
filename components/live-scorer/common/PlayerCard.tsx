@@ -3,6 +3,7 @@
 import { AddPointPayload } from "@/types/match.type";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { getInitials } from "@/lib/utils";
 
 type PlayerInfo = {
   name: string;
@@ -64,15 +65,6 @@ export default function PlayerCard({
     } else {
       onAddPoint({ side });
     }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (

@@ -27,6 +27,8 @@ const shotSchema = new mongoose.Schema({
       "backhand_block",
       "forehand_drop",
       "backhand_drop",
+      "net_point",
+      "serve_point",
     ],
     default: null,
   },

@@ -35,6 +35,8 @@ export const shotCategories = {
     { value: "forehand_drop", label: "Forehand Drop" },
     { value: "backhand_drop", label: "Backhand Drop" },
   ],
+  net: [{ value: "net_point", label: "Net Point" }],
+  serve: [{ value: "serve_point", label: "Serve Point" }],
 };
 
 // constants/constants.ts
@@ -57,4 +59,6 @@ export const SHOT_TYPE_COLORS: Record<string, string> = {
   backhand_block: "#A9A9A9", // dark gray
   forehand_drop: "#82CAFF", // light blue
   backhand_drop: "#AAFFC3", // mint green
+  net_point: "#FF6B6B", // coral red
+  serve_point: "#4ECDC4", // turquoise
 };

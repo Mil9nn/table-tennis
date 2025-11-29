@@ -7,6 +7,7 @@ import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { User } from "@/types/user";
 import { X } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getInitial } from "@/lib/utils";
 
 function UserSearchInput({
   placeholder,
@@ -58,8 +59,6 @@ function UserSearchInput({
     setSelectedUser(null);
     setQuery("");
   };
-
-  const getInitial = (name: string) => name?.charAt(0)?.toUpperCase() || "?";
 
   return (
     <div className="relative">

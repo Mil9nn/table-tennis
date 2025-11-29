@@ -12,7 +12,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Cell,
 } from "recharts";
+import { SHOT_TYPE_COLORS } from "@/constants/constants";
 
 const ShotAnalysisPage = () => {
   const router = useRouter();
@@ -36,20 +38,37 @@ const ShotAnalysisPage = () => {
   }, []);
 
   const shotDistribution = shotData?.shotDistribution || [];
-  const heatmapGrid = shotData?.heatmapGrid || [];
+  const heatmapGrid: { count: number; dominantStroke: string | null; shotTypes: Record<string, number> }[][] = 
+    shotData?.heatmapGrid || [];
 
+  // Calculate max value for intensity scaling
   const maxHeatmapValue = heatmapGrid
     .flat()
-    .reduce((max: number, val: number) => Math.max(max, val), 0);
+    .reduce((max: number, cell: any) => Math.max(max, cell?.count || 0), 0);
 
-  const getHeatmapColor = (value: number) => {
-    if (value === 0) return "bg-gray-100";
-    const intensity = Math.min((value / maxHeatmapValue) * 100, 100);
-    if (intensity < 20) return "bg-blue-200";
-    if (intensity < 40) return "bg-blue-300";
-    if (intensity < 60) return "bg-blue-400";
-    if (intensity < 80) return "bg-blue-500";
-    return "bg-blue-600";
+  // Get heatmap cell style based on dominant shot type and intensity
+  const getHeatmapStyle = (cell: { count: number; dominantStroke: string | null }) => {
+    if (!cell || cell.count === 0) {
+      return { backgroundColor: "#f3f4f6" }; // gray-100
+    }
+    
+    const baseColor = cell.dominantStroke 
+      ? SHOT_TYPE_COLORS[cell.dominantStroke] || "#3b82f6"
+      : "#3b82f6";
+    
+    // Calculate opacity based on intensity (0.3 to 1.0 range)
+    const intensity = Math.min(cell.count / maxHeatmapValue, 1);
+    const opacity = 0.3 + (intensity * 0.7);
+    
+    return { 
+      backgroundColor: baseColor,
+      opacity,
+    };
+  };
+
+  // Format shot type name for tooltip
+  const formatShotName = (stroke: string) => {
+    return stroke.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
 
   const totalShots = shotDistribution.reduce(
@@ -142,11 +161,14 @@ const ShotAnalysisPage = () => {
                     />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar
-                      dataKey="count"
-                      fill="#3b82f6"
-                      radius={[8, 8, 0, 0]}
-                    />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                      {shotDistribution.map((entry: any, index: number) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={SHOT_TYPE_COLORS[entry.stroke] || "#3b82f6"}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -158,6 +180,9 @@ const ShotAnalysisPage = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-6">
                   Shot Landing Heatmap
                 </h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Colors represent dominant shot type in each zone. Brighter = more shots.
+                </p>
 
                 <div className="flex justify-center">
                   <div className="inline-block border-4 border-gray-800 rounded-lg overflow-hidden">
@@ -165,17 +190,42 @@ const ShotAnalysisPage = () => {
                       <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gray-800 z-10 -translate-y-1/2"></div>
 
                       <div className="grid grid-cols-10">
-                        {heatmapGrid.map((row: number[], r: number) =>
-                          row.map((value: number, c: number) => (
+                        {heatmapGrid.map((row, r: number) =>
+                          row.map((cell, c: number) => (
                             <div
                               key={`${r}-${c}`}
-                              className={`w-10 h-10 border border-gray-300 ${getHeatmapColor(
-                                value
-                              )} flex items-center justify-center text-[10px] font-semibold ${
-                                value > 0 ? "text-white" : "text-gray-400"
-                              }`}
+                              className="w-10 h-10 border border-gray-300/50 flex items-center justify-center text-[10px] font-semibold text-white relative group cursor-pointer"
+                              style={getHeatmapStyle(cell)}
                             >
-                              {value > 0 ? value : ""}
+                              {cell?.count > 0 ? cell.count : ""}
+                              
+                              {/* Tooltip on hover */}
+                              {cell?.count > 0 && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">
+                                  <div className="bg-gray-900 text-white text-[9px] rounded-lg px-2 py-1.5 whitespace-nowrap shadow-lg">
+                                    <div className="font-bold mb-1">
+                                      {cell.dominantStroke ? formatShotName(cell.dominantStroke) : "Unknown"}
+                                    </div>
+                                    <div className="text-gray-300">
+                                      {cell.count} shot{cell.count > 1 ? "s" : ""}
+                                    </div>
+                                    {cell.shotTypes && Object.keys(cell.shotTypes).length > 1 && (
+                                      <div className="border-t border-gray-700 mt-1 pt-1 text-gray-400">
+                                        {Object.entries(cell.shotTypes)
+                                          .sort(([, a], [, b]) => b - a)
+                                          .slice(0, 3)
+                                          .map(([stroke, count]) => (
+                                            <div key={stroke} className="flex justify-between gap-2">
+                                              <span>{formatShotName(stroke)}:</span>
+                                              <span>{count}</span>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              )}
                             </div>
                           ))
                         )}
@@ -188,6 +238,19 @@ const ShotAnalysisPage = () => {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Legend */}
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  {shotDistribution.slice(0, 6).map((shot: any) => (
+                    <div key={shot.stroke} className="flex items-center gap-1.5">
+                      <div 
+                        className="w-3 h-3 rounded-sm" 
+                        style={{ backgroundColor: SHOT_TYPE_COLORS[shot.stroke] || "#3b82f6" }}
+                      />
+                      <span className="text-[10px] text-gray-600">{shot.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

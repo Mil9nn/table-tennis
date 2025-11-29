@@ -10,7 +10,6 @@ import {
   MapPin,
   Loader2,
   RefreshCw,
-  Settings,
   Users2,
   QrCode,
   UserPlus,
@@ -20,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDate } from "@/lib/utils";
+import { formatDateShort } from "@/lib/utils";
 import Link from "next/link";
 import { Tournament } from "@/types/tournament.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -300,10 +299,9 @@ export default function TournamentDetailPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setManageParticipantsOpen(true)}
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  className=""
                 >
-                  <UserPlus className="size-4" />
-                  <span className="ml-1 hidden sm:inline">Manage Players</span>
+                  <span className="text-blue-500">Manage Players</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -328,20 +326,6 @@ export default function TournamentDetailPage() {
               >
                 <Swords className="size-4" />
                 <span className="ml-1 hidden sm:inline">Custom Matches</span>
-              </Button>
-            )}
-
-            {isOrganizer && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(`/tournaments/${tournamentId}/seeding`)
-                }
-                className="border-slate-300 text-slate-600 hover:bg-slate-100"
-              >
-                <Settings className="size-4" />
-                <span className="ml-1 hidden sm:inline">Settings</span>
               </Button>
             )}
           </div>
@@ -383,7 +367,7 @@ export default function TournamentDetailPage() {
                 Start Date
               </p>
               <p className="text-[13px] font-semibold text-slate-700">
-                {formatDate(tournament.startDate)}
+                {formatDateShort(tournament.startDate)}
               </p>
             </div>
           </div>

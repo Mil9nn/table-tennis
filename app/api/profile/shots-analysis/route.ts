@@ -56,10 +56,16 @@ export async function GET(request: NextRequest) {
       backhand_block: 0,
       forehand_drop: 0,
       backhand_drop: 0,
+      net_point: 0,
+      serve_point: 0,
     };
 
     // Heatmap data - divide table into zones (10x10 grid)
+    // Track both total count and shot types per zone
     const heatmapZones: number[][] = Array(10).fill(0).map(() => Array(10).fill(0));
+    const heatmapShotTypes: Record<string, number>[][] = Array(10).fill(null).map(() => 
+      Array(10).fill(null).map(() => ({}))
+    );
 
     // Process individual matches
     individualMatches.forEach((match: any) => {
@@ -76,6 +82,12 @@ export async function GET(request: NextRequest) {
               const zoneX = Math.min(Math.floor(shot.landingX / 10), 9);
               const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
               heatmapZones[zoneY][zoneX]++;
+              
+              // Track shot type for this zone
+              if (shot.stroke) {
+                heatmapShotTypes[zoneY][zoneX][shot.stroke] = 
+                  (heatmapShotTypes[zoneY][zoneX][shot.stroke] || 0) + 1;
+              }
             }
           }
         });
@@ -104,6 +116,12 @@ export async function GET(request: NextRequest) {
                   const zoneX = Math.min(Math.floor(shot.landingX / 10), 9);
                   const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
                   heatmapZones[zoneY][zoneX]++;
+                  
+                  // Track shot type for this zone
+                  if (shot.stroke) {
+                    heatmapShotTypes[zoneY][zoneX][shot.stroke] = 
+                      (heatmapShotTypes[zoneY][zoneX][shot.stroke] || 0) + 1;
+                  }
                 }
               }
             });
@@ -112,11 +130,34 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // Calculate dominant shot type for each zone
+    const heatmapWithDominant = heatmapZones.map((row, y) =>
+      row.map((count, x) => {
+        const shotTypes = heatmapShotTypes[y][x];
+        let dominantStroke: string | null = null;
+        let maxCount = 0;
+        
+        for (const [stroke, strokeCount] of Object.entries(shotTypes)) {
+          if (strokeCount > maxCount) {
+            maxCount = strokeCount;
+            dominantStroke = stroke;
+          }
+        }
+        
+        return {
+          count,
+          dominantStroke,
+          shotTypes, // Include full breakdown for tooltip
+        };
+      })
+    );
+
     // Convert shot distribution to array format for charts
     const shotDistributionArray = Object.entries(shotTypeDistribution)
       .filter(([_, count]) => count > 0)
-      .map(([name, count]) => ({
-        name: name.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" "),
+      .map(([stroke, count]) => ({
+        stroke, // Include original stroke key for color lookup
+        name: stroke.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" "),
         count,
       }))
       .sort((a, b) => b.count - a.count);
@@ -135,7 +176,7 @@ export async function GET(request: NextRequest) {
       data: {
         shotDistribution: shotDistributionArray,
         heatmap: heatmapData,
-        heatmapGrid: heatmapZones, // Full grid for advanced visualizations
+        heatmapGrid: heatmapWithDominant, // Grid with dominant shot type and count
       },
     });
   } catch (error) {

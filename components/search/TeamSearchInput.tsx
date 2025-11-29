@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, getInitial } from "@/lib/utils";
 import BlinkingDotsLoader from "../loaders/BlinkingDotsLoader";
 
 type Team = {
@@ -68,8 +68,6 @@ export default function TeamSearchInput({
     setSelectedTeam(null);
     setQuery("");
   };
-
-  const getInitial = (name: string) => name?.charAt(0)?.toUpperCase() || "?";
 
   return (
     <div className="relative w-full">

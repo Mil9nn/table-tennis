@@ -111,7 +111,6 @@ export function ManageParticipantsDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
             Manage Participants
           </DialogTitle>
           <DialogDescription>
@@ -168,10 +167,8 @@ export function ManageParticipantsDialog({
                           </div>
                         </div>
                         
-                        {isAdding ? (
+                        {isAdding && (
                           <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                        ) : (
-                          <UserPlus className="w-4 h-4 text-indigo-600" />
                         )}
                       </li>
                     );
@@ -249,4 +246,5 @@ export function ManageParticipantsDialog({
     </Dialog>
   );
 }
+
 

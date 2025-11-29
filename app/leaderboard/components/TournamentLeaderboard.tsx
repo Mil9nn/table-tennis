@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -88,8 +89,11 @@ export function TournamentLeaderboard({
 
                   {/* Player */}
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-7 w-7">
+                    <Link 
+                      href={`/profile/${entry.player._id}`}
+                      className="flex items-center gap-2 group"
+                    >
+                      <Avatar className="h-7 w-7 ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
                         <AvatarImage
                           src={entry.player.profileImage}
                           alt={getDisplayName(entry.player)}
@@ -99,14 +103,14 @@ export function TournamentLeaderboard({
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col leading-tight">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-[13px] font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
                           {getDisplayName(entry.player)}
                         </span>
                         <span className="text-[11px] text-slate-500">
                           @{entry.player.username}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
 
                   {/* Played */}

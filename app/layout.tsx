@@ -13,7 +13,15 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
-  title: "Table Tennis Scorer",
+  title: "Table Tennis Scorer - Live Match Scoring & Analytics",
+  description: "Professional table tennis match scoring, shot tracking, and performance analytics. Track singles, doubles, and team matches with real-time statistics and leaderboards.",
+  keywords: ["table tennis", "ping pong", "match scoring", "statistics", "tournament", "leaderboard"],
+  authors: [{ name: "Table Tennis Scorer" }],
+  openGraph: {
+    title: "Table Tennis Scorer - Live Match Scoring & Analytics",
+    description: "Professional table tennis match scoring, shot tracking, and performance analytics.",
+    type: "website",
+  },
   icons: {
     icon: "/favicon.ico",
     apple: "/icon-192.png"

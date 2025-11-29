@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -190,17 +191,18 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {entry.playerStats.map((ps) => (
-                              <div
+                              <Link
                                 key={ps.player._id}
-                                className="flex items-center gap-3 py-2 px-3 bg-white rounded-lg border border-slate-200"
+                                href={`/profile/${ps.player._id}`}
+                                className="flex items-center gap-3 py-2 px-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group"
                               >
-                                <Avatar className="h-6 w-6">
+                                <Avatar className="h-6 w-6 ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
                                   <AvatarImage src={ps.player.profileImage} />
                                   <AvatarFallback className="text-[10px] bg-muted">
                                     {getInitials(getDisplayName(ps.player))}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-[12px] flex-1 truncate font-medium text-slate-700">
+                                <span className="text-[12px] flex-1 truncate font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
                                   {getDisplayName(ps.player)}
                                 </span>
                                 <span className="text-[11px] text-slate-500">
@@ -209,7 +211,7 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
                                 <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0">
                                   {ps.winRate}%
                                 </Badge>
-                              </div>
+                              </Link>
                             ))}
                           </div>
                         </div>

@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { formatDateShort } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -102,18 +103,6 @@ export default function TournamentsPage() {
         return "bg-gray-50 text-gray-700 border-gray-100";
       default:
         return "bg-gray-50 text-gray-600 border-gray-100";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return "Unknown date";
     }
   };
 
@@ -235,7 +224,7 @@ export default function TournamentsPage() {
 
                     {/* INLINE ROW */}
                     <div className="flex items-center gap-1 mt-2 text-xs text-slate-600 flex-wrap">
-                      <span>{formatDate(tournament.startDate)}</span>
+                      <span>{formatDateShort(tournament.startDate)}</span>
                       <span className="text-slate-400">•</span>
                       <span>{tournament.city}</span>
                       <span className="text-slate-400">•</span>

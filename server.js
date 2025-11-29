@@ -29,7 +29,9 @@ app.prepare().then(() => {
     cors: {
       origin: dev
         ? ["http://localhost:3000", "http://127.0.0.1:3000"]
-        : process.env.NEXT_PUBLIC_SOCKET_URL || "*",
+        : process.env.NEXT_PUBLIC_SOCKET_URL 
+          ? [process.env.NEXT_PUBLIC_SOCKET_URL]
+          : false, // Disable CORS if not configured (same-origin only)
       credentials: true,
       methods: ["GET", "POST"],
     },

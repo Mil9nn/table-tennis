@@ -14,7 +14,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cropImageToSquare } from "@/lib/utils";
+import { cropImageToSquare, formatDateLong } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
 import EditProfileModal from "./EditProfileModal";
@@ -57,18 +57,6 @@ const ProfileHeader = ({
       toast.success("Profile updated");
     } catch {
       toast.error("Upload failed. Try again.");
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return "N/A";
     }
   };
 
@@ -214,7 +202,7 @@ const ProfileHeader = ({
               <div className="flex items-center gap-2">
                 <p className="text-gray-500 text-xs uppercase">Member Since</p>
                 <p className="text-gray-900 font-medium">
-                  {formatDate(user.createdAt)}
+                  {formatDateLong(user.createdAt)}
                 </p>
               </div>
             </div>
