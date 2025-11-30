@@ -9,7 +9,6 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { motion } from "framer-motion";
 import {
   Trophy,
-  Target,
   Flame,
   TrendingUp,
   Users,
@@ -24,6 +23,9 @@ import {
   BarChart3,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import JoinRightIcon from '@mui/icons-material/JoinRight';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 // Stat card component
 const StatCard = ({
@@ -224,14 +226,14 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto py-6 space-y-6">
         
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-800 dark:via-zinc-900 dark:to-black p-6 md:p-8"
+          className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-800 dark:via-zinc-900 dark:to-black p-6 md:p-8"
         >
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-5">
@@ -274,11 +276,11 @@ export default function UserProfilePage() {
               {/* Quick Stats Pills */}
               <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                 <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                  <Trophy className="w-3 h-3 text-amber-400" />
+                 <EmojiEventsIcon className="w-3 h-3 text-amber-400" />
                   {tournamentStats?.overview?.tournamentWins || 0} Championships
                 </span>
                 <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                  <Target className="w-3 h-3 text-emerald-400" />
+                  <JoinRightIcon className="w-3 h-3 text-emerald-400" />
                   {totalMatches} Matches
                 </span>
                 {bestStreak > 0 && (
@@ -298,7 +300,7 @@ export default function UserProfilePage() {
         </motion.div>
 
         {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-2">
           <StatCard
             label="Matches Won"
             value={totalWins}
@@ -338,26 +340,26 @@ export default function UserProfilePage() {
           <TabsList className="w-full max-w-lg mx-auto grid grid-cols-3 bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-xl">
             <TabsTrigger
               value="performance"
-              className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
+              className="rounded-none data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
             >
               Performance
             </TabsTrigger>
             <TabsTrigger
               value="tournaments"
-              className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
+              className="rounded-none data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
             >
               Tournaments
             </TabsTrigger>
             <TabsTrigger
               value="rivals"
-              className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
+              className="rounded-none data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
             >
               Rivals
             </TabsTrigger>
           </TabsList>
 
           {/* Performance Tab */}
-          <TabsContent value="performance" className="mt-6 space-y-4">
+          <TabsContent value="performance" className="mt-6 space-y-4 px-2">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
               {/* Match Type Breakdown */}
@@ -544,7 +546,7 @@ export default function UserProfilePage() {
           </TabsContent>
 
           {/* Tournaments Tab */}
-          <TabsContent value="tournaments" className="mt-6 space-y-4">
+          <TabsContent value="tournaments" className="mt-6 space-y-4 px-2">
             {loadingTournaments ? (
               <div className="space-y-4">
                 <Skeleton className="h-32 rounded-xl" />
@@ -648,7 +650,7 @@ export default function UserProfilePage() {
           </TabsContent>
 
           {/* Rivals Tab */}
-          <TabsContent value="rivals" className="mt-6">
+          <TabsContent value="rivals" className="mt-6 px-2">
             {stats.headToHead && stats.headToHead.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -726,6 +728,7 @@ export default function UserProfilePage() {
 
         {/* Teams Section */}
         {stats.teams && stats.teams.length > 0 && (
+          <div className="px-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -734,7 +737,6 @@ export default function UserProfilePage() {
           >
             <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Users className="w-4 h-4 text-zinc-400" />
                 Team Affiliations
               </h3>
             </div>
@@ -769,6 +771,7 @@ export default function UserProfilePage() {
               ))}
             </div>
           </motion.div>
+          </div>
         )}
       </div>
     </div>

@@ -149,13 +149,11 @@ export async function POST(
       await tournament.save();
     }
 
-    // CASE 0: Multi-Stage Tournament (Round Robin → Knockout)
+    // CASE 0: Multi-Stage Tournament (Round Robin/Group Stage → Knockout)
     if (tournament.format === "multi_stage") {
-      // Determine how many advance to knockout
       const advanceCount =
         tournament.advancePerGroup || tournament.rules.advanceTop || 4;
 
-      // For multi-stage without groups, treat all participants as one group
       if (!tournament.useGroups) {
         // Generate round robin schedule for all participants
         const schedule =
@@ -528,7 +526,18 @@ export async function POST(
           points: 0,
           rank: 0,
           form: [],
+          headToHead: new Map(),
         }));
+
+        // Validate group round-robin schedule completeness
+        const groupSize = groupAlloc.participants.length;
+        const expectedGroupMatches = (groupSize * (groupSize - 1)) / 2;
+        const actualGroupMatches = groupRounds.reduce((sum, r) => sum + r.matches.length, 0);
+        if (actualGroupMatches !== expectedGroupMatches) {
+          console.warn(
+            `Group ${groupAlloc.groupName} schedule validation: Expected ${expectedGroupMatches} matches, got ${actualGroupMatches}`
+          );
+        }
 
         groups.push({
           groupId: groupAlloc.groupId,
@@ -543,33 +552,38 @@ export async function POST(
       tournament.rounds = []; // No overall rounds, only group rounds
       tournament.standings = []; // Will be filled after group stage
 
-      // Round robin with groups is multi-stage: group stage → knockout
-      const advancePerGroup = tournament.advancePerGroup || 2;
-      tournament.isMultiStage = true;
-      tournament.currentStageNumber = 1;
-      tournament.stages = [
-        {
-          stageNumber: 1,
-          name: "Group Stage",
-          format: "round_robin",
-          status: "in_progress",
-          groups: groups,
-        },
-        {
-          stageNumber: 2,
-          name: "Knockout Stage",
-          format: "knockout",
-          status: "pending",
-          qualification: {
-            fromStage: 1,
-            qualifyingPositions: Array.from(
-              { length: advancePerGroup },
-              (_, i) => i + 1
-            ),
-            qualifyingMethod: "position",
+      // Only set multi-stage if format is multi_stage
+      if (tournament.format === "multi_stage") {
+        const advancePerGroup = tournament.advancePerGroup || 2;
+        tournament.isMultiStage = true;
+        tournament.currentStageNumber = 1;
+        tournament.stages = [
+          {
+            stageNumber: 1,
+            name: "Group Stage",
+            format: "round_robin",
+            status: "in_progress",
+            groups: groups,
           },
-        },
-      ];
+          {
+            stageNumber: 2,
+            name: "Knockout Stage",
+            format: "knockout",
+            status: "pending",
+            qualification: {
+              fromStage: 1,
+              qualifyingPositions: Array.from(
+                { length: advancePerGroup },
+                (_, i) => i + 1
+              ),
+              qualifyingMethod: "position",
+            },
+          },
+        ];
+      } else {
+        // Pure round-robin with groups - no knockout stage
+        tournament.isMultiStage = false;
+      }
     }
     // CASE 3: Single Round-Robin (no groups)
     else if (tournament.format === "round_robin") {
@@ -630,32 +644,17 @@ export async function POST(
       tournament.rounds = rounds;
       tournament.standings = standings;
 
-      // Round robin is multi-stage: league → knockout
-      const advanceCount = tournament.rules.advanceTop || 4;
-      tournament.isMultiStage = true;
-      tournament.currentStageNumber = 1;
-      tournament.stages = [
-        {
-          stageNumber: 1,
-          name: "League Stage",
-          format: "round_robin",
-          status: "in_progress",
-        },
-        {
-          stageNumber: 2,
-          name: "Knockout Stage",
-          format: "knockout",
-          status: "pending",
-          qualification: {
-            fromStage: 1,
-            qualifyingPositions: Array.from(
-              { length: advanceCount },
-              (_, i) => i + 1
-            ),
-            qualifyingMethod: "position",
-          },
-        },
-      ];
+      // Validate round-robin schedule completeness
+      const expectedMatches = (participantIds.length * (participantIds.length - 1)) / 2;
+      const actualMatches = rounds.reduce((sum, r) => sum + r.matches.length, 0);
+      if (actualMatches !== expectedMatches) {
+        console.warn(
+          `Round-robin schedule validation: Expected ${expectedMatches} matches, got ${actualMatches}`
+        );
+      }
+
+      // Pure round-robin format - no knockout stage
+      tournament.isMultiStage = false;
     }
     // Invalid format (should not happen due to schema validation)
     else {

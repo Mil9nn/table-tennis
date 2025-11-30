@@ -1,39 +1,98 @@
 // models/Tournament.ts
 import mongoose, { Schema, Document } from "mongoose";
 
+// Reusable sub-schemas to avoid duplication
+const standingSchema = new Schema({
+  participant: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  played: { type: Number, default: 0 },
+  won: { type: Number, default: 0 },
+  lost: { type: Number, default: 0 },
+  drawn: { type: Number, default: 0 },
+  setsWon: { type: Number, default: 0 },
+  setsLost: { type: Number, default: 0 },
+  setsDiff: { type: Number, default: 0 },
+  pointsScored: { type: Number, default: 0 },
+  pointsConceded: { type: Number, default: 0 },
+  pointsDiff: { type: Number, default: 0 },
+  points: { type: Number, default: 0 },
+  rank: { type: Number, default: 0 },
+  form: [{ type: String }],
+  headToHead: { type: Map, of: Number },
+}, { _id: false });
+
+const roundSchema = new Schema({
+  roundNumber: { type: Number, required: true },
+  matches: [{ type: Schema.Types.ObjectId, ref: "IndividualMatch" }],
+  completed: { type: Boolean, default: false },
+  scheduledDate: { type: Date },
+  scheduledTime: { type: String },
+}, { _id: false });
+
+const groupSchema = new Schema({
+  groupId: { type: String, required: true },
+  groupName: { type: String, required: true },
+  participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  rounds: [roundSchema],
+  standings: [standingSchema],
+}, { _id: false });
+
+const bracketMatchSchema = new Schema({
+  matchId: { type: Schema.Types.ObjectId, ref: "IndividualMatch" },
+  bracketPosition: { type: Number, required: true },
+  roundNumber: { type: Number, required: true },
+  participant1: {
+    type: {
+      type: String,
+      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
+      required: true,
+    },
+    participantId: { type: Schema.Types.ObjectId, ref: "User" },
+    fromMatchPosition: { type: Number },
+    isWinnerOf: { type: Boolean },
+    fromGroupId: { type: String },
+    fromGroupPosition: { type: Number },
+  },
+  participant2: {
+    type: {
+      type: String,
+      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
+      required: true,
+    },
+    participantId: { type: Schema.Types.ObjectId, ref: "User" },
+    fromMatchPosition: { type: Number },
+    isWinnerOf: { type: Boolean },
+    fromGroupId: { type: String },
+    fromGroupPosition: { type: Number },
+  },
+  winner: { type: Schema.Types.ObjectId, ref: "User" },
+  loser: { type: Schema.Types.ObjectId, ref: "User" },
+  nextMatchPosition: { type: Number },
+  loserNextPosition: { type: Number },
+  scheduledTime: { type: Date },
+  completed: { type: Boolean, default: false },
+}, { _id: false });
+
+const bracketRoundSchema = new Schema({
+  roundNumber: { type: Number, required: true },
+  name: { type: String, required: true },
+  matches: [bracketMatchSchema],
+  completed: { type: Boolean, default: false },
+  scheduledDate: { type: Date },
+}, { _id: false });
+
+const bracketSchema = new Schema({
+  size: { type: Number, required: true },
+  rounds: [bracketRoundSchema],
+  consolationBracket: { type: Boolean, default: false },
+  thirdPlaceMatchPosition: { type: Number },
+}, { _id: false });
+
+// Interfaces (needed for TypeScript typing in other files)
 export interface ISeeding {
   participant: mongoose.Types.ObjectId;
   seedNumber: number;
   seedingRank?: number; // ITTF ranking or custom ranking
   seedingPoints?: number;
-}
-
-export interface IGroup {
-  groupId: string; // e.g., "A", "B", "C"
-  groupName: string; // e.g., "Group A"
-  participants: mongoose.Types.ObjectId[];
-  rounds: Array<{
-    roundNumber: number;
-    matches: mongoose.Types.ObjectId[];
-    completed: boolean;
-    scheduledDate?: Date;
-  }>;
-  standings: Array<{
-    participant: mongoose.Types.ObjectId;
-    played: number;
-    won: number;
-    lost: number;
-    drawn: number;
-    setsWon: number;
-    setsLost: number;
-    setsDiff: number;
-    pointsScored: number;
-    pointsConceded: number;
-    pointsDiff: number;
-    points: number;
-    rank: number;
-    form: string[]; // Last 5 results: "W", "L", "D"
-  }>;
 }
 
 export interface IStanding {
@@ -54,7 +113,6 @@ export interface IStanding {
   headToHead?: Map<string, number>; // opponent ID -> points in H2H
 }
 
-// Knockout tournament interfaces
 export interface IParticipantSlot {
   type: "direct" | "from_match" | "from_group" | "bye" | "tbd";
   participantId?: mongoose.Types.ObjectId;
@@ -91,6 +149,19 @@ export interface IKnockoutBracket {
   rounds: IKnockoutRound[];
   consolationBracket?: boolean;
   thirdPlaceMatchPosition?: number;
+}
+
+export interface IGroup {
+  groupId: string; // e.g., "A", "B", "C"
+  groupName: string; // e.g., "Group A"
+  participants: mongoose.Types.ObjectId[];
+  rounds: Array<{
+    roundNumber: number;
+    matches: mongoose.Types.ObjectId[];
+    completed: boolean;
+    scheduledDate?: Date;
+  }>;
+  standings: IStanding[]; // Last 5 results: "W", "L", "D"
 }
 
 export interface ITournamentStage {
@@ -234,72 +305,14 @@ const tournamentSchema = new Schema<ITournament>(
     // Groups/Pools
     useGroups: { type: Boolean, default: false },
     numberOfGroups: { type: Number },
-    groups: [
-      {
-        groupId: { type: String, required: true },
-        groupName: { type: String, required: true },
-        participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
-        rounds: [
-          {
-            roundNumber: { type: Number, required: true },
-            matches: [{ type: Schema.Types.ObjectId, ref: "IndividualMatch" }],
-            completed: { type: Boolean, default: false },
-            scheduledDate: { type: Date },
-          },
-        ],
-        standings: [
-          {
-            participant: { type: Schema.Types.ObjectId, ref: "User" },
-            played: { type: Number, default: 0 },
-            won: { type: Number, default: 0 },
-            lost: { type: Number, default: 0 },
-            drawn: { type: Number, default: 0 },
-            setsWon: { type: Number, default: 0 },
-            setsLost: { type: Number, default: 0 },
-            setsDiff: { type: Number, default: 0 },
-            pointsScored: { type: Number, default: 0 },
-            pointsConceded: { type: Number, default: 0 },
-            pointsDiff: { type: Number, default: 0 },
-            points: { type: Number, default: 0 },
-            rank: { type: Number, default: 0 },
-            form: [{ type: String }],
-          },
-        ],
-      },
-    ],
+    groups: [groupSchema],
     advancePerGroup: { type: Number },
 
     // Rounds
-    rounds: [
-      {
-        roundNumber: { type: Number, required: true },
-        matches: [{ type: Schema.Types.ObjectId, ref: "IndividualMatch" }],
-        completed: { type: Boolean, default: false },
-        scheduledDate: { type: Date },
-        scheduledTime: { type: String },
-      },
-    ],
+    rounds: [roundSchema],
 
     // Standings
-    standings: [
-      {
-        participant: { type: Schema.Types.ObjectId, ref: "User" },
-        played: { type: Number, default: 0 },
-        won: { type: Number, default: 0 },
-        lost: { type: Number, default: 0 },
-        drawn: { type: Number, default: 0 },
-        setsWon: { type: Number, default: 0 },
-        setsLost: { type: Number, default: 0 },
-        setsDiff: { type: Number, default: 0 },
-        pointsScored: { type: Number, default: 0 },
-        pointsConceded: { type: Number, default: 0 },
-        pointsDiff: { type: Number, default: 0 },
-        points: { type: Number, default: 0 },
-        rank: { type: Number, default: 0 },
-        form: [{ type: String }],
-        headToHead: { type: Map, of: Number },
-      },
-    ],
+    standings: [standingSchema],
 
     // Multi-stage tournament support
     isMultiStage: { type: Boolean, default: false },
@@ -319,79 +332,8 @@ const tournamentSchema = new Schema<ITournament>(
           enum: ["pending", "in_progress", "completed"],
           default: "pending",
         },
-        groups: [
-          {
-            groupId: { type: String },
-            groupName: { type: String },
-            participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
-            rounds: [
-              {
-                roundNumber: { type: Number },
-                matches: [{ type: Schema.Types.ObjectId, ref: "IndividualMatch" }],
-                completed: { type: Boolean, default: false },
-                scheduledDate: { type: Date },
-              },
-            ],
-            standings: [
-              {
-                participant: { type: Schema.Types.ObjectId, ref: "User" },
-                played: { type: Number, default: 0 },
-                won: { type: Number, default: 0 },
-                lost: { type: Number, default: 0 },
-                points: { type: Number, default: 0 },
-                rank: { type: Number, default: 0 },
-              },
-            ],
-          },
-        ],
-        bracket: {
-          size: { type: Number },
-          rounds: [
-            {
-              roundNumber: { type: Number },
-              name: { type: String },
-              matches: [
-                {
-                  matchId: { type: Schema.Types.ObjectId, ref: "IndividualMatch" },
-                  bracketPosition: { type: Number, required: true },
-                  roundNumber: { type: Number, required: true },
-                  participant1: {
-                    type: {
-                      type: String,
-                      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-                    },
-                    participantId: { type: Schema.Types.ObjectId, ref: "User" },
-                    fromMatchPosition: { type: Number },
-                    isWinnerOf: { type: Boolean },
-                    fromGroupId: { type: String },
-                    fromGroupPosition: { type: Number },
-                  },
-                  participant2: {
-                    type: {
-                      type: String,
-                      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-                    },
-                    participantId: { type: Schema.Types.ObjectId, ref: "User" },
-                    fromMatchPosition: { type: Number },
-                    isWinnerOf: { type: Boolean },
-                    fromGroupId: { type: String },
-                    fromGroupPosition: { type: Number },
-                  },
-                  winner: { type: Schema.Types.ObjectId, ref: "User" },
-                  loser: { type: Schema.Types.ObjectId, ref: "User" },
-                  nextMatchPosition: { type: Number },
-                  loserNextPosition: { type: Number },
-                  scheduledTime: { type: Date },
-                  completed: { type: Boolean, default: false },
-                },
-              ],
-              completed: { type: Boolean, default: false },
-              scheduledDate: { type: Date },
-            },
-          ],
-          consolationBracket: { type: Boolean, default: false },
-          thirdPlaceMatchPosition: { type: Number },
-        },
+        groups: [groupSchema],
+        bracket: bracketSchema,
         qualification: {
           fromStage: { type: Number },
           qualifyingPositions: [{ type: Number }],
@@ -406,54 +348,7 @@ const tournamentSchema = new Schema<ITournament>(
     currentStageNumber: { type: Number, default: 1 },
 
     // Knockout bracket (for single-stage knockout tournaments)
-    bracket: {
-      size: { type: Number },
-      rounds: [
-        {
-          roundNumber: { type: Number },
-          name: { type: String },
-          matches: [
-            {
-              matchId: { type: Schema.Types.ObjectId, ref: "IndividualMatch" },
-              bracketPosition: { type: Number, required: true },
-              roundNumber: { type: Number, required: true },
-              participant1: {
-                type: {
-                  type: String,
-                  enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-                },
-                participantId: { type: Schema.Types.ObjectId, ref: "User" },
-                fromMatchPosition: { type: Number },
-                isWinnerOf: { type: Boolean },
-                fromGroupId: { type: String },
-                fromGroupPosition: { type: Number },
-              },
-              participant2: {
-                type: {
-                  type: String,
-                  enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-                },
-                participantId: { type: Schema.Types.ObjectId, ref: "User" },
-                fromMatchPosition: { type: Number },
-                isWinnerOf: { type: Boolean },
-                fromGroupId: { type: String },
-                fromGroupPosition: { type: Number },
-              },
-              winner: { type: Schema.Types.ObjectId, ref: "User" },
-              loser: { type: Schema.Types.ObjectId, ref: "User" },
-              nextMatchPosition: { type: Number },
-              loserNextPosition: { type: Number },
-              scheduledTime: { type: Date },
-              completed: { type: Boolean, default: false },
-            },
-          ],
-          completed: { type: Boolean, default: false },
-          scheduledDate: { type: Date },
-        },
-      ],
-      consolationBracket: { type: Boolean, default: false },
-      thirdPlaceMatchPosition: { type: Number },
-    },
+    bracket: bracketSchema,
 
     // Rules (ITTF-compliant defaults)
     rules: {

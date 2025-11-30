@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { TeamMatch } from "@/types/match.type";
 import { formatDate } from "@/lib/utils";
-import MatchStatusBadge from "./MatchStatusBadge";
 
 interface TeamMatchesListProps {
   matches: TeamMatch[];
@@ -77,7 +76,19 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
 
             {/* Status & Arrow */}
             <div className="flex items-center gap-2 shrink-0">
-              <MatchStatusBadge status={match.status} />
+              {/* Minimal status dot - only show for non-completed matches */}
+              {match.status !== "completed" && (
+                <div
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    match.status === "scheduled"
+                      ? "bg-yellow-500"
+                      : match.status === "in_progress"
+                      ? "bg-blue-500"
+                      : "bg-red-500"
+                  }`}
+                  title={match.status}
+                />
+              )}
               <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500" />
             </div>
           </Link>

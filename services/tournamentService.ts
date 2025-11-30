@@ -56,55 +56,55 @@ export function generateRoundRobinSchedule(
   const schedule: RoundSchedule[] = [];
 
   /**
-   * Berger Tables Algorithm:
-   * - Fix one player (usually highest seed) in position
-   * - Rotate all other players clockwise
-   * - Create pairings by matching opposite positions
+   * Berger Tables Algorithm (Corrected):
+   * - Fix the last player (index n-1) in position
+   * - Rotate all other players clockwise each round
+   * - Pair fixed player with first rotated player, then pair others symmetrically
    */
   for (let round = 0; round < numRounds; round++) {
     const roundMatches: MatchPairing[] = [];
     let currentDate = startDate;
 
-    for (let match = 0; match < matchesPerRound; match++) {
-      // Calculate positions using round-robin rotation
-      const home = (round + match) % (totalPlayers - 1);
-      const away = (totalPlayers - 1 - match + round) % (totalPlayers - 1);
+    // Create rotation array for this round
+    const rotated = [...players];
+    
+    // Rotate players (except the last one which stays fixed)
+    if (round > 0) {
+      // Rotate all players except the last one clockwise
+      const toRotate = rotated.slice(0, totalPlayers - 1);
+      const rotationAmount = round;
+      const rotatedPart = [
+        ...toRotate.slice(rotationAmount),
+        ...toRotate.slice(0, rotationAmount)
+      ];
+      rotated.splice(0, totalPlayers - 1, ...rotatedPart);
+    }
 
-      // First player is fixed, others rotate
-      const player1 = match === 0 ? players[totalPlayers - 1] : players[home];
-      const player2 = players[away];
+    // Create pairings: fixed player (last) vs first, then pair others symmetrically
+    for (let i = 0; i < matchesPerRound; i++) {
+      const player1 = rotated[i];
+      const player2 = rotated[totalPlayers - 1 - i];
 
       // Skip bye matches
       if (player1 !== "BYE" && player2 !== "BYE") {
-        // ❗ NEW: Prevent duplicate matchups (A vs B or B vs A)
-        const alreadyPlayed = schedule.some((r) =>
-          r.matches.some(
-            (m) =>
-              (m.player1 === player1 && m.player2 === player2) ||
-              (m.player1 === player2 && m.player2 === player1)
-          )
-        );
+        const matchPairing: MatchPairing = {
+          player1,
+          player2,
+          table: (i % courtsAvailable) + 1,
+        };
 
-        if (!alreadyPlayed) {
-          const matchPairing: MatchPairing = {
-            player1,
-            player2,
-            table: (match % courtsAvailable) + 1,
-          };
+        // Calculate scheduled time if start date provided
+        if (currentDate) {
+          const courtIndex = i % courtsAvailable;
+          const timeSlot = Math.floor(i / courtsAvailable);
+          const minutesOffset = timeSlot * matchDuration;
 
-          // Calculate scheduled time if start date provided
-          if (currentDate) {
-            const courtIndex = match % courtsAvailable;
-            const timeSlot = Math.floor(match / courtsAvailable);
-            const minutesOffset = timeSlot * matchDuration;
-
-            matchPairing.scheduledTime = new Date(
-              currentDate.getTime() + minutesOffset * 60000
-            );
-          }
-
-          roundMatches.push(matchPairing);
+          matchPairing.scheduledTime = new Date(
+            currentDate.getTime() + minutesOffset * 60000
+          );
         }
+
+        roundMatches.push(matchPairing);
       }
     }
 
@@ -327,18 +327,41 @@ export function calculateStandings(
   
 
   completedMatches.forEach((match) => {
-    // Convert ObjectId to string for comparison
-    const p1Id = match.participants[0]?.toString();
-    const p2Id = match.participants[1]?.toString();
-
+    // For doubles: participants[0] and participants[1] are team 1, participants[2] and participants[3] are team 2
+    // For singles: participants[0] is player 1, participants[1] is player 2
+    const isDoubles = match.participants && match.participants.length === 4;
     
+    // Get team/player IDs for standings
+    let p1Id: string;
+    let p2Id: string;
+    
+    if (isDoubles) {
+      // For doubles, use the first player of each team as the team identifier
+      // Both players in a team share the same stats
+      p1Id = match.participants[0]?.toString();
+      p2Id = match.participants[2]?.toString();
+    } else {
+      p1Id = match.participants[0]?.toString();
+      p2Id = match.participants[1]?.toString();
+    }
+
+    if (!p1Id || !p2Id) {
+      return;
+    }
 
     const p1Stats = standingsMap.get(p1Id);
     const p2Stats = standingsMap.get(p2Id);
 
     if (!p1Stats || !p2Stats) {
-      
       return;
+    }
+    
+    // For doubles, get partner IDs for syncing stats later
+    let p1PartnerId: string | null = null;
+    let p2PartnerId: string | null = null;
+    if (isDoubles) {
+      p1PartnerId = match.participants[1]?.toString() || null;
+      p2PartnerId = match.participants[3]?.toString() || null;
     }
 
     // Update matches played
@@ -408,6 +431,47 @@ export function calculateStandings(
     // Keep only last 5 form results
     if (p1Stats.form.length > 5) p1Stats.form.shift();
     if (p2Stats.form.length > 5) p2Stats.form.shift();
+    
+    // For doubles, sync partner stats (they share the same team record)
+    if (isDoubles && p1PartnerId && p2PartnerId) {
+      // Sync team 1 partner stats
+      if (standingsMap.has(p1PartnerId)) {
+        const p1PartnerStats = standingsMap.get(p1PartnerId)!;
+        // Sync all stats with team leader
+        p1PartnerStats.played = p1Stats.played;
+        p1PartnerStats.won = p1Stats.won;
+        p1PartnerStats.lost = p1Stats.lost;
+        p1PartnerStats.drawn = p1Stats.drawn;
+        p1PartnerStats.setsWon = p1Stats.setsWon;
+        p1PartnerStats.setsLost = p1Stats.setsLost;
+        p1PartnerStats.setsDiff = p1Stats.setsDiff;
+        p1PartnerStats.pointsScored = p1Stats.pointsScored;
+        p1PartnerStats.pointsConceded = p1Stats.pointsConceded;
+        p1PartnerStats.pointsDiff = p1Stats.pointsDiff;
+        p1PartnerStats.points = p1Stats.points;
+        p1PartnerStats.form = [...p1Stats.form];
+        p1PartnerStats.headToHead = new Map(p1Stats.headToHead);
+      }
+      
+      // Sync team 2 partner stats
+      if (standingsMap.has(p2PartnerId)) {
+        const p2PartnerStats = standingsMap.get(p2PartnerId)!;
+        // Sync all stats with team leader
+        p2PartnerStats.played = p2Stats.played;
+        p2PartnerStats.won = p2Stats.won;
+        p2PartnerStats.lost = p2Stats.lost;
+        p2PartnerStats.drawn = p2Stats.drawn;
+        p2PartnerStats.setsWon = p2Stats.setsWon;
+        p2PartnerStats.setsLost = p2Stats.setsLost;
+        p2PartnerStats.setsDiff = p2Stats.setsDiff;
+        p2PartnerStats.pointsScored = p2Stats.pointsScored;
+        p2PartnerStats.pointsConceded = p2Stats.pointsConceded;
+        p2PartnerStats.pointsDiff = p2Stats.pointsDiff;
+        p2PartnerStats.points = p2Stats.points;
+        p2PartnerStats.form = [...p2Stats.form];
+        p2PartnerStats.headToHead = new Map(p2Stats.headToHead);
+      }
+    }
   });
 
   // Calculate differences
@@ -430,14 +494,31 @@ export function calculateStandings(
     // 1. Match points
     if (b.points !== a.points) return b.points - a.points;
 
-    // 2. Head-to-head (ONLY if exactly 2 players are tied at this point level)
+    // 2. Head-to-head (for 2-way ties: direct comparison, for 3+ way ties: mini-league)
     const playersAtThisLevel = pointsGroups.get(a.points) || 0;
 
     if (playersAtThisLevel === 2) {
+      // Two-way tie: direct head-to-head
       const h2hA = a.headToHead.get(b.participant);
       const h2hB = b.headToHead.get(a.participant);
       if (h2hA !== undefined && h2hB !== undefined && h2hB !== h2hA) {
         return h2hB - h2hA;
+      }
+    } else if (playersAtThisLevel > 2) {
+      // Multi-way tie: create mini-league of tied players (only matches between tied players count)
+      const tiedPlayers = standings.filter((s) => s.points === a.points);
+      const tiedIds = new Set(tiedPlayers.map((s) => s.participant));
+      
+      // Calculate mini-league points (only matches between tied players)
+      const aMiniPoints = Array.from(a.headToHead.entries())
+        .filter(([opponentId]) => tiedIds.has(opponentId))
+        .reduce((sum, [, points]) => sum + points, 0);
+      const bMiniPoints = Array.from(b.headToHead.entries())
+        .filter(([opponentId]) => tiedIds.has(opponentId))
+        .reduce((sum, [, points]) => sum + points, 0);
+      
+      if (aMiniPoints !== bMiniPoints) {
+        return bMiniPoints - aMiniPoints;
       }
     }
 

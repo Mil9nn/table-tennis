@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { Loader2, UserPlus, X, Search, Users } from "lucide-react";
+import { Loader2, UserPlus, X, Search, Users, Save } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@/types/user";
 import { Participant } from "@/types/tournament.type";
@@ -37,9 +37,26 @@ export function ManageParticipantsDialog({
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
-  const [addingId, setAddingId] = useState<string | null>(null);
-  const [removingId, setRemovingId] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Track pending changes locally
+  const [pendingAdds, setPendingAdds] = useState<User[]>([]);
+  const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
+  
+  // Local state for current participants (includes pending changes)
+  const [localParticipants, setLocalParticipants] = useState<Participant[]>([]);
+
+  // Initialize local participants when dialog opens or participants change
+  useEffect(() => {
+    if (open) {
+      setLocalParticipants(participants);
+      setPendingAdds([]);
+      setPendingRemoves([]);
+      setQuery("");
+      setSuggestions([]);
+    }
+  }, [open, participants]);
 
   const fetchSuggestions = async (val: string) => {
     setQuery(val);
@@ -51,10 +68,13 @@ export function ManageParticipantsDialog({
     setSearching(true);
     try {
       const response = await axiosInstance.get(`/users/search?q=${val}`);
-      // Filter out users who are already participants
-      const existingIds = participants.map((p) => p._id);
+      // Filter out users who are already participants (including pending adds)
+      const existingIds = new Set([
+        ...localParticipants.map((p) => p._id),
+        ...pendingAdds.map((u) => u._id),
+      ]);
       const filtered = (response.data?.users || []).filter(
-        (u: User) => !existingIds.includes(u._id)
+        (u: User) => !existingIds.has(u._id)
       );
       setSuggestions(filtered);
     } catch (err) {
@@ -64,45 +84,90 @@ export function ManageParticipantsDialog({
     }
   };
 
-  const addParticipant = async (user: User) => {
-    setAddingId(user._id);
+  const addParticipant = (user: User) => {
+    // Add to pending adds and local participants
+    setPendingAdds([...pendingAdds, user]);
+    setLocalParticipants([
+      ...localParticipants,
+      {
+        _id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        profileImage: user.profileImage,
+      } as Participant,
+    ]);
+    
+    // Clear search
+    setQuery("");
+    setSuggestions([]);
+  };
+
+  const removeParticipant = (participant: Participant) => {
+    // Check if it's a pending add (not yet saved)
+    const isPendingAdd = pendingAdds.some((u) => u._id === participant._id);
+    
+    if (isPendingAdd) {
+      // Remove from pending adds
+      setPendingAdds(pendingAdds.filter((u) => u._id !== participant._id));
+    } else {
+      // Add to pending removes
+      setPendingRemoves([...pendingRemoves, participant._id]);
+    }
+    
+    // Remove from local participants
+    setLocalParticipants(localParticipants.filter((p) => p._id !== participant._id));
+  };
+
+  const handleSave = async () => {
+    if (pendingAdds.length === 0 && pendingRemoves.length === 0) {
+      onOpenChange(false);
+      return;
+    }
+
+    setSaving(true);
     try {
-      const { data } = await axiosInstance.post(
-        `/tournaments/${tournamentId}/add-participant`,
-        { participantId: user._id }
+      // Apply all additions
+      for (const user of pendingAdds) {
+        await axiosInstance.post(`/tournaments/${tournamentId}/add-participant`, {
+          participantId: user._id,
+        });
+      }
+
+      // Apply all removals
+      for (const participantId of pendingRemoves) {
+        await axiosInstance.delete(`/tournaments/${tournamentId}/add-participant`, {
+          data: { participantId },
+        });
+      }
+
+      // Fetch updated tournament to get latest participants
+      const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
+      onUpdate(data.tournament.participants);
+      
+      toast.success(
+        `Successfully ${pendingAdds.length > 0 ? `added ${pendingAdds.length} participant${pendingAdds.length > 1 ? 's' : ''}` : ''}${pendingAdds.length > 0 && pendingRemoves.length > 0 ? ' and ' : ''}${pendingRemoves.length > 0 ? `removed ${pendingRemoves.length} participant${pendingRemoves.length > 1 ? 's' : ''}` : ''}`
       );
       
-      onUpdate(data.tournament.participants);
-      toast.success(`${user.fullName || user.username} added to tournament`);
-      
-      // Clear search
-      setQuery("");
-      setSuggestions([]);
+      onOpenChange(false);
     } catch (err: any) {
-      console.error("Error adding participant:", err);
-      toast.error(err.response?.data?.error || "Failed to add participant");
+      console.error("Error saving participants:", err);
+      toast.error(err.response?.data?.error || "Failed to save changes");
     } finally {
-      setAddingId(null);
+      setSaving(false);
     }
   };
 
-  const removeParticipant = async (participant: Participant) => {
-    setRemovingId(participant._id);
-    try {
-      const { data } = await axiosInstance.delete(
-        `/tournaments/${tournamentId}/add-participant`,
-        { data: { participantId: participant._id } }
-      );
-      
-      onUpdate(data.tournament.participants);
-      toast.success(`${participant.fullName || participant.username} removed from tournament`);
-    } catch (err: any) {
-      console.error("Error removing participant:", err);
-      toast.error(err.response?.data?.error || "Failed to remove participant");
-    } finally {
-      setRemovingId(null);
-    }
+  const handleCancel = () => {
+    // Reset to original state
+    setLocalParticipants(participants);
+    setPendingAdds([]);
+    setPendingRemoves([]);
+    setQuery("");
+    setSuggestions([]);
+    onOpenChange(false);
   };
+
+  const hasChanges = pendingAdds.length > 0 || pendingRemoves.length > 0;
 
   const getInitial = (name: string) => name?.charAt(0)?.toUpperCase() || "?";
 
@@ -145,14 +210,13 @@ export function ManageParticipantsDialog({
                 <ul className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
                   {suggestions.map((u) => {
                     const displayName = u.fullName || u.username;
-                    const isAdding = addingId === u._id;
                     
                     return (
                       <li
                         key={u._id}
                         className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 cursor-pointer transition-colors"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => !isAdding && addParticipant(u)}
+                        onClick={() => addParticipant(u)}
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
@@ -166,10 +230,7 @@ export function ManageParticipantsDialog({
                             <span className="text-xs text-slate-500">@{u.username}</span>
                           </div>
                         </div>
-                        
-                        {isAdding && (
-                          <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                        )}
+                        <UserPlus className="w-4 h-4 text-indigo-600" />
                       </li>
                     );
                   })}
@@ -186,25 +247,36 @@ export function ManageParticipantsDialog({
 
           {/* Current participants list */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              Current Participants ({participants.length})
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700">
+                Participants ({localParticipants.length})
+              </label>
+              {hasChanges && (
+                <span className="text-xs text-indigo-600 font-medium">
+                  {pendingAdds.length > 0 && `+${pendingAdds.length} `}
+                  {pendingRemoves.length > 0 && `-${pendingRemoves.length}`}
+                </span>
+              )}
+            </div>
             
             <ScrollArea className="h-[240px] border rounded-lg">
-              {participants.length === 0 ? (
+              {localParticipants.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-slate-500">
                   <Users className="w-8 h-8 mb-2 opacity-50" />
                   <p className="text-sm">No participants yet</p>
                 </div>
               ) : (
                 <div className="divide-y">
-                  {participants.map((p) => {
-                    const isRemoving = removingId === p._id;
+                  {localParticipants.map((p) => {
+                    const isPendingAdd = pendingAdds.some((u) => u._id === p._id);
+                    const isPendingRemove = pendingRemoves.includes(p._id);
                     
                     return (
                       <div
                         key={p._id}
-                        className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors"
+                        className={`flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors ${
+                          isPendingAdd ? "bg-green-50" : isPendingRemove ? "bg-red-50 opacity-60" : ""
+                        }`}
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
@@ -214,9 +286,14 @@ export function ManageParticipantsDialog({
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col leading-tight">
-                            <span className="text-sm font-medium text-slate-800">
-                              {p.fullName || p.username}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-800">
+                                {p.fullName || p.username}
+                              </span>
+                              {isPendingAdd && (
+                                <span className="text-xs text-green-600 font-medium">(new)</span>
+                              )}
+                            </div>
                             <span className="text-xs text-slate-500">@{p.username}</span>
                           </div>
                         </div>
@@ -225,14 +302,9 @@ export function ManageParticipantsDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeParticipant(p)}
-                          disabled={isRemoving}
                           className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
                         >
-                          {isRemoving ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <X className="w-4 h-4" />
-                          )}
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     );
@@ -242,9 +314,39 @@ export function ManageParticipantsDialog({
             </ScrollArea>
           </div>
         </div>
+
+        {/* Save/Cancel buttons */}
+        <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className="min-w-[100px]"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </>
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+
 
 

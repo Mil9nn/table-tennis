@@ -48,7 +48,7 @@ import { cn } from "@/lib/utils";
 
 const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
-  format: z.enum(["round_robin", "knockout"]),
+  format: z.enum(["round_robin", "knockout", "multi_stage"]),
   category: z.enum(["individual", "team"]),
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   startDate: z.date({
@@ -82,7 +82,7 @@ export default function CreateTournamentPage() {
       city: "",
       venue: "",
       setsPerMatch: "3",
-      pointsForWin: "1",
+      pointsForWin: "2", // ITTF standard: 2 points for win
       useGroups: false,
       numberOfGroups: "4",
       advancePerGroup: "2",
@@ -140,15 +140,15 @@ export default function CreateTournamentPage() {
           ? Number(data.advancePerGroup)
           : undefined,
         seedingMethod: data.seedingMethod,
-        // Round robin tournaments are multi-stage (league → knockout)
-        isMultiStage: data.format === "round_robin",
+        // Multi-stage format (round-robin/group stage → knockout)
+        isMultiStage: data.format === "multi_stage",
         rules: {
           setsPerMatch: Number(data.setsPerMatch),
           pointsPerSet: 11,
           pointsForWin: Number(data.pointsForWin),
-          // Top N advance to knockout for round robin
+          // Top N advance to knockout for multi_stage format
           advanceTop:
-            data.format === "round_robin"
+            data.format === "multi_stage"
               ? data.useGroups
                 ? 0
                 : Number(data.advanceTop)
@@ -231,6 +231,7 @@ export default function CreateTournamentPage() {
                       {[
                         { label: "Round Robin", value: "round_robin" },
                         { label: "Knockout", value: "knockout" },
+                        { label: "Multi Stage", value: "multi_stage" },
                       ].map((opt) => {
                         const isActive = field.value === opt.value;
                         return (
@@ -507,17 +508,13 @@ export default function CreateTournamentPage() {
               </div>
             )}
 
-            {/* Knockout stage settings for round robin (when not using groups) */}
-            {form.watch("format") === "round_robin" &&
+            {/* Knockout stage settings for multi-stage format (when not using groups) */}
+            {form.watch("format") === "multi_stage" &&
               !form.watch("useGroups") && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mt-4 p-4 rounded-lg border">
                   <h3 className="font-medium text-[#1A73E8] mb-2">
                     Knockout Stage Settings
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    After round robin, top players advance to knockout
-                    (semifinals/finals)
-                  </p>
                   <FormField
                     control={form.control}
                     name="advanceTop"

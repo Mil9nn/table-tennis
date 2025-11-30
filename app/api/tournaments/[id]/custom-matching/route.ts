@@ -2,6 +2,52 @@ import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import mongoose from "mongoose";
+
+/**
+ * Get qualified participants from group stage (for multi-stage tournaments)
+ */
+async function getQualifiedParticipants(tournament: any): Promise<Array<{ participantId: string; rank: number; points: number; groupId?: string }>> {
+  const qualified: Array<{ participantId: string; rank: number; points: number; groupId?: string }> = [];
+
+  if (tournament.useGroups && tournament.groups?.length > 0) {
+    const advancePerGroup = tournament.advancePerGroup || 2;
+
+    for (const group of tournament.groups) {
+      const sortedStandings = [...(group.standings || [])].sort((a: any, b: any) => {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        return b.points - a.points;
+      });
+
+      for (let i = 0; i < Math.min(advancePerGroup, sortedStandings.length); i++) {
+        const standing = sortedStandings[i];
+        qualified.push({
+          participantId: standing.participant.toString(),
+          rank: i + 1,
+          points: standing.points,
+          groupId: group.groupId,
+        });
+      }
+    }
+  } else if (tournament.isMultiStage && tournament.standings?.length > 0) {
+    const advanceTop = tournament.rules?.advanceTop || 4;
+    const sortedStandings = [...(tournament.standings || [])].sort((a: any, b: any) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return b.points - a.points;
+    });
+
+    for (let i = 0; i < Math.min(advanceTop, sortedStandings.length); i++) {
+      const standing = sortedStandings[i];
+      qualified.push({
+        participantId: standing.participant.toString(),
+        rank: i + 1,
+        points: standing.points,
+      });
+    }
+  }
+
+  return qualified;
+}
 
 /**
  * Get custom bracket matches for a knockout tournament
@@ -27,7 +73,9 @@ export async function GET(
     const tournament = await Tournament.findById(id)
       .populate("participants", "username fullName profileImage")
       .populate("customBracketMatches.participant1", "username fullName profileImage")
-      .populate("customBracketMatches.participant2", "username fullName profileImage");
+      .populate("customBracketMatches.participant2", "username fullName profileImage")
+      .populate("groups.standings.participant", "username fullName profileImage")
+      .populate("standings.participant", "username fullName profileImage");
 
     if (!tournament) {
       return NextResponse.json(
@@ -36,11 +84,56 @@ export async function GET(
       );
     }
 
+    // For multi-stage tournaments, get qualified participants
+    let participants = tournament.participants;
+    let isMultiStage = false;
+    let qualifiedInfo = null;
+
+    if (tournament.isMultiStage || tournament.format === "multi_stage") {
+      isMultiStage = true;
+      const qualified = await getQualifiedParticipants(tournament);
+      
+      if (qualified.length > 0) {
+        // Get full participant data for qualified players
+        const qualifiedIds = qualified.map(q => new mongoose.Types.ObjectId(q.participantId));
+        const qualifiedParticipants = await Tournament.findById(id)
+          .populate({
+            path: "participants",
+            match: { _id: { $in: qualifiedIds } },
+            select: "username fullName profileImage"
+          })
+          .select("participants");
+
+        if (qualifiedParticipants) {
+          participants = qualifiedParticipants.participants || [];
+          
+          // Add rank and group info to participants
+          participants = participants.map((p: any) => {
+            const qual = qualified.find(q => q.participantId === p._id.toString());
+            return {
+              ...p.toObject(),
+              rank: qual?.rank,
+              points: qual?.points,
+              groupId: qual?.groupId,
+            };
+          });
+        }
+
+        qualifiedInfo = {
+          total: qualified.length,
+          fromGroups: tournament.useGroups,
+        };
+      }
+    }
+
     return NextResponse.json({
       customBracketMatches: tournament.customBracketMatches || [],
-      participants: tournament.participants,
+      participants,
       format: tournament.format,
       drawGenerated: tournament.drawGenerated,
+      isMultiStage,
+      qualifiedInfo,
+      bracketGenerated: tournament.bracket && tournament.bracket.rounds?.length > 0,
     });
   } catch (err: any) {
     console.error("Error fetching custom matching:", err);
@@ -93,10 +186,13 @@ export async function POST(
       );
     }
 
-    // Only for knockout tournaments
-    if (tournament.format !== "knockout") {
+    // Only for knockout tournaments or multi-stage tournaments
+    const isKnockout = tournament.format === "knockout";
+    const isMultiStage = tournament.isMultiStage || tournament.format === "multi_stage";
+    
+    if (!isKnockout && !isMultiStage) {
       return NextResponse.json(
-        { error: "Custom matching is only available for knockout tournaments" },
+        { error: "Custom matching is only available for knockout or multi-stage tournaments" },
         { status: 400 }
       );
     }
@@ -111,10 +207,17 @@ export async function POST(
       );
     }
 
-    // Validate all participants are in the tournament
-    const participantIds = new Set(
-      tournament.participants.map((p: any) => p.toString())
-    );
+    // Get valid participant IDs (either all participants or qualified ones for multi-stage)
+    let validParticipantIds: Set<string>;
+    
+    if (isMultiStage) {
+      const qualified = await getQualifiedParticipants(tournament);
+      validParticipantIds = new Set(qualified.map(q => q.participantId));
+    } else {
+      validParticipantIds = new Set(
+        tournament.participants.map((p: any) => p.toString())
+      );
+    }
 
     for (const match of customBracketMatches) {
       if (!match.participant1 || !match.participant2) {
@@ -124,16 +227,16 @@ export async function POST(
         );
       }
 
-      if (!participantIds.has(match.participant1.toString())) {
+      if (!validParticipantIds.has(match.participant1.toString())) {
         return NextResponse.json(
-          { error: "Invalid participant in match" },
+          { error: "Invalid participant in match - participant not qualified" },
           { status: 400 }
         );
       }
 
-      if (!participantIds.has(match.participant2.toString())) {
+      if (!validParticipantIds.has(match.participant2.toString())) {
         return NextResponse.json(
-          { error: "Invalid participant in match" },
+          { error: "Invalid participant in match - participant not qualified" },
           { status: 400 }
         );
       }
@@ -247,5 +350,7 @@ export async function DELETE(
     );
   }
 }
+
+
 
 

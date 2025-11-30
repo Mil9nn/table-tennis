@@ -149,7 +149,6 @@ export default function TournamentsPage() {
                 <SelectItem value="all">All Formats</SelectItem>
                 <SelectItem value="round_robin">Round Robin</SelectItem>
                 <SelectItem value="knockout">Knockout</SelectItem>
-                <SelectItem value="multi_stage">Multi Stage</SelectItem>
               </SelectContent>
             </Select>
 

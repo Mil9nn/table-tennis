@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
-import MatchStatusBadge from "./MatchStatusBadge";
 
 function PlayerAvatar({
   name,
@@ -101,7 +100,7 @@ export default function MatchesList({
               )}
 
               {/* Side 2: Avatars + Name */}
-              <div className={`flex items-center gap-1.5 ${side2Won ? "ring-2 ring-green-500 rounded-full pr-2" : ""}`}>
+              <div className={`flex items-center gap-1.5`}>
                 <div className="flex items-center -space-x-1 shrink-0">
                   {isDoubles ? (
                     <>
@@ -148,7 +147,19 @@ export default function MatchesList({
                   </>
                 )}
               </div>
-              <MatchStatusBadge status={match.status} />
+              {/* Minimal status dot - only show for non-completed matches */}
+              {match.status !== "completed" && (
+                <div
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    match.status === "scheduled"
+                      ? "bg-yellow-500"
+                      : match.status === "in_progress"
+                      ? "bg-blue-500"
+                      : "bg-red-500"
+                  }`}
+                  title={match.status}
+                />
+              )}
             </div>
           </Link>
         );

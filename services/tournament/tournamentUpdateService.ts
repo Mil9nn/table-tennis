@@ -104,6 +104,7 @@ export async function updateRoundRobinStandings(tournament: any) {
         points: s.points,
         rank: s.rank,
         form: s.form,
+        headToHead: s.headToHead ? Object.fromEntries(s.headToHead) : {},
       }));
     }
 
@@ -113,7 +114,10 @@ export async function updateRoundRobinStandings(tournament: any) {
 
     tournament.groups.forEach((group: any) => {
       const topN = group.standings.slice(0, advancePerGroup);
-      qualifiers.push(...topN);
+      qualifiers.push(...topN.map((q: any) => ({
+        ...q,
+        headToHead: q.headToHead || {},
+      })));
     });
 
     tournament.standings = qualifiers.map((q: any, idx: number) => ({
@@ -151,10 +155,31 @@ export async function updateRoundRobinStandings(tournament: any) {
     }));
   }
 
-  // Check if all rounds are completed and update tournament status
+  // Update round completion status
   const allMatchIds = getAllMatchIds(tournament);
-  const matches = await fetchMatches(allMatchIds);
-  const newStatus = getTournamentStatus(matches);
+  const allMatches = await fetchMatches(allMatchIds, true);
+  const matchMap = new Map(allMatches.map((m: any) => [m._id.toString(), m]));
+
+  // Update round completion for groups
+  if (tournament.useGroups && tournament.groups) {
+    for (const group of tournament.groups) {
+      for (const round of group.rounds || []) {
+        const roundMatches = round.matches.map((m: any) => matchMap.get(m.toString()));
+        round.completed = roundMatches.every((m: any) => m && m.status === "completed");
+      }
+    }
+  }
+
+  // Update round completion for single round-robin
+  if (tournament.rounds && !tournament.useGroups) {
+    for (const round of tournament.rounds) {
+      const roundMatches = round.matches.map((m: any) => matchMap.get(m.toString()));
+      round.completed = roundMatches.every((m: any) => m && m.status === "completed");
+    }
+  }
+
+  // Check if all rounds are completed and update tournament status
+  const newStatus = getTournamentStatus(allMatches);
 
   if (newStatus && tournament.status !== newStatus) {
     tournament.status = newStatus;
@@ -253,5 +278,7 @@ export async function updateKnockoutBracket(tournament: any, match: any) {
 
   await tournament.save();
 }
+
+
 
 

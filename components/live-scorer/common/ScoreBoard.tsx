@@ -4,10 +4,7 @@ import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
 import SetTracker from "@/components/SetTracker";
 import MatchInfo from "./MatchInfo";
-import {
-  checkGameWon,
-  getCurrentServerName,
-} from "@/components/live-scorer/individual/helpers";
+import { checkGameWon } from "@/components/live-scorer/individual/helpers";
 import {
   AddPointPayload,
   MatchStatus,
@@ -181,39 +178,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
   const rightSide_actual = "side2";
 
   const canSwap = (side1Score === 0 && side2Score === 0) && status !== "completed" && !isAnyOperationInProgress;
-
-  const allParticipants =
-    match.matchCategory === "individual"
-      ? match.participants || []
-      : teamMatchPlayers
-      ? [
-          ...teamMatchPlayers.side1.map((p) => ({
-            _id: p.playerId || "",
-            fullName: p.name,
-            username: p.name,
-          })),
-          ...teamMatchPlayers.side2.map((p) => ({
-            _id: p.playerId || "",
-            fullName: p.name,
-            username: p.name,
-          })),
-        ]
-      : [];
-
-  const effectiveMatchType =
-    match.matchCategory === "individual"
-      ? match.matchType
-      : teamMatchPlayers?.side1.length === 1
-      ? "singles"
-      : "doubles";
-
-  const serverName =
-    currentServer &&
-    getCurrentServerName(
-      currentServer as any,
-      allParticipants,
-      effectiveMatchType
-    );
 
   const currentGame =
     match.matchCategory === "individual"

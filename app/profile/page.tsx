@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import ProfileHeader from "./components/ProfileHeader";
 
+import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
+import Diversity3Icon from '@mui/icons-material/Diversity3';
+
 const ProfilePage = () => {
   const { user } = useAuthStore();
   const router = useRouter();
@@ -28,7 +31,7 @@ const ProfilePage = () => {
       id: "performance-insights",
       title: "Performance Insights",
       icon: TrendingUp,
-      color: "from-blue-500 to-blue-600",
+      color: "text-blue-500",
       route: "/profile/insights",
     },
     {
@@ -36,23 +39,23 @@ const ProfilePage = () => {
       title: "Player Stats",
 
       icon: BarChart3,
-      color: "from-purple-500 to-purple-600",
+      color: "text-purple-500",
       route: "/profile/stats",
     },
     {
       id: "shot-analysis",
       title: "Shot Analysis",
 
-      icon: Zap,
-      color: "from-yellow-500 to-orange-500",
+      icon: ScatterPlotIcon,
+      color: "text-yellow-500",
       route: "/profile/shots",
     },
     {
       id: "team-stats",
       title: "Team Stats",
 
-      icon: Users,
-      color: "from-green-500 to-green-600",
+      icon: Diversity3Icon,
+      color: "text-green-500",
       route: "/profile/team",
     },
     {
@@ -60,7 +63,7 @@ const ProfilePage = () => {
       title: "Tournaments",
 
       icon: Trophy,
-      color: "from-amber-500 to-yellow-500",
+      color: "text-amber-500",
       route: "/profile/tournaments",
     },
     {
@@ -68,7 +71,7 @@ const ProfilePage = () => {
       title: "Head to Head",
 
       icon: Swords,
-      color: "from-red-500 to-red-600",
+      color: "text-red-500",
       route: "/profile/head-to-head",
     },
     {
@@ -76,7 +79,7 @@ const ProfilePage = () => {
       title: "My Teams",
 
       icon: Shield,
-      color: "from-indigo-500 to-purple-500",
+      color: "text-indigo-500",
       route: "/profile/my-teams",
     },
     {
@@ -84,7 +87,7 @@ const ProfilePage = () => {
       title: "Match History",
 
       icon: History,
-      color: "from-cyan-500 to-blue-500",
+      color: "text-cyan-500",
       route: "/profile/history",
     },
     {
@@ -92,7 +95,7 @@ const ProfilePage = () => {
       title: "Activity & Trends",
 
       icon: Calendar,
-      color: "from-pink-500 to-rose-500",
+      color: "text-pink-500",
       route: "/profile/activity",
     },
   ];
@@ -114,7 +117,7 @@ const ProfilePage = () => {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800">Your Dashboard</h2>
           <p className="text-gray-600 mt-2 text-sm">
-            Comprehensive stats, insights, and achievements all in one place
+            Comprehensive stats, insights, and achievements
           </p>
         </div>
 
@@ -132,7 +135,7 @@ const ProfilePage = () => {
                   {/* Content */}
                   <div className="flex items-center justify-between gap-4">
                     <h3 className="text-sm flex items-center gap-2 font-bold text-gray-800 group-hover:text-gray-900 mb-2">
-                      <Icon className="size-5" />
+                      <Icon className={`size-5 ${card.color}`} />
                       <span>{card.title}</span>
                     </h3>
                     <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />

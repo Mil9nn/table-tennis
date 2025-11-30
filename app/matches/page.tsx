@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import MatchesListSkeleton from "@/components/skeletons/MatchesListSkeleton";
+import TeamMatchesListSkeleton from "@/components/skeletons/TeamMatchesListSkeleton";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -42,7 +43,7 @@ export default function MatchesPage() {
     const fetchIndividualMatches = async () => {
       try {
         const { data } = await axiosInstance.get(
-          "/matches/individual?context=casual"
+          "/matches/individual"
         );
         setIndividualMatches(data.matches || []);
       } catch (err) {
@@ -98,6 +99,7 @@ export default function MatchesPage() {
       return nameMatch && formatMatch && statusMatch;
     });
   }, [teamMatches, teamSearch, teamFilterFormat, teamFilterStatus]);
+
 
   return (
     <div>
@@ -158,8 +160,18 @@ export default function MatchesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="scheduled">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
+                      <span>Scheduled</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="in_progress">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                      <span>Live</span>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -207,8 +219,18 @@ export default function MatchesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="scheduled">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
+                      <span>Scheduled</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="in_progress">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                      <span>Live</span>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -245,7 +267,7 @@ export default function MatchesPage() {
 
         <TabsContent value="team" className="space-y-6">
           {teamLoading ? (
-            <MatchesListSkeleton />
+            <TeamMatchesListSkeleton />
           ) : (
             <TeamMatchesList matches={filteredTeamMatches} />
           )}

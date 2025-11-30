@@ -1,104 +1,19 @@
 import mongoose from "mongoose";
+import {
+  createShotSchema,
+  createTeamGameSchema,
+  createServerConfigSchema,
+  playerStatsSchema,
+  teamInfoSchema,
+} from "./shared/matchSchemas";
 
-// Shot Schema (reused / identical to IndividualMatch)
-const shotSchema = new mongoose.Schema({
-  shotNumber: Number,
-
-  side: { type: String, enum: ["team1", "team2"], required: true },
-  player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-  stroke: {
-    type: String,
-    enum: [
-      "forehand_drive",
-      "backhand_drive",
-      "forehand_topspin",
-      "backhand_topspin",
-      "forehand_loop",
-      "backhand_loop",
-      "forehand_smash",
-      "backhand_smash",
-      "forehand_push",
-      "backhand_push",
-      "forehand_chop",
-      "backhand_chop",
-      "forehand_flick",
-      "backhand_flick",
-      "forehand_block",
-      "backhand_block",
-      "forehand_drop",
-      "backhand_drop",
-      "net_point",
-      "serve_point",
-    ],
-    default: null,
-  },
-
-  server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-  // Shot coordinate system:
-  // Origin: -50 to 150 (player can hit from anywhere, including off-table)
-  // Landing: 0 to 100 (point scored = ball landed on table)
-  // Extended coordinate system: -50 to 0 (left/top margin), 0 to 100 (table), 100 to 150 (right/bottom margin)
-  originX: { type: Number, min: -50, max: 150 },
-  originY: { type: Number, min: -50, max: 150 },
-  landingX: { type: Number, min: 0, max: 100 },
-  landingY: { type: Number, min: 0, max: 100 },
-
-  timestamp: { type: Date, default: Date.now },
-});
-
-// Game Schema (reused / identical to IndividualMatch)
-const gameSchema = new mongoose.Schema({
-  gameNumber: Number,
-
-  team1Score: { type: Number, default: 0 },
-  team2Score: { type: Number, default: 0 },
-
-  winnerSide: { type: String, enum: ["team1", "team2"], default: null },
-
-  completed: { type: Boolean, default: false },
-
-  shots: [shotSchema],
-
-  duration: Number,
-  startTime: Date,
-  endTime: Date,
-});
-
-// Server Config (match-level, supports singles/doubles keys used in UI)
-const serverConfigSchema = new mongoose.Schema({
-  firstServer: {
-    type: String,
-    enum: [
-      "team1",
-      "team2",
-      "team1_main",
-      "team1_partner",
-      "team2_main",
-      "team2_partner",
-    ],
-    default: null,
-  },
-  firstReceiver: {
-    type: String,
-    enum: [
-      "team1",
-      "team2",
-      "team1_main",
-      "team1_partner",
-      "team2_main",
-      "team2_partner",
-    ],
-    default: null,
-  },
-  serverOrder: [
-    {
-      type: String,
-      enum: ["team1_main", "team1_partner", "team2_main", "team2_partner"],
-    },
-  ],
-});
+// Create schemas with team match enums (team1/team2)
+const shotSchema = createShotSchema(["team1", "team2"]);
+const gameSchema = createTeamGameSchema(shotSchema, ["team1", "team2"]);
+const serverConfigSchema = createServerConfigSchema(
+  ["team1", "team2"],
+  ["team1_main", "team1_partner", "team2_main", "team2_partner"]
+);
 
 const subMatchSchema = new mongoose.Schema({
   matchNumber: { type: Number, required: true },
@@ -151,37 +66,6 @@ const subMatchSchema = new mongoose.Schema({
 
 /* -------------------- TEAM / TEAMMATCH SCHEMA -------------------- */
 
-// Team info used in team1/team2
-const teamInfoSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  captain: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-  // players array — matches your Team schema style (user + role + joinedDate)
-  players: [
-    {
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      role: { type: String, enum: ["captain", "player"], default: "player" },
-      joinedDate: { type: Date, default: Date.now },
-    },
-  ],
-
-  // assignments map (A,B,C -> playerId ; X,Y,Z -> playerId)
-  assignments: {
-    type: Map,
-    of: String,
-    default: {},
-  },
-
-  city: String,
-  stats: {
-    totalMatches: { type: Number, default: 0 },
-    wins: { type: Number, default: 0 },
-    losses: { type: Number, default: 0 },
-    winPercentage: { type: Number, default: 0 },
-    gamesWon: { type: Number, default: 0 },
-    gamesLost: { type: Number, default: 0 },
-  },
-});
 
 /* -------------------- MAIN TEAM MATCH SCHEMA -------------------- */
 
@@ -257,29 +141,7 @@ const TeamMatchSchema = new mongoose.Schema(
       // Per-player stats map (playerId -> stats object)
       playerStats: {
         type: Map,
-        of: new mongoose.Schema({
-
-          detailedShots: {
-            forehand_drive: { type: Number, default: 0 },
-            backhand_drive: { type: Number, default: 0 },
-            forehand_topspin: { type: Number, default: 0 },
-            backhand_topspin: { type: Number, default: 0 },
-            forehand_loop: { type: Number, default: 0 },
-            backhand_loop: { type: Number, default: 0 },
-            forehand_smash: { type: Number, default: 0 },
-            backhand_smash: { type: Number, default: 0 },
-            forehand_push: { type: Number, default: 0 },
-            backhand_push: { type: Number, default: 0 },
-            forehand_chop: { type: Number, default: 0 },
-            backhand_chop: { type: Number, default: 0 },
-            forehand_flick: { type: Number, default: 0 },
-            backhand_flick: { type: Number, default: 0 },
-            forehand_block: { type: Number, default: 0 },
-            backhand_block: { type: Number, default: 0 },
-            forehand_drop: { type: Number, default: 0 },
-            backhand_drop: { type: Number, default: 0 },
-          },
-        }),
+        of: playerStatsSchema,
       },
     },
   },

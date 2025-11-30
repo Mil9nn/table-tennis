@@ -1,102 +1,18 @@
 import mongoose from "mongoose";
+import {
+  createShotSchema,
+  createGameSchema,
+  createServerConfigSchema,
+  playerStatsSchema,
+} from "./shared/matchSchemas";
 
-const shotSchema = new mongoose.Schema({
-  shotNumber: Number,
-
-  side: { type: String, enum: ["side1", "side2"], required: true },
-  player: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-  stroke: {
-    type: String,
-    enum: [
-      "forehand_drive",
-      "backhand_drive",
-      "forehand_topspin",
-      "backhand_topspin",
-      "forehand_loop",
-      "backhand_loop",
-      "forehand_smash",
-      "backhand_smash",
-      "forehand_push",
-      "backhand_push",
-      "forehand_chop",
-      "backhand_chop",
-      "forehand_flick",
-      "backhand_flick",
-      "forehand_block",
-      "backhand_block",
-      "forehand_drop",
-      "backhand_drop",
-      "net_point",
-      "serve_point",
-    ],
-    default: null,
-  },
-
-  server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-  // Shot coordinate system:
-  // Origin: -50 to 150 (player can hit from anywhere, including off-table)
-  // Landing: 0 to 100 (point scored = ball landed on table)
-  // Extended coordinate system: -50 to 0 (left/top margin), 0 to 100 (table), 100 to 150 (right/bottom margin)
-  originX: { type: Number, min: -50, max: 150 },
-  originY: { type: Number, min: -50, max: 150 },
-  landingX: { type: Number, min: 0, max: 100 },
-  landingY: { type: Number, min: 0, max: 100 },
-
-  timestamp: { type: Date, default: Date.now },
-});
-
-// Game Schema
-const gameSchema = new mongoose.Schema({
-  gameNumber: Number,
-
-  side1Score: { type: Number, default: 0 },
-  side2Score: { type: Number, default: 0 },
-
-  winnerSide: { type: String, enum: ["side1", "side2"], default: null },
-
-  completed: { type: Boolean, default: false },
-
-  shots: [shotSchema],
-
-  duration: Number,
-  startTime: Date,
-  endTime: Date,
-});
-
-const serverConfigSchema = new mongoose.Schema({
-  firstServer: {
-    type: String,
-    enum: [
-      "side1",
-      "side2",
-      "side1_main",
-      "side1_partner",
-      "side2_main",
-      "side2_partner",
-    ],
-    default: null,
-  },
-  firstReceiver: {
-    type: String,
-    enum: [
-      "side1",
-      "side2",
-      "side1_main",
-      "side1_partner",
-      "side2_main",
-      "side2_partner",
-    ],
-    default: null,
-  },
-  serverOrder: [
-    {
-      type: String,
-      enum: ["side1_main", "side1_partner", "side2_main", "side2_partner"],
-    },
-  ],
-});
+// Create schemas with individual match enums (side1/side2)
+const shotSchema = createShotSchema(["side1", "side2"]);
+const gameSchema = createGameSchema(shotSchema, ["side1", "side2"]);
+const serverConfigSchema = createServerConfigSchema(
+  ["side1", "side2"],
+  ["side1_main", "side1_partner", "side2_main", "side2_partner"]
+);
 
 // Match Schema
 const IndividualMatchSchema = new mongoose.Schema(
@@ -170,29 +86,7 @@ const IndividualMatchSchema = new mongoose.Schema(
       // Per-player stats (works for singles/doubles)
       playerStats: {
         type: Map,
-        of: new mongoose.Schema({
-
-          detailedShots: {
-            forehand_drive: { type: Number, default: 0 },
-            backhand_drive: { type: Number, default: 0 },
-            forehand_topspin: { type: Number, default: 0 },
-            backhand_topspin: { type: Number, default: 0 },
-            forehand_loop: { type: Number, default: 0 },
-            backhand_loop: { type: Number, default: 0 },
-            forehand_smash: { type: Number, default: 0 },
-            backhand_smash: { type: Number, default: 0 },
-            forehand_push: { type: Number, default: 0 },
-            backhand_push: { type: Number, default: 0 },
-            forehand_chop: { type: Number, default: 0 },
-            backhand_chop: { type: Number, default: 0 },
-            forehand_flick: { type: Number, default: 0 },
-            backhand_flick: { type: Number, default: 0 },
-            forehand_block: { type: Number, default: 0 },
-            backhand_block: { type: Number, default: 0 },
-            forehand_drop: { type: Number, default: 0 },
-            backhand_drop: { type: Number, default: 0 },
-          },
-        }),
+        of: playerStatsSchema,
       },
     },
   },

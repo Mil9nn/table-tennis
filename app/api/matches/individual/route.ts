@@ -69,8 +69,9 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Ensure Tournament model is registered before populate
+    // Ensure models are registered before populate
     Tournament;
+    User;
 
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "0", 10);

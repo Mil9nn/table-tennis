@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Users2,
   QrCode,
-  UserPlus,
   Swords,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ export default function TournamentDetailPage() {
       const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
       setTournament(data.tournament);
 
-      // Check knockout status for round robin tournaments (they are multi-stage)
+      // Check knockout status for multi-stage tournaments
       if (
         data.tournament.isMultiStage ||
         data.tournament.format === "multi_stage" ||
@@ -109,11 +108,12 @@ export default function TournamentDetailPage() {
   };
 
 
-  const generateKnockout = async () => {
+  const generateKnockout = async (useCustom: boolean = false) => {
     setGeneratingKnockout(true);
     try {
       const { data } = await axiosInstance.post(
-        `/tournaments/${tournamentId}/generate-knockout`
+        `/tournaments/${tournamentId}/generate-knockout`,
+        { useCustom }
       );
       setTournament(data.tournament);
       setKnockoutStatus(null); // Reset status as knockout is now generated
@@ -469,24 +469,60 @@ export default function TournamentDetailPage() {
                         knockout stage
                       </p>
                     </div>
-                    <Button
-                      onClick={generateKnockout}
-                      disabled={generatingKnockout}
-                      size="lg"
-                      className="shrink-0 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      {generatingKnockout ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Generating Knockout...
-                        </>
-                      ) : (
-                        <>
-                          <Trophy className="w-5 h-5 mr-2" />
-                          Generate Knockout
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                      <Link
+                        href={`/tournaments/${tournamentId}/custom-matching`}
+                        className="inline-block"
+                      >
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full sm:w-auto border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                        >
+                          <Swords className="w-5 h-5 mr-2" />
+                          Set Custom Matches
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={() => generateKnockout(false)}
+                        disabled={generatingKnockout}
+                        size="lg"
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      >
+                        {generatingKnockout ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Trophy className="w-5 h-5 mr-2" />
+                            Generate Automatic
+                          </>
+                        )}
+                      </Button>
+                      {tournament.customBracketMatches &&
+                        tournament.customBracketMatches.length > 0 && (
+                          <Button
+                            onClick={() => generateKnockout(true)}
+                            disabled={generatingKnockout}
+                            size="lg"
+                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                          >
+                            {generatingKnockout ? (
+                              <>
+                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Swords className="w-5 h-5 mr-2" />
+                                Generate Custom
+                              </>
+                            )}
+                          </Button>
+                        )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -544,7 +580,7 @@ export default function TournamentDetailPage() {
               tournament.format === "knockout"
                 ? "grid-cols-4"
                 : (tournament.format === "multi_stage" ||
-                    tournament.format === "round_robin") &&
+                  tournament.format === "round_robin") &&
                   tournament.bracket?.rounds?.length
                 ? "grid-cols-6"
                 : "grid-cols-5"

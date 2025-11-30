@@ -45,7 +45,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validate tournament is multi-stage (round_robin tournaments are multi-stage)
+    // Validate tournament is multi-stage
     if (!tournament.isMultiStage && tournament.format !== "multi_stage" && tournament.format !== "round_robin") {
       return NextResponse.json(
         { error: "This endpoint is only for round robin tournaments" },
@@ -90,6 +90,22 @@ export async function POST(
 
     const isDoubles = tournament.matchType === "doubles" || tournament.matchType === "mixed_doubles";
 
+    // Check for custom bracket matches (if custom mode is selected)
+    let useCustom = false;
+    try {
+      const body = await req.json();
+      useCustom = body.useCustom || false;
+    } catch {
+      // No body provided, use automatic generation
+    }
+    
+    const customMatches = useCustom && tournament.customBracketMatches?.length > 0
+      ? tournament.customBracketMatches.map((m: any) => ({
+          participant1: new mongoose.Types.ObjectId(m.participant1.toString()),
+          participant2: new mongoose.Types.ObjectId(m.participant2.toString()),
+        }))
+      : undefined;
+
     // Generate knockout bracket
     const bracketParticipants = qualifiedParticipants.map(
       (p) => new mongoose.Types.ObjectId(p.participantId)
@@ -100,6 +116,7 @@ export async function POST(
       seeding,
       {
         consolationBracket: true, // Include 3rd place match
+        customMatches: customMatches,
       }
     );
 

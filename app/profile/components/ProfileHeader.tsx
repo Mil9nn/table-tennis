@@ -75,14 +75,14 @@ const ProfileHeader = ({
       : "Not specified";
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 ">
       {/* Profile Card */}
       <div className="max-w-6xl mx-auto">
-        <div className="bg-blue-200 p-6">
+        <div className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-6">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Profile Image */}
             <div className="relative w-32 h-32">
-              <div className="w-32 h-32 rounded-full overflow-hidden border border-gray-200 bg-white">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-black bg-zinc-800">
                 {previewUrl || user?.profileImage ? (
                   <Image
                     src={previewUrl || user.profileImage}
@@ -92,18 +92,18 @@ const ProfileHeader = ({
                     className="object-cover w-full h-full"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <div className="w-full h-full flex items-center justify-center text-zinc-500">
                     <Camera size={38} />
                   </div>
                 )}
               </div>
 
-              {/* Camera Button - Minimal Floating */}
-              <label className="absolute bottom-0 right-0 bg-white border-blue-400 border-2 shadow-sm rounded-full p-2 cursor-pointer hover:scale-105 active:scale-100 transition">
+              {/* Camera Button */}
+              <label className="absolute bottom-0 right-0 bg-black shadow-md rounded-full p-2 cursor-pointer hover:scale-105 active:scale-95 transition">
                 {isUploadingProfile ? (
-                  <Loader2 className="animate-spin w-4 h-4 text-gray-600" />
+                  <Loader2 className="animate-spin w-4 h-4 text-zinc-300" />
                 ) : (
-                  <Camera className="w-4 h-4 text-blue-500" />
+                  <Camera className="w-4 h-4 text-blue-400" />
                 )}
                 <input
                   type="file"
@@ -118,15 +118,15 @@ const ProfileHeader = ({
             <div className="flex-1 space-y-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-2xl font-semibold text-gray-900">
+                  <h1 className="text-2xl font-semibold text-zinc-100">
                     {user.fullName}
                   </h1>
-                  <p className="text-gray-500 text-sm">@{user.username}</p>
+                  <p className="text-zinc-400 text-sm">@{user.username}</p>
                 </div>
 
                 <button
                   onClick={() => setIsEditModalOpen(true)}
-                  className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-800 transition flex items-center gap-2"
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                 >
                   <Edit size={16} />
                   Edit
@@ -135,7 +135,7 @@ const ProfileHeader = ({
 
               {/* Bio */}
               {user.bio && (
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-zinc-300 text-sm leading-relaxed">
                   {user.bio}
                 </p>
               )}
@@ -143,13 +143,13 @@ const ProfileHeader = ({
               {/* Quick Tags */}
               <div className="flex flex-wrap gap-2">
                 {user.handedness && (
-                  <div className="px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-md text-gray-800">
+                  <div className="px-3 py-1.5 text-xs bg-zinc-800 border border-zinc-600 rounded-md text-zinc-200">
                     {formatHand(user.handedness)} Handed
                   </div>
                 )}
                 {user.location && (
-                  <div className="px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-md text-gray-800 flex items-center gap-1">
-                    <MapPin size={12} />
+                  <div className="px-3 py-1.5 text-xs bg-zinc-800 border border-zinc-600 rounded-md text-zinc-200 flex items-center gap-1">
+                    <MapPin size={12} className="text-zinc-400" />
                     {user.location}
                   </div>
                 )}
@@ -157,7 +157,6 @@ const ProfileHeader = ({
             </div>
           </div>
         </div>
-
         {/* Personal Info Card */}
         <div className="bg-white p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">
