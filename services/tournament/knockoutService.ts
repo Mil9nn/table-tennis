@@ -400,13 +400,6 @@ export function generateCustomKnockoutBracket(
     (p) => !matchedParticipants.has(p.toString())
   );
 
-  // Total slots needed = matched count + unmatched count
-  const totalSlots = matchedParticipants.size + unmatchedParticipants.length;
-  const { bracketSize } = calculateBracketSize(totalSlots);
-
-  const totalRounds = Math.log2(bracketSize);
-  const rounds: IKnockoutRound[] = [];
-
   // Build first round from custom matches + byes for unmatched
   const round1Matches: IBracketMatch[] = [];
   let currentMatchPosition = 0;
@@ -449,19 +442,14 @@ export function generateCustomKnockoutBracket(
     currentMatchPosition++;
   }
 
-  // Fill remaining slots with bye vs bye if needed to complete the bracket
-  const neededFirstRoundMatches = bracketSize / 2;
-  while (round1Matches.length < neededFirstRoundMatches) {
-    round1Matches.push({
-      bracketPosition: currentMatchPosition,
-      roundNumber: 1,
-      participant1: { type: "bye" },
-      participant2: { type: "bye" },
-      nextMatchPosition: Math.floor(currentMatchPosition / 2),
-      completed: true,
-    });
-    currentMatchPosition++;
-  }
+  // Calculate bracket size based on total participants
+  // Don't create bye vs bye matches - use the actual number of matches we have
+  const totalSlots = matchedParticipants.size + unmatchedParticipants.length;
+  const { bracketSize } = calculateBracketSize(totalSlots);
+  
+  // Calculate total rounds based on bracket size
+  const totalRounds = Math.log2(bracketSize);
+  const rounds: IKnockoutRound[] = [];
 
   rounds.push({
     roundNumber: 1,
@@ -470,38 +458,49 @@ export function generateCustomKnockoutBracket(
     completed: false,
   });
 
-  // Generate subsequent rounds
+  // Generate subsequent rounds based on actual matches in round 1
+  // We don't need to fill to bracketSize/2 - we work with what we have
   let previousRoundMatches = round1Matches.length;
+  let previousRoundStartPosition = 0; // Round 1 starts at position 0
+  
   for (let roundNum = 2; roundNum <= totalRounds; roundNum++) {
     const roundMatches: IBracketMatch[] = [];
-    const matchesInRound = previousRoundMatches / 2;
+    // Calculate matches in this round
+    // If we have odd number of matches, one winner advances with a bye
+    const matchesInRound = Math.floor(previousRoundMatches / 2);
 
     const roundStartPosition = currentMatchPosition;
 
+    // Create matches for pairs
     for (let i = 0; i < matchesInRound; i++) {
       const match: IBracketMatch = {
         bracketPosition: currentMatchPosition,
         roundNumber: roundNum,
         participant1: {
           type: "from_match",
-          fromMatchPosition: roundStartPosition - previousRoundMatches + i * 2,
+          fromMatchPosition: previousRoundStartPosition + i * 2,
           isWinnerOf: true,
         },
         participant2: {
           type: "from_match",
-          fromMatchPosition: roundStartPosition - previousRoundMatches + i * 2 + 1,
+          fromMatchPosition: previousRoundStartPosition + i * 2 + 1,
           isWinnerOf: true,
         },
         completed: false,
       };
 
       if (roundNum < totalRounds) {
-        match.nextMatchPosition = roundStartPosition + matchesInRound + Math.floor(i / 2);
+        const nextRoundMatches = Math.floor((previousRoundMatches + (previousRoundMatches % 2)) / 2);
+        match.nextMatchPosition = roundStartPosition + Math.floor(i / 2);
       }
 
       roundMatches.push(match);
       currentMatchPosition++;
     }
+
+    // If we have an odd number of winners from previous round, the last one gets a bye
+    // This is handled automatically by the bracket structure - they just advance
+    // We don't need to create a bye match, the next round will reference them directly
 
     rounds.push({
       roundNumber: roundNum,
@@ -510,7 +509,9 @@ export function generateCustomKnockoutBracket(
       completed: false,
     });
 
-    previousRoundMatches = matchesInRound;
+    previousRoundStartPosition = roundStartPosition;
+    // Update for next iteration: matches in this round + any bye from previous
+    previousRoundMatches = matchesInRound + (previousRoundMatches % 2);
   }
 
   const bracket: IKnockoutBracket = {

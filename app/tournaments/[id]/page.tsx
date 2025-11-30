@@ -315,6 +315,7 @@ export default function TournamentDetailPage() {
               </>
             )}
 
+            {/* Show custom matching button for knockout tournaments */}
             {isOrganizer && !tournament.drawGenerated && tournament.format === "knockout" && (
               <Button
                 variant="outline"
@@ -328,6 +329,29 @@ export default function TournamentDetailPage() {
                 <span className="ml-1 hidden sm:inline">Custom Matches</span>
               </Button>
             )}
+            
+            {/* Show custom matching button for multi-stage tournaments after group stage */}
+            {/* Show if knockout status indicates round robin is complete OR if tournament has no bracket yet */}
+            {isOrganizer &&
+              (tournament.isMultiStage ||
+                tournament.format === "multi_stage" ||
+                tournament.format === "round_robin") &&
+              !tournament.bracket?.rounds?.length &&
+              (knockoutStatus?.roundRobinComplete ||
+                knockoutStatus?.canGenerateKnockout ||
+                (knockoutStatus === null && tournament.drawGenerated && totalMatches > 0 && completedMatches === totalMatches)) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    router.push(`/tournaments/${tournamentId}/custom-matching`)
+                  }
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  <Swords className="size-4" />
+                  <span className="ml-1 hidden sm:inline">Custom Matches</span>
+                </Button>
+              )}
           </div>
         </div>
 
