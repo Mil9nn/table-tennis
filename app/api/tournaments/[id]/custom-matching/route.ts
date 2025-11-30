@@ -89,7 +89,40 @@ export async function GET(
     let isMultiStage = false;
     let qualifiedInfo = null;
 
-    if (tournament.isMultiStage || tournament.format === "multi_stage") {
+    // For knockout tournaments after draw is generated, get winners from previous completed round
+    if (tournament.drawGenerated && tournament.format === "knockout" && tournament.bracket) {
+      const rounds = tournament.bracket.rounds || [];
+      let lastCompletedRoundIndex = -1;
+      for (let i = 0; i < rounds.length; i++) {
+        if (rounds[i].completed) {
+          lastCompletedRoundIndex = i;
+        } else {
+          break;
+        }
+      }
+      
+      // If we have a completed round, get winners for next round customization
+      if (lastCompletedRoundIndex >= 0 && lastCompletedRoundIndex < rounds.length - 1) {
+        const completedRound = rounds[lastCompletedRoundIndex];
+        const winnerIds = completedRound.matches
+          ?.filter((m: any) => m.winner && m.participant2?.type !== "bye") // Exclude bye matches
+          .map((m: any) => m.winner.toString()) || [];
+        
+        if (winnerIds.length > 0) {
+          const winnerParticipants = await Tournament.findById(id)
+            .populate({
+              path: "participants",
+              match: { _id: { $in: winnerIds.map((id: string) => new mongoose.Types.ObjectId(id)) } },
+              select: "username fullName profileImage"
+            })
+            .select("participants");
+          
+          if (winnerParticipants) {
+            participants = winnerParticipants.participants || [];
+          }
+        }
+      }
+    } else if (tournament.isMultiStage || tournament.format === "multi_stage") {
       isMultiStage = true;
       const qualified = await getQualifiedParticipants(tournament);
       
@@ -178,17 +211,52 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Can't change after draw is generated
-    if (tournament.drawGenerated) {
+    // Only for knockout tournaments or multi-stage tournaments
+    const isKnockout = tournament.format === "knockout";
+    const isMultiStage = tournament.isMultiStage || tournament.format === "multi_stage";
+    
+    // For knockout tournaments, allow custom matching after drawGenerated if:
+    // - Next round exists and hasn't had matches created yet
+    if (tournament.drawGenerated && isKnockout && tournament.bracket) {
+      const rounds = tournament.bracket.rounds || [];
+      if (rounds.length > 0) {
+        // Find the last completed round
+        let lastCompletedRoundIndex = -1;
+        for (let i = 0; i < rounds.length; i++) {
+          if (rounds[i].completed) {
+            lastCompletedRoundIndex = i;
+          } else {
+            break;
+          }
+        }
+        
+        // Check if next round exists and has no matches created yet
+        if (lastCompletedRoundIndex >= 0 && lastCompletedRoundIndex < rounds.length - 1) {
+          const nextRound = rounds[lastCompletedRoundIndex + 1];
+          const nextRoundHasMatches = nextRound.matches?.some((m: any) => m.matchId);
+          if (!nextRoundHasMatches) {
+            // Allow custom matching for this next round
+            // This will be handled later - we'll update the bracket structure
+          } else {
+            return NextResponse.json(
+              { error: "Next round matches have already been created. Cannot customize." },
+              { status: 400 }
+            );
+          }
+        } else {
+          return NextResponse.json(
+            { error: "Cannot change matching - all rounds are complete or next round doesn't exist" },
+            { status: 400 }
+          );
+        }
+      }
+    } else if (tournament.drawGenerated && !isKnockout) {
+      // For non-knockout tournaments, can't change after draw generated
       return NextResponse.json(
         { error: "Cannot change matching after draw is generated" },
         { status: 400 }
       );
     }
-
-    // Only for knockout tournaments or multi-stage tournaments
-    const isKnockout = tournament.format === "knockout";
-    const isMultiStage = tournament.isMultiStage || tournament.format === "multi_stage";
     
     if (!isKnockout && !isMultiStage) {
       return NextResponse.json(
@@ -273,7 +341,48 @@ export async function POST(
     }
 
     // Save custom matches
-    tournament.customBracketMatches = customBracketMatches;
+    // If draw is already generated, update bracket structure for next round
+    if (tournament.drawGenerated && isKnockout && tournament.bracket) {
+      const rounds = tournament.bracket.rounds || [];
+      // Find the last completed round
+      let lastCompletedRoundIndex = -1;
+      for (let i = 0; i < rounds.length; i++) {
+        if (rounds[i].completed) {
+          lastCompletedRoundIndex = i;
+        } else {
+          break;
+        }
+      }
+      
+      // If we have a next round to customize
+      if (lastCompletedRoundIndex >= 0 && lastCompletedRoundIndex < rounds.length - 1) {
+        const nextRound = rounds[lastCompletedRoundIndex + 1];
+        
+        // Update the bracket matches for the next round with custom matchups
+        if (nextRound.matches && customBracketMatches.length === nextRound.matches.length) {
+          for (let i = 0; i < customBracketMatches.length; i++) {
+            const customMatch = customBracketMatches[i];
+            const bracketMatch = nextRound.matches[i];
+            
+            if (bracketMatch && !bracketMatch.matchId) {
+              // Update participants to direct (not from_match) since we're customizing
+              bracketMatch.participant1 = {
+                type: "direct",
+                participantId: new mongoose.Types.ObjectId(customMatch.participant1.toString()),
+              };
+              bracketMatch.participant2 = {
+                type: "direct",
+                participantId: new mongoose.Types.ObjectId(customMatch.participant2.toString()),
+              };
+            }
+          }
+        }
+      }
+    } else {
+      // Before draw generated, save to customBracketMatches
+      tournament.customBracketMatches = customBracketMatches;
+    }
+    
     await tournament.save();
 
     await tournament.populate([

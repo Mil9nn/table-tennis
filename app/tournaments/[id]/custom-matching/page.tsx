@@ -181,7 +181,12 @@ export default function CustomMatchingPage() {
     );
   }
 
-  if (drawGenerated || bracketGenerated) {
+  // For knockout tournaments, allow editing if next round can be customized
+  // (i.e., previous round is complete but next round matches haven't been created)
+  const canEditKnockout = format === "knockout" && drawGenerated && bracketGenerated;
+  
+  // For other cases, block if draw/bracket is generated
+  if ((drawGenerated || bracketGenerated) && !canEditKnockout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">

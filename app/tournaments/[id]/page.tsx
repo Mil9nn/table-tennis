@@ -316,19 +316,54 @@ export default function TournamentDetailPage() {
             )}
 
             {/* Show custom matching button for knockout tournaments */}
-            {isOrganizer && !tournament.drawGenerated && tournament.format === "knockout" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(`/tournaments/${tournamentId}/custom-matching`)
-                }
-                className="border-orange-300 text-orange-700 hover:bg-orange-50"
-              >
-                <Swords className="size-4" />
-                <span className="ml-1 hidden sm:inline">Custom Matches</span>
-              </Button>
-            )}
+            {/* Show:
+                1. Before draw is generated (initial setup)
+                2. After a round completes and next round matches haven't been created yet
+            */}
+            {isOrganizer && 
+              tournament.format === "knockout" && 
+              tournament.participants.length >= 2 && (
+                (() => {
+                  // Before draw generated
+                  if (!tournament.drawGenerated) {
+                    return true;
+                  }
+                  
+                  // After draw generated: check if current round is complete and next round can be customized
+                  if (tournament.bracket && tournament.bracket.rounds?.length > 0) {
+                    // Find the current round (last completed round or first incomplete round)
+                    const rounds = tournament.bracket.rounds;
+                    
+                    // Check if there's a completed round with a next round that has no matches created yet
+                    for (let i = 0; i < rounds.length - 1; i++) {
+                      const currentRound = rounds[i];
+                      const nextRound = rounds[i + 1];
+                      
+                      // If current round is complete and next round has no matches created yet
+                      if (currentRound.completed && nextRound) {
+                        const nextRoundHasMatches = nextRound.matches?.some((m: any) => m.matchId);
+                        if (!nextRoundHasMatches) {
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                  
+                  return false;
+                })() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/tournaments/${tournamentId}/custom-matching`)
+                    }
+                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  >
+                    <Swords className="size-4" />
+                    <span className="ml-1 hidden sm:inline">Custom Matches</span>
+                  </Button>
+                )
+              )}
             
             {/* Show custom matching button for multi-stage tournaments after group stage */}
             {/* Show if knockout status indicates round robin is complete OR if tournament has no bracket yet */}
@@ -443,23 +478,45 @@ export default function TournamentDetailPage() {
                     <p className="text-sm text-gray-600">
                       Generate the tournament draw to create all matches
                       {tournament.useGroups && " and assign groups"}
+                      {tournament.format === "knockout" && (
+                        <span className="block mt-1 text-xs text-blue-600">
+                          Tip: Set custom matches before generating for manual bracket setup
+                        </span>
+                      )}
                     </p>
                   </div>
-                  <Button
-                    onClick={generateMatches}
-                    disabled={generating}
-                    size="lg"
-                    className="shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    {generating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>Generate</>
+                  <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                    {tournament.format === "knockout" && (
+                      <Link
+                        href={`/tournaments/${tournamentId}/custom-matching`}
+                        className="inline-block"
+                      >
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full sm:w-auto border-2 border-orange-500 text-orange-600 hover:bg-orange-50"
+                        >
+                          <Swords className="w-5 h-5 mr-2" />
+                          Set Custom Matches
+                        </Button>
+                      </Link>
                     )}
-                  </Button>
+                    <Button
+                      onClick={generateMatches}
+                      disabled={generating}
+                      size="lg"
+                      className="shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>Generate</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
