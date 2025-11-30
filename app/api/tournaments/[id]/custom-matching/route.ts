@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
+import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import mongoose from "mongoose";
@@ -104,8 +105,9 @@ export async function GET(
       // If we have a completed round, get winners for next round customization
       if (lastCompletedRoundIndex >= 0 && lastCompletedRoundIndex < rounds.length - 1) {
         const completedRound = rounds[lastCompletedRoundIndex];
+        // Get all winners including from bye matches (bye matches have winners too!)
         const winnerIds = completedRound.matches
-          ?.filter((m: any) => m.winner && m.participant2?.type !== "bye") // Exclude bye matches
+          ?.filter((m: any) => m.winner && m.completed) // Include all completed matches with winners (including bye matches)
           .map((m: any) => m.winner.toString()) || [];
         
         if (winnerIds.length > 0) {
@@ -318,6 +320,7 @@ export async function POST(
     }
 
     // Check for duplicate participants across matches
+    // Note: For odd numbers of participants, some may not be in matches (they'll get byes)
     const usedParticipants = new Set<string>();
     for (const match of customBracketMatches) {
       const p1 = match.participant1.toString();
@@ -339,6 +342,8 @@ export async function POST(
       usedParticipants.add(p1);
       usedParticipants.add(p2);
     }
+    
+    // Note: It's OK if not all participants are used - unmatched ones will get byes
 
     // Save custom matches
     // If draw is already generated, update bracket structure for next round
@@ -358,23 +363,92 @@ export async function POST(
       if (lastCompletedRoundIndex >= 0 && lastCompletedRoundIndex < rounds.length - 1) {
         const nextRound = rounds[lastCompletedRoundIndex + 1];
         
+        // Get all winners from previous round to identify unmatched participants (they'll get byes)
+        const completedRound = rounds[lastCompletedRoundIndex];
+        const allWinnerIds = new Set<string>(
+          completedRound.matches
+            ?.filter((m: any) => m.winner && m.completed)
+            .map((m: any) => m.winner.toString()) || []
+        );
+        
+        // Track which participants are used in custom matches
+        const matchedInCustom = new Set<string>();
+        customBracketMatches.forEach((m: any) => {
+          matchedInCustom.add(m.participant1.toString());
+          matchedInCustom.add(m.participant2.toString());
+        });
+        
+        // Find unmatched participants (they'll get byes)
+        const unmatchedWinners = Array.from(allWinnerIds).filter((id: string) => !matchedInCustom.has(id));
+        
         // Update the bracket matches for the next round with custom matchups
-        if (nextRound.matches && customBracketMatches.length === nextRound.matches.length) {
-          for (let i = 0; i < customBracketMatches.length; i++) {
-            const customMatch = customBracketMatches[i];
-            const bracketMatch = nextRound.matches[i];
+        // Handle case where we have fewer custom matches than bracket positions
+        let matchIndex = 0;
+        for (let i = 0; i < customBracketMatches.length; i++) {
+          if (matchIndex >= nextRound.matches.length) break;
+          
+          const customMatch = customBracketMatches[i];
+          const bracketMatch = nextRound.matches[matchIndex];
+          
+          if (bracketMatch && !bracketMatch.matchId) {
+            // Update participants to direct (not from_match) since we're customizing
+            bracketMatch.participant1 = {
+              type: "direct",
+              participantId: new mongoose.Types.ObjectId(customMatch.participant1.toString()),
+            };
+            bracketMatch.participant2 = {
+              type: "direct",
+              participantId: new mongoose.Types.ObjectId(customMatch.participant2.toString()),
+            };
+            matchIndex++;
+          }
+        }
+        
+        // Add bye matches for unmatched participants
+        for (const unmatchedId of unmatchedWinners) {
+          if (matchIndex >= nextRound.matches.length) break;
+          
+          const bracketMatch = nextRound.matches[matchIndex];
+          if (bracketMatch && !bracketMatch.matchId) {
+            bracketMatch.participant1 = {
+              type: "direct",
+              participantId: new mongoose.Types.ObjectId(unmatchedId),
+            };
+            bracketMatch.participant2 = {
+              type: "bye",
+            };
+            bracketMatch.completed = true;
+            bracketMatch.winner = new mongoose.Types.ObjectId(unmatchedId);
+            matchIndex++;
+          }
+        }
+        
+        // After updating bracket structure, create actual matches for the next round
+        // (only for matches with both participants set, not byes)
+        for (const bracketMatch of nextRound.matches) {
+          if (bracketMatch.matchId) continue; // Skip if already created
+          
+          const p1Id = bracketMatch.participant1?.type === "direct" 
+            ? bracketMatch.participant1.participantId?.toString()
+            : null;
+          const p2Id = bracketMatch.participant2?.type === "direct" 
+            ? bracketMatch.participant2.participantId?.toString()
+            : null;
+          
+          // Create match if both participants are set and it's not a bye
+          if (p1Id && p2Id && bracketMatch.participant2.type !== "bye") {
+            const newMatch = await IndividualMatch.create({
+              tournament: tournament._id,
+              matchCategory: "individual",
+              matchType: tournament.matchType,
+              numberOfSets: tournament.rules.setsPerMatch,
+              participants: [new mongoose.Types.ObjectId(p1Id), new mongoose.Types.ObjectId(p2Id)],
+              status: "scheduled",
+              games: [],
+              isKnockout: true,
+            });
             
-            if (bracketMatch && !bracketMatch.matchId) {
-              // Update participants to direct (not from_match) since we're customizing
-              bracketMatch.participant1 = {
-                type: "direct",
-                participantId: new mongoose.Types.ObjectId(customMatch.participant1.toString()),
-              };
-              bracketMatch.participant2 = {
-                type: "direct",
-                participantId: new mongoose.Types.ObjectId(customMatch.participant2.toString()),
-              };
-            }
+            bracketMatch.matchId = newMatch._id;
           }
         }
       }

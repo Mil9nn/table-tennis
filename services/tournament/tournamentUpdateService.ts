@@ -243,6 +243,8 @@ export async function updateKnockoutBracket(tournament: any, match: any) {
   }
 
   // Create next round matches if current round is complete
+  // BUT: Don't auto-create if participants aren't set (allows for custom matching)
+  // Only auto-create if both participants are already determined in bracket structure
   if (
     currentRound?.completed &&
     currentRound.roundNumber < updatedBracket.rounds.length
@@ -253,15 +255,29 @@ export async function updateKnockoutBracket(tournament: any, match: any) {
       // Skip if match already exists
       if (bracketMatch.matchId) continue;
 
-      // Check if both participants are determined
+      // Check if both participants are determined and set as direct (not from_match placeholders)
+      // This allows custom matching to set up matchups first
+      const p1IsDirect = bracketMatch.participant1.type === "direct" && bracketMatch.participant1.participantId;
+      const p2IsDirect = bracketMatch.participant2.type === "direct" && bracketMatch.participant2.participantId;
+      
+      // Also check for from_match types that have been resolved
       const p1Id = bracketMatch.participant1.participantId;
       const p2Id = bracketMatch.participant2.participantId;
-
+      
+      // Only auto-create if both participants are directly set (not placeholder from_match)
+      // If they're from_match types, they'll be auto-created, but if direct types exist,
+      // it means custom matching was used and matches will be created later
       if (!p1Id || !p2Id) {
         continue;
       }
+      
+      // If both are "direct" type, skip auto-creation - these are from custom matching
+      // and matches will be created when custom matching is saved
+      if (p1IsDirect && p2IsDirect) {
+        continue;
+      }
 
-      // Create the match
+      // Create the match for from_match types (automatic bracket progression)
       const newMatch = await IndividualMatch.create({
         tournament: tournament._id,
         matchCategory: "individual",
