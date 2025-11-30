@@ -626,12 +626,20 @@ async function createCompletedKnockoutTournament() {
           }
           
           // Both participants resolved - create match
+          if (!finalP1Id || !finalP2Id) {
+            // This should never happen due to checks above, but TypeScript needs this
+            continue;
+          }
+          const organizerId = toObjectId(organizer._id);
+          if (!organizerId) {
+            throw new Error("Organizer ID is required but not found");
+          }
           const numberOfSets = roundIdx === bracket.rounds.length - 1 ? 5 : 3; // Final is best of 5
           const match = await createCompletedMatch(
             finalP1Id,
             finalP2Id,
             new mongoose.Types.ObjectId(),
-            toObjectId(organizer._id)!,
+            organizerId,
             "Tournament City",
             "Tournament Venue",
             numberOfSets,
@@ -650,12 +658,16 @@ async function createCompletedKnockoutTournament() {
           }
         } else {
           // Create match
+          const organizerId = toObjectId(organizer._id);
+          if (!organizerId) {
+            throw new Error("Organizer ID is required but not found");
+          }
           const numberOfSets = roundIdx === bracket.rounds.length - 1 ? 5 : 3;
           const match = await createCompletedMatch(
             p1Id,
             p2Id,
             new mongoose.Types.ObjectId(),
-            toObjectId(organizer._id)!,
+            organizerId,
             "Tournament City",
             "Tournament Venue",
             numberOfSets,

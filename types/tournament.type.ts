@@ -44,6 +44,12 @@ export interface Tournament {
     tiebreakRules: string[];
   };
 
+  // Custom bracket matching (for knockout tournaments)
+  customBracketMatches?: Array<{
+    participant1: string;
+    participant2: string;
+  }>;
+
   drawGenerated: boolean;
   drawGeneratedAt?: Date;
   drawGeneratedBy?: Participant;

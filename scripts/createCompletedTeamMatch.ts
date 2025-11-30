@@ -345,12 +345,12 @@ async function createCompletedTeamMatch() {
 
     // Convert assignments Maps to objects for storage
     const team1AssignmentsObj: Record<string, string> = {};
-    team1Assignments.forEach((value, key) => {
+    team1Assignments.forEach((value: string, key: string) => {
       team1AssignmentsObj[key] = value;
     });
 
     const team2AssignmentsObj: Record<string, string> = {};
-    team2Assignments.forEach((value, key) => {
+    team2Assignments.forEach((value: string, key: string) => {
       team2AssignmentsObj[key] = value;
     });
 
