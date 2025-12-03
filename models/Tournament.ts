@@ -36,56 +36,6 @@ const groupSchema = new Schema({
   standings: [standingSchema],
 }, { _id: false });
 
-const bracketMatchSchema = new Schema({
-  matchId: { type: Schema.Types.ObjectId, ref: "IndividualMatch" },
-  bracketPosition: { type: Number, required: true },
-  roundNumber: { type: Number, required: true },
-  participant1: {
-    type: {
-      type: String,
-      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-      required: true,
-    },
-    participantId: { type: Schema.Types.ObjectId, ref: "User" },
-    fromMatchPosition: { type: Number },
-    isWinnerOf: { type: Boolean },
-    fromGroupId: { type: String },
-    fromGroupPosition: { type: Number },
-  },
-  participant2: {
-    type: {
-      type: String,
-      enum: ["direct", "from_match", "from_group", "bye", "tbd"],
-      required: true,
-    },
-    participantId: { type: Schema.Types.ObjectId, ref: "User" },
-    fromMatchPosition: { type: Number },
-    isWinnerOf: { type: Boolean },
-    fromGroupId: { type: String },
-    fromGroupPosition: { type: Number },
-  },
-  winner: { type: Schema.Types.ObjectId, ref: "User" },
-  loser: { type: Schema.Types.ObjectId, ref: "User" },
-  nextMatchPosition: { type: Number },
-  loserNextPosition: { type: Number },
-  scheduledTime: { type: Date },
-  completed: { type: Boolean, default: false },
-}, { _id: false });
-
-const bracketRoundSchema = new Schema({
-  roundNumber: { type: Number, required: true },
-  name: { type: String, required: true },
-  matches: [bracketMatchSchema],
-  completed: { type: Boolean, default: false },
-  scheduledDate: { type: Date },
-}, { _id: false });
-
-const bracketSchema = new Schema({
-  size: { type: Number, required: true },
-  rounds: [bracketRoundSchema],
-  consolationBracket: { type: Boolean, default: false },
-  thirdPlaceMatchPosition: { type: Number },
-}, { _id: false });
 
 // Interfaces (needed for TypeScript typing in other files)
 export interface ISeeding {
@@ -113,43 +63,6 @@ export interface IStanding {
   headToHead?: Map<string, number>; // opponent ID -> points in H2H
 }
 
-export interface IParticipantSlot {
-  type: "direct" | "from_match" | "from_group" | "bye" | "tbd";
-  participantId?: mongoose.Types.ObjectId;
-  fromMatchPosition?: number;
-  isWinnerOf?: boolean;
-  fromGroupId?: string;
-  fromGroupPosition?: number;
-}
-
-export interface IBracketMatch {
-  matchId?: mongoose.Types.ObjectId;
-  bracketPosition: number;
-  roundNumber: number;
-  participant1: IParticipantSlot;
-  participant2: IParticipantSlot;
-  winner?: mongoose.Types.ObjectId;
-  loser?: mongoose.Types.ObjectId;
-  nextMatchPosition?: number;
-  loserNextPosition?: number;
-  scheduledTime?: Date;
-  completed: boolean;
-}
-
-export interface IKnockoutRound {
-  roundNumber: number;
-  name: string;
-  matches: IBracketMatch[];
-  completed: boolean;
-  scheduledDate?: Date;
-}
-
-export interface IKnockoutBracket {
-  size: number;
-  rounds: IKnockoutRound[];
-  consolationBracket?: boolean;
-  thirdPlaceMatchPosition?: number;
-}
 
 export interface IGroup {
   groupId: string; // e.g., "A", "B", "C"
@@ -164,26 +77,9 @@ export interface IGroup {
   standings: IStanding[]; // Last 5 results: "W", "L", "D"
 }
 
-export interface ITournamentStage {
-  stageNumber: number;
-  name: string;
-  format: "round_robin" | "knockout";
-  startDate?: Date;
-  endDate?: Date;
-  status: "pending" | "in_progress" | "completed";
-  groups?: IGroup[];
-  bracket?: IKnockoutBracket;
-  qualification?: {
-    fromStage: number;
-    qualifyingPositions: number[];
-    luckyLosers?: number;
-    qualifyingMethod: "position" | "points" | "custom";
-  };
-}
-
 export interface ITournament extends Document {
   name: string;
-  format: "round_robin" | "knockout" | "multi_stage";
+  format: "round_robin";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -214,14 +110,6 @@ export interface ITournament extends Document {
 
   standings: IStanding[];
 
-  // Multi-stage tournament support
-  isMultiStage?: boolean;
-  stages?: ITournamentStage[];
-  currentStageNumber?: number;
-
-  // Knockout bracket (for single-stage knockout tournaments)
-  bracket?: IKnockoutBracket;
-
   // Tournament rules (ITTF-compliant)
   rules: {
     pointsForWin: number; // ITTF: 2 points
@@ -232,12 +120,6 @@ export interface ITournament extends Document {
     deuceSetting: "standard" | "no_deuce"; // Standard: win by 2
     tiebreakRules: string[]; // Order of tiebreakers
   };
-
-  // Custom bracket matching (for knockout tournaments)
-  customBracketMatches?: Array<{
-    participant1: mongoose.Types.ObjectId;
-    participant2: mongoose.Types.ObjectId;
-  }>;
 
   // Draw management
   drawGenerated: boolean;
@@ -263,7 +145,7 @@ const tournamentSchema = new Schema<ITournament>(
     name: { type: String, required: true },
     format: {
       type: String,
-      enum: ["round_robin", "knockout", "multi_stage"],
+      enum: ["round_robin"],
       required: true,
     },
     category: {
@@ -314,42 +196,6 @@ const tournamentSchema = new Schema<ITournament>(
     // Standings
     standings: [standingSchema],
 
-    // Multi-stage tournament support
-    isMultiStage: { type: Boolean, default: false },
-    stages: [
-      {
-        stageNumber: { type: Number, required: true },
-        name: { type: String, required: true },
-        format: {
-          type: String,
-          enum: ["round_robin", "knockout"],
-          required: true,
-        },
-        startDate: { type: Date },
-        endDate: { type: Date },
-        status: {
-          type: String,
-          enum: ["pending", "in_progress", "completed"],
-          default: "pending",
-        },
-        groups: [groupSchema],
-        bracket: bracketSchema,
-        qualification: {
-          fromStage: { type: Number },
-          qualifyingPositions: [{ type: Number }],
-          luckyLosers: { type: Number },
-          qualifyingMethod: {
-            type: String,
-            enum: ["position", "points", "custom"],
-          },
-        },
-      },
-    ],
-    currentStageNumber: { type: Number, default: 1 },
-
-    // Knockout bracket (for single-stage knockout tournaments)
-    bracket: bracketSchema,
-
     // Rules (ITTF-compliant defaults)
     rules: {
       pointsForWin: { type: Number, default: 1 },
@@ -373,14 +219,6 @@ const tournamentSchema = new Schema<ITournament>(
         ],
       },
     },
-
-    // Custom bracket matching (for knockout tournaments)
-    customBracketMatches: [
-      {
-        participant1: { type: Schema.Types.ObjectId, ref: "User" },
-        participant2: { type: Schema.Types.ObjectId, ref: "User" },
-      },
-    ],
 
     // Draw management
     drawGenerated: { type: Boolean, default: false },

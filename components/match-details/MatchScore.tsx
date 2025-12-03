@@ -16,22 +16,41 @@ export default function MatchScore({ match }: Props) {
 function IndividualMatchScore({ match }: { match: any }) {
   if (!match.finalScore) return null;
 
-  const side1Name = match.participants?.[0]?.fullName || "Player 1";
-  const side2Name = match.participants?.[1]?.fullName || "Player 2";
+  const isDoubles = match.matchType === "doubles";
   const side1Won = match.winnerSide === "side1";
   const side2Won = match.winnerSide === "side2";
   const isCompleted = match.status === "completed";
+
+  // For singles: show single player names
+  // For doubles: show both players on each side
+  const side1Players = isDoubles
+    ? [
+        match.participants?.[0]?.fullName || "Player 1",
+        match.participants?.[1]?.fullName || "Player 2"
+      ]
+    : [match.participants?.[0]?.fullName || "Player 1"];
+
+  const side2Players = isDoubles
+    ? [
+        match.participants?.[2]?.fullName || "Player 3",
+        match.participants?.[3]?.fullName || "Player 4"
+      ]
+    : [match.participants?.[1]?.fullName || "Player 2"];
 
   return (
     <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-6 text-center">
       <div className="flex items-center justify-center gap-8">
         {/* Side 1 */}
         <div className="flex-1 text-right">
-          <p className={`text-sm font-medium mb-2 truncate ${
+          <div className={`text-sm font-medium mb-2 ${
             side1Won ? "text-emerald-400" : "text-zinc-400"
           }`}>
-            {side1Name}
-          </p>
+            {side1Players.map((name, idx) => (
+              <p key={idx} className="truncate">
+                {name}
+              </p>
+            ))}
+          </div>
           <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
             side1Won ? "text-emerald-400" : "text-white"
           }`}>
@@ -46,11 +65,15 @@ function IndividualMatchScore({ match }: { match: any }) {
 
         {/* Side 2 */}
         <div className="flex-1 text-left">
-          <p className={`text-sm font-medium mb-2 truncate ${
+          <div className={`text-sm font-medium mb-2 ${
             side2Won ? "text-emerald-400" : "text-zinc-400"
           }`}>
-            {side2Name}
-          </p>
+            {side2Players.map((name, idx) => (
+              <p key={idx} className="truncate">
+                {name}
+              </p>
+            ))}
+          </div>
           <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
             side2Won ? "text-emerald-400" : "text-white"
           }`}>
@@ -58,15 +81,6 @@ function IndividualMatchScore({ match }: { match: any }) {
           </span>
         </div>
       </div>
-
-      {isCompleted && match.winnerSide && (
-        <div className="mt-4 pt-4 border-t border-zinc-700">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-medium">
-            <Trophy className="w-4 h-4" />
-            {match.winnerSide === "side1" ? side1Name : side2Name} wins
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -26,7 +26,7 @@ interface Match {
 }
 
 interface TournamentScheduleProps {
-  rounds: Round[];
+  rounds: (Round & { groupName?: string; groupId?: string })[];
   matches: Match[];
   onMatchClick?: (id: string) => void;
   showDate?: boolean;
@@ -73,17 +73,41 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
           </CardContent>
         </Card>
       ) : (
-        rounds.map((round) => {
+        rounds.map((round, index) => {
           const roundMatches = (round.matches || [])
             .map(getMatchById)
             .filter(Boolean) as Match[];
 
+          // Check if this is the first round of a new group
+          const isNewGroup = round.groupName && (
+            index === 0 || 
+            rounds[index - 1].groupName !== round.groupName
+          );
+
           return (
-            <section key={round.roundNumber} className="space-y-2">
+            <section 
+              key={`${round.groupId || 'main'}-${round.roundNumber}`} 
+              className="space-y-2"
+            >
+              {/* Group Header (only show for grouped tournaments) */}
+              {isNewGroup && round.groupName && (
+                <div className="mt-4 mb-2 pt-2 border-t border-slate-200">
+                  <h3 className="text-base font-bold text-indigo-700">
+                    {round.groupName}
+                  </h3>
+                </div>
+              )}
+
               {/* Round Header */}
               <div>
                 <h2 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                  Round {round.roundNumber}
+                  {round.groupName ? (
+                    <>
+                      {round.groupName} - Round {round.roundNumber}
+                    </>
+                  ) : (
+                    <>Round {round.roundNumber}</>
+                  )}
                   {roundMatches.some((m) => m.status === "in_progress") && (
                     <Badge className="text-xs bg-red-500 text-white animate-pulse">
                       LIVE

@@ -67,8 +67,12 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   }
 
   // Get player info for current submatch
-  const player1 = currentSubMatch.playerTeam1 as Participant;
-  const player2 = currentSubMatch.playerTeam2 as Participant;
+  // Note: playerTeam1/playerTeam2 can be either a single player or array of players
+  const player1Raw = currentSubMatch.playerTeam1;
+  const player2Raw = currentSubMatch.playerTeam2;
+
+  const player1 = (Array.isArray(player1Raw) ? player1Raw[0] : player1Raw) as Participant;
+  const player2 = (Array.isArray(player2Raw) ? player2Raw[0] : player2Raw) as Participant;
 
   const player1Name = player1?.fullName;
   const player2Name = player2?.fullName;
@@ -78,11 +82,13 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
       name: player1Name!,
       playerId: player1?._id,
       serverKey: "team1" as const,
+      profileImage: player1?.profileImage,
     },
     side2: {
       name: player2Name!,
       playerId: player2?._id,
       serverKey: "team2" as const,
+      profileImage: player2?.profileImage,
     },
   };
 

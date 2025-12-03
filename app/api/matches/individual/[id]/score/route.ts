@@ -189,7 +189,11 @@ export async function POST(
 
         if (match.tournament) {
           try {
-            await updateTournamentAfterMatch(match);
+            // Reload match to ensure we have the latest data with participants
+            const updatedMatch = await IndividualMatch.findById(match._id);
+            if (updatedMatch) {
+              await updateTournamentAfterMatch(updatedMatch);
+            }
           } catch (tournamentError) {
             console.error("[SCORE] ❌ Error updating tournament:", tournamentError);
             // Don't fail the request if tournament update fails

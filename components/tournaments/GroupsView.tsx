@@ -59,6 +59,15 @@ export function GroupsView({
         {groups.map((group) => {
           const status = getGroupStatus(group);
           const topPlayers = group.standings.slice(0, advancePerGroup);
+          
+          // Check if any matches have been played in this group
+          const hasPlayedMatches = group.standings.some(
+            (standing) => standing.played > 0
+          );
+
+          // Sort standings by rank (already calculated using ITTF-compliant tiebreaker logic)
+          const sortedStandings = [...group.standings].sort((a, b) => a.rank - b.rank);
+          const qualifiers = sortedStandings.slice(0, advancePerGroup);
 
           return (
             <div
@@ -95,19 +104,20 @@ export function GroupsView({
                 {/* Advancing */}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Advancing</span>
-                  <Badge variant="default" className="bg-green-500">
+                  <Badge variant="default" className="bg-gray-500">
                     Top {advancePerGroup}
                   </Badge>
                 </div>
 
-                {/* Qualifiers */}
-                {topPlayers.length > 0 && (
+                {/* Qualifiers - Only show if matches have been played */}
+                {hasPlayedMatches && qualifiers.length > 0 && (
                   <div className="mt-2 pt-2 border-t">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                      <Trophy className="w-3 h-3" />
                       <span>Qualifiers</span>
                     </div>
                     <div className="space-y-1">
-                      {topPlayers.map((standing, index) => (
+                      {qualifiers.map((standing, index) => (
                         <div
                           key={standing.participant._id}
                           className="flex items-center justify-between text-xs"
@@ -133,9 +143,9 @@ export function GroupsView({
 
       {/* Tabs */}
       <Tabs value={selectedGroup} onValueChange={setSelectedGroup}>
-        <TabsList className="w-full justify-start overflow-x-auto">
+        <TabsList className="w-full justify-start p-0 rounded-none overflow-x-auto">
           {groups.map((group) => (
-            <TabsTrigger key={group.groupId} value={group.groupId}>
+            <TabsTrigger key={group.groupId} className="rounded-none" value={group.groupId}>
               {group.groupName}
             </TabsTrigger>
           ))}
@@ -150,66 +160,6 @@ export function GroupsView({
                 showDetailedStats={showDetailedStats}
                 highlightTop={advancePerGroup}
               />
-
-              {/* Group Info */}
-              <div className="rounded-xl border bg-card shadow">
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold">Group Information</h2>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Matches</p>
-                      <p className="text-2xl font-bold">
-                        {group.rounds.reduce(
-                          (sum, round) => sum + round.matches.length,
-                          0
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Rounds Completed</p>
-                      <p className="text-2xl font-bold">
-                        {group.rounds.filter((r) => r.completed).length} /{" "}
-                        {group.rounds.length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Participants</p>
-                      <p className="text-2xl font-bold">{group.participants.length}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rounds Summary */}
-              <div className="rounded-xl border bg-card shadow">
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold">Rounds Summary</h2>
-                </div>
-                <div className="p-4">
-                  <div className="space-y-2">
-                    {group.rounds.map((round) => (
-                      <div
-                        key={round.roundNumber}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">Round {round.roundNumber}</span>
-                          {round.completed && (
-                            <Badge variant="default" className="bg-green-500 flex items-center">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Completed
-                            </Badge>
-                          )}
-                        </div>
-
-                        <Badge variant="outline">{round.matches.length} matches</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </TabsContent>
         ))}

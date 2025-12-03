@@ -112,11 +112,13 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             name: player1[0]?.fullName || player1[0]?.username || "Player 1",
             playerId: player1[0]?._id,
             serverKey: "team1_main" as const,
+            profileImage: player1[0]?.profileImage,
           },
           {
             name: player1[1]?.fullName || player1[1]?.username || "Partner 1",
             playerId: player1[1]?._id,
             serverKey: "team1_partner" as const,
+            profileImage: player1[1]?.profileImage,
           },
         ],
         side2: [
@@ -124,11 +126,13 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             name: player2[0]?.fullName || player2[0]?.username || "Player 2",
             playerId: player2[0]?._id,
             serverKey: "team2_main" as const,
+            profileImage: player2[0]?.profileImage,
           },
           {
             name: player2[1]?.fullName || player2[1]?.username || "Partner 2",
             playerId: player2[1]?._id,
             serverKey: "team2_partner" as const,
+            profileImage: player2[1]?.profileImage,
           },
         ],
       }
@@ -139,6 +143,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               player1[0]?.fullName || player1[0]?.username || "Team 1 Player",
             playerId: player1[0]?._id,
             serverKey: "team1" as const,
+            profileImage: player1[0]?.profileImage,
           },
         ],
         side2: [
@@ -147,6 +152,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               player2[0]?.fullName || player2[0]?.username || "Team 2 Player",
             playerId: player2[0]?._id,
             serverKey: "team2" as const,
+            profileImage: player2[0]?.profileImage,
           },
         ],
       };

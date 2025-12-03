@@ -24,6 +24,8 @@ import {
   getShotColor,
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
+import { generateShortCommentary } from "@/lib/shot-commentary-utils";
+import { MessageSquare } from "lucide-react";
 
 function formatShotType(stroke?: string | null) {
   if (!stroke) return "—";
@@ -147,28 +149,48 @@ export function GameByGameBreakdown({
                         shot.player.username ||
                         "Unknown Player";
 
+                      const shotType = formatShotType(shot.stroke);
+                      const hasCoordinates =
+                        shot.originX != null &&
+                        shot.originY != null &&
+                        shot.landingX != null &&
+                        shot.landingY != null;
+                      const commentary = hasCoordinates
+                        ? generateShortCommentary(shot)
+                        : null;
+
                       return (
                         <li
                           key={i}
-                          className="flex justify-between items-center text-xs sm:text-sm px-3 py-2"
+                          className="flex flex-col gap-1.5 text-xs sm:text-sm px-3 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg"
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-gray-400 dark:text-zinc-600">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400 dark:text-zinc-600 font-mono text-xs">
                               {i + 1}.
                             </span>
-                            <span className="truncate">
+                            <span className="flex-1">
                               <strong className="text-gray-900 dark:text-zinc-100">
                                 {playerName}
                               </strong>{" "}
-                              <span className="text-gray-500 dark:text-zinc-400">
+                              <span className="text-gray-500 dark:text-zinc-400 text-xs">
                                 ({shot.side})
                               </span>{" "}
                               →{" "}
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                                {formatShotType(shot.stroke)}
+                                {shotType}
                               </span>
                             </span>
                           </div>
+
+                          {/* Advanced Commentary */}
+                          {commentary && (
+                            <div className="flex items-start gap-2 ml-8 text-xs">
+                              <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-600 dark:text-zinc-400 italic leading-relaxed">
+                                {commentary}
+                              </span>
+                            </div>
+                          )}
                         </li>
                       );
                     })
@@ -186,3 +208,4 @@ export function GameByGameBreakdown({
     </Card>
   );
 }
+

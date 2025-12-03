@@ -108,15 +108,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Check if user won the tournament (in bracket)
-        if (tournament.bracket?.rounds) {
-          const finalRound = tournament.bracket.rounds[tournament.bracket.rounds.length - 1];
-          const finalMatch = finalRound?.matches?.[0];
-          if (finalMatch?.winner?.toString() === userId.toString()) {
-            position = 1;
-          }
-        }
-
         return {
           tournament: {
             _id: tournament._id,
@@ -187,11 +178,6 @@ export async function GET(request: NextRequest) {
     const byFormat = {
       round_robin: tournamentStats.filter(
         (t) => t.tournament.format === "round_robin"
-      ).length,
-      knockout: tournamentStats.filter((t) => t.tournament.format === "knockout")
-        .length,
-      multi_stage: tournamentStats.filter(
-        (t) => t.tournament.format === "multi_stage"
       ).length,
     };
 

@@ -6,12 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
-    "create:match": "tsx scripts/createSinglesMatch.ts",
-    "create:completed-match": "tsx scripts/createCompletedMatch.ts",
-    "create:completed-doubles": "tsx scripts/createCompletedDoublesMatch.ts",
-    "create:completed-team": "tsx scripts/createCompletedTeamMatch.ts",
-    "create:completed-robin": "tsx scripts/createCompletedTournament.ts",
-    "create:completed-knockout": "tsx scripts/createCompletedKnockoutTournament.ts"
+    "play:round-robin": "tsx scripts/play-round-robin.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

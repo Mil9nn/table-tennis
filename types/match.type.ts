@@ -70,7 +70,7 @@ export interface IndividualMatch {
   matchType: IndividualMatchType;
   numberOfSets: number;
   participants: Participant[];
-  scorer?: Participant;
+  scorer?: Participant | string; // Can be Participant object (populated) or string ID (not populated)
   city?: string;
   venue?: string;
   status: MatchStatus;
@@ -144,7 +144,7 @@ export interface TeamMatch {
   numberOfSetsPerSubMatch: number;
   team1: TeamInfo;
   team2: TeamInfo;
-  scorer?: Participant;
+  scorer?: Participant | string; // Can be Participant object (populated) or string ID (not populated)
   city?: string;
   venue?: string;
   status: MatchStatus;

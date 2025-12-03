@@ -106,7 +106,7 @@ export default function JoinTournamentPage() {
         <div className="mt-6 text-center">
           <Button
             variant="ghost"
-            onClick={() => router.push("/tournament-matches")}
+            onClick={() => router.push("/tournaments")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tournaments

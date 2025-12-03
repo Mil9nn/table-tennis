@@ -3,6 +3,10 @@ import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import {
+  TournamentValidators,
+  handleValidationResult,
+} from "@/services/tournament/validators/tournamentValidators";
 
 /**
  * Add a participant to a tournament (organizer only)
@@ -15,6 +19,7 @@ export async function POST(
     await connectDB();
     const { id } = await context.params;
 
+    // Authenticate user
     const token = getTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,6 +30,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    // Find tournament
     const tournament = await Tournament.findById(id);
     if (!tournament) {
       return NextResponse.json(
@@ -33,11 +39,15 @@ export async function POST(
       );
     }
 
-    // Only organizer can add participants
-    if (tournament.organizer.toString() !== decoded.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // Validate organizer permissions
+    const organizerCheck = TournamentValidators.validateIsOrganizer(
+      tournament,
+      decoded.userId
+    );
+    const error = handleValidationResult(organizerCheck);
+    if (error) return error;
 
+    // Get participant ID from request
     const { participantId } = await req.json();
 
     if (!participantId) {
@@ -56,41 +66,30 @@ export async function POST(
       );
     }
 
-    // Check if draw is already generated
-    if (tournament.drawGenerated) {
-      return NextResponse.json(
-        { error: "Cannot add participants - tournament draw has already been generated" },
-        { status: 403 }
-      );
-    }
+    // Validate draw not generated
+    const drawCheck = TournamentValidators.validateDrawNotGenerated(tournament);
+    const drawError = handleValidationResult(drawCheck);
+    if (drawError) return drawError;
 
-    // Check if user is already a participant
-    const isAlreadyParticipant = tournament.participants.some(
-      (p: any) => p.toString() === participantId
-    );
-
-    if (isAlreadyParticipant) {
-      return NextResponse.json(
-        { error: "User is already registered for this tournament" },
-        { status: 400 }
+    // Validate participant not already in tournament
+    const notInTournamentCheck =
+      TournamentValidators.validateParticipantNotInTournament(
+        tournament,
+        participantId
       );
-    }
+    const notInError = handleValidationResult(notInTournamentCheck);
+    if (notInError) return notInError;
 
-    // Check if tournament is full
-    if (
-      tournament.maxParticipants &&
-      tournament.participants.length >= tournament.maxParticipants
-    ) {
-      return NextResponse.json(
-        { error: "Tournament is full" },
-        { status: 403 }
-      );
-    }
+    // Validate capacity
+    const capacityCheck = TournamentValidators.validateCapacity(tournament);
+    const capacityError = handleValidationResult(capacityCheck);
+    if (capacityError) return capacityError;
 
     // Add user to participants
     tournament.participants.push(participantId as any);
     await tournament.save();
 
+    // Populate tournament data
     await tournament.populate([
       { path: "participants", select: "username fullName profileImage" },
       { path: "organizer", select: "username fullName" },
@@ -120,6 +119,7 @@ export async function DELETE(
     await connectDB();
     const { id } = await context.params;
 
+    // Authenticate user
     const token = getTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -130,6 +130,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    // Find tournament
     const tournament = await Tournament.findById(id);
     if (!tournament) {
       return NextResponse.json(
@@ -138,11 +139,15 @@ export async function DELETE(
       );
     }
 
-    // Only organizer can remove participants
-    if (tournament.organizer.toString() !== decoded.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // Validate organizer permissions
+    const organizerCheck = TournamentValidators.validateIsOrganizer(
+      tournament,
+      decoded.userId
+    );
+    const error = handleValidationResult(organizerCheck);
+    if (error) return error;
 
+    // Get participant ID from request
     const { participantId } = await req.json();
 
     if (!participantId) {
@@ -152,13 +157,18 @@ export async function DELETE(
       );
     }
 
-    // Check if draw is already generated
-    if (tournament.drawGenerated) {
-      return NextResponse.json(
-        { error: "Cannot remove participants - tournament draw has already been generated" },
-        { status: 403 }
-      );
-    }
+    // Validate draw not generated
+    const drawCheck = TournamentValidators.validateDrawNotGenerated(tournament);
+    const drawError = handleValidationResult(drawCheck);
+    if (drawError) return drawError;
+
+    // Validate participant is in tournament
+    const inTournamentCheck = TournamentValidators.validateParticipantInTournament(
+      tournament,
+      participantId
+    );
+    const inError = handleValidationResult(inTournamentCheck);
+    if (inError) return inError;
 
     // Remove participant
     tournament.participants = tournament.participants.filter(
@@ -172,6 +182,7 @@ export async function DELETE(
 
     await tournament.save();
 
+    // Populate tournament data
     await tournament.populate([
       { path: "participants", select: "username fullName profileImage" },
       { path: "organizer", select: "username fullName" },

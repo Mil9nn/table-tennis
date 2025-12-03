@@ -2,7 +2,7 @@
 export interface Tournament {
   _id: string;
   name: string;
-  format: "round_robin" | "knockout" | "multi_stage";
+  format: "round_robin";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -25,14 +25,6 @@ export interface Tournament {
   rounds: Round[];
   standings: Standing[];
 
-  // Multi-stage tournament support
-  isMultiStage?: boolean;
-  stages?: TournamentStage[];
-  currentStageNumber?: number;
-
-  // Knockout bracket (for single-stage knockout tournaments)
-  bracket?: KnockoutBracket;
-
   rules: {
     pointsForWin: number;
     pointsForLoss: number;
@@ -43,12 +35,6 @@ export interface Tournament {
     deuceSetting: "standard" | "no_deuce";
     tiebreakRules: string[];
   };
-
-  // Custom bracket matching (for knockout tournaments)
-  customBracketMatches?: Array<{
-    participant1: string;
-    participant2: string;
-  }>;
 
   drawGenerated: boolean;
   drawGeneratedAt?: Date;
@@ -114,67 +100,4 @@ export interface Participant {
   username: string;
   fullName?: string;
   profileImage?: string;
-}
-
-// Knockout tournament types
-export interface ParticipantSlot {
-  type: "direct" | "from_match" | "from_group" | "bye" | "tbd";
-  participantId?: string;
-  participant?: Participant;
-  fromMatchPosition?: number;
-  isWinnerOf?: boolean; // true = winner, false = loser
-  fromGroupId?: string;
-  fromGroupPosition?: number;
-}
-
-export interface BracketMatch {
-  matchId?: string;
-  bracketPosition: number;
-  roundNumber: number;
-  participant1: ParticipantSlot;
-  participant2: ParticipantSlot;
-  winner?: string;
-  loser?: string;
-  nextMatchPosition?: number;
-  loserNextPosition?: number; // For consolation/double elimination
-  scheduledTime?: Date;
-  completed: boolean;
-}
-
-export interface KnockoutRound {
-  roundNumber: number;
-  name: string; // "Round of 16", "Quarter Finals", "Semi Finals", "Final"
-  matches: BracketMatch[];
-  completed: boolean;
-  scheduledDate?: Date;
-}
-
-export interface KnockoutBracket {
-  size: number; // Must be power of 2: 4, 8, 16, 32, 64, 128
-  rounds: KnockoutRound[];
-  consolationBracket?: boolean;
-  thirdPlaceMatchPosition?: number;
-}
-
-export interface TournamentStage {
-  stageNumber: number;
-  name: string;
-  format: "round_robin" | "knockout";
-  startDate?: Date;
-  endDate?: Date;
-  status: "pending" | "in_progress" | "completed";
-
-  // For round_robin stage
-  groups?: Group[];
-
-  // For knockout stage
-  bracket?: KnockoutBracket;
-
-  // Qualification rules
-  qualification?: {
-    fromStage: number;
-    qualifyingPositions: number[]; // [1, 2] = top 2 from each group
-    luckyLosers?: number; // Best 3rd place finishers
-    qualifyingMethod: "position" | "points" | "custom";
-  };
 }

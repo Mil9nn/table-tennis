@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
+import { populateIndividualMatch, populateIndividualMatchBasic } from "@/services/match/populationService";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     const { id } = await context.params;
 
-    const match = await IndividualMatch.findById(id)
-      .populate("scorer", "username fullName profileImage")
-      .populate("participants", "username fullName profileImage")
-      .populate("games.shots.player", "username fullName profileImage");
+    const match = await populateIndividualMatch(
+      IndividualMatch.findById(id)
+    ).exec();
 
     if (!match) {
       return NextResponse.json(
@@ -68,13 +68,13 @@ export async function PUT(
       }
     }
 
-    const match = await IndividualMatch.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    )
-      .populate("scorer", "username fullName profileImage")
-      .populate("participants", "username fullName profileImage");
+    const match = await populateIndividualMatchBasic(
+      IndividualMatch.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true }
+      )
+    ).exec();
 
     return NextResponse.json({
       match,

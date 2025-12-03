@@ -105,7 +105,7 @@ function UserSearchInput({
 
       {/* Dropdown suggestions */}
       {focused && suggestions.length > 0 && (
-        <ul className="absolute z-20 w-full mt-1 bg-background border rounded-lg shadow-lg overflow-hidden animate-in fade-in-50 slide-in-from-top-1">
+        <ul className="absolute z-20 w-full bottom-full mb-1 bg-background border rounded-lg shadow-lg overflow-hidden animate-in fade-in-50 slide-in-from-bottom-1 max-h-60 overflow-y-auto">
           {suggestions.map((u) => {
             const displayName = u.fullName || u.username;
             return (

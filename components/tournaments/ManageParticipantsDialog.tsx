@@ -19,6 +19,9 @@ import { Participant } from "@/types/tournament.type";
 import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import PersonIcon from '@mui/icons-material/Person';
+
 interface ManageParticipantsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,11 +42,11 @@ export function ManageParticipantsDialog({
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   // Track pending changes locally
   const [pendingAdds, setPendingAdds] = useState<User[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
-  
+
   // Local state for current participants (includes pending changes)
   const [localParticipants, setLocalParticipants] = useState<Participant[]>([]);
 
@@ -96,7 +99,7 @@ export function ManageParticipantsDialog({
         profileImage: user.profileImage,
       } as Participant,
     ]);
-    
+
     // Clear search
     setQuery("");
     setSuggestions([]);
@@ -105,7 +108,7 @@ export function ManageParticipantsDialog({
   const removeParticipant = (participant: Participant) => {
     // Check if it's a pending add (not yet saved)
     const isPendingAdd = pendingAdds.some((u) => u._id === participant._id);
-    
+
     if (isPendingAdd) {
       // Remove from pending adds
       setPendingAdds(pendingAdds.filter((u) => u._id !== participant._id));
@@ -113,9 +116,11 @@ export function ManageParticipantsDialog({
       // Add to pending removes
       setPendingRemoves([...pendingRemoves, participant._id]);
     }
-    
+
     // Remove from local participants
-    setLocalParticipants(localParticipants.filter((p) => p._id !== participant._id));
+    setLocalParticipants(
+      localParticipants.filter((p) => p._id !== participant._id)
+    );
   };
 
   const handleSave = async () => {
@@ -128,26 +133,44 @@ export function ManageParticipantsDialog({
     try {
       // Apply all additions
       for (const user of pendingAdds) {
-        await axiosInstance.post(`/tournaments/${tournamentId}/add-participant`, {
-          participantId: user._id,
-        });
+        await axiosInstance.post(
+          `/tournaments/${tournamentId}/add-participant`,
+          {
+            participantId: user._id,
+          }
+        );
       }
 
       // Apply all removals
       for (const participantId of pendingRemoves) {
-        await axiosInstance.delete(`/tournaments/${tournamentId}/add-participant`, {
-          data: { participantId },
-        });
+        await axiosInstance.delete(
+          `/tournaments/${tournamentId}/add-participant`,
+          {
+            data: { participantId },
+          }
+        );
       }
 
       // Fetch updated tournament to get latest participants
       const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
       onUpdate(data.tournament.participants);
-      
+
       toast.success(
-        `Successfully ${pendingAdds.length > 0 ? `added ${pendingAdds.length} participant${pendingAdds.length > 1 ? 's' : ''}` : ''}${pendingAdds.length > 0 && pendingRemoves.length > 0 ? ' and ' : ''}${pendingRemoves.length > 0 ? `removed ${pendingRemoves.length} participant${pendingRemoves.length > 1 ? 's' : ''}` : ''}`
+        `Successfully ${
+          pendingAdds.length > 0
+            ? `added ${pendingAdds.length} participant${
+                pendingAdds.length > 1 ? "s" : ""
+              }`
+            : ""
+        }${pendingAdds.length > 0 && pendingRemoves.length > 0 ? " and " : ""}${
+          pendingRemoves.length > 0
+            ? `removed ${pendingRemoves.length} participant${
+                pendingRemoves.length > 1 ? "s" : ""
+              }`
+            : ""
+        }`
       );
-      
+
       onOpenChange(false);
     } catch (err: any) {
       console.error("Error saving participants:", err);
@@ -176,10 +199,11 @@ export function ManageParticipantsDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Manage Participants
+            <ManageAccountsIcon className="size-5 text-indigo-500" />
+            <span className="text-indigo-500">Manage Participants</span>
           </DialogTitle>
           <DialogDescription>
-            Add or remove participants before generating the tournament draw.
+            Add or remove participants before generating the draw.
           </DialogDescription>
         </DialogHeader>
 
@@ -190,14 +214,13 @@ export function ManageParticipantsDialog({
               Add Participant
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 placeholder="Search users by name or username..."
                 value={query}
                 onChange={(e) => fetchSuggestions(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setTimeout(() => setFocused(false), 200)}
-                className="pl-9"
+                className="pl-2 placeholder:text-sm"
               />
               {searching && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -210,7 +233,7 @@ export function ManageParticipantsDialog({
                 <ul className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
                   {suggestions.map((u) => {
                     const displayName = u.fullName || u.username;
-                    
+
                     return (
                       <li
                         key={u._id}
@@ -220,28 +243,37 @@ export function ManageParticipantsDialog({
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
-                            <AvatarImage src={u.profileImage} alt={displayName} />
+                            <AvatarImage
+                              src={u.profileImage}
+                              alt={displayName}
+                            />
                             <AvatarFallback className="text-xs">
                               {getInitial(displayName)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col leading-tight">
-                            <span className="text-sm font-medium">{displayName}</span>
-                            <span className="text-xs text-slate-500">@{u.username}</span>
+                            <span className="text-sm font-medium">
+                              {displayName}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              @{u.username}
+                            </span>
                           </div>
                         </div>
-                        <UserPlus className="w-4 h-4 text-indigo-600" />
                       </li>
                     );
                   })}
                 </ul>
               )}
 
-              {focused && query.length >= 2 && suggestions.length === 0 && !searching && (
-                <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg p-3 text-center text-sm text-slate-500">
-                  No users found
-                </div>
-              )}
+              {focused &&
+                query.length >= 2 &&
+                suggestions.length === 0 &&
+                !searching && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg p-3 text-center text-sm text-slate-500">
+                    No users found
+                  </div>
+                )}
             </div>
           </div>
 
@@ -251,36 +283,39 @@ export function ManageParticipantsDialog({
               <label className="text-sm font-medium text-slate-700">
                 Participants ({localParticipants.length})
               </label>
-              {hasChanges && (
-                <span className="text-xs text-indigo-600 font-medium">
-                  {pendingAdds.length > 0 && `+${pendingAdds.length} `}
-                  {pendingRemoves.length > 0 && `-${pendingRemoves.length}`}
-                </span>
-              )}
             </div>
-            
+
             <ScrollArea className="h-[240px] border rounded-lg">
               {localParticipants.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-slate-500">
-                  <Users className="w-8 h-8 mb-2 opacity-50" />
+                  <PersonIcon className="size-6 mb-2" />
                   <p className="text-sm">No participants yet</p>
                 </div>
               ) : (
                 <div className="divide-y">
                   {localParticipants.map((p) => {
-                    const isPendingAdd = pendingAdds.some((u) => u._id === p._id);
+                    const isPendingAdd = pendingAdds.some(
+                      (u) => u._id === p._id
+                    );
                     const isPendingRemove = pendingRemoves.includes(p._id);
-                    
+
                     return (
                       <div
                         key={p._id}
                         className={`flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors ${
-                          isPendingAdd ? "bg-green-50" : isPendingRemove ? "bg-red-50 opacity-60" : ""
+                          isPendingAdd
+                            ? "bg-green-50"
+                            : isPendingRemove
+                            ? "bg-red-50 opacity-60"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
-                            <AvatarImage src={p.profileImage} alt={p.username} />
+                            <AvatarImage
+                              src={p.profileImage}
+                              alt={p.username}
+                            />
                             <AvatarFallback className="text-xs">
                               {getInitial(p.fullName || p.username)}
                             </AvatarFallback>
@@ -291,13 +326,17 @@ export function ManageParticipantsDialog({
                                 {p.fullName || p.username}
                               </span>
                               {isPendingAdd && (
-                                <span className="text-xs text-green-600 font-medium">(new)</span>
+                                <span className="text-xs text-green-600 font-medium">
+                                  (new)
+                                </span>
                               )}
                             </div>
-                            <span className="text-xs text-slate-500">@{p.username}</span>
+                            <span className="text-xs text-slate-500">
+                              @{p.username}
+                            </span>
                           </div>
                         </div>
-                        
+
                         <Button
                           variant="ghost"
                           size="sm"
@@ -317,11 +356,7 @@ export function ManageParticipantsDialog({
 
         {/* Save/Cancel buttons */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleCancel}
-            disabled={saving}
-          >
+          <Button variant="outline" onClick={handleCancel} disabled={saving}>
             Cancel
           </Button>
           <Button
@@ -335,10 +370,7 @@ export function ManageParticipantsDialog({
                 Saving...
               </>
             ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </>
+              <>Save</>
             )}
           </Button>
         </div>
@@ -346,7 +378,3 @@ export function ManageParticipantsDialog({
     </Dialog>
   );
 }
-
-
-
-

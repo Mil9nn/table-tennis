@@ -1,8 +1,11 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import {
+  TournamentValidators,
+  handleValidationResult,
+} from "@/services/tournament/validators/tournamentValidators";
 
 /**
  * Join a tournament using a join code
@@ -11,6 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
+    // Authenticate user
     const token = getTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,6 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    // Get join code from request
     const { joinCode } = await req.json();
 
     if (!joinCode || joinCode.trim().length === 0) {
@@ -42,60 +47,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if join by code is allowed
-    if (!tournament.allowJoinByCode) {
-      return NextResponse.json(
-        { error: "This tournament does not allow joining by code" },
-        { status: 403 }
-      );
-    }
-
-    // Check if registration deadline has passed
-    if (
-      tournament.registrationDeadline &&
-      new Date() > new Date(tournament.registrationDeadline)
-    ) {
-      return NextResponse.json(
-        { error: "Registration deadline has passed" },
-        { status: 403 }
-      );
-    }
-
-    // Check if draw is already generated
-    if (tournament.drawGenerated) {
-      return NextResponse.json(
-        { error: "Cannot join - tournament draw has already been generated" },
-        { status: 403 }
-      );
-    }
-
-    // Check if user is already a participant
-    const isAlreadyParticipant = tournament.participants.some(
-      (p: any) => p.toString() === decoded.userId
+    // Validate join code
+    const joinCodeCheck = TournamentValidators.validateJoinCode(
+      tournament,
+      joinCode.toUpperCase().trim()
     );
+    const error = handleValidationResult(joinCodeCheck);
+    if (error) return error;
 
-    if (isAlreadyParticipant) {
-      return NextResponse.json(
-        { error: "You are already registered for this tournament" },
-        { status: 400 }
-      );
-    }
-
-    // Check if tournament is full
-    if (
-      tournament.maxParticipants &&
-      tournament.participants.length >= tournament.maxParticipants
-    ) {
-      return NextResponse.json(
-        { error: "Tournament is full" },
-        { status: 403 }
-      );
-    }
+    // Validate user can join tournament (composite validation)
+    const canJoinCheck = TournamentValidators.canJoinTournament(
+      tournament,
+      decoded.userId
+    );
+    const joinError = handleValidationResult(canJoinCheck);
+    if (joinError) return joinError;
 
     // Add user to participants
     tournament.participants.push(decoded.userId as any);
     await tournament.save();
 
+    // Populate tournament data
     await tournament.populate([
       { path: "participants", select: "username fullName profileImage" },
       { path: "organizer", select: "username fullName" },

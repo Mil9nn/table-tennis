@@ -6,7 +6,6 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isIndividualMatch } from "@/types/match.type";
 import { useMatchStore } from "@/hooks/useMatchStore";
-import IndividualMatchParticipants from "@/components/match-details/IndividualMatchParticipants";
 import { TeamMatchFormat } from "@/components/match-details/TeamMatchInfo";
 import TeamMatchLineup from "@/components/match-details/TeamMatchLineup";
 import MatchInfo from "@/components/match-details/MatchInfo";
@@ -25,10 +24,19 @@ export default function MatchDetailsPage() {
   const fetchingMatch = useMatchStore((state) => state.fetchingMatch);
   const match = useMatchStore((state) => state.match);
   const user = useAuthStore((state) => state.user);
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+  const authLoading = useAuthStore((state) => state.authLoading);
 
   useEffect(() => {
     fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
   }, [matchId, categoryParam]);
+
+  // Ensure user is loaded
+  useEffect(() => {
+    if (!authLoading && !user) {
+      fetchUser().catch(() => {});
+    }
+  }, [authLoading, user, fetchUser]);
 
   if (fetchingMatch) {
     return (
@@ -47,7 +55,30 @@ export default function MatchDetailsPage() {
     );
   }
 
-  const isScorer = match.scorer?._id === user?._id;
+  // Handle scorer comparison - scorer can be string, ObjectId, or populated object
+  const getScorerId = (scorer: any): string | null => {
+    if (!scorer) return null;
+    if (typeof scorer === "string") return scorer;
+    if (scorer._id) return String(scorer._id);
+    if (scorer.toString) return String(scorer);
+    return null;
+  };
+
+  const scorerId = getScorerId(match.scorer);
+  const userId = user?._id ? String(user._id) : null;
+  const isScorer = !!(scorerId && userId && scorerId === userId);
+  
+  // Debug logging (remove after fixing)
+  if (process.env.NODE_ENV === "development") {
+    console.log("Match scorer check:", {
+      scorerId,
+      userId,
+      scorerRaw: match.scorer,
+      isScorer,
+      matchStatus: match.status,
+      scorerType: typeof match.scorer,
+    });
+  }
   const isSingles = isIndividualMatch(match) && match.matchType === "singles";
 
   const router = useRouter();
@@ -80,17 +111,13 @@ export default function MatchDetailsPage() {
         {/* Score Card */}
         <MatchScore match={match} />
 
-        {/* Participants/Teams */}
-        <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          {isIndividualMatch(match) ? (
-            <IndividualMatchParticipants match={match} />
-          ) : (
-            <>
-              <TeamMatchFormat match={match} />
-              <TeamMatchLineup match={match} />
-            </>
-          )}
-        </section>
+        {/* Team Participants (Team matches only) */}
+        {!isIndividualMatch(match) && (
+          <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <TeamMatchFormat match={match} />
+            <TeamMatchLineup match={match} />
+          </section>
+        )}
 
         {/* Match Info */}
         <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">

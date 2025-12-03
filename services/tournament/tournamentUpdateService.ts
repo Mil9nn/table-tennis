@@ -1,17 +1,14 @@
 import IndividualMatch from "@/models/IndividualMatch";
 import Tournament from "@/models/Tournament";
-import { calculateStandings } from "@/services/tournamentService";
-import {
-  advanceWinnerInBracket,
-  isTournamentComplete,
-} from "@/services/tournament/knockoutService";
 import mongoose from "mongoose";
+import { calculateStandings } from "./core/standingsService";
 
 /**
  * Fetch matches by IDs
  */
 export async function fetchMatches(matchIds: any[], lean = false) {
   const query = IndividualMatch.find({ _id: { $in: matchIds } });
+  // Note: We don't populate participants here because calculateStandings expects ObjectIds
   return lean ? query.lean() : query;
 }
 
@@ -43,29 +40,22 @@ export function getTournamentStatus(matches: any[]) {
  * Update tournament standings and status after a match completes
  */
 export async function updateTournamentAfterMatch(match: any) {
+  // Always reload tournament to get latest bracket state
   const tournament = await Tournament.findById(match.tournament);
   if (!tournament) {
+    console.error("[updateTournamentAfterMatch] Tournament not found for match", match._id);
     return;
   }
 
-  // Check if this match is in the knockout bracket
-  const isKnockoutMatch = tournament.bracket?.rounds?.some((round: any) =>
-    round.matches.some(
-      (m: any) => m.matchId?.toString() === match._id.toString()
-    )
-  );
-
-  if (isKnockoutMatch) {
-    await updateKnockoutBracket(tournament, match);
-  } else if (
-    tournament.format === "round_robin" ||
-    tournament.format === "multi_stage"
-  ) {
-    await updateRoundRobinStandings(tournament);
-  } else if (tournament.format === "knockout") {
-    // Pure knockout tournament
-    await updateKnockoutBracket(tournament, match);
+  // Ensure match has participants populated (they might be ObjectIds)
+  if (!match.participants || match.participants.length === 0) {
+    console.error("[updateTournamentAfterMatch] Match has no participants", match._id);
+    return;
   }
+
+  console.log(`[updateTournamentAfterMatch] Match ${match._id}, tournament format: ${tournament.format}`);
+
+  await updateRoundRobinStandings(tournament);
 }
 
 /**
@@ -187,114 +177,3 @@ export async function updateRoundRobinStandings(tournament: any) {
 
   await tournament.save();
 }
-
-/**
- * Update knockout bracket and advance winner
- */
-export async function updateKnockoutBracket(tournament: any, match: any) {
-  if (!tournament.bracket) {
-    return;
-  }
-
-  // Find winner and loser from match
-  const winnerId =
-    match.winnerSide === "side1"
-      ? match.participants[0]
-      : match.participants[1];
-  const loserId =
-    match.winnerSide === "side1"
-      ? match.participants[1]
-      : match.participants[0];
-
-  // Find the bracket match position for this match
-  let bracketPosition: number | null = null;
-  let currentRound: any = null;
-
-  for (const round of tournament.bracket.rounds) {
-    const bracketMatch = round.matches.find(
-      (m: any) => m.matchId?.toString() === match._id.toString()
-    );
-    if (bracketMatch) {
-      bracketPosition = bracketMatch.bracketPosition;
-      currentRound = round;
-      break;
-    }
-  }
-
-  if (bracketPosition === null) {
-    return;
-  }
-
-  // Update bracket with winner
-  const updatedBracket = advanceWinnerInBracket(
-    tournament.bracket,
-    bracketPosition,
-    new mongoose.Types.ObjectId(winnerId),
-    new mongoose.Types.ObjectId(loserId)
-  );
-
-  tournament.bracket = updatedBracket;
-
-  // Check if tournament is complete
-  if (isTournamentComplete(updatedBracket)) {
-    tournament.status = "completed";
-  } else if (tournament.status === "upcoming") {
-    tournament.status = "in_progress";
-  }
-
-  // Create next round matches if current round is complete
-  // BUT: Don't auto-create if participants aren't set (allows for custom matching)
-  // Only auto-create if both participants are already determined in bracket structure
-  if (
-    currentRound?.completed &&
-    currentRound.roundNumber < updatedBracket.rounds.length
-  ) {
-    const nextRound = updatedBracket.rounds[currentRound.roundNumber];
-
-    for (const bracketMatch of nextRound.matches) {
-      // Skip if match already exists
-      if (bracketMatch.matchId) continue;
-
-      // Check if both participants are determined and set as direct (not from_match placeholders)
-      // This allows custom matching to set up matchups first
-      const p1IsDirect = bracketMatch.participant1.type === "direct" && bracketMatch.participant1.participantId;
-      const p2IsDirect = bracketMatch.participant2.type === "direct" && bracketMatch.participant2.participantId;
-      
-      // Also check for from_match types that have been resolved
-      const p1Id = bracketMatch.participant1.participantId;
-      const p2Id = bracketMatch.participant2.participantId;
-      
-      // Only auto-create if both participants are directly set (not placeholder from_match)
-      // If they're from_match types, they'll be auto-created, but if direct types exist,
-      // it means custom matching was used and matches will be created later
-      if (!p1Id || !p2Id) {
-        continue;
-      }
-      
-      // If both are "direct" type, skip auto-creation - these are from custom matching
-      // and matches will be created when custom matching is saved
-      if (p1IsDirect && p2IsDirect) {
-        continue;
-      }
-
-      // Create the match for from_match types (automatic bracket progression)
-      const newMatch = await IndividualMatch.create({
-        tournament: tournament._id,
-        matchCategory: "individual",
-        matchType: tournament.matchType,
-        numberOfSets: tournament.rules.setsPerMatch,
-        participants: [p1Id, p2Id],
-        status: "scheduled",
-        games: [],
-      });
-
-      bracketMatch.matchId = newMatch._id;
-    }
-  }
-
-  await tournament.save();
-}
-
-
-
-

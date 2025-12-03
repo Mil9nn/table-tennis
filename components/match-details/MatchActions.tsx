@@ -9,17 +9,26 @@ interface Props {
 }
 
 export default function MatchActions({ match, matchId, isScorer }: Props) {
+  const status = match.status;
+
+  const isScheduled = status === "scheduled";
+  const isInProgress = status === "in_progress";
+  const isCompleted = status === "completed";
+
   const hasShots =
-    (match.matchCategory === "individual" &&
-      match.games?.some((g: IndividualGame) => g.shots?.length)) ||
-    (match.matchCategory === "team" &&
-      match.subMatches?.some((sm: SubMatch) =>
-        sm.games?.some((g) => g.shots?.length)
-      ));
+    match.matchCategory === "individual"
+      ? match.games?.some((g: IndividualGame) => g.shots?.length)
+      : match.subMatches?.some((sm: SubMatch) =>
+          sm.games?.some((g) => g.shots?.length)
+        );
 
-  const showLiveAction = ["scheduled", "in_progress"].includes(match.status);
+  const showScorerAction = isScorer && (isScheduled || isInProgress);
+  const showViewLive = !isScorer && isInProgress;
 
-  if (!showLiveAction && !hasShots) return null;
+  // If completed but no shots, no actions → hide section
+  const hasAnyAction = showScorerAction || showViewLive || hasShots;
+
+  if (!hasAnyAction) return null;
 
   return (
     <div className="p-5">
@@ -28,26 +37,23 @@ export default function MatchActions({ match, matchId, isScorer }: Props) {
       </h3>
 
       <div className="flex flex-col gap-3">
-        {showLiveAction && (
+        {showScorerAction && (
           <Link
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all text-white text-sm font-medium"
-            href={
-              isScorer
-                ? `/matches/${matchId}/score?category=${match.matchCategory}`
-                : `/matches/${matchId}/live?category=${match.matchCategory}`
-            }
+            href={`/matches/${matchId}/score?category=${match.matchCategory}`}
           >
-            {isScorer ? (
-              <>
-                <Play className="w-4 h-4" />
-                {match.status === "scheduled" ? "Start Match" : "Continue Match"}
-              </>
-            ) : (
-              <>
-                <Radio className="w-4 h-4" />
-                View Live
-              </>
-            )}
+            <Play className="w-4 h-4" />
+            {isScheduled ? "Start Match" : "Continue Match"}
+          </Link>
+        )}
+
+        {showViewLive && (
+          <Link
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all text-white text-sm font-medium"
+            href={`/matches/${matchId}/live?category=${match.matchCategory}`}
+          >
+            <Radio className="w-4 h-4" />
+            View Live
           </Link>
         )}
 

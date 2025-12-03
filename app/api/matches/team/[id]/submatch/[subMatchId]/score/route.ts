@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { withAuth } from "@/lib/api-utils";
 import { SubMatch } from "@/types/match.type";
+import { getNextServerForTeamMatch } from "@/services/match/serverCalculationService";
+import { populateTeamMatch } from "@/services/match/populationService";
 
 export async function POST(
   req: NextRequest,
@@ -51,46 +53,6 @@ export async function POST(
     const isDoubles = (subMatch as any).matchType === "doubles";
     const serverConfig = (subMatch as any).serverConfig || {};
 
-    // ✅ Helper: compute next server using the SAME logic as individual
-    const computeNextServer = (
-      t1Score: number,
-      t2Score: number,
-      gameNum: number
-    ): string => {
-      const totalPoints = t1Score + t2Score;
-      const isDeuce = t1Score >= 10 && t2Score >= 10;
-
-      if (isDoubles) {
-        // Use rotation array
-        const rotation = serverConfig.serverOrder || [
-          "team1_main",
-          "team2_main",
-          "team1_partner",
-          "team2_partner",
-        ];
-
-        const serveCycle = Math.floor(totalPoints / 2);
-        const serverIndex = serveCycle % rotation.length;
-        return rotation[serverIndex];
-      } else {
-        // Singles
-        if (isDeuce) {
-          return totalPoints % 2 === 0
-            ? serverConfig.firstServer || "team1"
-            : serverConfig.firstServer === "team1"
-            ? "team2"
-            : "team1";
-        }
-
-        const serveCycle = Math.floor(totalPoints / 2);
-        const servers =
-          serverConfig.firstServer === "team1"
-            ? ["team1", "team2"]
-            : ["team2", "team1"];
-        return servers[serveCycle % 2];
-      }
-    };
-
     // Handle subtract action
     if (body.action === "subtract" && body.side) {
       if (body.side === "team1" && currentGame.team1Score > 0) {
@@ -109,11 +71,14 @@ export async function POST(
       }
 
       // ✅ Recompute server with NEW scores
-      (subMatch as any).currentServer = computeNextServer(
+      const serverResult = getNextServerForTeamMatch(
         currentGame.team1Score,
         currentGame.team2Score,
+        isDoubles,
+        serverConfig,
         gameNumber
       );
+      (subMatch as any).currentServer = serverResult.server;
     } else {
       // Normal score update
       if (
@@ -124,11 +89,14 @@ export async function POST(
         currentGame.team2Score = body.team2Score;
 
         // ✅ Compute next server with NEW scores
-        (subMatch as any).currentServer = computeNextServer(
+        const serverResult = getNextServerForTeamMatch(
           body.team1Score,
           body.team2Score,
+          isDoubles,
+          serverConfig,
           gameNumber
         );
+        (subMatch as any).currentServer = serverResult.server;
       }
     }
 
@@ -183,11 +151,14 @@ export async function POST(
         }
       } else {
         // ✅ Reset server for next game (0-0)
-        (subMatch as any).currentServer = computeNextServer(
+        const serverResult = getNextServerForTeamMatch(
           0,
           0,
+          isDoubles,
+          serverConfig,
           gameNumber + 1
         );
+        (subMatch as any).currentServer = serverResult.server;
       }
     }
 
@@ -212,21 +183,9 @@ export async function POST(
     match.markModified("subMatches");
     await match.save();
 
-    const updatedMatch = await TeamMatch.findById(match._id)
-      .populate("scorer", "username fullName profileImage")
-      .populate("team1.captain team2.captain", "username fullName profileImage")
-      .populate(
-        "team1.players.user team2.players.user",
-        "username fullName profileImage"
-      )
-      .populate(
-        "subMatches.playerTeam1 subMatches.playerTeam2",
-        "username fullName profileImage"
-      )
-      .populate(
-        "subMatches.games.shots.player",
-        "username fullName profileImage"
-      );
+    const updatedMatch = await populateTeamMatch(
+      TeamMatch.findById(match._id)
+    ).exec();
 
     return NextResponse.json({
       match: updatedMatch,

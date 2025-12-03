@@ -6,9 +6,12 @@ import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { SubMatch } from "@/types/match.type";
 import mongoose from "mongoose";
+import { createSinglesSubMatch, createDoublesSubMatch } from "@/services/match/subMatchFactory";
+import { populateTeamMatch } from "@/services/match/populationService";
 
 /*
  Generate submatches for Swaythling Cup (5 singles: A-X, B-Y, C-Z, A-Y, B-X)
+ Uses position-based system to ensure proper match order and fairness
  */
 function generateFiveSinglesSubmatches(
   team1: any,
@@ -42,6 +45,7 @@ function generateFiveSinglesSubmatches(
     return playerId || null;
   }
 
+  // Swaythling format fixed match order
   const order = [
     ["A", "X"],
     ["B", "Y"],
@@ -55,18 +59,14 @@ function generateFiveSinglesSubmatches(
     const playerTeam2 = findPlayerByPosition(team2PositionMap, pair[1]);
 
     if (playerTeam1 && playerTeam2) {
-      submatches.push({
-        matchNumber: index + 1,
-        matchType: "singles",
-        playerTeam1: playerTeam1 as any,
-        playerTeam2: playerTeam2 as any,
-        numberOfSets: setsPerTie,
-        games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
-        winnerSide: null,
-        status: "scheduled",
-        completed: false,
-      });
+      submatches.push(
+        createSinglesSubMatch({
+          matchNumber: index + 1,
+          playerTeam1,
+          playerTeam2,
+          numberOfSets: setsPerTie,
+        }) as any
+      );
     }
   });
 
@@ -85,7 +85,7 @@ function generateSingleDoubleSingleSubmatches(
   setsPerTie: number
 ) {
   const submatches = [] as SubMatch[];
-  
+
   const team1AssignmentsRaw = team1.assignments || {};
   const team2AssignmentsRaw = team2.assignments || {};
 
@@ -106,50 +106,38 @@ function generateSingleDoubleSingleSubmatches(
 
   // Match 1: A vs X (singles)
   if (playerA && playerX) {
-    submatches.push({
-      matchNumber: 1,
-      matchType: "singles",
-      playerTeam1: playerA as any,
-      playerTeam2: playerX as any,
-      numberOfSets: setsPerTie,
-      games: [],
-      finalScore: { team1Sets: 0, team2Sets: 0 },
-      winnerSide: null,
-      status: "scheduled",
-      completed: false,
-    });
+    submatches.push(
+      createSinglesSubMatch({
+        matchNumber: 1,
+        playerTeam1: playerA,
+        playerTeam2: playerX,
+        numberOfSets: setsPerTie,
+      }) as any
+    );
   }
 
   // Match 2: AB vs XY (doubles)
   if (playerA && playerB && playerX && playerY) {
-    submatches.push({
-      matchNumber: 2,
-      matchType: "doubles",
-      playerTeam1: [playerA, playerB] as any,
-      playerTeam2: [playerX, playerY] as any,
-      numberOfSets: setsPerTie,
-      games: [],
-      finalScore: { team1Sets: 0, team2Sets: 0 },
-      winnerSide: null,
-      status: "scheduled",
-      completed: false,
-    });
+    submatches.push(
+      createDoublesSubMatch({
+        matchNumber: 2,
+        playerTeam1: [playerA, playerB],
+        playerTeam2: [playerX, playerY],
+        numberOfSets: setsPerTie,
+      }) as any
+    );
   }
 
   // Match 3: B vs Y (singles)
   if (playerB && playerY) {
-    submatches.push({
-      matchNumber: 3,
-      matchType: "singles",
-      playerTeam1: playerB as any,
-      playerTeam2: playerY as any,
-      numberOfSets: setsPerTie,
-      games: [],
-      finalScore: { team1Sets: 0, team2Sets: 0 },
-      winnerSide: null,
-      status: "scheduled",
-      completed: false,
-    });
+    submatches.push(
+      createSinglesSubMatch({
+        matchNumber: 3,
+        playerTeam1: playerB,
+        playerTeam2: playerY,
+        numberOfSets: setsPerTie,
+      }) as any
+    );
   }
 
   return submatches;
@@ -175,33 +163,36 @@ function generateCustomFormatSubmatches(
 
   customConfig.matches.forEach((matchConfig, index) => {
     const matchType = matchConfig.type;
-
-    // Validate players exist
     const team1PlayerIds = matchConfig.team1Players;
     const team2PlayerIds = matchConfig.team2Players;
 
     if (matchType === "singles") {
+      // Use singles factory
       if (team1PlayerIds.length !== 1 || team2PlayerIds.length !== 1) {
         throw new Error(`Match ${index + 1}: Singles requires exactly 1 player per team`);
       }
+      submatches.push(
+        createSinglesSubMatch({
+          matchNumber: index + 1,
+          playerTeam1: team1PlayerIds[0],
+          playerTeam2: team2PlayerIds[0],
+          numberOfSets: setsPerTie,
+        }) as any
+      );
     } else if (matchType === "doubles") {
+      // Use doubles factory
       if (team1PlayerIds.length !== 2 || team2PlayerIds.length !== 2) {
         throw new Error(`Match ${index + 1}: Doubles requires exactly 2 players per team`);
       }
+      submatches.push(
+        createDoublesSubMatch({
+          matchNumber: index + 1,
+          playerTeam1: [team1PlayerIds[0], team1PlayerIds[1]],
+          playerTeam2: [team2PlayerIds[0], team2PlayerIds[1]],
+          numberOfSets: setsPerTie,
+        }) as any
+      );
     }
-
-    submatches.push({
-      matchNumber: index + 1,
-      matchType,
-      playerTeam1: matchType === "singles" ? team1PlayerIds[0] as any : team1PlayerIds as any,
-      playerTeam2: matchType === "singles" ? team2PlayerIds[0] as any : team2PlayerIds as any,
-      numberOfSets: setsPerTie,
-      games: [],
-      finalScore: { team1Sets: 0, team2Sets: 0 },
-      winnerSide: null,
-      status: "scheduled",
-      completed: false,
-    });
   });
 
   return submatches;
@@ -235,6 +226,8 @@ export async function POST(request: NextRequest) {
       venue,
       serverConfig,
       customConfig,
+      team1Assignments,
+      team2Assignments,
     } = body;
 
     if (!matchFormat || !setsPerTie || !city || !team1Id || !team2Id) {
@@ -290,29 +283,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const team1AssignmentsObj = team1.assignments || {};
-    const team2AssignmentsObj = team2.assignments || {};
+    // Use provided assignments or fall back to team's saved assignments
+    const team1AssignmentsObj = team1Assignments || team1.assignments || {};
+    const team2AssignmentsObj = team2Assignments || team2.assignments || {};
 
     // Check if assignments exist for formats that need them
     const needsAssignments = ["five_singles", "single_double_single"].includes(matchFormat);
-    
+
     if (needsAssignments) {
       const hasTeam1Assignments = Object.keys(team1AssignmentsObj).length > 0;
       const hasTeam2Assignments = Object.keys(team2AssignmentsObj).length > 0;
 
       if (!hasTeam1Assignments) {
         return NextResponse.json(
-          { error: `Team "${team1.name}" has no player position assignments. Please assign positions first.` },
+          { error: `Team "${team1.name}" has no player position assignments. Please assign positions in the form.` },
           { status: 400 }
         );
       }
 
       if (!hasTeam2Assignments) {
         return NextResponse.json(
-          { error: `Team "${team2.name}" has no player position assignments. Please assign positions first.` },
+          { error: `Team "${team2.name}" has no player position assignments. Please assign positions in the form.` },
           { status: 400 }
         );
       }
+    }
+
+    // If assignments were provided, save them to the teams for future use
+    if (team1Assignments && Object.keys(team1Assignments).length > 0) {
+      await Team.findByIdAndUpdate(team1Id, { assignments: team1Assignments });
+    }
+    if (team2Assignments && Object.keys(team2Assignments).length > 0) {
+      await Team.findByIdAndUpdate(team2Id, { assignments: team2Assignments });
     }
 
     // Generate subMatches based on match format
@@ -320,11 +322,19 @@ export async function POST(request: NextRequest) {
 
     switch (matchFormat) {
       case "five_singles":
-        subMatches = generateFiveSinglesSubmatches(team1, team2, Number(setsPerTie));
+        subMatches = generateFiveSinglesSubmatches(
+          { ...team1, assignments: team1AssignmentsObj },
+          { ...team2, assignments: team2AssignmentsObj },
+          Number(setsPerTie)
+        );
         break;
 
       case "single_double_single":
-        subMatches = generateSingleDoubleSingleSubmatches(team1, team2, Number(setsPerTie));
+        subMatches = generateSingleDoubleSingleSubmatches(
+          { ...team1, assignments: team1AssignmentsObj },
+          { ...team2, assignments: team2AssignmentsObj },
+          Number(setsPerTie)
+        );
         break;
 
       case "custom":
@@ -387,25 +397,12 @@ export async function POST(request: NextRequest) {
     await teamMatch.save();
 
     // Populate for return
-    await teamMatch.populate([
-      { path: "scorer", select: "username fullName" },
-      { path: "team1.captain team2.captain", select: "username fullName" },
-      {
-        path: "team1.players.user team2.players.user",
-        select: "username fullName profileImage",
-      },
-      {
-        path: "subMatches.playerTeam1 subMatches.playerTeam2",
-        select: "username fullName profileImage",
-      },
-      {
-        path: "subMatches.games.shots.player",
-        select: "username fullName profileImage",
-      },
-    ]);
+    const populatedMatch = await populateTeamMatch(
+      TeamMatch.findById(teamMatch._id)
+    ).exec();
 
     return NextResponse.json(
-      { message: "Team match created successfully", match: teamMatch },
+      { message: "Team match created successfully", match: populatedMatch },
       { status: 201 }
     );
   } catch (err: any) {
@@ -423,26 +420,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "0", 10);
 
-    let query = TeamMatch.find()
-      .populate("scorer", "username fullName")
-      .populate("team1.captain team2.captain", "username fullName")
-      .populate(
-        "team1.players.user team2.players.user",
-        "username fullName profileImage"
-      )
-      .populate(
-        "subMatches.playerTeam1 subMatches.playerTeam2",
-        "username fullName profileImage"
-      )
-      .populate({
-        path: "subMatches.games.shots.player",
-        select: "username fullName profileImage",
-      })
-      .sort({ createdAt: -1 });
+    let query = populateTeamMatch(TeamMatch.find()).sort({ createdAt: -1 });
 
     if (limit > 0) query = query.limit(limit);
 
-    const matches = await query;
+    const matches = await query.exec();
 
     return NextResponse.json({ matches }, { status: 200 });
   } catch (err) {

@@ -40,6 +40,24 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     }));
   }
 
+  function normalizeScorer(raw: any): Participant | string | undefined {
+    if (!raw) return undefined;
+    if (typeof raw === "string") {
+      // If it's just an ID string, return it as-is (match details page handles this)
+      return raw;
+    }
+    // If it's a populated object, normalize it to Participant
+    if (raw._id) {
+      return {
+        _id: String(raw._id),
+        username: raw.username || "",
+        fullName: raw.fullName,
+        profileImage: raw.profileImage,
+      };
+    }
+    return undefined;
+  }
+
   const normalizeMatch = (raw: any): IndividualMatch | TeamMatch => {
     if (raw.matchCategory === "team") {
 
@@ -68,7 +86,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         },
         city: raw.city,
         venue: raw.venue,
-        scorer: raw.scorer,
+        scorer: normalizeScorer(raw.scorer),
         subMatches: raw.subMatches || [],
         currentSubMatch: raw.currentSubMatch || 1,
         status: raw.status,
@@ -86,7 +104,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       matchType: raw.matchType,
       numberOfSets: Number(raw.numberOfSets ?? 3),
       participants,
-      scorer: raw.scorer,
+      scorer: normalizeScorer(raw.scorer),
       city: raw.city,
       venue: raw.venue,
       status: raw.status,

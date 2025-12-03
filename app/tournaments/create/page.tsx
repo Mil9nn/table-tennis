@@ -48,7 +48,7 @@ import { cn } from "@/lib/utils";
 
 const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
-  format: z.enum(["round_robin", "knockout", "multi_stage"]),
+  format: z.enum(["round_robin"]),
   category: z.enum(["individual", "team"]),
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   startDate: z.date({
@@ -61,7 +61,6 @@ const tournamentSchema = z.object({
   useGroups: z.boolean(),
   numberOfGroups: z.string().optional(),
   advancePerGroup: z.string().optional(),
-  advanceTop: z.string().optional(), // For multi-stage without groups
   seedingMethod: z.enum(["manual", "none"]),
 });
 
@@ -86,7 +85,6 @@ export default function CreateTournamentPage() {
       useGroups: false,
       numberOfGroups: "4",
       advancePerGroup: "2",
-      advanceTop: "4", // Top N advance to knockout (for multi-stage)
       seedingMethod: "none",
     },
   });
@@ -140,19 +138,11 @@ export default function CreateTournamentPage() {
           ? Number(data.advancePerGroup)
           : undefined,
         seedingMethod: data.seedingMethod,
-        // Multi-stage format (round-robin/group stage → knockout)
-        isMultiStage: data.format === "multi_stage",
         rules: {
           setsPerMatch: Number(data.setsPerMatch),
           pointsPerSet: 11,
           pointsForWin: Number(data.pointsForWin),
-          // Top N advance to knockout for multi_stage format
-          advanceTop:
-            data.format === "multi_stage"
-              ? data.useGroups
-                ? 0
-                : Number(data.advanceTop)
-              : 0,
+          advanceTop: 0,
           deuceSetting: "standard",
           tiebreakRules: [
             "points",
@@ -230,8 +220,6 @@ export default function CreateTournamentPage() {
                     <div className="flex gap-2 flex-wrap">
                       {[
                         { label: "Round Robin", value: "round_robin" },
-                        { label: "Knockout", value: "knockout" },
-                        { label: "Multi Stage", value: "multi_stage" },
                       ].map((opt) => {
                         const isActive = field.value === opt.value;
                         return (
@@ -499,7 +487,7 @@ export default function CreateTournamentPage() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Top N from each group advance to knockout
+                        Top N from each group advance
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -508,40 +496,6 @@ export default function CreateTournamentPage() {
               </div>
             )}
 
-            {/* Knockout stage settings for multi-stage format (when not using groups) */}
-            {form.watch("format") === "multi_stage" &&
-              !form.watch("useGroups") && (
-                <div className="mt-4 p-4 rounded-lg border">
-                  <h3 className="font-medium text-[#1A73E8] mb-2">
-                    Knockout Stage Settings
-                  </h3>
-                  <FormField
-                    control={form.control}
-                    name="advanceTop"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[#495057]">
-                          Players advancing to knockout
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            className="bg-white"
-                            type="number"
-                            min="2"
-                            max="16"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Top N players from round robin advance to knockout
-                          stage (e.g., 4 for semifinals)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
           </div>
 
           {/* Participants */}

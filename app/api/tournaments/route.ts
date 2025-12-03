@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
       numberOfGroups,
       advancePerGroup,
       seedingMethod,
-      isMultiStage,
     } = body;
 
     // Validate
@@ -37,9 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["round_robin", "knockout", "multi_stage"].includes(format)) {
+    if (format !== "round_robin") {
       return NextResponse.json(
-        { error: "Invalid tournament format" },
+        { error: "Only round_robin format is supported" },
         { status: 400 }
       );
     }
@@ -78,7 +77,6 @@ export async function POST(request: NextRequest) {
       advancePerGroup: advancePerGroup || undefined,
       seedingMethod: seedingMethod || "none",
       seeding: initialSeeding, // Initialize seeding with registration order
-      isMultiStage: isMultiStage || false,
       rules: {
         pointsForWin: rules?.pointsForWin || 2, // ITTF standard: 2 points for win
         pointsForLoss: rules?.pointsForLoss || 0,

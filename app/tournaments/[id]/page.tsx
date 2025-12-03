@@ -4,19 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import {
-  Trophy,
-  Calendar,
-  MapPin,
-  Loader2,
-  RefreshCw,
-  Users2,
-  QrCode,
-  Swords,
-} from "lucide-react";
+import { Trophy, Calendar, MapPin, Loader2, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateShort } from "@/lib/utils";
 import Link from "next/link";
@@ -26,11 +16,14 @@ import { motion } from "framer-motion";
 import { EnhancedStandingsTable } from "@/components/tournaments/EnhancedStandingsTable";
 import { GroupsView } from "@/components/tournaments/GroupsView";
 import TournamentSchedule from "@/components/tournaments/TournamentSchedule";
-import KnockoutBracket from "@/components/tournaments/KnockoutBracket";
-import TournamentLeaderboard from "@/components/tournaments/TournamentLeaderboard";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { JoinCodeDialog } from "@/components/tournaments/JoinCodeDialog";
 import { ManageParticipantsDialog } from "@/components/tournaments/ManageParticipantsDialog";
+import { ManageGroupsDialog } from "@/components/tournaments/ManageGroupsDialog";
+
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PersonIcon from "@mui/icons-material/PersonAdd";
+import QrCodeIcon from "@mui/icons-material/QrCode";
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -41,52 +34,30 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [generatingKnockout, setGeneratingKnockout] = useState(false);
   const [joinCodeDialogOpen, setJoinCodeDialogOpen] = useState(false);
   const [manageParticipantsOpen, setManageParticipantsOpen] = useState(false);
-  const [knockoutStatus, setKnockoutStatus] = useState<{
-    canGenerateKnockout: boolean;
-    roundRobinComplete: boolean;
-    qualifiedCount: number;
-  } | null>(null);
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
 
-  const fetchTournament = async () => {
+  const fetchTournament = async (skipLoadingState = false) => {
+    if (!skipLoadingState) {
+      setLoading(true);
+    }
     try {
       const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
-      setTournament(data.tournament);
-
-      // Check knockout status for multi-stage tournaments
-      if (
-        data.tournament.isMultiStage ||
-        data.tournament.format === "multi_stage" ||
-        data.tournament.format === "round_robin"
-      ) {
-        fetchKnockoutStatus();
-      }
+      const tournament = data.tournament;
+      setTournament(tournament);
     } catch (err) {
       console.error("Error fetching tournament:", err);
       toast.error("Failed to load tournament");
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchKnockoutStatus = async () => {
-    try {
-      const { data } = await axiosInstance.get(
-        `/tournaments/${tournamentId}/generate-knockout`
-      );
-      setKnockoutStatus(data);
-    } catch (err) {
-      console.error("Error fetching knockout status:", err);
+      if (!skipLoadingState) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchTournament();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchTournament, 30000);
-    return () => clearInterval(interval);
   }, [tournamentId]);
 
   const generateMatches = async () => {
@@ -104,29 +75,6 @@ export default function TournamentDetailPage() {
       toast.error(err.response?.data?.error || "Failed to generate matches");
     } finally {
       setGenerating(false);
-    }
-  };
-
-
-  const generateKnockout = async (useCustom: boolean = false) => {
-    setGeneratingKnockout(true);
-    try {
-      const { data } = await axiosInstance.post(
-        `/tournaments/${tournamentId}/generate-knockout`,
-        { useCustom }
-      );
-      setTournament(data.tournament);
-      setKnockoutStatus(null); // Reset status as knockout is now generated
-      toast.success(
-        `Knockout bracket generated! ${data.knockoutStats.qualifiedParticipants} players qualified.`
-      );
-    } catch (err: any) {
-      console.error("Error generating knockout:", err);
-      toast.error(
-        err.response?.data?.error || "Failed to generate knockout bracket"
-      );
-    } finally {
-      setGeneratingKnockout(false);
     }
   };
 
@@ -151,6 +99,25 @@ export default function TournamentDetailPage() {
           }
         : null
     );
+  };
+
+  const handleGroupsUpdate = async (groups: any[]) => {
+    // If matches were already generated, groups update will regenerate matches
+    // So we need to fetch the full tournament data to get the updated matches
+    if (tournament?.drawGenerated) {
+      // Fetch full tournament data to get regenerated matches
+      await fetchTournament(true); // Skip loading state to avoid flash
+    } else {
+      // Just update groups in state if matches haven't been generated yet
+      setTournament((prev) =>
+        prev
+          ? {
+              ...prev,
+              groups,
+            }
+          : null
+      );
+    }
   };
 
   if (loading) {
@@ -188,24 +155,7 @@ export default function TournamentDetailPage() {
 
   const allMatchObjects = getAllMatches();
 
-  // For knockout tournaments, calculate total matches from bracket structure
-  // since future rounds may not have match documents created yet
   const getTotalMatchCount = () => {
-    if (tournament.format === "knockout" && tournament.bracket) {
-      // Count all matches in the bracket structure, excluding bye-only matches
-      return tournament.bracket.rounds.reduce((sum, round) => {
-        return (
-          sum +
-          round.matches.filter((match: any) => {
-            // Exclude matches where both participants are byes
-            const p1IsBye = match.participant1?.type === "bye";
-            const p2IsBye = match.participant2?.type === "bye";
-            return !(p1IsBye && p2IsBye);
-          }).length
-        );
-      }, 0);
-    }
-    // For other formats, use the actual match documents count
     return allMatchObjects.length;
   };
 
@@ -214,46 +164,47 @@ export default function TournamentDetailPage() {
     (m: any) => m?.status === "completed"
   ).length;
 
+  // Check if any matches have been played (not just scheduled)
+  const hasPlayedMatches = allMatchObjects.some(
+    (m: any) => m?.status === "in_progress" || m?.status === "completed"
+  );
+
   // Transform rounds to have match IDs instead of full objects for TournamentSchedule
-  // For group tournaments, extract rounds from groups and combine them
+  // For group tournaments, keep rounds separated by group
   const getRoundsForSchedule = () => {
     if (
       tournament.useGroups &&
       tournament.groups &&
       tournament.groups.length > 0
     ) {
-      // Combine rounds from all groups, prefixing with group name for clarity
-      const combinedRounds: any[] = [];
+      // Keep rounds separated by group for clear organization
+      const roundsWithGroups: any[] = [];
 
       tournament.groups.forEach((group: any) => {
         group.rounds?.forEach((round: any) => {
-          // Find if we already have this round number
-          const existingRound = combinedRounds.find(
-            (r) => r.roundNumber === round.roundNumber
-          );
-
           const matchIds =
             round.matches?.map((m: any) =>
               typeof m === "string" ? m : String(m._id)
             ) || [];
 
-          if (existingRound) {
-            // Add matches to existing round
-            existingRound.matches.push(...matchIds);
-          } else {
-            // Create new round entry
-            combinedRounds.push({
-              roundNumber: round.roundNumber,
-              matches: matchIds,
-              completed: round.completed,
-              scheduledDate: round.scheduledDate,
-            });
-          }
+          roundsWithGroups.push({
+            roundNumber: round.roundNumber,
+            matches: matchIds,
+            completed: round.completed,
+            scheduledDate: round.scheduledDate,
+            groupName: group.groupName, // Add group name to identify which group
+            groupId: group.groupId,
+          });
         });
       });
 
-      // Sort by round number
-      return combinedRounds.sort((a, b) => a.roundNumber - b.roundNumber);
+      // Sort by group name first, then by round number
+      return roundsWithGroups.sort((a, b) => {
+        if (a.groupName !== b.groupName) {
+          return a.groupName.localeCompare(b.groupName);
+        }
+        return a.roundNumber - b.roundNumber;
+      });
     }
 
     // For non-group tournaments, use the regular rounds
@@ -292,101 +243,67 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Right action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             {isOrganizer && !tournament.drawGenerated && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setManageParticipantsOpen(true)}
-                  className=""
+                  className="
+                  transition-all duration-150
+                  active:scale-95 hover:scale-[1.03]
+                "
                 >
+                  <PersonIcon className="size-4 text-blue-500" />
                   <span className="text-blue-500">Manage Players</span>
                 </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setJoinCodeDialogOpen(true)}
-                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                  className="
+                  border-indigo-300 text-indigo-700 hover:bg-indigo-50
+                  transition-all duration-150
+                  active:scale-95 hover:scale-[1.03]
+                "
                 >
-                  <QrCode className="size-4" />
-                  <span className="ml-1 hidden sm:inline">Join Code</span>
+                  <QrCodeIcon className="size-4 text-indigo-500" />
+                  <span className="text-indigo-500">Join Code</span>
                 </Button>
               </>
             )}
-
-            {/* Show custom matching button for knockout tournaments */}
-            {/* Show:
-                1. Before draw is generated (initial setup)
-                2. After a round completes and next round matches haven't been created yet
-            */}
-            {isOrganizer && 
-              tournament.format === "knockout" && 
-              tournament.participants.length >= 2 && (
-                (() => {
-                  // Before draw generated
-                  if (!tournament.drawGenerated) {
-                    return true;
+            {isOrganizer && tournament.useGroups && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (hasPlayedMatches) {
+                    toast.error(
+                      "Cannot modify groups after matches have been played. This would reset all match results and standings."
+                    );
+                  } else {
+                    setManageGroupsOpen(true);
                   }
-                  
-                  // After draw generated: check if current round is complete and next round can be customized
-                  if (tournament.bracket && tournament.bracket.rounds?.length > 0) {
-                    // Find the current round (last completed round or first incomplete round)
-                    const rounds = tournament.bracket.rounds;
-                    
-                    // Check if there's a completed round with a next round that has no matches created yet
-                    for (let i = 0; i < rounds.length - 1; i++) {
-                      const currentRound = rounds[i];
-                      const nextRound = rounds[i + 1];
-                      
-                      // If current round is complete and next round has no matches created yet
-                      if (currentRound.completed && nextRound) {
-                        const nextRoundHasMatches = nextRound.matches?.some((m: any) => m.matchId);
-                        if (!nextRoundHasMatches) {
-                          return true;
-                        }
-                      }
-                    }
-                  }
-                  
-                  return false;
-                })() && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/tournaments/${tournamentId}/custom-matching`)
-                    }
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  >
-                    <Swords className="size-4" />
-                    <span className="ml-1 hidden sm:inline">Custom Matches</span>
-                  </Button>
-                )
-              )}
-            
-            {/* Show custom matching button for multi-stage tournaments after group stage */}
-            {/* Show if knockout status indicates round robin is complete OR if tournament has no bracket yet */}
-            {isOrganizer &&
-              (tournament.isMultiStage ||
-                tournament.format === "multi_stage" ||
-                tournament.format === "round_robin") &&
-              !tournament.bracket?.rounds?.length &&
-              (knockoutStatus?.roundRobinComplete ||
-                knockoutStatus?.canGenerateKnockout ||
-                (knockoutStatus === null && tournament.drawGenerated && totalMatches > 0 && completedMatches === totalMatches)) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    router.push(`/tournaments/${tournamentId}/custom-matching`)
-                  }
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                >
-                  <Swords className="size-4" />
-                  <span className="ml-1 hidden sm:inline">Custom Matches</span>
-                </Button>
-              )}
+                }}
+                disabled={hasPlayedMatches}
+                className={`
+                  transition-all duration-150
+                  active:scale-95 hover:scale-[1.03]
+                  ${hasPlayedMatches ? "opacity-50 cursor-not-allowed" : ""}
+                `}
+                title={
+                  hasPlayedMatches
+                    ? "Group management is locked because matches have been played"
+                    : "Manage group assignments"
+                }
+              >
+                <GroupsIcon className="size-4 text-blue-500" />
+                <span className="text-blue-500">Manage Groups</span>
+                {hasPlayedMatches && <span className="ml-1 text-xs">🔒</span>}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -478,29 +395,9 @@ export default function TournamentDetailPage() {
                     <p className="text-sm text-gray-600">
                       Generate the tournament draw to create all matches
                       {tournament.useGroups && " and assign groups"}
-                      {tournament.format === "knockout" && (
-                        <span className="block mt-1 text-xs text-blue-600">
-                          Tip: Set custom matches before generating for manual bracket setup
-                        </span>
-                      )}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                    {tournament.format === "knockout" && (
-                      <Link
-                        href={`/tournaments/${tournamentId}/custom-matching`}
-                        className="inline-block"
-                      >
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full sm:w-auto border-2 border-orange-500 text-orange-600 hover:bg-orange-50"
-                        >
-                          <Swords className="w-5 h-5 mr-2" />
-                          Set Custom Matches
-                        </Button>
-                      </Link>
-                    )}
                     <Button
                       onClick={generateMatches}
                       disabled={generating}
@@ -513,7 +410,7 @@ export default function TournamentDetailPage() {
                           Generating...
                         </>
                       ) : (
-                        <>Generate</>
+                        <>Generate Draw</>
                       )}
                     </Button>
                   </div>
@@ -523,169 +420,14 @@ export default function TournamentDetailPage() {
           </motion.div>
         )}
 
-        {/* Generate Knockout CTA (Round Robin Tournaments) */}
-        {isOrganizer &&
-          (tournament.isMultiStage ||
-            tournament.format === "multi_stage" ||
-            tournament.format === "round_robin") &&
-          knockoutStatus?.canGenerateKnockout && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="px-4 pb-4"
-            >
-              <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-center sm:text-left">
-                      <h3 className="font-bold text-xl text-gray-900 mb-2">
-                        Round Robin Complete!
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        All group stage matches are done. Generate the knockout
-                        bracket to start the elimination rounds.
-                      </p>
-                      <p className="text-xs text-green-600 mt-1 font-medium">
-                        {knockoutStatus.qualifiedCount} players qualified for
-                        knockout stage
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                      <Link
-                        href={`/tournaments/${tournamentId}/custom-matching`}
-                        className="inline-block"
-                      >
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full sm:w-auto border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-                        >
-                          <Swords className="w-5 h-5 mr-2" />
-                          Set Custom Matches
-                        </Button>
-                      </Link>
-                      <Button
-                        onClick={() => generateKnockout(false)}
-                        disabled={generatingKnockout}
-                        size="lg"
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      >
-                        {generatingKnockout ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Trophy className="w-5 h-5 mr-2" />
-                            Generate Automatic
-                          </>
-                        )}
-                      </Button>
-                      {tournament.customBracketMatches &&
-                        tournament.customBracketMatches.length > 0 && (
-                          <Button
-                            onClick={() => generateKnockout(true)}
-                            disabled={generatingKnockout}
-                            size="lg"
-                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                          >
-                            {generatingKnockout ? (
-                              <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                Generating...
-                              </>
-                            ) : (
-                              <>
-                                <Swords className="w-5 h-5 mr-2" />
-                                Generate Custom
-                              </>
-                            )}
-                          </Button>
-                        )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-        {/* Round Robin Progress (Not Yet Complete) */}
-        {isOrganizer &&
-          (tournament.isMultiStage ||
-            tournament.format === "multi_stage" ||
-            tournament.format === "round_robin") &&
-          knockoutStatus &&
-          !knockoutStatus.canGenerateKnockout &&
-          !knockoutStatus.roundRobinComplete &&
-          !tournament.bracket?.rounds?.length && (
-            <div className="">
-              <Card className="border-none rounded-none mb-4 bg-amber-50">
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-amber-100 rounded-lg">
-                      <RefreshCw className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">
-                        Round Robin in Progress
-                      </p>
-                      <p className="text-xs text-amber-600">
-                        Complete all group stage matches to advance to knockout
-                        bracket generation
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
         {/* Main Tabs */}
         <Tabs
-          defaultValue={
-            tournament.format === "knockout"
-              ? "bracket"
-              : (tournament.format === "multi_stage" ||
-                  tournament.format === "round_robin") &&
-                tournament.bracket?.rounds?.length
-              ? "bracket"
-              : tournament.useGroups
-              ? "groups"
-              : "standings"
-          }
+          defaultValue={tournament.useGroups ? "groups" : "standings"}
           className="w-full"
         >
-          <TabsList
-            className={`grid w-full max-w-3xl p-0 rounded-none mx-auto shadow-sm ${
-              tournament.format === "knockout"
-                ? "grid-cols-4"
-                : (tournament.format === "multi_stage" ||
-                  tournament.format === "round_robin") &&
-                  tournament.bracket?.rounds?.length
-                ? "grid-cols-6"
-                : "grid-cols-5"
-            }`}
-          >
-            {/* Bracket Tab - Show for knockout OR round_robin with bracket generated */}
-            {(tournament.format === "knockout" ||
-              ((tournament.format === "multi_stage" ||
-                tournament.format === "round_robin") &&
-                !!tournament.bracket?.rounds?.length)) && (
-              <TabsTrigger
-                value="bracket"
-                className="text-xs rounded-none font-medium
-                data-[state=active]:bg-indigo-500 data-[state=active]:text-white
-                data-[state=inactive]:text-slate-600
-                transition-all
-              "
-              >
-                Bracket
-              </TabsTrigger>
-            )}
-
-            {/* Groups Tab - Show for tournaments with groups (round_robin or multi_stage) */}
-            {tournament.format !== "knockout" && tournament.useGroups && (
+          <TabsList className="grid w-full max-w-3xl p-0 rounded-none mx-auto shadow-sm grid-cols-4">
+            {/* Groups Tab - Show for tournaments with groups */}
+            {tournament.useGroups && (
               <TabsTrigger
                 value="groups"
                 className="
@@ -699,8 +441,8 @@ export default function TournamentDetailPage() {
               </TabsTrigger>
             )}
 
-            {/* Standings Tab - Show for non-knockout formats without groups */}
-            {tournament.format !== "knockout" && !tournament.useGroups && (
+            {/* Standings Tab - Show for tournaments without groups */}
+            {!tournament.useGroups && (
               <TabsTrigger
                 value="standings"
                 className=" rounded-none text-xs font-medium
@@ -713,23 +455,9 @@ export default function TournamentDetailPage() {
               </TabsTrigger>
             )}
 
-            {/* Schedule Tab - Hide for knockout tournaments */}
-            {tournament.format !== "knockout" && (
-              <TabsTrigger
-                value="schedule"
-                className="
-                  rounded-none text-xs font-medium
-                  data-[state=active]:bg-indigo-500 data-[state=active]:text-white
-                  data-[state=inactive]:text-slate-600
-                  transition-all
-                "
-              >
-                Schedule
-              </TabsTrigger>
-            )}
-
+            {/* Schedule Tab */}
             <TabsTrigger
-              value="leaderboard"
+              value="schedule"
               className="
                 rounded-none text-xs font-medium
                 data-[state=active]:bg-indigo-500 data-[state=active]:text-white
@@ -737,7 +465,7 @@ export default function TournamentDetailPage() {
                 transition-all
               "
             >
-              Leaderboard
+              Schedule
             </TabsTrigger>
 
             <TabsTrigger
@@ -764,50 +492,6 @@ export default function TournamentDetailPage() {
               Info
             </TabsTrigger>
           </TabsList>
-          {/* Bracket Tab (Knockout and Round Robin Tournaments) */}
-          {(tournament.format === "knockout" ||
-            ((tournament.format === "multi_stage" ||
-              tournament.format === "round_robin") &&
-              !!tournament.bracket?.rounds?.length)) && (
-            <TabsContent value="bracket">
-              {tournament.bracket && tournament.bracket.rounds.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      {tournament.format === "multi_stage" ||
-                      tournament.format === "round_robin"
-                        ? "Knockout Stage"
-                        : "Tournament Bracket"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <KnockoutBracket
-                      bracket={tournament.bracket}
-                      participants={tournament.participants}
-                      onMatchClick={(matchId) =>
-                        router.push(`/matches/${matchId}`)
-                      }
-                      tournamentId={tournamentId}
-                    />
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No bracket generated yet</p>
-                    <p className="text-sm mt-2">
-                      {tournament.format === "multi_stage" ||
-                      tournament.format === "round_robin"
-                        ? "Complete round robin matches to generate knockout bracket"
-                        : "Generate matches to create the knockout bracket"}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          )}
 
           {/* Groups Tab */}
           {tournament.useGroups && (
@@ -830,12 +514,22 @@ export default function TournamentDetailPage() {
           )}
 
           {/* Standings Tab */}
-          <TabsContent value="standings" className="p-4">
+          <TabsContent value="standings" className="">
+            <div className="flex items-center gap-2 p-4 bg-slate-50 border-b border-slate-200">
+              <EmojiEventsIcon className="size-5 text-slate-500" />
+              <div>
+                <p className="text-sm text-slate-500">Tournament Standings</p>
+                <p className="text-xs text-slate-500">
+                  View detailed statistics and match history
+                </p>
+              </div>
+            </div>
             {tournament.standings && tournament.standings.length > 0 ? (
               <EnhancedStandingsTable
                 standings={tournament.standings}
                 showDetailedStats={true}
                 highlightTop={3}
+                tournamentId={tournamentId}
               />
             ) : (
               <Card>
@@ -851,44 +545,26 @@ export default function TournamentDetailPage() {
           </TabsContent>
 
           {/* Schedule Tab */}
-          {/* Schedule Tab Content - Hide for knockout tournaments */}
-          {tournament.format !== "knockout" && (
-            <TabsContent value="schedule" className="p-4">
-              {roundsWithIds && roundsWithIds.length > 0 ? (
-                <TournamentSchedule
-                  rounds={roundsWithIds as any}
-                  matches={allMatchObjects as any}
-                  onMatchClick={(id) => router.push(`/matches/${id}`)}
-                  showDate={false}
-                  showTime={false}
-                  venue={tournament.venue}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No schedule available yet</p>
-                    <p className="text-sm mt-2">
-                      Generate matches to create the schedule
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          )}
-
-          {/* Leaderboard Tab */}
-          <TabsContent value="leaderboard" className="">
-            {tournament.standings && tournament.standings.length > 0 ? (
-              <TournamentLeaderboard tournamentId={tournamentId} />
+          <TabsContent value="schedule" className="p-4">
+            {roundsWithIds && roundsWithIds.length > 0 ? (
+              <TournamentSchedule
+                rounds={roundsWithIds as any}
+                matches={allMatchObjects as any}
+                onMatchClick={(id) => router.push(`/matches/${id}`)}
+                showDate={false}
+                showTime={false}
+                venue={tournament.venue}
+              />
             ) : (
-              <div className="py-12 text-center text-muted-foreground">
-                <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>No leaderboard data available yet</p>
-                <p className="text-sm mt-2">
-                  Complete matches and update standings to view the leaderboard
-                </p>
-              </div>
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No schedule available yet</p>
+                  <p className="text-sm mt-2">
+                    Generate matches to create the schedule
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
@@ -1049,9 +725,7 @@ export default function TournamentDetailPage() {
                       </div>
 
                       <div className="flex justify-between items-center py-1 border-b border-black/5">
-                        <dt className="text-muted-foreground">
-                          Win / Loss
-                        </dt>
+                        <dt className="text-muted-foreground">Win / Loss</dt>
                         <dd className="font-medium text-neutral-700">
                           {tournament.rules.pointsForWin}/
                           {tournament.rules.pointsForLoss}
@@ -1087,6 +761,20 @@ export default function TournamentDetailPage() {
           tournamentId={tournament._id}
           participants={tournament.participants}
           onUpdate={handleParticipantsUpdate}
+        />
+      )}
+
+      {/* Manage Groups Dialog */}
+      {tournament && tournament.useGroups && (
+        <ManageGroupsDialog
+          open={manageGroupsOpen}
+          onOpenChange={setManageGroupsOpen}
+          tournamentId={tournament._id}
+          groups={tournament.groups || []}
+          participants={tournament.participants}
+          onUpdate={handleGroupsUpdate}
+          drawGenerated={tournament.drawGenerated}
+          hasPlayedMatches={hasPlayedMatches}
         />
       )}
     </div>

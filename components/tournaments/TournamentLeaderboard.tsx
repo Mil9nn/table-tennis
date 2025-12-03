@@ -190,7 +190,7 @@ export default function TournamentLeaderboard({
                   Tournament Leaderboard
                 </h2>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Final standings from knockout stage
+                  Final standings
                 </p>
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function TournamentLeaderboard({
                                 vs {getPlayerDisplayName(match.opponent)}
                               </div>
                               <div className="text-[11px] text-slate-500">
-                                {match.groupId ? "Group Stage" : "Knockout"}
+                                {match.groupId ? "Group Stage" : "Round Robin"}
                                 {match.roundNumber &&
                                   ` • Round ${match.roundNumber}`}
                               </div>

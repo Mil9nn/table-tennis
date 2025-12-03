@@ -44,7 +44,7 @@ function SubMatchCard({ subMatch, index }: { subMatch: SubMatch; index: number }
 
   return (
     <div
-      className={`p-4 rounded-xl transition-all ${
+      className={`p-4 transition-all ${
         isInProgress
           ? "bg-blue-50 dark:bg-blue-950/30 ring-1 ring-blue-200 dark:ring-blue-800"
           : isCompleted
@@ -55,10 +55,9 @@ function SubMatchCard({ subMatch, index }: { subMatch: SubMatch; index: number }
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            M{index + 1}
-          </span>
-          <MatchTypeBadge type={subMatch.matchType} size="sm" showIcon={false} />
+          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            M{index + 1} • <span className="text-xs">{subMatch.matchType}</span>
+          </p>
         </div>
         <StatusBadge status={subMatch.status} />
       </div>
