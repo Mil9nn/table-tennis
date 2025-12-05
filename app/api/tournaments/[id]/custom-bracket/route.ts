@@ -399,7 +399,7 @@ export async function POST(
       });
 
       // Calculate bye recipients (participants NOT in Round 1)
-      const byeWinners = allParticipantIds.filter((p) => !usedInRound1.has(p));
+      const byeWinners = allParticipantIds.filter((p: any) => !usedInRound1.has(p));
 
       console.log(`[Custom Matching R1] Total participants: ${allParticipantIds.length}, Used in R1: ${usedInRound1.size}, Bye winners: ${byeWinners.length}`);
 
