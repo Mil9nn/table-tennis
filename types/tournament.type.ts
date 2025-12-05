@@ -4,7 +4,7 @@ import { KnockoutBracket, KnockoutConfig } from "./tournamentDraw";
 export interface Tournament {
   _id: string;
   name: string;
-  format: "round_robin" | "knockout";
+  format: "round_robin" | "knockout" | "hybrid";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -27,6 +27,21 @@ export interface Tournament {
   // Knockout specific
   knockoutConfig?: KnockoutConfig;
   bracket?: KnockoutBracket;
+
+  // Hybrid format specific
+  hybridConfig?: {
+    roundRobinUseGroups: boolean;
+    roundRobinNumberOfGroups?: number;
+    qualificationMethod: "top_n_overall" | "top_n_per_group" | "percentage";
+    qualifyingCount?: number;
+    qualifyingPercentage?: number;
+    qualifyingPerGroup?: number;
+    knockoutAllowCustomMatching: boolean;
+    knockoutThirdPlaceMatch: boolean;
+  };
+  currentPhase?: "round_robin" | "knockout" | "transition";
+  phaseTransitionDate?: Date;
+  qualifiedParticipants?: Participant[];
 
   rounds: Round[];
   standings: Standing[];

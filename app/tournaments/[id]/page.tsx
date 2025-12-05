@@ -20,6 +20,7 @@ import { JoinCodeDialog } from "@/components/tournaments/JoinCodeDialog";
 import { ManageParticipantsDialog } from "@/components/tournaments/ManageParticipantsDialog";
 import { ManageGroupsDialog } from "@/components/tournaments/ManageGroupsDialog";
 import KnockoutBracketView from "@/components/tournaments/KnockoutBracketView";
+import { HybridTournamentManager } from "@/components/tournaments/HybridTournamentManager";
 
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -303,7 +304,7 @@ export default function TournamentDetailPage() {
                 </Button>
               </>
             )}
-            {isOrganizer && tournament.useGroups && (
+            {isOrganizer && tournament.useGroups && tournament.format === "round_robin" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -484,6 +485,21 @@ export default function TournamentDetailPage() {
               </Card>
             </motion.div>
           )}
+
+        {/* Hybrid Tournament Manager */}
+        {tournament.format === "hybrid" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <HybridTournamentManager
+              tournamentId={tournamentId}
+              isOrganizer={!!isOrganizer}
+              onUpdate={() => fetchTournament(true)}
+            />
+          </motion.div>
+        )}
 
         {/* Main Tabs */}
         <Tabs
@@ -838,7 +854,7 @@ export default function TournamentDetailPage() {
       )}
 
       {/* Manage Groups Dialog */}
-      {tournament && tournament.useGroups && (
+      {tournament && tournament.useGroups && tournament.format === "round_robin" && (
         <ManageGroupsDialog
           open={manageGroupsOpen}
           onOpenChange={setManageGroupsOpen}

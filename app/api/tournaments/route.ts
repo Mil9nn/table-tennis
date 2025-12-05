@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       advancePerGroup,
       seedingMethod,
       knockoutConfig,
+      hybridConfig,
     } = body;
 
     // Validate
@@ -71,6 +72,8 @@ export async function POST(request: NextRequest) {
       advancePerGroup: advancePerGroup || undefined,
       seedingMethod: seedingMethod || "none",
       knockoutConfig: knockoutConfig || undefined,
+      hybridConfig: hybridConfig || undefined,
+      currentPhase: format === "hybrid" ? "round_robin" : undefined,
       seeding: initialSeeding, // Initialize seeding with registration order
       rules: {
         pointsForWin: rules?.pointsForWin || 2, // ITTF standard: 2 points for win
@@ -104,8 +107,19 @@ export async function POST(request: NextRequest) {
     );
   } catch (err: any) {
     console.error("Error creating tournament:", err);
+    console.error("Error details:", err.message);
+    if (err.errors) {
+      console.error("Validation errors:", err.errors);
+    }
     return NextResponse.json(
-      { error: "Failed to create tournament" },
+      {
+        error: "Failed to create tournament",
+        details: err.message,
+        validationErrors: err.errors ? Object.keys(err.errors).map(key => ({
+          field: key,
+          message: err.errors[key].message
+        })) : undefined
+      },
       { status: 500 }
     );
   }

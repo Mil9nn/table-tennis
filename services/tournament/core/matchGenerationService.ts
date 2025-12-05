@@ -189,7 +189,7 @@ function validateScheduleCompleteness(
 /**
  * Generate matches for tournament with groups
  */
-async function generateGroupMatches(
+export async function generateGroupMatches(
   tournament: ITournament,
   participantIds: string[],
   seeding: ISeeding[],
@@ -286,7 +286,7 @@ async function generateGroupMatches(
 /**
  * Generate matches for single round-robin tournament (no groups)
  */
-async function generateSingleRoundRobinMatches(
+export async function generateSingleRoundRobinMatches(
   tournament: ITournament,
   participantIds: string[],
   seeding: ISeeding[],
@@ -356,7 +356,7 @@ async function generateSingleRoundRobinMatches(
 /**
  * Generate matches for knockout tournament
  */
-async function generateKnockoutMatches(
+export async function generateKnockoutMatches(
   tournament: ITournament,
   participantIds: string[],
   seeding: ISeeding[],
@@ -493,7 +493,15 @@ export async function generateTournamentDraw(
   tournament.seeding = seeding;
 
   // Generate matches based on tournament structure
-  if (tournament.useGroups && tournament.numberOfGroups) {
+  if (tournament.format === "hybrid") {
+    // For hybrid tournaments, only generate round-robin phase initially
+    // Import hybrid service dynamically to avoid circular dependencies
+    const { generateHybridRoundRobinPhase } = await import("./hybridMatchGenerationService");
+    await generateHybridRoundRobinPhase(tournament, {
+      scorerId: new mongoose.Types.ObjectId(scorerId),
+      ...options,
+    });
+  } else if (tournament.useGroups && tournament.numberOfGroups) {
     await generateGroupMatches(
       tournament,
       participantIds,
@@ -519,7 +527,7 @@ export async function generateTournamentDraw(
     );
   } else {
     throw new Error(
-      `Unsupported tournament format: ${tournament.format}. Supported formats: round_robin, knockout.`
+      `Unsupported tournament format: ${tournament.format}. Supported formats: round_robin, knockout, hybrid.`
     );
   }
 

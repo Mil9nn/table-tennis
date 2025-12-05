@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,7 +48,7 @@ import { cn } from "@/lib/utils";
 
 const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
-  format: z.enum(["round_robin", "knockout"]),
+  format: z.enum(["round_robin", "knockout", "hybrid"]),
   category: z.enum(["individual", "team"]),
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   startDate: z.date({
@@ -64,6 +64,16 @@ const tournamentSchema = z.object({
   seedingMethod: z.enum(["manual", "none"]),
   thirdPlaceMatch: z.boolean().optional(),
   allowCustomMatching: z.boolean().optional(),
+
+  // Hybrid format specific
+  hybridRoundRobinUseGroups: z.boolean().optional(),
+  hybridRoundRobinNumberOfGroups: z.string().optional(),
+  hybridQualificationMethod: z.enum(["top_n_overall", "top_n_per_group", "percentage"]).optional(),
+  hybridQualifyingCount: z.string().optional(),
+  hybridQualifyingPerGroup: z.string().optional(),
+  hybridQualifyingPercentage: z.string().optional(),
+  hybridKnockoutThirdPlaceMatch: z.boolean().optional(),
+  hybridKnockoutAllowCustomMatching: z.boolean().optional(),
 });
 
 type TournamentFormValues = z.infer<typeof tournamentSchema>;
@@ -90,10 +100,30 @@ export default function CreateTournamentPage() {
       seedingMethod: "none",
       thirdPlaceMatch: false,
       allowCustomMatching: true,
+
+      // Hybrid format defaults
+      hybridRoundRobinUseGroups: true,
+      hybridRoundRobinNumberOfGroups: "4",
+      hybridQualificationMethod: "top_n_per_group",
+      hybridQualifyingCount: "8",
+      hybridQualifyingPerGroup: "2",
+      hybridQualifyingPercentage: "50",
+      hybridKnockoutThirdPlaceMatch: true,
+      hybridKnockoutAllowCustomMatching: false,
     },
   });
 
   const watchFormat = form.watch("format");
+  const watchUseGroups = form.watch("useGroups");
+  const watchHybridRRUseGroups = form.watch("hybridRoundRobinUseGroups");
+  const watchHybridQualMethod = form.watch("hybridQualificationMethod");
+
+  // Reset useGroups when format changes to knockout
+  useEffect(() => {
+    if (watchFormat === "knockout" && watchUseGroups) {
+      form.setValue("useGroups", false);
+    }
+  }, [watchFormat, watchUseGroups, form]);
 
   const addParticipant = (user: any) => {
     if (!participants.find((p) => p._id === user._id)) {
@@ -127,7 +157,7 @@ export default function CreateTournamentPage() {
 
     setIsSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         name: data.name,
         format: data.format,
         category: data.category,
@@ -165,6 +195,35 @@ export default function CreateTournamentPage() {
           ],
         },
       };
+
+      // Add hybrid configuration if format is hybrid
+      if (data.format === "hybrid") {
+        payload.hybridConfig = {
+          roundRobinUseGroups: data.hybridRoundRobinUseGroups ?? false,
+          roundRobinNumberOfGroups: data.hybridRoundRobinUseGroups
+            ? Number(data.hybridRoundRobinNumberOfGroups)
+            : undefined,
+          qualificationMethod: data.hybridQualificationMethod || "top_n_overall",
+          qualifyingCount:
+            data.hybridQualificationMethod === "top_n_overall"
+              ? Number(data.hybridQualifyingCount)
+              : undefined,
+          qualifyingPerGroup:
+            data.hybridQualificationMethod === "top_n_per_group"
+              ? Number(data.hybridQualifyingPerGroup)
+              : undefined,
+          qualifyingPercentage:
+            data.hybridQualificationMethod === "percentage"
+              ? Number(data.hybridQualifyingPercentage)
+              : undefined,
+          knockoutAllowCustomMatching:
+            data.hybridKnockoutAllowCustomMatching ?? false,
+          knockoutThirdPlaceMatch:
+            data.hybridKnockoutThirdPlaceMatch ?? false,
+        };
+      }
+
+      console.log("Tournament payload:", JSON.stringify(payload, null, 2));
 
       const response = await axiosInstance.post("/tournaments", payload);
       toast.success("Tournament created successfully!");
@@ -233,6 +292,7 @@ export default function CreateTournamentPage() {
                       {[
                         { label: "Round Robin", value: "round_robin" },
                         { label: "Knockout", value: "knockout" },
+                        { label: "Hybrid (RR → KO)", value: "hybrid" },
                       ].map((opt) => {
                         const isActive = field.value === opt.value;
                         return (
@@ -342,6 +402,235 @@ export default function CreateTournamentPage() {
                     </FormItem>
                   )}
                 />
+              </div>
+            )}
+
+            {/* Hybrid Format Options */}
+            {watchFormat === "hybrid" && (
+              <div className="space-y-4 rounded-lg border p-4 bg-gradient-to-br from-blue-50 to-purple-50">
+                <h3 className="font-semibold text-[#6c6fd5] flex items-center gap-2">
+                  Hybrid Format Configuration
+                  <span className="text-xs font-normal text-gray-500">(Round-Robin → Knockout)</span>
+                </h3>
+
+                {/* Round-Robin Phase Settings */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Round-Robin Phase</h4>
+
+                  <FormField
+                    control={form.control}
+                    name="hybridRoundRobinUseGroups"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-white p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Use Groups</FormLabel>
+                          <FormDescription>
+                            Divide participants into groups for round-robin
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {watchHybridRRUseGroups && (
+                    <FormField
+                      control={form.control}
+                      name="hybridRoundRobinNumberOfGroups"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Groups</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="2"
+                              max="8"
+                              className="bg-white"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            How many groups to create (2-8)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                {/* Qualification Settings */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Qualification</h4>
+
+                  <FormField
+                    control={form.control}
+                    name="hybridQualificationMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Qualification Method</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select qualification method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="top_n_overall">
+                              Top N Overall
+                            </SelectItem>
+                            <SelectItem value="top_n_per_group">
+                              Top N Per Group
+                            </SelectItem>
+                            <SelectItem value="percentage">
+                              Percentage
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {watchHybridQualMethod === "top_n_overall" &&
+                            "Best performers across all participants"}
+                          {watchHybridQualMethod === "top_n_per_group" &&
+                            "Top performers from each group"}
+                          {watchHybridQualMethod === "percentage" &&
+                            "Top percentage of all participants"}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {watchHybridQualMethod === "top_n_overall" && (
+                    <FormField
+                      control={form.control}
+                      name="hybridQualifyingCount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number to Qualify</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="2"
+                              className="bg-white"
+                              placeholder="8"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            How many participants advance to knockout
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {watchHybridQualMethod === "top_n_per_group" && (
+                    <FormField
+                      control={form.control}
+                      name="hybridQualifyingPerGroup"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Qualifiers Per Group</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              className="bg-white"
+                              placeholder="2"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Top N from each group advance
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {watchHybridQualMethod === "percentage" && (
+                    <FormField
+                      control={form.control}
+                      name="hybridQualifyingPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Qualifying Percentage</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="99"
+                              className="bg-white"
+                              placeholder="50"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Percentage of participants who advance (1-99%)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                {/* Knockout Phase Settings */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Knockout Phase</h4>
+
+                  <FormField
+                    control={form.control}
+                    name="hybridKnockoutThirdPlaceMatch"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-white p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>3rd Place Match</FormLabel>
+                          <FormDescription>
+                            Include 3rd place playoff in knockout phase
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hybridKnockoutAllowCustomMatching"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-white p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Allow Custom Matching</FormLabel>
+                          <FormDescription>
+                            Manually set bracket matchups in knockout
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -479,30 +768,31 @@ export default function CreateTournamentPage() {
             </div>
           </div>
 
-          {/* Groups/Pools */}
-          <div className="p-4 space-y-4">
-            <FormField
-              control={form.control}
-              name="useGroups"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="font-semibold text-[#1A73E8] text-lg">
-                      Use Groups/Pools
-                    </FormLabel>
-                    <FormDescription>
-                      Divide tournament into multiple groups (Round-robin format only)
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+          {/* Groups/Pools - Only for Round Robin */}
+          {watchFormat === "round_robin" && (
+            <div className="p-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="useGroups"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="font-semibold text-[#1A73E8] text-lg">
+                        Use Groups/Pools
+                      </FormLabel>
+                      <FormDescription>
+                        Divide tournament into multiple groups
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
             {form.watch("useGroups") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -557,8 +847,8 @@ export default function CreateTournamentPage() {
                 />
               </div>
             )}
-
-          </div>
+            </div>
+          )}
 
           {/* Participants */}
           <div className="p-4 space-y-4">

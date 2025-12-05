@@ -44,6 +44,38 @@ export {
   getSeedByParticipant,
 } from "./core/seedingService";
 
+// Hybrid Format Services
+export {
+  generateHybridRoundRobinPhase,
+  transitionToKnockoutPhase,
+  generateCompleteHybridTournament,
+  getHybridTournamentStatus,
+  type HybridGenerationOptions,
+  type HybridGenerationResult,
+} from "./core/hybridMatchGenerationService";
+
+export {
+  initializeHybridTournament,
+  isRoundRobinPhaseComplete,
+  isKnockoutPhaseComplete,
+  canTransitionToKnockout,
+  markTransitionPhase,
+  completeTransitionToKnockout,
+  getPhaseInfo,
+  validateHybridConfig,
+  resetToRoundRobinPhase,
+  type TournamentPhase,
+} from "./core/phaseManagementService";
+
+export {
+  determineQualifiedParticipants,
+  applyQualificationResults,
+  isParticipantQualified,
+  getQualificationSummary,
+  validateQualificationConfig,
+  type QualificationResult,
+} from "./core/qualificationService";
+
 // Validators
 export {
   TournamentValidators,

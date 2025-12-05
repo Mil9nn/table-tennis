@@ -79,7 +79,7 @@ export interface IGroup {
 
 export interface ITournament extends Document {
   name: string;
-  format: "round_robin" | "knockout";
+  format: "round_robin" | "knockout" | "hybrid";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -107,6 +107,28 @@ export interface ITournament extends Document {
     consolationBracket: boolean;
   };
   bracket?: any; // Will store the bracket structure
+
+  // Hybrid format specific (round-robin -> knockout)
+  hybridConfig?: {
+    // Round-robin phase settings
+    roundRobinUseGroups: boolean;
+    roundRobinNumberOfGroups?: number;
+
+    // Qualification settings
+    qualificationMethod: "top_n_overall" | "top_n_per_group" | "percentage";
+    qualifyingCount?: number; // How many qualify (top N)
+    qualifyingPercentage?: number; // Or percentage (e.g., 50 for top 50%)
+    qualifyingPerGroup?: number; // For group-based qualification
+
+    // Knockout phase settings
+    knockoutAllowCustomMatching: boolean;
+    knockoutThirdPlaceMatch: boolean;
+  };
+
+  // Phase tracking for hybrid tournaments
+  currentPhase?: "round_robin" | "knockout" | "transition";
+  phaseTransitionDate?: Date;
+  qualifiedParticipants?: mongoose.Types.ObjectId[];
 
   // Round Robin specific
   rounds: Array<{
@@ -154,7 +176,7 @@ const tournamentSchema = new Schema<ITournament>(
     name: { type: String, required: true },
     format: {
       type: String,
-      enum: ["round_robin", "knockout"],
+      enum: ["round_robin", "knockout", "hybrid"],
       required: true,
     },
     category: {
@@ -207,6 +229,38 @@ const tournamentSchema = new Schema<ITournament>(
       consolationBracket: { type: Boolean, default: false },
     },
     bracket: { type: Schema.Types.Mixed }, // Will store the bracket structure
+
+    // Hybrid format specific
+    hybridConfig: {
+      type: {
+        // Round-robin phase settings
+        roundRobinUseGroups: { type: Boolean, default: false },
+        roundRobinNumberOfGroups: { type: Number },
+
+        // Qualification settings
+        qualificationMethod: {
+          type: String,
+          enum: ["top_n_overall", "top_n_per_group", "percentage"],
+          default: "top_n_overall",
+        },
+        qualifyingCount: { type: Number },
+        qualifyingPercentage: { type: Number },
+        qualifyingPerGroup: { type: Number },
+
+        // Knockout phase settings
+        knockoutAllowCustomMatching: { type: Boolean, default: false },
+        knockoutThirdPlaceMatch: { type: Boolean, default: false },
+      },
+      required: false,
+    },
+
+    // Phase tracking for hybrid tournaments
+    currentPhase: {
+      type: String,
+      enum: ["round_robin", "knockout", "transition"],
+    },
+    phaseTransitionDate: { type: Date },
+    qualifiedParticipants: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
     // Rounds
     rounds: [roundSchema],

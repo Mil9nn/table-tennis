@@ -49,9 +49,21 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
               {statusCfg.icon}
             </div>
             <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 bg-purple-50 text-purple-700 ring-purple-200`}
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${
+                tournament.format === "hybrid"
+                  ? "bg-gradient-to-r from-blue-50 to-purple-50 text-purple-700 ring-purple-300"
+                  : "bg-purple-50 text-purple-700 ring-purple-200"
+              }`}
             >
-              {tournament.format.replace(/_/g, " ")}
+              {tournament.format === "hybrid" ? (
+                <>
+                  <span className="text-blue-600">RR</span>
+                  <span className="mx-0.5">→</span>
+                  <span className="text-purple-600">KO</span>
+                </>
+              ) : (
+                tournament.format.replace(/_/g, " ")
+              )}
             </span>
           </div>
           <h3 className="mt-2 truncate text-base font-semibold text-zinc-900">
