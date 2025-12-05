@@ -16,6 +16,8 @@ import type { TournamentPlayerStats } from "../types";
 import { LeaderboardEmpty, LeaderboardLoading } from "./shared";
 import { getDisplayName, getInitials } from "../utils";
 
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+
 interface TournamentLeaderboardProps {
   data: TournamentPlayerStats[];
   loading: boolean;
@@ -38,7 +40,10 @@ export function TournamentLeaderboard({
 }: TournamentLeaderboardProps) {
   if (loading) return <LeaderboardLoading />;
   if (data.length === 0)
-    return <LeaderboardEmpty message="No tournament participation yet" />;
+    return <LeaderboardEmpty 
+  message="No tournament data available yet."
+  icon={<EmojiEventsIcon className="size-10 text-muted-foreground" />}
+/>;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">

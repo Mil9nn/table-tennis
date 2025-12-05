@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import MatchesList from "@/components/MatchesList";
 import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,14 +20,19 @@ import TeamMatchesListSkeleton from "@/components/skeletons/TeamMatchesListSkele
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+const ITEMS_PER_PAGE = 15;
+
 export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("individual");
 
-  // Individual
+  // Individual - with pagination
   const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>(
     []
   );
   const [individualLoading, setIndividualLoading] = useState(true);
+  const [individualLoadingMore, setIndividualLoadingMore] = useState(false);
+  const [individualHasMore, setIndividualHasMore] = useState(true);
+  const [individualPage, setIndividualPage] = useState(0);
   const [individualSearch, setIndividualSearch] = useState("");
   const [individualFilterType, setIndividualFilterType] = useState("all");
   const [individualFilterStatus, setIndividualFilterStatus] = useState("all");
@@ -39,21 +44,79 @@ export default function MatchesPage() {
   const [teamFilterFormat, setTeamFilterFormat] = useState("all");
   const [teamFilterStatus, setTeamFilterStatus] = useState("all");
 
-  useEffect(() => {
-    const fetchIndividualMatches = async () => {
-      try {
-        const { data } = await axiosInstance.get(
-          "/matches/individual"
-        );
+  // Intersection Observer ref
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Fetch individual matches with pagination
+  const fetchIndividualMatches = useCallback(async (page: number, append = false) => {
+    try {
+      if (append) {
+        setIndividualLoadingMore(true);
+      } else {
+        setIndividualLoading(true);
+      }
+
+      const skip = page * ITEMS_PER_PAGE;
+      const { data } = await axiosInstance.get(
+        `/matches/individual?limit=${ITEMS_PER_PAGE}&skip=${skip}`
+      );
+
+      if (append) {
+        setIndividualMatches((prev) => [...prev, ...(data.matches || [])]);
+      } else {
         setIndividualMatches(data.matches || []);
-      } catch (err) {
-        console.error("Error fetching individual matches:", err);
-      } finally {
-        setIndividualLoading(false);
+      }
+
+      setIndividualHasMore(data.pagination?.hasMore || false);
+    } catch (err) {
+      console.error("Error fetching individual matches:", err);
+    } finally {
+      setIndividualLoading(false);
+      setIndividualLoadingMore(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchIndividualMatches(0, false);
+  }, [fetchIndividualMatches]);
+
+  // Load more when intersection observer triggers
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !individualLoadingMore &&
+          !individualLoading &&
+          individualHasMore &&
+          activeTab === "individual"
+        ) {
+          const nextPage = individualPage + 1;
+          setIndividualPage(nextPage);
+          fetchIndividualMatches(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
       }
     };
-    fetchIndividualMatches();
-  }, []);
+  }, [
+    individualLoadingMore,
+    individualLoading,
+    individualHasMore,
+    individualPage,
+    activeTab,
+    fetchIndividualMatches,
+  ]);
 
   useEffect(() => {
     const fetchTeamMatches = async () => {
@@ -261,7 +324,22 @@ export default function MatchesPage() {
           {individualLoading ? (
             <MatchesListSkeleton />
           ) : (
-            <MatchesList matches={filteredIndividualMatches} />
+            <>
+              <MatchesList matches={filteredIndividualMatches} />
+
+              {/* Intersection Observer Target */}
+              <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                {individualLoadingMore && (
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more matches...</span>
+                  </div>
+                )}
+                {!individualHasMore && individualMatches.length > 0 && (
+                  <p className="text-sm text-gray-500">No more matches to load</p>
+                )}
+              </div>
+            </>
           )}
         </TabsContent>
 

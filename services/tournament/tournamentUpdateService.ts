@@ -2,6 +2,11 @@ import IndividualMatch from "@/models/IndividualMatch";
 import Tournament from "@/models/Tournament";
 import mongoose from "mongoose";
 import { calculateStandings } from "./core/standingsService";
+import {
+  updateBracketAfterMatch,
+  getMatchesNeedingDocuments,
+} from "./core/bracketProgressionService";
+import { createBracketMatch } from "./core/matchGenerationService";
 
 /**
  * Fetch matches by IDs
@@ -55,7 +60,93 @@ export async function updateTournamentAfterMatch(match: any) {
 
   console.log(`[updateTournamentAfterMatch] Match ${match._id}, tournament format: ${tournament.format}`);
 
+  // Handle knockout tournaments
+  if (tournament.format === "knockout") {
+    await updateKnockoutBracket(tournament, match);
+    return;
+  }
+
+  // Handle round-robin tournaments
   await updateRoundRobinStandings(tournament);
+}
+
+/**
+ * Update knockout bracket after a match completes
+ * Automatically advances winner to next round and creates new match documents
+ */
+async function updateKnockoutBracket(tournament: any, match: any) {
+  if (!tournament.bracket) {
+    console.error("[updateKnockoutBracket] Tournament has no bracket");
+    return;
+  }
+
+  // Get the winner from the match
+  if (!match.winnerSide || !match.participants || match.participants.length < 2) {
+    console.error("[updateKnockoutBracket] Match missing winner or participants", {
+      matchId: match._id,
+      winnerSide: match.winnerSide,
+      participantCount: match.participants?.length,
+    });
+    return;
+  }
+
+  // Determine winner ID based on winnerSide
+  const winnerId = match.winnerSide === "side1"
+    ? match.participants[0]._id || match.participants[0]
+    : match.participants[1]._id || match.participants[1];
+
+  console.log(`[updateKnockoutBracket] Advancing winner ${winnerId} from match ${match._id}`);
+
+  try {
+    // Update bracket structure using progression service
+    const updatedBracket = updateBracketAfterMatch(
+      tournament.bracket,
+      match._id.toString(),
+      winnerId.toString()
+    );
+
+    tournament.bracket = updatedBracket;
+    tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+
+    // Auto-create new match documents for newly determined matchups
+    const matchesNeedingDocs = getMatchesNeedingDocuments(updatedBracket);
+
+    if (matchesNeedingDocs.length > 0) {
+      console.log(`[updateKnockoutBracket] Creating ${matchesNeedingDocs.length} new match documents`);
+
+      for (const bracketMatch of matchesNeedingDocs) {
+        try {
+          const newMatchDoc = await createBracketMatch(
+            bracketMatch,
+            tournament,
+            match.scorer?.toString() || tournament.organizer.toString()
+          );
+
+          if (newMatchDoc) {
+            bracketMatch.matchId = newMatchDoc._id.toString();
+            console.log(`[updateKnockoutBracket] Created match ${newMatchDoc._id} for round ${bracketMatch.bracketPosition.round}`);
+          }
+        } catch (matchError: any) {
+          console.error("[updateKnockoutBracket] Error creating match document:", matchError);
+          // Continue with other matches even if one fails
+        }
+      }
+    }
+
+    // Update tournament status
+    if (updatedBracket.completed) {
+      tournament.status = "completed";
+      console.log(`[updateKnockoutBracket] Tournament ${tournament._id} completed!`);
+    } else if (tournament.status === "draft" || tournament.status === "upcoming") {
+      tournament.status = "in_progress";
+    }
+
+    await tournament.save();
+    console.log(`[updateKnockoutBracket] Bracket updated successfully for tournament ${tournament._id}`);
+  } catch (error: any) {
+    console.error("[updateKnockoutBracket] Error updating bracket:", error);
+    throw error;
+  }
 }
 
 /**

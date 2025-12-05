@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { Trophy, Calendar, MapPin, Loader2, Users2 } from "lucide-react";
+import { Trophy, Calendar, MapPin, Loader2, Users2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import TournamentSchedule from "@/components/tournaments/TournamentSchedule";
 import { JoinCodeDialog } from "@/components/tournaments/JoinCodeDialog";
 import { ManageParticipantsDialog } from "@/components/tournaments/ManageParticipantsDialog";
 import { ManageGroupsDialog } from "@/components/tournaments/ManageGroupsDialog";
+import KnockoutBracketView from "@/components/tournaments/KnockoutBracketView";
 
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -145,11 +146,39 @@ export default function TournamentDetailPage() {
 
   // Calculate progress and extract matches
   const getAllMatches = () => {
+    // For knockout tournaments, extract matches from bracket
+    if (tournament.format === "knockout" && tournament.bracket) {
+      const matches: any[] = [];
+
+      // Collect matches from all rounds
+      tournament.bracket.rounds.forEach((round: any) => {
+        round.matches.forEach((bracketMatch: any) => {
+          // After API population, matchId is now a full match object (not a string)
+          if (bracketMatch.matchId && typeof bracketMatch.matchId === "object") {
+            matches.push(bracketMatch.matchId);
+          }
+        });
+      });
+
+      // Add third place match if it exists
+      if (
+        tournament.bracket.thirdPlaceMatch?.matchId &&
+        typeof tournament.bracket.thirdPlaceMatch.matchId === "object"
+      ) {
+        matches.push(tournament.bracket.thirdPlaceMatch.matchId);
+      }
+
+      return matches;
+    }
+
+    // For round-robin with groups
     if (tournament.useGroups && tournament.groups) {
       return tournament.groups.flatMap((g) =>
         g.rounds.flatMap((r) => r.matches)
       );
     }
+
+    // For regular round-robin
     return tournament.rounds?.flatMap((r) => r.matches) || [];
   };
 
@@ -420,6 +449,42 @@ export default function TournamentDetailPage() {
           </motion.div>
         )}
 
+        {/* Custom Matching Button for Knockout */}
+        {isOrganizer &&
+          tournament.format === "knockout" &&
+          tournament.knockoutConfig?.allowCustomMatching === true &&
+          tournament.drawGenerated === true && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4"
+            >
+              <Card className="border-2 border-purple-200 rounded-none bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-center sm:text-left">
+                      <h3 className="font-bold text-xl text-gray-900 mb-2">
+                        Custom Matching
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Manually configure matchups for knockout rounds
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                      <Button
+                        onClick={() => router.push(`/tournaments/${tournamentId}/custom-matching`)}
+                        size="lg"
+                        className="shrink-0 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      >
+                        Configure Matchups
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
         {/* Main Tabs */}
         <Tabs
           defaultValue={tournament.useGroups ? "groups" : "standings"}
@@ -546,7 +611,15 @@ export default function TournamentDetailPage() {
 
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="p-4">
-            {roundsWithIds && roundsWithIds.length > 0 ? (
+            {tournament.format === "knockout" && tournament.bracket ? (
+              <KnockoutBracketView
+                bracket={tournament.bracket}
+                participants={tournament.participants}
+                matches={allMatchObjects as any}
+                onMatchClick={(matchId) => router.push(`/matches/${matchId}`)}
+                showThirdPlace={tournament.knockoutConfig?.thirdPlaceMatch}
+              />
+            ) : roundsWithIds && roundsWithIds.length > 0 ? (
               <TournamentSchedule
                 rounds={roundsWithIds as any}
                 matches={allMatchObjects as any}
@@ -777,6 +850,7 @@ export default function TournamentDetailPage() {
           hasPlayedMatches={hasPlayedMatches}
         />
       )}
+
     </div>
   );
 }

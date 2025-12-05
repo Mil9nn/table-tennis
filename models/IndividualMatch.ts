@@ -81,6 +81,19 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     matchDuration: Number,
 
+    // Tournament context
+    groupId: { type: String, default: null }, // For round-robin group matches
+
+    // Knockout/Bracket metadata
+    bracketPosition: {
+      round: { type: Number }, // Round number in bracket
+      matchNumber: { type: Number }, // Match number within round
+      nextMatchNumber: { type: Number }, // Which match in next round winner advances to
+    },
+    roundName: { type: String }, // "Quarter-Finals", "Semi-Finals", "Final", etc.
+    courtNumber: { type: Number }, // Court assignment
+    isThirdPlaceMatch: { type: Boolean, default: false }, // Is this a 3rd place match
+
     // Enhanced Match Statistics
     statistics: {
       // Per-player stats (works for singles/doubles)

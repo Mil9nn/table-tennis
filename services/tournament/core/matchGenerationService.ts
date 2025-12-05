@@ -7,6 +7,9 @@ import {
 } from "./schedulingService";
 import { allocateGroups } from "../utils/groupAllocator";
 import { generateRandomSeeding } from "./seedingService";
+import { generateKnockoutBracket } from "./bracketGenerationService";
+import { scheduleBracketMatches } from "./bracketSchedulingService";
+import { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
 
 /**
  * Match generation service
@@ -76,6 +79,44 @@ export async function createScheduledMatch(
     status: "scheduled",
     tournament: tournament._id,
     groupId: groupId || undefined,
+  });
+
+  await match.save();
+  return match;
+}
+
+/**
+ * Create a match for a bracket position with bracket metadata
+ */
+export async function createBracketMatch(
+  bracketMatch: BracketMatch,
+  tournament: ITournament,
+  scorerId: string
+): Promise<any> {
+  // Only create matches that have both participants (not TBD)
+  if (!bracketMatch.participant1 || !bracketMatch.participant2) {
+    return null;
+  }
+
+  const matchParticipants = [
+    new mongoose.Types.ObjectId(bracketMatch.participant1),
+    new mongoose.Types.ObjectId(bracketMatch.participant2),
+  ];
+
+  const match = new IndividualMatch({
+    matchType: tournament.matchType,
+    matchCategory: "individual",
+    numberOfSets: tournament.rules.setsPerMatch,
+    city: tournament.city,
+    venue: tournament.venue || tournament.city,
+    participants: matchParticipants,
+    scorer: scorerId,
+    status: "scheduled",
+    tournament: tournament._id,
+    bracketPosition: bracketMatch.bracketPosition,
+    roundName: bracketMatch.roundName,
+    scheduledDate: bracketMatch.scheduledDate,
+    courtNumber: bracketMatch.courtNumber,
   });
 
   await match.save();
@@ -313,6 +354,83 @@ async function generateSingleRoundRobinMatches(
 }
 
 /**
+ * Generate matches for knockout tournament
+ */
+async function generateKnockoutMatches(
+  tournament: ITournament,
+  participantIds: string[],
+  seeding: ISeeding[],
+  scorerId: string,
+  options: MatchGenerationOptions
+): Promise<KnockoutBracket> {
+  // Check if custom matching is enabled
+  const allowCustomMatching = (tournament as any).knockoutConfig?.allowCustomMatching === true;
+
+  // Generate the knockout bracket
+  const bracket = generateKnockoutBracket(
+    participantIds,
+    seeding.map((s) => ({
+      participant: s.participant.toString(),
+      seedNumber: s.seedNumber,
+    })),
+    {
+      thirdPlaceMatch: (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+      scheduledDate: tournament.startDate,
+      skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
+    }
+  );
+
+  // Schedule the bracket matches
+  scheduleBracketMatches(
+    bracket,
+    tournament.startDate,
+    options.courtsAvailable || 1,
+    options.matchDuration || 60
+  );
+
+  // If custom matching is enabled, SKIP all automatic match document creation
+  // The organizer will manually configure ALL matches starting from Round 1
+  if (!allowCustomMatching) {
+    // Normal mode: Create IndividualMatch documents for ALL rounds where both participants are known
+    // This includes first round real matches AND matches in later rounds where
+    // both participants have been determined via byes
+    for (const round of bracket.rounds) {
+      for (const bracketMatch of round.matches) {
+        // Only create matches for non-bye matches (both participants present and not completed)
+        if (
+          bracketMatch.participant1 &&
+          bracketMatch.participant2 &&
+          !bracketMatch.completed
+        ) {
+          const match = await createBracketMatch(
+            bracketMatch,
+            tournament,
+            scorerId
+          );
+          if (match) {
+            bracketMatch.matchId = match._id.toString();
+          }
+        }
+      }
+    }
+  } else {
+    // Custom matching mode: Create EMPTY bracket structure only
+    // Organizer will manually configure ALL matches (including Round 1) via custom matcher
+    console.log("[Custom Matching Mode] Empty bracket structure created. Organizer will configure all matchups manually from Round 1.");
+  }
+
+  // Store bracket structure in tournament
+  // Note: This requires the bracket field to be added to the Tournament model
+  (tournament as any).bracket = bracket;
+
+  // CRITICAL: Mark bracket as modified since it's Schema.Types.Mixed
+  // Without this, Mongoose won't save the bracket changes to database
+  tournament.markModified('bracket');
+
+  return bracket;
+}
+
+/**
  * Calculate tournament statistics
  */
 function calculateTournamentStats(tournament: ITournament): {
@@ -321,6 +439,20 @@ function calculateTournamentStats(tournament: ITournament): {
   groups?: number;
   format: string;
 } {
+  // Handle knockout format
+  if (tournament.format === "knockout" && (tournament as any).bracket) {
+    const bracket = (tournament as any).bracket as KnockoutBracket;
+    const totalMatches = bracket.rounds.reduce(
+      (sum, r) => sum + r.matches.filter((m) => m.participant1 && m.participant2).length,
+      0
+    );
+    return {
+      totalMatches,
+      totalRounds: bracket.rounds.length,
+      format: "knockout",
+    };
+  }
+
   if (tournament.useGroups && tournament.groups) {
     return {
       totalMatches:
@@ -377,9 +509,17 @@ export async function generateTournamentDraw(
       scorerId,
       options
     );
+  } else if (tournament.format === "knockout") {
+    await generateKnockoutMatches(
+      tournament,
+      participantIds,
+      seeding,
+      scorerId,
+      options
+    );
   } else {
     throw new Error(
-      `Unsupported tournament format: ${tournament.format}. Only round_robin is supported.`
+      `Unsupported tournament format: ${tournament.format}. Supported formats: round_robin, knockout.`
     );
   }
 

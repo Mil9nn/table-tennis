@@ -1,17 +1,17 @@
-import { Trophy } from "lucide-react";
+import GroupWorkIcon from '@mui/icons-material/GroupWork';
 
 interface LeaderboardEmptyProps {
   message: string;
+  icon?: React.ReactNode; // optional icon
 }
 
-export function LeaderboardEmpty({ message }: LeaderboardEmptyProps) {
+export function LeaderboardEmpty({ message, icon }: LeaderboardEmptyProps) {
+  const IconToRender = icon || <GroupWorkIcon className="size-6 text-muted-foreground" />;
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Trophy className="w-12 h-12 text-muted-foreground/30 mb-3" />
+      <div className="mb-2">{IconToRender}</div>
       <p className="text-sm text-muted-foreground">{message}</p>
-      <p className="text-xs text-muted-foreground/70 mt-1">
-        Play matches to appear on the leaderboard
-      </p>
     </div>
   );
 }

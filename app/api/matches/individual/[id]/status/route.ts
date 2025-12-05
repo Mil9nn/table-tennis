@@ -63,8 +63,11 @@ export async function POST(
       // Trigger tournament updates when match completes
       if (match.tournament) {
         try {
-          // Reload match to ensure we have the latest data with participants
-          const updatedMatch = await IndividualMatch.findById(match._id);
+          // Reload match to ensure we have the latest data with participants populated
+          const updatedMatch = await IndividualMatch.findById(match._id).populate(
+            "participants",
+            "_id username fullName"
+          );
           if (updatedMatch) {
             await updateTournamentAfterMatch(updatedMatch);
           }

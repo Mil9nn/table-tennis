@@ -79,7 +79,7 @@ export interface IGroup {
 
 export interface ITournament extends Document {
   name: string;
-  format: "round_robin";
+  format: "round_robin" | "knockout";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -98,6 +98,15 @@ export interface ITournament extends Document {
   numberOfGroups?: number;
   groups?: IGroup[];
   advancePerGroup?: number; // How many from each group advance
+
+  // Knockout specific
+  knockoutConfig?: {
+    allowCustomMatching: boolean;
+    autoGenerateBracket: boolean;
+    thirdPlaceMatch: boolean;
+    consolationBracket: boolean;
+  };
+  bracket?: any; // Will store the bracket structure
 
   // Round Robin specific
   rounds: Array<{
@@ -145,7 +154,7 @@ const tournamentSchema = new Schema<ITournament>(
     name: { type: String, required: true },
     format: {
       type: String,
-      enum: ["round_robin"],
+      enum: ["round_robin", "knockout"],
       required: true,
     },
     category: {
@@ -189,6 +198,15 @@ const tournamentSchema = new Schema<ITournament>(
     numberOfGroups: { type: Number },
     groups: [groupSchema],
     advancePerGroup: { type: Number },
+
+    // Knockout specific
+    knockoutConfig: {
+      allowCustomMatching: { type: Boolean, default: true },
+      autoGenerateBracket: { type: Boolean, default: true },
+      thirdPlaceMatch: { type: Boolean, default: false },
+      consolationBracket: { type: Boolean, default: false },
+    },
+    bracket: { type: Schema.Types.Mixed }, // Will store the bracket structure
 
     // Rounds
     rounds: [roundSchema],

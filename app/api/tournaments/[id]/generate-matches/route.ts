@@ -10,7 +10,7 @@ import {
 
 /**
  * Generate tournament matches with ITTF-compliant scheduling
- * Supports: Round Robin format only
+ * Supports: Round Robin and Knockout formats
  * Features: seeding, groups/pools
  */
 export async function POST(
@@ -58,14 +58,6 @@ export async function POST(
     if (tournament.drawGenerated) {
       return NextResponse.json(
         { error: "Draw already generated. Delete existing matches first." },
-        { status: 400 }
-      );
-    }
-
-    // Validate format
-    if (tournament.format !== "round_robin") {
-      return NextResponse.json(
-        { error: "Only round_robin format is supported" },
         { status: 400 }
       );
     }

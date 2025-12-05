@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users } from "lucide-react";
 import { useLeaderboard } from "./hooks/useLeaderboard";
 import { PlayerLeaderboard, TeamLeaderboard, TournamentLeaderboard } from "./components";
 import type { LeaderboardType } from "./types";
+
+import GroupWorkIcon from '@mui/icons-material/GroupWork';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<LeaderboardType>("singles");
@@ -22,37 +24,37 @@ export default function LeaderboardPage() {
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as LeaderboardType)} className="w-full">
         <div className="px-4">
-          <TabsList className="w-full flex-wrap justify-start gap-1 h-auto p-1 bg-muted/50">
+          <TabsList className="w-full flex-wrap justify-start h-auto rounded-none p-0 bg-muted/50">
             <TabsTrigger
               value="singles"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-background flex-shrink-0"
+              className="text-xs rounded-none sm:text-sm data-[state=active]:bg-background flex-shrink-0"
             >
               Singles
             </TabsTrigger>
             <TabsTrigger
               value="doubles"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-background flex-shrink-0"
+              className="text-xs rounded-none sm:text-sm data-[state=active]:bg-background flex-shrink-0"
             >
               Doubles
             </TabsTrigger>
             <TabsTrigger
               value="mixed_doubles"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-background flex-shrink-0"
+              className="text-xs rounded-none sm:text-sm data-[state=active]:bg-background flex-shrink-0"
             >
               Mixed
             </TabsTrigger>
             <TabsTrigger
               value="teams"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-background flex-shrink-0"
+              className="text-xs rounded-none sm:text-sm data-[state=active]:bg-background flex-shrink-0"
             >
-              <Users className="w-3 h-3 mr-1" />
+              <GroupWorkIcon className="size-3 text-gray-600" />
               <span className="">Teams</span>
             </TabsTrigger>
             <TabsTrigger
               value="tournaments"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-background flex-shrink-0"
+              className="text-xs rounded-none sm:text-sm data-[state=active]:bg-background flex-shrink-0"
             >
-              <Trophy className="w-3 h-3 mr-1" />
+              <EmojiEventsIcon className="size-3 text-yellow-600" />
               <span className="">Tournaments</span>
             </TabsTrigger>
           </TabsList>

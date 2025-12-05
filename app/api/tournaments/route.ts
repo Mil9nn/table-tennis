@@ -26,19 +26,13 @@ export async function POST(request: NextRequest) {
       numberOfGroups,
       advancePerGroup,
       seedingMethod,
+      knockoutConfig,
     } = body;
 
     // Validate
     if (!name || !format || !category || !matchType || !startDate || !city) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    if (format !== "round_robin") {
-      return NextResponse.json(
-        { error: "Only round_robin format is supported" },
         { status: 400 }
       );
     }
@@ -76,6 +70,7 @@ export async function POST(request: NextRequest) {
       numberOfGroups: numberOfGroups || undefined,
       advancePerGroup: advancePerGroup || undefined,
       seedingMethod: seedingMethod || "none",
+      knockoutConfig: knockoutConfig || undefined,
       seeding: initialSeeding, // Initialize seeding with registration order
       rules: {
         pointsForWin: rules?.pointsForWin || 2, // ITTF standard: 2 points for win
@@ -127,6 +122,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const format = searchParams.get("format");
     const limit = parseInt(searchParams.get("limit") || "0", 10);
+    const skip = parseInt(searchParams.get("skip") || "0", 10);
 
     let query: any = {};
     if (status) query.status = status;
@@ -137,7 +133,8 @@ export async function GET(req: NextRequest) {
       .populate("standings.participant", "username fullName profileImage")
       .populate("groups.standings.participant", "username fullName profileImage")
       .populate("seeding.participant", "username fullName profileImage")
-      .sort({ startDate: -1 });
+      .sort({ startDate: -1 })
+      .skip(skip);
 
     if (limit > 0) {
       tournamentQuery = tournamentQuery.limit(limit);
@@ -145,7 +142,18 @@ export async function GET(req: NextRequest) {
 
     const tournaments = await tournamentQuery;
 
-    return NextResponse.json({ tournaments }, { status: 200 });
+    // Get total count for pagination
+    const totalCount = await Tournament.countDocuments(query);
+
+    return NextResponse.json({
+      tournaments,
+      pagination: {
+        total: totalCount,
+        skip,
+        limit,
+        hasMore: skip + tournaments.length < totalCount
+      }
+    }, { status: 200 });
   } catch (err) {
     console.error("Error fetching tournaments:", err);
     return NextResponse.json(

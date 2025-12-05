@@ -1,61 +1,43 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 function Shimmer({ className = "" }) {
-  return (
-    <div
-      className={`
-        animate-pulse bg-gradient-to-r 
-        from-[#f2f3f7] via-[#e9eaf0] to-[#f2f3f7] 
-        bg-[length:200%_100%] rounded-md 
-        ${className}
-      `}
-    />
-  );
+  return <Skeleton className={className} />;
 }
 
 export default function TournamentsSkeleton() {
+  
   return (
     <div className="divide-y divide-gray-100">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 7 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white border border-gray-100 shadow-sm p-4"
+          className="bg-white border border-gray-100 hover:border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-all"
         >
-          <div className="flex items-center justify-between gap-4">
-            
-            {/* LEFT SIDE */}
-            <div className="flex items-center gap-4 min-w-0">
-              {/* Icon placeholder */}
-              <Shimmer className="w-10 h-10 rounded-lg" />
-
-              {/* Text lines */}
-              <div className="min-w-0 space-y-2">
-                <Shimmer className="h-3 w-32" />
-                <Shimmer className="h-3 w-20" />
+          {/* LEFT SECTION */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              {/* Title + optional icon to match rows */}
+              <div className="flex items-center gap-3 min-w-0">
+                <Shimmer
+                  className={`h-5 w-36 rounded`}
+                />
               </div>
-
-              {/* Status badges (hidden on mobile) */}
-              <div className="hidden sm:flex items-center gap-2 ml-3">
-                <Shimmer className="h-4 w-20 rounded-full" />
-                <Shimmer className="h-4 w-16 rounded-full" />
+              {/* Status badges */}
+              <div className="flex items-end gap-1 shrink-0">
+                <Shimmer className="h-6 w-24 rounded-full" />
+                <Shimmer className="h-6 w-24 rounded-full" />
               </div>
             </div>
 
-            {/* RIGHT SIDE */}
-            <div className="flex items-center gap-4">
-              {/* numbers */}
-              <div className="flex flex-col items-end text-right mr-2">
-                <Shimmer className="h-3 w-10" />
-                <Shimmer className="h-3 w-14" />
-              </div>
-
-              {/* progress bar desktop */}
-              <div className="hidden md:block w-36 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <Shimmer className="h-full w-1/3" />
-              </div>
-
-              {/* arrow button placeholder */}
-              <Shimmer className="w-8 h-8 rounded-full" />
+            {/* INLINE META ROW */}
+            <div className="flex items-center gap-2 mt-2">
+              <Shimmer className="h-4 w-24" />
+              <Shimmer className={`h-4 w-16`} />
+              <Shimmer
+                className={`h-4 w-24`}
+              />
             </div>
           </div>
         </div>

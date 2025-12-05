@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "0", 10);
+    const skip = parseInt(searchParams.get("skip") || "0", 10);
     const context = searchParams.get("context"); // "casual", "tournament", or null (all)
 
     // Build filter based on context
@@ -91,6 +92,7 @@ export async function GET(req: NextRequest) {
       .populate("games.shots.player", "username fullName")
       .populate("tournament", "name format status")
       .sort({ createdAt: -1 })
+      .skip(skip);
 
     // apply limit if provided
     if (limit > 0) {
@@ -99,7 +101,18 @@ export async function GET(req: NextRequest) {
 
     const matches = await query;
 
-    return NextResponse.json({ matches });
+    // Get total count for pagination
+    const totalCount = await IndividualMatch.countDocuments(filter);
+
+    return NextResponse.json({
+      matches,
+      pagination: {
+        total: totalCount,
+        skip,
+        limit,
+        hasMore: skip + matches.length < totalCount
+      }
+    });
   } catch (err) {
     console.error("Error fetching individual matches:", err);
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });

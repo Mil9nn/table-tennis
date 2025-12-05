@@ -26,12 +26,13 @@ interface Match {
 }
 
 interface TournamentScheduleProps {
-  rounds: (Round & { groupName?: string; groupId?: string })[];
+  rounds: (Round & { groupName?: string; groupId?: string; roundName?: string })[];
   matches: Match[];
   onMatchClick?: (id: string) => void;
   showDate?: boolean;
   showTime?: boolean;
   venue?: string;
+  format?: "round_robin" | "knockout";
 }
 
 const TournamentSchedule: FC<TournamentScheduleProps> = ({
@@ -40,6 +41,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
   onMatchClick,
   showDate = true,
   showTime = true,
+  format = "round_robin",
 }) => {
   const getMatchById = (id: string) =>
     matches.find((m) => String(m._id) === String(id)) ?? null;
@@ -101,7 +103,9 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
               {/* Round Header */}
               <div>
                 <h2 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                  {round.groupName ? (
+                  {format === "knockout" && round.roundName ? (
+                    <>{round.roundName}</>
+                  ) : round.groupName ? (
                     <>
                       {round.groupName} - Round {round.roundNumber}
                     </>

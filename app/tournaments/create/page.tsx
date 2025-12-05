@@ -48,7 +48,7 @@ import { cn } from "@/lib/utils";
 
 const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
-  format: z.enum(["round_robin"]),
+  format: z.enum(["round_robin", "knockout"]),
   category: z.enum(["individual", "team"]),
   matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
   startDate: z.date({
@@ -62,6 +62,8 @@ const tournamentSchema = z.object({
   numberOfGroups: z.string().optional(),
   advancePerGroup: z.string().optional(),
   seedingMethod: z.enum(["manual", "none"]),
+  thirdPlaceMatch: z.boolean().optional(),
+  allowCustomMatching: z.boolean().optional(),
 });
 
 type TournamentFormValues = z.infer<typeof tournamentSchema>;
@@ -86,8 +88,12 @@ export default function CreateTournamentPage() {
       numberOfGroups: "4",
       advancePerGroup: "2",
       seedingMethod: "none",
+      thirdPlaceMatch: false,
+      allowCustomMatching: true,
     },
   });
+
+  const watchFormat = form.watch("format");
 
   const addParticipant = (user: any) => {
     if (!participants.find((p) => p._id === user._id)) {
@@ -138,6 +144,12 @@ export default function CreateTournamentPage() {
           ? Number(data.advancePerGroup)
           : undefined,
         seedingMethod: data.seedingMethod,
+        knockoutConfig: data.format === "knockout" ? {
+          allowCustomMatching: data.allowCustomMatching ?? true,
+          autoGenerateBracket: true,
+          thirdPlaceMatch: data.thirdPlaceMatch ?? false,
+          consolationBracket: false,
+        } : undefined,
         rules: {
           setsPerMatch: Number(data.setsPerMatch),
           pointsPerSet: 11,
@@ -220,6 +232,7 @@ export default function CreateTournamentPage() {
                     <div className="flex gap-2 flex-wrap">
                       {[
                         { label: "Round Robin", value: "round_robin" },
+                        { label: "Knockout", value: "knockout" },
                       ].map((opt) => {
                         const isActive = field.value === opt.value;
                         return (
@@ -282,6 +295,55 @@ export default function CreateTournamentPage() {
                 )}
               />
             </div>
+
+            {/* Knockout Options */}
+            {watchFormat === "knockout" && (
+              <div className="space-y-4 rounded-lg border p-4">
+                <h3 className="font-semibold">Knockout Options</h3>
+
+                <FormField
+                  control={form.control}
+                  name="thirdPlaceMatch"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>3rd Place Match</FormLabel>
+                        <FormDescription>
+                          Include a match between semi-final losers to determine 3rd place
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="allowCustomMatching"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Allow Custom Matching</FormLabel>
+                        <FormDescription>
+                          Allow organizer to manually set bracket matchups at each round
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           {/* Location & Dates */}
@@ -429,7 +491,7 @@ export default function CreateTournamentPage() {
                       Use Groups/Pools
                     </FormLabel>
                     <FormDescription>
-                      Divide tournament into multiple groups
+                      Divide tournament into multiple groups (Round-robin format only)
                     </FormDescription>
                   </div>
                   <FormControl>

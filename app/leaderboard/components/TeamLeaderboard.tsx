@@ -18,6 +18,8 @@ import type { TeamStats } from "../types";
 import { LeaderboardEmpty, LeaderboardLoading } from "./shared";
 import { getDisplayName, getInitials } from "../utils";
 
+import GroupWorkIcon from '@mui/icons-material/GroupWork';
+
 interface TeamLeaderboardProps {
   data: TeamStats[];
   loading: boolean;
@@ -58,7 +60,7 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   if (loading) return <LeaderboardLoading />;
-  if (data.length === 0) return <LeaderboardEmpty message="No team matches yet" />;
+  if (data.length === 0) return <LeaderboardEmpty message="No team matches yet" icon={<GroupWorkIcon className="size-10 text-muted-foreground" />} />;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">

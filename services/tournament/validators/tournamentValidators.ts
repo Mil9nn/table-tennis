@@ -313,6 +313,83 @@ export class TournamentValidators {
 
     return { isValid: true };
   }
+
+  /**
+   * Validate tournament is knockout format
+   */
+  static validateKnockoutFormat(tournament: ITournament): ValidationResult {
+    if (tournament.format !== "knockout") {
+      return {
+        isValid: false,
+        error: "This operation is only available for knockout tournaments",
+        statusCode: 400,
+      };
+    }
+    return { isValid: true };
+  }
+
+  /**
+   * Validate bracket exists
+   */
+  static validateBracketExists(tournament: ITournament): ValidationResult {
+    if (!(tournament as any).bracket) {
+      return {
+        isValid: false,
+        error: "Tournament bracket has not been generated yet",
+        statusCode: 400,
+      };
+    }
+    return { isValid: true };
+  }
+
+  /**
+   * Validate custom matching is allowed
+   */
+  static validateCustomMatchingAllowed(tournament: ITournament): ValidationResult {
+    if (!(tournament as any).knockoutConfig?.allowCustomMatching) {
+      return {
+        isValid: false,
+        error: "Custom matching is not enabled for this tournament",
+        statusCode: 403,
+      };
+    }
+    return { isValid: true };
+  }
+
+  /**
+   * Validate round exists in bracket
+   */
+  static validateRoundExists(
+    bracket: any,
+    roundNumber: number
+  ): ValidationResult {
+    if (!bracket.rounds || !bracket.rounds[roundNumber - 1]) {
+      return {
+        isValid: false,
+        error: `Round ${roundNumber} does not exist in the bracket`,
+        statusCode: 400,
+      };
+    }
+    return { isValid: true };
+  }
+
+  /**
+   * Validate round is not completed
+   */
+  static validateRoundNotCompleted(
+    bracket: any,
+    roundNumber: number
+  ): ValidationResult {
+    const round = bracket.rounds[roundNumber - 1];
+    if (round?.completed) {
+      return {
+        isValid: false,
+        error: `Round ${roundNumber} is already completed and cannot be modified`,
+        statusCode: 400,
+      };
+    }
+    return { isValid: true };
+  }
 }
 
 /**

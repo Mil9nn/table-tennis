@@ -1,8 +1,10 @@
 // types/tournament.type.ts
+import { KnockoutBracket, KnockoutConfig } from "./tournamentDraw";
+
 export interface Tournament {
   _id: string;
   name: string;
-  format: "round_robin";
+  format: "round_robin" | "knockout";
   category: "individual" | "team";
   matchType: "singles" | "doubles" | "mixed_doubles";
   startDate: Date;
@@ -16,11 +18,15 @@ export interface Tournament {
   seeding: Seeding[];
   seedingMethod: "manual" | "ranking" | "random" | "none";
 
-  // Groups/Pools
+  // Groups/Pools (for round robin)
   useGroups: boolean;
   numberOfGroups?: number;
   groups?: Group[];
   advancePerGroup?: number;
+
+  // Knockout specific
+  knockoutConfig?: KnockoutConfig;
+  bracket?: KnockoutBracket;
 
   rounds: Round[];
   standings: Standing[];

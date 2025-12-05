@@ -50,6 +50,62 @@ export async function GET(
       );
     }
 
+    // For knockout tournaments, manually populate bracket matches
+    // (bracket is Schema.Types.Mixed, so auto-populate doesn't work)
+    if (tournament.format === "knockout" && tournament.bracket) {
+      const matchIds: string[] = [];
+
+      // Collect all matchIds from bracket
+      tournament.bracket.rounds.forEach((round: any) => {
+        round.matches.forEach((match: any) => {
+          if (match.matchId) {
+            matchIds.push(match.matchId);
+          }
+        });
+      });
+
+      // Add third place match if exists
+      if (tournament.bracket.thirdPlaceMatch?.matchId) {
+        matchIds.push(tournament.bracket.thirdPlaceMatch.matchId);
+      }
+
+      // Fetch and populate all bracket matches
+      if (matchIds.length > 0) {
+        const bracketMatches = await IndividualMatch.find({
+          _id: { $in: matchIds },
+        }).populate("participants", "username fullName profileImage");
+
+        // Create a map for quick lookup
+        const matchMap = new Map();
+        bracketMatches.forEach((match: any) => {
+          matchMap.set(match._id.toString(), match.toObject());
+        });
+
+        // Replace matchIds with populated match objects in bracket structure
+        tournament.bracket.rounds.forEach((round: any) => {
+          round.matches.forEach((bracketMatch: any) => {
+            if (bracketMatch.matchId) {
+              const populatedMatch = matchMap.get(bracketMatch.matchId.toString());
+              if (populatedMatch) {
+                // Store the populated match as an embedded object
+                bracketMatch.matchId = populatedMatch;
+              }
+            }
+          });
+        });
+
+        // Handle third place match
+        if (tournament.bracket.thirdPlaceMatch?.matchId) {
+          const populatedMatch = matchMap.get(
+            tournament.bracket.thirdPlaceMatch.matchId.toString()
+          );
+          if (populatedMatch) {
+            tournament.bracket.thirdPlaceMatch.matchId = populatedMatch;
+          }
+        }
+      }
+    }
+
     return NextResponse.json({ tournament }, { status: 200 });
   } catch (error) {
     console.error("Error fetching tournament:", error);
