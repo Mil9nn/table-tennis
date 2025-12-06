@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const matchType = searchParams.get("matchType"); // optional filter
     const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = parseInt(searchParams.get("skip") || "0");
 
     const query: any = {
       status: { $in: ["completed", "in_progress"] },
@@ -155,9 +156,18 @@ export async function GET(request: NextRequest) {
       entry.rank = index + 1;
     });
 
+    const total = leaderboard.length;
+    const paginatedLeaderboard = leaderboard.slice(skip, skip + limit);
+    const hasMore = skip + paginatedLeaderboard.length < total;
+
     return NextResponse.json({
-      leaderboard: leaderboard.slice(0, limit),
-      total: leaderboard.length,
+      leaderboard: paginatedLeaderboard,
+      pagination: {
+        total,
+        skip,
+        limit,
+        hasMore,
+      },
       generatedAt: new Date(),
     });
   } catch (error) {

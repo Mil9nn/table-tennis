@@ -207,7 +207,7 @@ export function ManageGroupsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] rounded-none overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Groups</DialogTitle>
           <DialogDescription>
@@ -215,24 +215,6 @@ export function ManageGroupsDialog({
             use the controls below.
           </DialogDescription>
         </DialogHeader>
-
-        {/* Warning banner when matches have been generated */}
-        {drawGenerated && !hasPlayedMatches && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <span className="text-amber-600 text-lg">⚠️</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">
-                  Warning: Matches have been generated
-                </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  Changing groups will <strong>delete all scheduled matches</strong> and
-                  regenerate them. All match schedules will be reset.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto flex flex-col gap-4">
           {/* Unassigned Participants */}

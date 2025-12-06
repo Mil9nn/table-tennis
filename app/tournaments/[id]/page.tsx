@@ -145,6 +145,17 @@ export default function TournamentDetailPage() {
     tournament.status === "draft" &&
     tournament.participants.length >= 2;
 
+  // Helper function to check if tournament uses groups
+  const hasGroups = () => {
+    if (tournament.format === "round_robin") {
+      return tournament.useGroups;
+    }
+    if (tournament.format === "hybrid") {
+      return tournament.hybridConfig?.roundRobinUseGroups || false;
+    }
+    return false;
+  };
+
   // Calculate progress and extract matches
   const getAllMatches = () => {
     // For knockout tournaments, extract matches from bracket
@@ -172,8 +183,8 @@ export default function TournamentDetailPage() {
       return matches;
     }
 
-    // For round-robin with groups
-    if (tournament.useGroups && tournament.groups) {
+    // For round-robin with groups (both round-robin and hybrid formats)
+    if (hasGroups() && tournament.groups) {
       return tournament.groups.flatMap((g) =>
         g.rounds.flatMap((r) => r.matches)
       );
@@ -203,7 +214,7 @@ export default function TournamentDetailPage() {
   // For group tournaments, keep rounds separated by group
   const getRoundsForSchedule = () => {
     if (
-      tournament.useGroups &&
+      hasGroups() &&
       tournament.groups &&
       tournament.groups.length > 0
     ) {
@@ -304,7 +315,7 @@ export default function TournamentDetailPage() {
                 </Button>
               </>
             )}
-            {isOrganizer && tournament.useGroups && tournament.format === "round_robin" && (
+            {isOrganizer && hasGroups() && (
               <Button
                 variant="outline"
                 size="sm"
@@ -402,8 +413,10 @@ export default function TournamentDetailPage() {
               </p>
               <p className="text-[13px] font-semibold text-slate-700">
                 {tournament.participants.length}
-                {tournament.useGroups &&
-                  ` (${tournament.numberOfGroups} groups)`}
+                {hasGroups() &&
+                  ` (${tournament.format === "hybrid" 
+                    ? tournament.hybridConfig?.roundRobinNumberOfGroups 
+                    : tournament.numberOfGroups} groups)`}
               </p>
             </div>
           </div>
@@ -424,7 +437,7 @@ export default function TournamentDetailPage() {
                     </h3>
                     <p className="text-sm text-gray-600">
                       Generate the tournament draw to create all matches
-                      {tournament.useGroups && " and assign groups"}
+                      {hasGroups() && " and assign groups"}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 shrink-0">
@@ -503,12 +516,12 @@ export default function TournamentDetailPage() {
 
         {/* Main Tabs */}
         <Tabs
-          defaultValue={tournament.useGroups ? "groups" : "standings"}
+          defaultValue={hasGroups() ? "groups" : "standings"}
           className="w-full"
         >
           <TabsList className="grid w-full max-w-3xl p-0 rounded-none mx-auto shadow-sm grid-cols-4">
             {/* Groups Tab - Show for tournaments with groups */}
-            {tournament.useGroups && (
+            {hasGroups() && (
               <TabsTrigger
                 value="groups"
                 className="
@@ -523,7 +536,7 @@ export default function TournamentDetailPage() {
             )}
 
             {/* Standings Tab - Show for tournaments without groups */}
-            {!tournament.useGroups && (
+            {!hasGroups() && (
               <TabsTrigger
                 value="standings"
                 className=" rounded-none text-xs font-medium
@@ -575,7 +588,7 @@ export default function TournamentDetailPage() {
           </TabsList>
 
           {/* Groups Tab */}
-          {tournament.useGroups && (
+          {hasGroups() && (
             <TabsContent value="groups" className="mt-6">
               {tournament.groups && tournament.groups.length > 0 ? (
                 <GroupsView
@@ -854,7 +867,7 @@ export default function TournamentDetailPage() {
       )}
 
       {/* Manage Groups Dialog */}
-      {tournament && tournament.useGroups && tournament.format === "round_robin" && (
+      {tournament && hasGroups() && (
         <ManageGroupsDialog
           open={manageGroupsOpen}
           onOpenChange={setManageGroupsOpen}

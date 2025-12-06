@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
   MapPin,
   ChevronLeftCircle,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
@@ -57,9 +58,18 @@ type Team = {
   }[];
 };
 
+const ITEMS_PER_PAGE = 15;
+
 export default function TeamsPage() {
+  const [activeTab, setActiveTab] = useState("my-teams");
+  
+  // All teams - with pagination
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
@@ -67,27 +77,56 @@ export default function TeamsPage() {
 
   const user = useAuthStore((state) => state.user);
 
-  const fetchTeams = async () => {
+  // Intersection Observer refs
+  const myTeamsObserverTarget = useRef<HTMLDivElement>(null);
+  const allTeamsObserverTarget = useRef<HTMLDivElement>(null);
+
+  // Fetch teams with pagination
+  const fetchTeams = useCallback(async (pageNum: number, append = false) => {
     try {
-      const res = await axiosInstance.get("/teams");
-      setTeams(res.data.teams || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const skip = pageNum * ITEMS_PER_PAGE;
+      const res = await axiosInstance.get(
+        `/teams?limit=${ITEMS_PER_PAGE}&skip=${skip}`
+      );
+      
+      if (append) {
+        setTeams((prev) => [...prev, ...(res.data.teams || [])]);
+      } else {
+        setTeams(res.data.teams || []);
+      }
+
+      setHasMore(res.data.pagination?.hasMore || false);
     } catch (err) {
       console.error("Error fetching teams", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  };
-
-  useEffect(() => {
-    fetchTeams();
   }, []);
+
+  // Fetch teams once on mount - both tabs use the same data
+  // (my-teams filters client-side from all teams, so we need all teams anyway)
+  useEffect(() => {
+    if (teams.length === 0) {
+      fetchTeams(0, false);
+    }
+  }, [fetchTeams, teams.length]);
 
   const deleteTeam = async (id: string) => {
     if (!confirm("Are you sure you want to delete this team?")) return;
     try {
       await axiosInstance.delete(`/teams/${id}`);
       toast.success("Team deleted");
-      fetchTeams();
+      // Reset and refetch from beginning
+      setPage(0);
+      setTeams([]);
+      fetchTeams(0, false);
     } catch (err: unknown) {
       console.error("Delete failed", err);
       if (isAxiosError(err)) {
@@ -95,6 +134,71 @@ export default function TeamsPage() {
       }
     }
   };
+
+  // Load more teams when intersection observer triggers for all-teams tab
+  useEffect(() => {
+    if (activeTab !== "all-teams") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !loadingMore &&
+          !loading &&
+          hasMore &&
+          activeTab === "all-teams"
+        ) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          fetchTeams(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (allTeamsObserverTarget.current) {
+      observer.observe(allTeamsObserverTarget.current);
+    }
+
+    return () => {
+      if (allTeamsObserverTarget.current) {
+        observer.unobserve(allTeamsObserverTarget.current);
+      }
+    };
+  }, [loadingMore, loading, hasMore, page, activeTab, fetchTeams]);
+
+  // Load more teams when intersection observer triggers for my-teams tab
+  // We need to keep fetching until we have enough filtered results
+  useEffect(() => {
+    if (activeTab !== "my-teams") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !loadingMore &&
+          !loading &&
+          hasMore &&
+          activeTab === "my-teams"
+        ) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          fetchTeams(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (myTeamsObserverTarget.current) {
+      observer.observe(myTeamsObserverTarget.current);
+    }
+
+    return () => {
+      if (myTeamsObserverTarget.current) {
+        observer.unobserve(myTeamsObserverTarget.current);
+      }
+    };
+  }, [loadingMore, loading, hasMore, page, activeTab, fetchTeams]);
 
   const myTeams = useMemo(() => {
     if (!user) return [];
@@ -445,15 +549,15 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="my-teams" className="w-full">
+      <Tabs defaultValue="my-teams" onValueChange={setActiveTab} className="w-full">
         <TabsList
-          className="grid w-full max-w-md h-fit mx-auto"
+          className="grid w-full rounded-none p-0 max-w-md h-fit mx-auto"
           style={{ gridTemplateColumns: "1fr 1fr" }}
         >
-          <TabsTrigger className="p-2" value="my-teams">
+          <TabsTrigger className="p-2 rounded-none" value="my-teams">
             My Teams
           </TabsTrigger>
-          <TabsTrigger className="p-2" value="all-teams">
+          <TabsTrigger className="p-2 rounded-none" value="all-teams">
             All Teams
           </TabsTrigger>
         </TabsList>
@@ -462,11 +566,25 @@ export default function TeamsPage() {
           {loading ? (
             <TeamListSkeleton />
           ) : filteredMyTeams.length ? (
-            <div className="divide-y divide-gray-100">
-              {filteredMyTeams.map((team) => (
-                <TeamCard key={team._id} team={team} />
-              ))}
-            </div>
+            <>
+              <div className="divide-y divide-gray-100">
+                {filteredMyTeams.map((team) => (
+                  <TeamCard key={team._id} team={team} />
+                ))}
+              </div>
+              {/* Intersection Observer Target */}
+              <div ref={myTeamsObserverTarget} className="h-20 flex items-center justify-center">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more teams...</span>
+                  </div>
+                )}
+                {!hasMore && teams.length > 0 && (
+                  <p className="text-sm text-gray-500">No more teams to load</p>
+                )}
+              </div>
+            </>
           ) : (
             <div className="text-center py-8">
               <p className="text-sm text-gray-500">
@@ -484,11 +602,25 @@ export default function TeamsPage() {
           {loading ? (
             <TeamListSkeleton />
           ) : filteredAllTeams.length ? (
-            <div className="divide-y divide-gray-100">
-              {filteredAllTeams.map((team) => (
-                <TeamCard key={team._id} team={team} />
-              ))}
-            </div>
+            <>
+              <div className="divide-y divide-gray-100">
+                {filteredAllTeams.map((team) => (
+                  <TeamCard key={team._id} team={team} />
+                ))}
+              </div>
+              {/* Intersection Observer Target */}
+              <div ref={allTeamsObserverTarget} className="h-20 flex items-center justify-center">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more teams...</span>
+                  </div>
+                )}
+                {!hasMore && teams.length > 0 && (
+                  <p className="text-sm text-gray-500">No more teams to load</p>
+                )}
+              </div>
+            </>
           ) : (
             <p className="text-sm text-gray-500 text-center py-8">
               No teams found.

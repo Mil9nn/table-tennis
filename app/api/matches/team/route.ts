@@ -419,14 +419,28 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "0", 10);
+    const skip = parseInt(searchParams.get("skip") || "0", 10);
 
     let query = populateTeamMatch(TeamMatch.find()).sort({ createdAt: -1 });
 
+    if (skip > 0) query = query.skip(skip);
     if (limit > 0) query = query.limit(limit);
 
     const matches = await query.exec();
 
-    return NextResponse.json({ matches }, { status: 200 });
+    // Get total count for pagination
+    const totalCount = await TeamMatch.countDocuments();
+    const hasMore = skip + matches.length < totalCount;
+
+    return NextResponse.json({
+      matches,
+      pagination: {
+        total: totalCount,
+        skip,
+        limit: limit > 0 ? limit : totalCount,
+        hasMore,
+      },
+    }, { status: 200 });
   } catch (err) {
     console.error("Error fetching team matches:", err);
     return NextResponse.json(

@@ -161,17 +161,13 @@ export function HybridTournamentManager({
   };
 
   return (
-    <Card className="border-2 border-purple-200 bg-gradient-to-br from-blue-50 to-purple-50">
+    <Card className="rounded-none bg-gradient-to-br from-blue-50 to-purple-50">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-purple-600" />
-              Hybrid Tournament
-            </CardTitle>
             <CardDescription>Round-Robin → Knockout Format</CardDescription>
           </div>
-          <Badge className={`${getPhaseColor(status.currentPhase)} text-white`}>
+          <Badge className={`${getPhaseColor(status.currentPhase)} text-white rounded-full`}>
             {status.currentPhase.replace("_", " ").toUpperCase()}
           </Badge>
         </div>
@@ -258,7 +254,6 @@ export function HybridTournamentManager({
         {status.hybridConfig && (
           <div className="bg-white rounded-lg p-4 border space-y-2">
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-purple-600" />
               <h4 className="font-semibold text-sm">Qualification</h4>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -266,14 +261,6 @@ export function HybridTournamentManager({
                 <p className="text-gray-500">Method</p>
                 <p className="font-medium">
                   {getQualificationMethodLabel(status.hybridConfig.qualificationMethod)}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Participants</p>
-                <p className="font-medium">
-                  {status.qualifiedCount > 0
-                    ? `${status.qualifiedCount} qualified`
-                    : `${status.totalParticipants} total`}
                 </p>
               </div>
             </div>

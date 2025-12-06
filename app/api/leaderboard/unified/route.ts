@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const matchType = searchParams.get("type") || "singles"; // singles, doubles, mixed_doubles
     const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = parseInt(searchParams.get("skip") || "0");
 
     const playerStatsMap = new Map<string, any>();
 
@@ -119,9 +120,18 @@ export async function GET(request: NextRequest) {
       entry.rank = index + 1;
     });
 
+    const total = leaderboard.length;
+    const paginatedLeaderboard = leaderboard.slice(skip, skip + limit);
+    const hasMore = skip + paginatedLeaderboard.length < total;
+
     return NextResponse.json({
-      leaderboard: leaderboard.slice(0, limit),
-      total: leaderboard.length,
+      leaderboard: paginatedLeaderboard,
+      pagination: {
+        total,
+        skip,
+        limit,
+        hasMore,
+      },
       matchType,
       generatedAt: new Date(),
     });

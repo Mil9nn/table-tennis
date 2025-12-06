@@ -5,12 +5,22 @@ import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
-    const teams = await Team.find()
+    const { searchParams } = new URL(req.url);
+    const limit = parseInt(searchParams.get("limit") || "0", 10);
+    const skip = parseInt(searchParams.get("skip") || "0", 10);
+
+    let query = Team.find()
       .populate("captain", "username fullName profileImage")
-      .populate("players.user", "username fullName profileImage");
+      .populate("players.user", "username fullName profileImage")
+      .sort({ name: 1 });
+
+    if (skip > 0) query = query.skip(skip);
+    if (limit > 0) query = query.limit(limit);
+
+    const teams = await query.exec();
 
     const formatted = teams.map((t) => {
       const playersWithAssignments = t.players.map((p: any) => ({
@@ -28,7 +38,19 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ teams: formatted });
+    // Get total count for pagination
+    const totalCount = await Team.countDocuments();
+    const hasMore = skip + teams.length < totalCount;
+
+    return NextResponse.json({
+      teams: formatted,
+      pagination: {
+        total: totalCount,
+        skip,
+        limit: limit > 0 ? limit : totalCount,
+        hasMore,
+      },
+    });
   } catch (error: any) {
     console.error("Error fetching teams:", error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });

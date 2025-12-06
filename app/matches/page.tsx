@@ -37,15 +37,19 @@ export default function MatchesPage() {
   const [individualFilterType, setIndividualFilterType] = useState("all");
   const [individualFilterStatus, setIndividualFilterStatus] = useState("all");
 
-  // Team
+  // Team - with pagination
   const [teamMatches, setTeamMatches] = useState<TeamMatch[]>([]);
   const [teamLoading, setTeamLoading] = useState(true);
+  const [teamLoadingMore, setTeamLoadingMore] = useState(false);
+  const [teamHasMore, setTeamHasMore] = useState(true);
+  const [teamPage, setTeamPage] = useState(0);
   const [teamSearch, setTeamSearch] = useState("");
   const [teamFilterFormat, setTeamFilterFormat] = useState("all");
   const [teamFilterStatus, setTeamFilterStatus] = useState("all");
 
-  // Intersection Observer ref
-  const observerTarget = useRef<HTMLDivElement>(null);
+  // Intersection Observer refs
+  const individualObserverTarget = useRef<HTMLDivElement>(null);
+  const teamObserverTarget = useRef<HTMLDivElement>(null);
 
   // Fetch individual matches with pagination
   const fetchIndividualMatches = useCallback(async (page: number, append = false) => {
@@ -76,13 +80,53 @@ export default function MatchesPage() {
     }
   }, []);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchIndividualMatches(0, false);
-  }, [fetchIndividualMatches]);
+  // Fetch team matches with pagination
+  const fetchTeamMatches = useCallback(async (page: number, append = false) => {
+    try {
+      if (append) {
+        setTeamLoadingMore(true);
+      } else {
+        setTeamLoading(true);
+      }
 
-  // Load more when intersection observer triggers
+      const skip = page * ITEMS_PER_PAGE;
+      const { data } = await axiosInstance.get(
+        `/matches/team?limit=${ITEMS_PER_PAGE}&skip=${skip}`
+      );
+
+      if (append) {
+        setTeamMatches((prev) => [...prev, ...(data.matches || [])]);
+      } else {
+        setTeamMatches(data.matches || []);
+      }
+
+      setTeamHasMore(data.pagination?.hasMore || false);
+    } catch (err) {
+      console.error("Error fetching team matches:", err);
+    } finally {
+      setTeamLoading(false);
+      setTeamLoadingMore(false);
+    }
+  }, []);
+
+  // Fetch individual matches only when individual tab is active
   useEffect(() => {
+    if (activeTab === "individual" && individualMatches.length === 0) {
+      fetchIndividualMatches(0, false);
+    }
+  }, [activeTab, fetchIndividualMatches, individualMatches.length]);
+
+  // Fetch team matches only when team tab is active
+  useEffect(() => {
+    if (activeTab === "team" && teamMatches.length === 0) {
+      fetchTeamMatches(0, false);
+    }
+  }, [activeTab, fetchTeamMatches, teamMatches.length]);
+
+  // Load more individual matches when intersection observer triggers
+  useEffect(() => {
+    if (activeTab !== "individual") return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (
@@ -100,13 +144,13 @@ export default function MatchesPage() {
       { threshold: 0.1 }
     );
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+    if (individualObserverTarget.current) {
+      observer.observe(individualObserverTarget.current);
     }
 
     return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
+      if (individualObserverTarget.current) {
+        observer.unobserve(individualObserverTarget.current);
       }
     };
   }, [
@@ -118,19 +162,44 @@ export default function MatchesPage() {
     fetchIndividualMatches,
   ]);
 
+  // Load more team matches when intersection observer triggers
   useEffect(() => {
-    const fetchTeamMatches = async () => {
-      try {
-        const { data } = await axiosInstance.get("/matches/team");
-        setTeamMatches(data.matches || []);
-      } catch (err) {
-        console.error("Error fetching team matches:", err);
-      } finally {
-        setTeamLoading(false);
+    if (activeTab !== "team") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !teamLoadingMore &&
+          !teamLoading &&
+          teamHasMore &&
+          activeTab === "team"
+        ) {
+          const nextPage = teamPage + 1;
+          setTeamPage(nextPage);
+          fetchTeamMatches(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (teamObserverTarget.current) {
+      observer.observe(teamObserverTarget.current);
+    }
+
+    return () => {
+      if (teamObserverTarget.current) {
+        observer.unobserve(teamObserverTarget.current);
       }
     };
-    fetchTeamMatches();
-  }, []);
+  }, [
+    teamLoadingMore,
+    teamLoading,
+    teamHasMore,
+    teamPage,
+    activeTab,
+    fetchTeamMatches,
+  ]);
 
   const filteredIndividualMatches = useMemo(() => {
     return individualMatches.filter((match) => {
@@ -328,7 +397,7 @@ export default function MatchesPage() {
               <MatchesList matches={filteredIndividualMatches} />
 
               {/* Intersection Observer Target */}
-              <div ref={observerTarget} className="h-20 flex items-center justify-center">
+              <div ref={individualObserverTarget} className="h-20 flex items-center justify-center">
                 {individualLoadingMore && (
                   <div className="flex items-center gap-2 text-blue-600">
                     <Loader2 className="animate-spin" size={20} />
@@ -347,7 +416,22 @@ export default function MatchesPage() {
           {teamLoading ? (
             <TeamMatchesListSkeleton />
           ) : (
-            <TeamMatchesList matches={filteredTeamMatches} />
+            <>
+              <TeamMatchesList matches={filteredTeamMatches} />
+
+              {/* Intersection Observer Target */}
+              <div ref={teamObserverTarget} className="h-20 flex items-center justify-center">
+                {teamLoadingMore && (
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more matches...</span>
+                  </div>
+                )}
+                {!teamHasMore && teamMatches.length > 0 && (
+                  <p className="text-sm text-gray-500">No more matches to load</p>
+                )}
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>

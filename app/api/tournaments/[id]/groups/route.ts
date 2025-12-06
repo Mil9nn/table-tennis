@@ -96,7 +96,14 @@ export async function PUT(
     }
 
     // Only allow updates if tournament uses groups
-    if (!tournament.useGroups) {
+    // Check for round-robin format
+    const usesGroups = tournament.format === "round_robin" 
+      ? tournament.useGroups 
+      : tournament.format === "hybrid"
+      ? tournament.hybridConfig?.roundRobinUseGroups
+      : false;
+    
+    if (!usesGroups) {
       return NextResponse.json(
         { error: "Tournament does not use groups" },
         { status: 400 }

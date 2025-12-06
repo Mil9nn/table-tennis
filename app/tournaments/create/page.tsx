@@ -108,8 +108,8 @@ export default function CreateTournamentPage() {
       hybridQualifyingCount: "8",
       hybridQualifyingPerGroup: "2",
       hybridQualifyingPercentage: "50",
-      hybridKnockoutThirdPlaceMatch: true,
-      hybridKnockoutAllowCustomMatching: false,
+      hybridKnockoutThirdPlaceMatch: false,
+      hybridKnockoutAllowCustomMatching: true,
     },
   });
 
@@ -124,6 +124,13 @@ export default function CreateTournamentPage() {
       form.setValue("useGroups", false);
     }
   }, [watchFormat, watchUseGroups, form]);
+
+  // Reset qualification method if "top_n_per_group" is selected but groups are disabled
+  useEffect(() => {
+    if (watchFormat === "hybrid" && !watchHybridRRUseGroups && watchHybridQualMethod === "top_n_per_group") {
+      form.setValue("hybridQualificationMethod", "top_n_overall");
+    }
+  }, [watchFormat, watchHybridRRUseGroups, watchHybridQualMethod, form]);
 
   const addParticipant = (user: any) => {
     if (!participants.find((p) => p._id === user._id)) {
@@ -141,7 +148,8 @@ export default function CreateTournamentPage() {
       return;
     }
 
-    if (data.useGroups) {
+    // Validate groups for round-robin format
+    if (data.format === "round_robin" && data.useGroups) {
       const numGroups = Number(data.numberOfGroups || 0);
       if (numGroups < 2) {
         toast.error("At least 2 groups required when using groups");
@@ -150,6 +158,21 @@ export default function CreateTournamentPage() {
       if (participants.length < numGroups) {
         toast.error(
           `Need at least ${numGroups} participants for ${numGroups} groups`
+        );
+        return;
+      }
+    }
+
+    // Validate groups for hybrid format (round-robin phase)
+    if (data.format === "hybrid" && data.hybridRoundRobinUseGroups) {
+      const numGroups = Number(data.hybridRoundRobinNumberOfGroups || 0);
+      if (numGroups < 2) {
+        toast.error("At least 2 groups required for round-robin phase");
+        return;
+      }
+      if (participants.length < numGroups) {
+        toast.error(
+          `Need at least ${numGroups} participants for ${numGroups} groups in round-robin phase`
         );
         return;
       }
@@ -408,9 +431,9 @@ export default function CreateTournamentPage() {
             {/* Hybrid Format Options */}
             {watchFormat === "hybrid" && (
               <div className="space-y-4 rounded-lg border p-4 bg-gradient-to-br from-blue-50 to-purple-50">
-                <h3 className="font-semibold text-[#6c6fd5] flex items-center gap-2">
+                <h3 className="font-semibold text-[#6c6fd5]">
                   Hybrid Format Configuration
-                  <span className="text-xs font-normal text-gray-500">(Round-Robin → Knockout)</span>
+                  <p className="text-xs font-normal text-gray-500">(Round-Robin → Knockout)</p>
                 </h3>
 
                 {/* Round-Robin Phase Settings */}
@@ -464,7 +487,7 @@ export default function CreateTournamentPage() {
                   )}
                 </div>
 
-                {/* Qualification Settings */}
+                {/* Qualification Settings - Always shown for hybrid tournaments */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-gray-700">Qualification</h4>
 
@@ -487,9 +510,11 @@ export default function CreateTournamentPage() {
                             <SelectItem value="top_n_overall">
                               Top N Overall
                             </SelectItem>
-                            <SelectItem value="top_n_per_group">
-                              Top N Per Group
-                            </SelectItem>
+                            {watchHybridRRUseGroups && (
+                              <SelectItem value="top_n_per_group">
+                                Top N Per Group
+                              </SelectItem>
+                            )}
                             <SelectItem value="percentage">
                               Percentage
                             </SelectItem>
@@ -508,82 +533,82 @@ export default function CreateTournamentPage() {
                     )}
                   />
 
-                  {watchHybridQualMethod === "top_n_overall" && (
-                    <FormField
-                      control={form.control}
-                      name="hybridQualifyingCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number to Qualify</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="2"
-                              className="bg-white"
-                              placeholder="8"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            How many participants advance to knockout
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                    {watchHybridQualMethod === "top_n_overall" && (
+                      <FormField
+                        control={form.control}
+                        name="hybridQualifyingCount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Number to Qualify</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="2"
+                                className="bg-white"
+                                placeholder="8"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              How many participants advance to knockout
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
-                  {watchHybridQualMethod === "top_n_per_group" && (
-                    <FormField
-                      control={form.control}
-                      name="hybridQualifyingPerGroup"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Qualifiers Per Group</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              className="bg-white"
-                              placeholder="2"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Top N from each group advance
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                    {watchHybridQualMethod === "top_n_per_group" && (
+                      <FormField
+                        control={form.control}
+                        name="hybridQualifyingPerGroup"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Qualifiers Per Group</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                className="bg-white"
+                                placeholder="2"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Top N from each group advance
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
-                  {watchHybridQualMethod === "percentage" && (
-                    <FormField
-                      control={form.control}
-                      name="hybridQualifyingPercentage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Qualifying Percentage</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              max="99"
-                              className="bg-white"
-                              placeholder="50"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Percentage of participants who advance (1-99%)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
+                    {watchHybridQualMethod === "percentage" && (
+                      <FormField
+                        control={form.control}
+                        name="hybridQualifyingPercentage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Qualifying Percentage</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="99"
+                                className="bg-white"
+                                placeholder="50"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Percentage of participants who advance (1-99%)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
 
                 {/* Knockout Phase Settings */}
                 <div className="space-y-3">
@@ -781,7 +806,7 @@ export default function CreateTournamentPage() {
                         Use Groups/Pools
                       </FormLabel>
                       <FormDescription>
-                        Divide tournament into multiple groups
+                        Divide participants into multiple groups
                       </FormDescription>
                     </div>
                     <FormControl>

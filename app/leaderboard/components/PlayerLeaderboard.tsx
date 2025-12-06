@@ -58,9 +58,9 @@ export function PlayerLeaderboard({ data, loading, emptyMessage }: PlayerLeaderb
   if (data.length === 0) return <LeaderboardEmpty message={emptyMessage} />;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <Table className="text-[12px]">
+        <Table className="text-xs">
           <TableHeader>
             <TableRow className="bg-slate-50/80 border-b border-slate-200">
               <TableHead className="text-center font-medium text-[11px] text-slate-600">
