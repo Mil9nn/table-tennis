@@ -116,7 +116,7 @@ const MyTeamsPage = () => {
                 {teams.map((team, index) => (
                   <div
                     key={index}
-                    onClick={() => router.push(`/teams/${team._id}`)}
+                    onClick={() => router.push(`/teams/${team._id.toString()}`)}
                     className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -131,6 +131,7 @@ const MyTeamsPage = () => {
                               width={48}
                               height={48}
                               className="object-cover w-full h-full"
+                              unoptimized
                             />
                           ) : (
                             <Shield className="w-6 h-6" />

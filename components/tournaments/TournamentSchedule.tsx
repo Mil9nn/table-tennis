@@ -140,28 +140,21 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                     >
                       {/* LEFT SIDE — players */}
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {/* Player 1 */}
                         <Avatar className="h-7 w-7 flex-shrink-0">
                           {match.participants?.[0]?.profileImage ? (
-                            <AvatarImage
-                              src={match.participants[0].profileImage}
-                            />
+                            <AvatarImage src={match.participants[0].profileImage} />
                           ) : (
                             <AvatarFallback className="bg-blue-400 text-white text-xs">
                               {initials(match.participants?.[0])}
                             </AvatarFallback>
                           )}
                         </Avatar>
-
                         <div
                           className={`text-sm truncate min-w-0 ${
-                            isWinner(match, 0)
-                              ? "text-green-500"
-                              : "text-neutral-700"
+                            isWinner(match, 0) ? "text-green-500" : "text-neutral-700"
                           }`}
                         >
-                          {match.participants?.[0]?.fullName ||
-                            match.participants?.[0]?.username}
+                          {match.participants?.[0]?.fullName || match.participants?.[0]?.username}
                         </div>
 
                         {/* VS */}
@@ -169,23 +162,16 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                           vs
                         </div>
 
-                        {/* Player 2 */}
                         <div
                           className={`text-sm truncate min-w-0 ${
-                            isWinner(match, 1)
-                              ? "text-green-600"
-                              : "text-neutral-700"
+                            isWinner(match, 1) ? "text-green-600" : "text-neutral-700"
                           }`}
                         >
-                          {match.participants?.[1]?.fullName ||
-                            match.participants?.[1]?.username}
+                          {match.participants?.[1]?.fullName || match.participants?.[1]?.username}
                         </div>
-
                         <Avatar className="h-7 w-7 flex-shrink-0">
                           {match.participants?.[1]?.profileImage ? (
-                            <AvatarImage
-                              src={match.participants[1].profileImage}
-                            />
+                            <AvatarImage src={match.participants[1].profileImage} />
                           ) : (
                             <AvatarFallback className="text-xs bg-blue-400 text-white">
                               {initials(match.participants?.[1])}
@@ -198,8 +184,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                       <div className="flex items-center gap-2 ml-2 flex-shrink-0">
                         {match.status === "completed" && match.finalScore && (
                           <div className="text-sm font-semibold">
-                            {match.finalScore.side1Sets}-
-                            {match.finalScore.side2Sets}
+                            {match.finalScore.side1Sets}-{match.finalScore.side2Sets}
                           </div>
                         )}
 

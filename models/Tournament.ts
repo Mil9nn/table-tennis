@@ -85,7 +85,6 @@ export interface ITournament extends Document {
   startDate: Date;
   endDate?: Date;
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
-
   participants: mongoose.Types.ObjectId[];
   organizer: mongoose.Types.ObjectId;
 
@@ -124,6 +123,7 @@ export interface ITournament extends Document {
     knockoutAllowCustomMatching: boolean;
     knockoutThirdPlaceMatch: boolean;
   };
+
 
   // Phase tracking for hybrid tournaments
   currentPhase?: "round_robin" | "knockout" | "transition";
@@ -253,6 +253,8 @@ const tournamentSchema = new Schema<ITournament>(
       },
       required: false,
     },
+
+    // Team format config removed for individual-only tournaments
 
     // Phase tracking for hybrid tournaments
     currentPhase: {

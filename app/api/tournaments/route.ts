@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate participants
+    // Validate participants (users only)
     if (participants && participants.length > 0) {
       const users = await User.find({ _id: { $in: participants } });
       if (users.length !== participants.length) {
@@ -67,12 +67,14 @@ export async function POST(request: NextRequest) {
       venue,
       participants: participants || [],
       organizer: auth.userId,
+      // participantModel removed: tournaments support individual participants only
       useGroups: useGroups || false,
       numberOfGroups: numberOfGroups || undefined,
       advancePerGroup: advancePerGroup || undefined,
       seedingMethod: seedingMethod || "none",
       knockoutConfig: knockoutConfig || undefined,
       hybridConfig: hybridConfig || undefined,
+      // teamConfig removed: tournaments support individual format only
       currentPhase: format === "hybrid" ? "round_robin" : undefined,
       seeding: initialSeeding, // Initialize seeding with registration order
       rules: {
@@ -95,10 +97,11 @@ export async function POST(request: NextRequest) {
 
     await tournament.save();
     await tournament.populate([
-      { path: "organizer participants", select: "username fullName profileImage" },
-      { path: "standings.participant", select: "username fullName profileImage" },
-      { path: "groups.standings.participant", select: "username fullName profileImage" },
-      { path: "seeding.participant", select: "username fullName profileImage" },
+      { path: "organizer", select: "username fullName profileImage" },
+      { path: "participants" },
+      { path: "standings.participant" },
+      { path: "groups.standings.participant" },
+      { path: "seeding.participant" },
     ]);
 
     return NextResponse.json(

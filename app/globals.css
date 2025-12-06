@@ -134,6 +134,11 @@
 }
 
 @theme {
+  --color-upcoming: #3b82f6;
+  --color-in-progress: #fbbf24;
+  --color-completed: #22c55e;
+  --color-draft: #9ca3af;
+
   --breakpoint-xs: 30rem;
   --breakpoint-xxs: 22rem;
 }

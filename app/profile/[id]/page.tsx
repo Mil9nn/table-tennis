@@ -24,8 +24,6 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import JoinRightIcon from '@mui/icons-material/JoinRight';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 // Stat card component
 const StatCard = ({
@@ -276,17 +274,13 @@ export default function UserProfilePage() {
               {/* Quick Stats Pills */}
               <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                 <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                 <EmojiEventsIcon className="w-3 h-3 text-amber-400" />
-                  {tournamentStats?.overview?.tournamentWins || 0} Championships
-                </span>
-                <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                  <JoinRightIcon className="w-3 h-3 text-emerald-400" />
+                  <Activity className="w-3 h-3 text-emerald-400" />
                   {totalMatches} Matches
                 </span>
-                {bestStreak > 0 && (
+                {currentStreak > 0 && (
                   <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
                     <Flame className="w-3 h-3 text-orange-400" />
-                    {bestStreak} Best Streak
+                    {currentStreak} Win Streak
                   </span>
                 )}
               </div>
@@ -320,7 +314,7 @@ export default function UserProfilePage() {
           <StatCard
             label="Tournaments"
             value={tournamentStats?.overview?.totalTournaments || 0}
-            subtitle={`${tournamentStats?.overview?.podiumFinishes || 0} podiums`}
+            subtitle={tournamentStats?.overview?.tournamentWins ? `${tournamentStats.overview.tournamentWins} wins` : "No tournaments"}
             icon={Trophy}
             color="amber"
             delay={3}
@@ -433,7 +427,7 @@ export default function UserProfilePage() {
                 </div>
               </motion.div>
 
-              {/* Shot Analysis */}
+              {/* Playing Style Analysis */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -446,36 +440,40 @@ export default function UserProfilePage() {
                 </h3>
                 {stats.shotAnalysis && (stats.shotAnalysis.offensive > 0 || stats.shotAnalysis.defensive > 0) ? (
                   <div className="space-y-4">
-                    {/* Style Distribution */}
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: "Offensive", value: stats.shotAnalysis.offensive || 0, color: "text-red-500 bg-red-50 dark:bg-red-950/30" },
-                        { label: "Neutral", value: stats.shotAnalysis.neutral || 0, color: "text-zinc-500 bg-zinc-50 dark:bg-zinc-800" },
-                        { label: "Defensive", value: stats.shotAnalysis.defensive || 0, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
-                      ].map((style) => (
-                        <div key={style.label} className={`p-3 rounded-lg ${style.color}`}>
-                          <p className="text-lg font-bold font-mono">{style.value}</p>
-                          <p className="text-xs opacity-70">{style.label}</p>
+                    {/* Style Distribution with Percentages */}
+                    {(() => {
+                      const totalShots = (stats.shotAnalysis.offensive || 0) + (stats.shotAnalysis.neutral || 0) + (stats.shotAnalysis.defensive || 0);
+                      if (totalShots === 0) return null;
+                      
+                      const offensivePct = Math.round((stats.shotAnalysis.offensive / totalShots) * 100);
+                      const neutralPct = Math.round((stats.shotAnalysis.neutral / totalShots) * 100);
+                      const defensivePct = Math.round((stats.shotAnalysis.defensive / totalShots) * 100);
+                      
+                      return (
+                        <div className="space-y-3">
+                          {[
+                            { label: "Offensive", value: offensivePct, color: "bg-red-500", textColor: "text-red-500" },
+                            { label: "Neutral", value: neutralPct, color: "bg-zinc-500", textColor: "text-zinc-500" },
+                            { label: "Defensive", value: defensivePct, color: "bg-blue-500", textColor: "text-blue-500" },
+                          ].map((style) => (
+                            <div key={style.label} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-zinc-600 dark:text-zinc-400 font-medium">{style.label}</span>
+                                <span className={`font-bold ${style.textColor}`}>{style.value}%</span>
+                              </div>
+                              <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${style.value}%` }}
+                                  transition={{ duration: 0.8 }}
+                                  className={`h-full ${style.color} rounded-full`}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    
-                    {/* Stroke Types */}
-                    <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-                      <p className="text-xs text-zinc-400 mb-3">Shot Distribution</p>
-                      <div className="flex gap-4">
-                        {[
-                          { label: "Forehand", value: stats.shotAnalysis.forehand?.total || 0 },
-                          { label: "Backhand", value: stats.shotAnalysis.backhand?.total || 0 },
-                          { label: "Serve", value: stats.shotAnalysis.serve?.total || 0 },
-                        ].filter(s => s.value > 0).map((shot) => (
-                          <div key={shot.label} className="flex-1 text-center">
-                            <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">{shot.value}</p>
-                            <p className="text-xs text-zinc-500">{shot.label}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-zinc-400">
@@ -555,7 +553,7 @@ export default function UserProfilePage() {
             ) : tournamentStats?.overview?.totalTournaments > 0 ? (
               <>
                 {/* Tournament Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                     <Crown className="w-5 h-5 text-amber-500 mb-2" />
                     <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 font-mono">
@@ -569,13 +567,6 @@ export default function UserProfilePage() {
                       {tournamentStats.overview.podiumFinishes}
                     </p>
                     <p className="text-xs text-purple-700 dark:text-purple-300">Podium Finishes</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                    <Trophy className="w-5 h-5 text-blue-500 mb-2" />
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 font-mono">
-                      {tournamentStats.overview.completedTournaments}
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">Completed</p>
                   </div>
                   <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
                     <TrendingUp className="w-5 h-5 text-emerald-500 mb-2" />

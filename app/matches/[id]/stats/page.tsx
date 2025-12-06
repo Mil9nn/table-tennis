@@ -117,31 +117,31 @@ export default function MatchStatsPage() {
         />
 
         <Tabs defaultValue="overall" className="w-full">
-          <TabsList className="w-full flex flex-wrap gap-2 p-1">
+          <TabsList className="w-full h-auto flex flex-wrap rounded-none px-4 p-0 bg-muted gap-2">
             <TabsTrigger
               value="overall"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
             >
               Match Summary
             </TabsTrigger>
 
             <TabsTrigger
               value="games"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
             >
               Game Breakdown
             </TabsTrigger>
 
             <TabsTrigger
               value="players"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
             >
               Per-player Stats
             </TabsTrigger>
 
             <TabsTrigger
               value="wagon-wheel"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
             >
               Shot Maps
             </TabsTrigger>

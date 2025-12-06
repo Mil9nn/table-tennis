@@ -8,17 +8,18 @@ import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import MatchesListSkeleton from "@/components/skeletons/MatchesListSkeleton";
 import TeamMatchesListSkeleton from "@/components/skeletons/TeamMatchesListSkeleton";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+// removed shadcn button for native link-button styling
 
 const ITEMS_PER_PAGE = 15;
 
@@ -236,25 +237,19 @@ export default function MatchesPage() {
   return (
     <div>
       {/* HEADER AREA — same as before */}
-      <div className="p-4 bg-[#6878E1] space-y-4">
+      <div className="p-4 bg-white border-b space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl font-bold text-white">Matches</h1>
+          <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tight text-neutral-900">Matches</h1>
 
-          <Button className="bg-white text-zinc-800 hover:bg-blue-400">
-            <Link
-              href="/match/create"
-              className="text-sm flex items-center gap-1"
-            >
-              <Plus
-                strokeWidth={5}
-                className="bg-[#6878E1] text-white p-1 rounded-full"
-              />
+          <Button asChild className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition">
+            <Link href="/match/create">
+              <Plus className="w-4 h-4" />
               New Match
             </Link>
           </Button>
         </div>
 
-        {/* CONDITIONAL FILTERS — ONLY CHANGE */}
+        {/* Filters */}
         {activeTab === "individual" && (
           <div className="space-y-2 mb-6 flex items-center justify-between gap-4 flex-wrap">
             <div className="relative w-full sm:w-60">
@@ -263,16 +258,13 @@ export default function MatchesPage() {
                 placeholder="Search by player name..."
                 value={individualSearch}
                 onChange={(e) => setIndividualSearch(e.target.value)}
-                className="pl-8 border-2 bg-[#F7F8FE] text-sm rounded-full"
+                className="pl-8 bg-white h-10 text-sm rounded-full"
               />
             </div>
 
             <div className="flex gap-3 flex-wrap">
-              <Select
-                value={individualFilterType}
-                onValueChange={setIndividualFilterType}
-              >
-                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+              <Select value={individualFilterType} onValueChange={setIndividualFilterType}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,27 +275,14 @@ export default function MatchesPage() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={individualFilterStatus}
-                onValueChange={setIndividualFilterStatus}
-              >
-                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+              <Select value={individualFilterStatus} onValueChange={setIndividualFilterStatus}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-                      <span>Scheduled</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="in_progress">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      <span>Live</span>
-                    </div>
-                  </SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -319,50 +298,30 @@ export default function MatchesPage() {
                 placeholder="Search by team name..."
                 value={teamSearch}
                 onChange={(e) => setTeamSearch(e.target.value)}
-                className="pl-8 border-2 bg-[#F7F8FE] text-sm rounded-full"
+                className="pl-8 bg-white h-10 text-sm rounded-full"
               />
             </div>
 
             <div className="flex gap-3 flex-wrap">
-              <Select
-                value={teamFilterFormat}
-                onValueChange={setTeamFilterFormat}
-              >
-                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+              <Select value={teamFilterFormat} onValueChange={setTeamFilterFormat}>
+                <SelectTrigger className="w-48 bg-white h-10 text-sm rounded-lg">
                   <SelectValue placeholder="Format" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Formats</SelectItem>
-                  <SelectItem value="five_singles">
-                    Swaythling (5 Singles)
-                  </SelectItem>
-                  <SelectItem value="single_double_single">
-                    Single-Double-Single
-                  </SelectItem>
+                  <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
+                  <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select
-                value={teamFilterStatus}
-                onValueChange={setTeamFilterStatus}
-              >
-                <SelectTrigger className="w-40 bg-white h-11 text-sm rounded-lg">
+              <Select value={teamFilterStatus} onValueChange={setTeamFilterStatus}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-                      <span>Scheduled</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="in_progress">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      <span>Live</span>
-                    </div>
-                  </SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -371,16 +330,8 @@ export default function MatchesPage() {
         )}
       </div>
 
-      {/* TABS */}
-      <Tabs
-        defaultValue="individual"
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
-        <TabsList
-          className="grid w-full max-w-md mx-auto h-fit rounded-none p-0"
-          style={{ gridTemplateColumns: "1fr 1fr" }}
-        >
+      <Tabs defaultValue="individual" onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md mx-auto h-fit rounded-none p-0" style={{ gridTemplateColumns: "1fr 1fr" }}>
           <TabsTrigger className="p-2 rounded-none" value="individual">
             Individual Matches
           </TabsTrigger>

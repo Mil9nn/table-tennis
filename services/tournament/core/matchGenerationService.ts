@@ -1,4 +1,6 @@
 import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+import Team from "@/models/Team";
 import mongoose from "mongoose";
 import { ITournament, ISeeding } from "@/models/Tournament";
 import {
@@ -83,6 +85,134 @@ export async function createScheduledMatch(
 
   await match.save();
   return match;
+}
+
+/**
+ * Create and save a scheduled team match (round-robin)
+ */
+export async function createScheduledTeamMatch(
+  pairing: any,
+  tournament: ITournament,
+  scorerId: string,
+  groupId?: string
+): Promise<any> {
+  // Fetch team docs
+  const team1 = await Team.findById(pairing.player1).lean();
+  const team2 = await Team.findById(pairing.player2).lean();
+
+  if (!team1 || !team2) {
+    throw new Error("Invalid team IDs in pairing");
+  }
+
+  // Prepare submatches according to teamConfig (optional: if assignments exist)
+  const matchFormat = (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
+
+  const subMatches: any[] = [];
+  const team1Assignments = team1.assignments || {};
+  const team2Assignments = team2.assignments || {};
+
+  function findByPos(assignments: Record<string, string>, pos: string) {
+    const entries = Object.entries(assignments || {});
+    const found = entries.find(([, p]) => p === pos);
+    return found ? found[0] : null;
+  }
+
+  if (matchFormat === "five_singles") {
+    const order = [
+      ["A", "X"],
+      ["B", "Y"],
+      ["C", "Z"],
+      ["A", "Y"],
+      ["B", "X"],
+    ];
+    order.forEach((pair, idx) => {
+      const p1 = findByPos(team1Assignments as any, pair[0]);
+      const p2 = findByPos(team2Assignments as any, pair[1]);
+      if (p1 && p2) {
+        subMatches.push({
+          matchNumber: idx + 1,
+          matchType: "singles",
+          playerTeam1: [p1],
+          playerTeam2: [p2],
+          numberOfSets: setsPerSubMatch,
+          games: [],
+          status: "scheduled",
+          completed: false,
+        });
+      }
+    });
+  } else if (matchFormat === "single_double_single") {
+    const A = findByPos(team1Assignments as any, "A");
+    const B = findByPos(team1Assignments as any, "B");
+    const X = findByPos(team2Assignments as any, "X");
+    const Y = findByPos(team2Assignments as any, "Y");
+    if (A && X) {
+      subMatches.push({
+        matchNumber: 1,
+        matchType: "singles",
+        playerTeam1: [A],
+        playerTeam2: [X],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (A && B && X && Y) {
+      subMatches.push({
+        matchNumber: 2,
+        matchType: "doubles",
+        playerTeam1: [A, B],
+        playerTeam2: [X, Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (B && Y) {
+      subMatches.push({
+        matchNumber: 3,
+        matchType: "singles",
+        playerTeam1: [B],
+        playerTeam2: [Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  }
+
+  const teamMatch = new TeamMatch({
+    matchCategory: "team",
+    matchFormat: matchFormat,
+    numberOfSetsPerSubMatch: setsPerSubMatch,
+    numberOfSubMatches: subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    city: tournament.city,
+    venue: tournament.venue || tournament.city,
+    scorer: scorerId,
+    status: "scheduled",
+    team1: {
+      name: (team1 as any).name,
+      captain: (team1 as any).captain,
+      players: (team1 as any).players,
+      city: (team1 as any).city,
+      assignments: team1.assignments || {},
+    },
+    team2: {
+      name: (team2 as any).name,
+      captain: (team2 as any).captain,
+      players: (team2 as any).players,
+      city: (team2 as any).city,
+      assignments: team2.assignments || {},
+    },
+    subMatches,
+  });
+
+  await teamMatch.save();
+  return teamMatch;
 }
 
 /**
@@ -232,23 +362,34 @@ export async function generateGroupMatches(
       const roundMatches = [];
 
       for (const pairing of round.matches) {
-        const matchParticipants = getMatchParticipants(
-          pairing,
-          isDoubles,
-          participantIds
-        );
-        const match = await createScheduledMatch(
-          matchParticipants,
-          tournament,
-          scorerId,
-          groupAlloc.groupId
-        );
-        roundMatches.push(match._id);
+        if ((tournament as any).category === "team") {
+          const match = await createScheduledTeamMatch(
+            pairing,
+            tournament,
+            scorerId,
+            groupAlloc.groupId
+          );
+          roundMatches.push(match._id);
+        } else {
+          const matchParticipants = getMatchParticipants(
+            pairing,
+            isDoubles,
+            participantIds
+          );
+          const match = await createScheduledMatch(
+            matchParticipants,
+            tournament,
+            scorerId,
+            groupAlloc.groupId
+          );
+          roundMatches.push(match._id);
+        }
       }
 
       groupRounds.push({
         roundNumber: round.roundNumber,
         matches: roundMatches,
+        matchModel: (tournament as any).category === "team" ? "TeamMatch" : "IndividualMatch",
         completed: false,
         scheduledDate: round.scheduledDate,
       });
@@ -313,28 +454,38 @@ export async function generateSingleRoundRobinMatches(
           options.matchDuration || 60
         );
 
-  const rounds = [];
+  const rounds = [] as any[];
 
   for (const round of schedule) {
     const roundMatches = [];
 
     for (const pairing of round.matches) {
-      const matchParticipants = getMatchParticipants(
-        pairing,
-        isDoubles,
-        participantIds
-      );
-      const match = await createScheduledMatch(
-        matchParticipants,
-        tournament,
-        scorerId
-      );
-      roundMatches.push(match._id);
+      if ((tournament as any).category === "team") {
+        const match = await createScheduledTeamMatch(
+          pairing,
+          tournament,
+          scorerId
+        );
+        roundMatches.push(match._id);
+      } else {
+        const matchParticipants = getMatchParticipants(
+          pairing,
+          isDoubles,
+          participantIds
+        );
+        const match = await createScheduledMatch(
+          matchParticipants,
+          tournament,
+          scorerId
+        );
+        roundMatches.push(match._id);
+      }
     }
 
     rounds.push({
       roundNumber: round.roundNumber,
       matches: roundMatches,
+      matchModel: (tournament as any).category === "team" ? "TeamMatch" : "IndividualMatch",
       completed: false,
       scheduledDate: round.scheduledDate,
     });

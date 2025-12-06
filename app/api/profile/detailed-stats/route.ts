@@ -228,8 +228,9 @@ export async function GET(request: NextRequest) {
         recentMatches: recentMatches.slice(0, 10),
         monthlyActivity: monthlyActivityArray,
         teams: userTeams.map((t: any) => ({
-          _id: t._id,
+          _id: t._id.toString(),
           name: t.name,
+          logo: t.logo,
           role: t.captain.toString() === userId.toString() ? "Captain" : "Player",
           playerCount: t.players.length,
         })),

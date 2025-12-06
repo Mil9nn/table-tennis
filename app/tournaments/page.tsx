@@ -101,16 +101,6 @@ export default function TournamentsPage() {
     };
   }, [loadingMore, loading, hasMore, page, fetchTournaments]);
 
-  const summary = useMemo(() => {
-    const s = { total: tournaments.length, upcoming: 0, in_progress: 0, completed: 0 };
-    for (const t of tournaments) {
-      if (t.status === "upcoming") s.upcoming += 1;
-      else if (t.status === "in_progress") s.in_progress += 1;
-      else if (t.status === "completed") s.completed += 1;
-    }
-    return s;
-  }, [tournaments]);
-
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
     let list = tournaments.filter((t) => {
@@ -143,7 +133,7 @@ export default function TournamentsPage() {
 
   return (
     <div className="space-y-4">
-      <HeaderHero summary={summary} />
+      <HeaderHero />
 
       <FiltersBar value={filters} onChange={setFilters} />
 

@@ -628,3 +628,6 @@ export function EnhancedStandingsTable({
     </div>
   );
 }
+  const getParticipantName = (p: any) => {
+    return p?.fullName || p?.username || p?.name || "Unknown";
+  };

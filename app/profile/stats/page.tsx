@@ -21,6 +21,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
+  LineChart,
+  Line,
 } from "recharts";
 
 const PlayerStatsPage = () => {
@@ -80,7 +82,7 @@ const PlayerStatsPage = () => {
   return (
     <div className="min-h-[calc(100vh-65px)] bg-gray-50">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 px-6 p-4">
+        <div className="px-6 p-4">
           <h1 className="text-sm flex items-center gap-2 font-bold text-gray-800">
             <button
               onClick={() => router.back()}
@@ -113,50 +115,46 @@ const PlayerStatsPage = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4 px-2">
+          <div className="space-y-4">
             {/* A. Singles and Doubles Stats */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                Singles and Doubles Performance
+            <div className="p-4">
+              <h2 className="text-xl font-semibold text-zinc-800 mb-6">
+                Singles & Doubles Performance
               </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Singles */}
-                <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
-                  <h3 className="text-lg font-bold text-blue-900 mb-4">
+                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-5">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-3">
                     Singles
                   </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Wins</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {singlesStats.wins || 0}
-                      </span>
+
+                  {/* Capsules */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                      Wins: {singlesStats.wins || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Losses</span>
-                      <span className="text-lg font-bold text-red-600">
-                        {singlesStats.losses || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-xs font-semibold">
+                      Losses: {singlesStats.losses || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Sets Won</span>
-                      <span className="text-lg font-bold text-blue-600">
-                        {singlesStats.setsWon || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
+                      Sets Won: {singlesStats.setsWon || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Sets Lost</span>
-                      <span className="text-lg font-bold text-gray-600">
-                        {singlesStats.setsLost || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-600 text-xs font-semibold">
+                      Sets Lost: {singlesStats.setsLost || 0}
                     </div>
-                    {singlesStats.matchesByTournamentType &&
-                      Object.keys(singlesStats.matchesByTournamentType).length >
-                        0 && (
-                        <div className="mt-4 pt-4 border-t border-blue-200">
-                          <p className="text-xs font-semibold text-blue-900 mb-2">
-                            By Tournament Type:
-                          </p>
+                  </div>
+
+                  {/* Tournament breakdown */}
+                  {singlesStats?.matchesByTournamentType &&
+                    Object.keys(singlesStats.matchesByTournamentType).length >
+                      0 && (
+                      <div className="pt-4 border-t border-zinc-200/70 mt-3">
+                        <p className="text-xs font-semibold text-zinc-800 mb-2">
+                          Tournament Types
+                        </p>
+
+                        <div className="space-y-1.5">
                           {Object.entries(
                             singlesStats.matchesByTournamentType
                           ).map(([type, count]) => (
@@ -164,56 +162,50 @@ const PlayerStatsPage = () => {
                               key={type}
                               className="flex justify-between items-center text-xs"
                             >
-                              <span className="text-gray-700 capitalize">
+                              <span className="capitalize text-zinc-600">
                                 {type}
                               </span>
-                              <span className="font-semibold">
+                              <span className="font-semibold text-zinc-800">
                                 {count as number}
                               </span>
                             </div>
                           ))}
                         </div>
-                      )}
-                  </div>
+                      </div>
+                    )}
                 </div>
 
                 {/* Doubles */}
-                <div className="border border-gray-200 rounded-lg p-4 bg-purple-50">
-                  <h3 className="text-lg font-bold text-purple-900 mb-4">
+                <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-5">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-3">
                     Doubles
                   </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Wins</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {doublesStats.wins || 0}
-                      </span>
+
+                  {/* Capsules */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                      Wins: {doublesStats.wins || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Losses</span>
-                      <span className="text-lg font-bold text-red-600">
-                        {doublesStats.losses || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-xs font-semibold">
+                      Losses: {doublesStats.losses || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Sets Won</span>
-                      <span className="text-lg font-bold text-purple-600">
-                        {doublesStats.setsWon || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-violet-50 text-violet-600 text-xs font-semibold">
+                      Sets Won: {doublesStats.setsWon || 0}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Sets Lost</span>
-                      <span className="text-lg font-bold text-gray-600">
-                        {doublesStats.setsLost || 0}
-                      </span>
+                    <div className="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-600 text-xs font-semibold">
+                      Sets Lost: {doublesStats.setsLost || 0}
                     </div>
-                    {doublesStats.matchesByTournamentType &&
-                      Object.keys(doublesStats.matchesByTournamentType).length >
-                        0 && (
-                        <div className="mt-4 pt-4 border-t border-purple-200">
-                          <p className="text-xs font-semibold text-purple-900 mb-2">
-                            By Tournament Type:
-                          </p>
+                  </div>
+
+                  {doublesStats?.matchesByTournamentType &&
+                    Object.keys(doublesStats.matchesByTournamentType).length >
+                      0 && (
+                      <div className="pt-4 border-t border-zinc-200/70 mt-3">
+                        <p className="text-xs font-semibold text-zinc-800 mb-2">
+                          Tournament Types
+                        </p>
+
+                        <div className="space-y-1.5">
                           {Object.entries(
                             doublesStats.matchesByTournamentType
                           ).map(([type, count]) => (
@@ -221,53 +213,23 @@ const PlayerStatsPage = () => {
                               key={type}
                               className="flex justify-between items-center text-xs"
                             >
-                              <span className="text-gray-700 capitalize">
+                              <span className="capitalize text-zinc-600">
                                 {type}
                               </span>
-                              <span className="font-semibold">
+                              <span className="font-semibold text-zinc-800">
                                 {count as number}
                               </span>
                             </div>
                           ))}
                         </div>
-                      )}
-                  </div>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
 
-            {/* Match Type Comparison Chart */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-6">
-                Singles vs Doubles Performance
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={matchTypeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="type" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="wins"
-                      fill="#10B981"
-                      radius={[8, 8, 0, 0]}
-                      name="Wins"
-                    />
-                    <Bar
-                      dataKey="losses"
-                      fill="#EF4444"
-                      radius={[8, 8, 0, 0]}
-                      name="Losses"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
             {/* B. Scoring Stats */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <div className="p-4">
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 Scoring Statistics
               </h2>
@@ -310,7 +272,6 @@ const PlayerStatsPage = () => {
             {/* C. Server Stats */}
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                
                 Serve Statistics
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -335,7 +296,8 @@ const PlayerStatsPage = () => {
                     Serve Win %
                   </p>
                   <p className="text-xl font-bold text-amber-600">
-                    {server.serveWinPercentage || 0}<span className="text-sm">%</span>
+                    {server.serveWinPercentage || 0}
+                    <span className="text-sm">%</span>
                   </p>
                 </div>
               </div>
@@ -349,19 +311,25 @@ const PlayerStatsPage = () => {
                 </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={charts.pointsPerMatch}>
+                    <LineChart data={charts.pointsPerMatch}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
                       <XAxis dataKey="match" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 12 }} />
+
                       <Tooltip />
                       <Legend />
-                      <Bar
+
+                      <Line
+                        type="monotone"
                         dataKey="points"
-                        fill="#8B5CF6"
-                        radius={[8, 8, 0, 0]}
+                        stroke="#8B5CF6"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
                         name="Points"
                       />
-                    </BarChart>
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>

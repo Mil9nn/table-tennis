@@ -2,17 +2,10 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import React from "react";
 
-type StatusSummary = {
-  total: number;
-  upcoming: number;
-  in_progress: number;
-  completed: number;
-};
-
-export function HeaderHero({ summary }: { summary: StatusSummary }) {
+export function HeaderHero() {
   return (
     <header className="relative overflow-hidden bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 text-white">
       <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-indigo-400/30 blur-3xl" />
@@ -49,60 +42,8 @@ export function HeaderHero({ summary }: { summary: StatusSummary }) {
             </Link>
           </Button>
         </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-3 text-xs md:grid-cols-4 md:text-sm">
-          <StatPill
-            label="Total"
-            value={summary.total}
-            className="bg-white/10"
-          />
-          <StatPill
-            label="Upcoming"
-            value={summary.upcoming}
-            className="bg-orange-400/20"
-          />
-          <StatPill
-            label="In Progress"
-            value={summary.in_progress}
-            className="bg-blue-400/20"
-          />
-          <StatPill
-            label="Completed"
-            value={summary.completed}
-            className="bg-emerald-400/20"
-          />
-        </div>
       </div>
     </header>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`
-        inline-flex items-center justify-center gap-4
-        rounded-full px-5 py-2 
-        bg-white/10 backdrop-blur-sm
-        ring-1 ring-white/20 shadow-sm
-        ${className ?? ""}
-      `}
-    >
-      <span className="text-xs font-medium text-white/60 leading-none">
-        {label}:
-      </span>
-      <span className="text-base font-semibold text-white leading-none">
-        {value}
-      </span>
-    </div>
   );
 }
 
