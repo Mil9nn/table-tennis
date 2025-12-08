@@ -192,7 +192,7 @@ const ShotSelector = () => {
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {(currentStep === "origin" ||

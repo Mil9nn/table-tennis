@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
+import Team from "@/models/Team";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       seedingMethod,
       knockoutConfig,
       hybridConfig,
+      teamConfig, // Add teamConfig support
     } = body;
 
     // Validate
@@ -38,14 +40,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate participants (users only)
+    // Validate participants based on category
     if (participants && participants.length > 0) {
-      const users = await User.find({ _id: { $in: participants } });
-      if (users.length !== participants.length) {
-        return NextResponse.json(
-          { error: "Invalid participant IDs" },
-          { status: 400 }
-        );
+      if (category === "team") {
+        // For team tournaments, validate against Team model
+        const teams = await Team.find({ _id: { $in: participants } });
+        if (teams.length !== participants.length) {
+          return NextResponse.json(
+            { error: "Invalid participant IDs (teams)" },
+            { status: 400 }
+          );
+        }
+      } else {
+        // For individual tournaments, validate against User model
+        const users = await User.find({ _id: { $in: participants } });
+        if (users.length !== participants.length) {
+          return NextResponse.json(
+            { error: "Invalid participant IDs (users)" },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -67,18 +81,21 @@ export async function POST(request: NextRequest) {
       venue,
       participants: participants || [],
       organizer: auth.userId,
-      // participantModel removed: tournaments support individual participants only
       useGroups: useGroups || false,
       numberOfGroups: numberOfGroups || undefined,
       advancePerGroup: advancePerGroup || undefined,
       seedingMethod: seedingMethod || "none",
       knockoutConfig: knockoutConfig || undefined,
       hybridConfig: hybridConfig || undefined,
-      // teamConfig removed: tournaments support individual format only
+      // Include teamConfig for team tournaments
+      teamConfig: category === "team" ? (teamConfig || {
+        matchFormat: "five_singles",
+        setsPerSubMatch: 3,
+      }) : undefined,
       currentPhase: format === "hybrid" ? "round_robin" : undefined,
-      seeding: initialSeeding, // Initialize seeding with registration order
+      seeding: initialSeeding,
       rules: {
-        pointsForWin: rules?.pointsForWin || 2, // ITTF standard: 2 points for win
+        pointsForWin: rules?.pointsForWin || 2,
         pointsForLoss: rules?.pointsForLoss || 0,
         setsPerMatch: rules?.setsPerMatch || 3,
         pointsPerSet: rules?.pointsPerSet || 11,
@@ -96,13 +113,35 @@ export async function POST(request: NextRequest) {
     });
 
     await tournament.save();
-    await tournament.populate([
-      { path: "organizer", select: "username fullName profileImage" },
-      { path: "participants" },
-      { path: "standings.participant" },
-      { path: "groups.standings.participant" },
-      { path: "seeding.participant" },
-    ]);
+    
+    // Populate participants based on category
+    const isTeamTournament = category === "team";
+    
+    if (isTeamTournament) {
+      await tournament.populate([
+        { path: "organizer", select: "username fullName profileImage" },
+        { 
+          path: "participants", 
+          model: Team, 
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        },
+        { path: "standings.participant", model: Team, select: "name logo city captain" },
+        { path: "groups.standings.participant", model: Team, select: "name logo city captain" },
+        { path: "seeding.participant", model: Team, select: "name logo city captain" },
+      ]);
+    } else {
+      await tournament.populate([
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "participants", select: "username fullName profileImage" },
+        { path: "standings.participant", select: "username fullName profileImage" },
+        { path: "groups.standings.participant", select: "username fullName profileImage" },
+        { path: "seeding.participant", select: "username fullName profileImage" },
+      ]);
+    }
 
     return NextResponse.json(
       { message: "Tournament created successfully", tournament },
@@ -132,43 +171,225 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Ensure Tournament model is registered
+    // Ensure models are registered
     Tournament;
+    Team;
+    User;
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const format = searchParams.get("format");
+    const category = searchParams.get("category");
+    const city = searchParams.get("city");
+    const search = searchParams.get("search");
     const limit = parseInt(searchParams.get("limit") || "0", 10);
     const skip = parseInt(searchParams.get("skip") || "0", 10);
+    const sortBy = searchParams.get("sortBy") || "startDate";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     let query: any = {};
-    if (status) query.status = status;
-    if (format) query.format = format;
+    if (status && status !== "all") query.status = status;
+    if (format && format !== "all") query.format = format;
+    if (category && category !== "all") query.category = category;
+    if (city) query.city = { $regex: city, $options: "i" };
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { city: { $regex: search, $options: "i" } },
+      ];
+    }
 
-    let tournamentQuery = Tournament.find(query)
-      .populate("organizer participants", "username fullName profileImage")
-      .populate("standings.participant", "username fullName profileImage")
-      .populate("groups.standings.participant", "username fullName profileImage")
-      .populate("seeding.participant", "username fullName profileImage")
-      .sort({ startDate: -1 })
+    // Build sort object
+    const sortObject: any = {};
+    if (sortBy === "name") {
+      sortObject.name = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "participants") {
+      sortObject.startDate = sortOrder === "asc" ? 1 : -1;
+    } else {
+      sortObject[sortBy] = sortOrder === "asc" ? 1 : -1;
+    }
+
+    // First fetch tournaments without population to get categories
+    let baseQuery = Tournament.find(query)
+      .sort(sortObject)
       .skip(skip);
 
     if (limit > 0) {
-      tournamentQuery = tournamentQuery.limit(limit);
+      baseQuery = baseQuery.limit(limit);
     }
 
-    const tournaments = await tournamentQuery;
+    const tournamentsRaw = await baseQuery.lean();
+
+    // Now populate each tournament based on its category
+    const populatedTournaments = await Promise.all(
+      tournamentsRaw.map(async (t: any) => {
+        const isTeamTournament = t.category === "team";
+
+        // Populate organizer (always User)
+        if (t.organizer) {
+          const organizer = await User.findById(t.organizer)
+            .select("username fullName profileImage")
+            .lean();
+          t.organizer = organizer;
+        }
+
+        // Populate participants based on category
+        if (t.participants && t.participants.length > 0) {
+          if (isTeamTournament) {
+            const teams = await Team.find({ _id: { $in: t.participants } })
+              .select("name logo city captain players")
+              .populate("captain", "username fullName profileImage")
+              .populate("players.user", "username fullName profileImage")
+              .lean();
+            
+            // Create a map for ordering
+            const teamMap = new Map();
+            teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+            
+            t.participants = t.participants.map((pId: any) => 
+              teamMap.get(pId.toString()) || pId
+            );
+          } else {
+            const users = await User.find({ _id: { $in: t.participants } })
+              .select("username fullName profileImage")
+              .lean();
+            
+            // Create a map for ordering
+            const userMap = new Map();
+            users.forEach((user: any) => userMap.set(user._id.toString(), user));
+            
+            t.participants = t.participants.map((pId: any) => 
+              userMap.get(pId.toString()) || pId
+            );
+          }
+        }
+
+        // Populate standings.participant
+        if (t.standings && t.standings.length > 0) {
+          const participantIds = t.standings.map((s: any) => s.participant).filter(Boolean);
+          if (participantIds.length > 0) {
+            if (isTeamTournament) {
+              const teams = await Team.find({ _id: { $in: participantIds } })
+                .select("name logo city captain")
+                .lean();
+              const teamMap = new Map();
+              teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+              t.standings = t.standings.map((s: any) => ({
+                ...s,
+                participant: teamMap.get(s.participant?.toString()) || s.participant,
+              }));
+            } else {
+              const users = await User.find({ _id: { $in: participantIds } })
+                .select("username fullName profileImage")
+                .lean();
+              const userMap = new Map();
+              users.forEach((user: any) => userMap.set(user._id.toString(), user));
+              t.standings = t.standings.map((s: any) => ({
+                ...s,
+                participant: userMap.get(s.participant?.toString()) || s.participant,
+              }));
+            }
+          }
+        }
+
+        // Populate seeding.participant
+        if (t.seeding && t.seeding.length > 0) {
+          const participantIds = t.seeding.map((s: any) => s.participant).filter(Boolean);
+          if (participantIds.length > 0) {
+            if (isTeamTournament) {
+              const teams = await Team.find({ _id: { $in: participantIds } })
+                .select("name logo city captain")
+                .lean();
+              const teamMap = new Map();
+              teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+              t.seeding = t.seeding.map((s: any) => ({
+                ...s,
+                participant: teamMap.get(s.participant?.toString()) || s.participant,
+              }));
+            } else {
+              const users = await User.find({ _id: { $in: participantIds } })
+                .select("username fullName profileImage")
+                .lean();
+              const userMap = new Map();
+              users.forEach((user: any) => userMap.set(user._id.toString(), user));
+              t.seeding = t.seeding.map((s: any) => ({
+                ...s,
+                participant: userMap.get(s.participant?.toString()) || s.participant,
+              }));
+            }
+          }
+        }
+
+        // Populate groups.standings.participant if groups exist
+        if (t.groups && t.groups.length > 0) {
+          for (const group of t.groups) {
+            // Populate group participants
+            if (group.participants && group.participants.length > 0) {
+              if (isTeamTournament) {
+                const teams = await Team.find({ _id: { $in: group.participants } })
+                  .select("name logo city captain")
+                  .lean();
+                const teamMap = new Map();
+                teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+                group.participants = group.participants.map((pId: any) => 
+                  teamMap.get(pId.toString()) || pId
+                );
+              } else {
+                const users = await User.find({ _id: { $in: group.participants } })
+                  .select("username fullName profileImage")
+                  .lean();
+                const userMap = new Map();
+                users.forEach((user: any) => userMap.set(user._id.toString(), user));
+                group.participants = group.participants.map((pId: any) => 
+                  userMap.get(pId.toString()) || pId
+                );
+              }
+            }
+
+            // Populate group standings
+            if (group.standings && group.standings.length > 0) {
+              const participantIds = group.standings.map((s: any) => s.participant).filter(Boolean);
+              if (participantIds.length > 0) {
+                if (isTeamTournament) {
+                  const teams = await Team.find({ _id: { $in: participantIds } })
+                    .select("name logo city captain")
+                    .lean();
+                  const teamMap = new Map();
+                  teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+                  group.standings = group.standings.map((s: any) => ({
+                    ...s,
+                    participant: teamMap.get(s.participant?.toString()) || s.participant,
+                  }));
+                } else {
+                  const users = await User.find({ _id: { $in: participantIds } })
+                    .select("username fullName profileImage")
+                    .lean();
+                  const userMap = new Map();
+                  users.forEach((user: any) => userMap.set(user._id.toString(), user));
+                  group.standings = group.standings.map((s: any) => ({
+                    ...s,
+                    participant: userMap.get(s.participant?.toString()) || s.participant,
+                  }));
+                }
+              }
+            }
+          }
+        }
+
+        return t;
+      })
+    );
 
     // Get total count for pagination
     const totalCount = await Tournament.countDocuments(query);
 
     return NextResponse.json({
-      tournaments,
+      tournaments: populatedTournaments,
       pagination: {
         total: totalCount,
         skip,
         limit,
-        hasMore: skip + tournaments.length < totalCount
+        hasMore: skip + populatedTournaments.length < totalCount
       }
     }, { status: 200 });
   } catch (err) {

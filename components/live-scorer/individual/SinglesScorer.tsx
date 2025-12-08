@@ -139,6 +139,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
             games={match.games}
             currentGame={currentGame}
             participants={match.participants}
+            finalScore={match.finalScore}
           />
 
           <ShotSelector />

@@ -94,6 +94,21 @@ export async function POST(
       typeof body.side1Score === "number" &&
       typeof body.side2Score === "number"
     ) {
+      // Validate: If score is increasing, shotData must be provided
+      const scoreIncreased = 
+        body.side1Score > currentGame.side1Score || 
+        body.side2Score > currentGame.side2Score;
+      
+      if (scoreIncreased && (!body.shotData || !body.shotData.stroke)) {
+        return NextResponse.json(
+          { 
+            error: "Shot data is required when incrementing score. Every point must have a recorded shot.",
+            details: "Score increased but no shot was provided"
+          },
+          { status: 400 }
+        );
+      }
+
       currentGame.side1Score = body.side1Score;
       currentGame.side2Score = body.side2Score;
 

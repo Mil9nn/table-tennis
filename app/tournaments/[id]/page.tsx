@@ -10,7 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateShort } from "@/lib/utils";
 import Link from "next/link";
-import { Tournament } from "@/types/tournament.type";
+import { 
+  Tournament,
+  isTeamParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+} from "@/types/tournament.type";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { motion } from "framer-motion";
 import { EnhancedStandingsTable } from "@/components/tournaments/EnhancedStandingsTable";
@@ -21,11 +26,15 @@ import { ManageParticipantsDialog } from "@/components/tournaments/ManagePartici
 import { ManageGroupsDialog } from "@/components/tournaments/ManageGroupsDialog";
 import KnockoutBracketView from "@/components/tournaments/KnockoutBracketView";
 import { HybridTournamentManager } from "@/components/tournaments/HybridTournamentManager";
+import { TournamentErrorBoundary } from "@/components/tournaments/TournamentErrorBoundary";
+import { SeedingManager } from "@/components/tournaments/SeedingManager";
 
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
 import PersonIcon from "@mui/icons-material/PersonAdd";
 import QrCodeIcon from "@mui/icons-material/QrCode";
+import CancelIcon from "@mui/icons-material/Cancel";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -36,9 +45,12 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [joinCodeDialogOpen, setJoinCodeDialogOpen] = useState(false);
   const [manageParticipantsOpen, setManageParticipantsOpen] = useState(false);
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
+  const [seedingManagerOpen, setSeedingManagerOpen] = useState(false);
 
   const fetchTournament = async (skipLoadingState = false) => {
     if (!skipLoadingState) {
@@ -122,10 +134,57 @@ export default function TournamentDetailPage() {
     }
   };
 
+  const handleCancel = async () => {
+    if (!window.confirm("Are you sure you want to cancel this tournament? This action cannot be undone.")) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      await axiosInstance.post(`/tournaments/${tournamentId}/cancel`);
+      toast.success("Tournament cancelled successfully");
+      await fetchTournament();
+    } catch (err: any) {
+      console.error("Error cancelling tournament:", err);
+      toast.error(err.response?.data?.error || "Failed to cancel tournament");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!window.confirm("Are you sure you want to reset this tournament? All matches and standings will be removed. This action cannot be undone.")) {
+      return;
+    }
+
+    setResetting(true);
+    try {
+      await axiosInstance.post(`/tournaments/${tournamentId}/reset`);
+      toast.success("Tournament reset successfully. You can now regenerate the draw.");
+      await fetchTournament();
+    } catch (err: any) {
+      console.error("Error resetting tournament:", err);
+      toast.error(err.response?.data?.error || "Failed to reset tournament");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-4">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+          <div className="h-8 bg-white/20 rounded animate-pulse mb-4 w-1/3" />
+          <div className="h-4 bg-white/20 rounded animate-pulse w-1/2" />
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 bg-slate-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="h-64 bg-slate-200 rounded animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -144,6 +203,8 @@ export default function TournamentDetailPage() {
     !tournament.drawGenerated &&
     tournament.status === "draft" &&
     tournament.participants.length >= 2;
+
+  const isTeamTournament = tournament.category === "team";
 
   // Helper function to check if tournament uses groups
   const hasGroups = () => {
@@ -263,7 +324,8 @@ export default function TournamentDetailPage() {
   const roundsWithIds = getRoundsForSchedule();
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600">
+    <TournamentErrorBoundary>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600">
       {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
@@ -297,7 +359,20 @@ export default function TournamentDetailPage() {
                 "
                 >
                   <PersonIcon className="size-4 text-blue-500" />
-                  <span className="text-blue-500">Manage Players</span>
+                  <span className="text-blue-500">Manage {isTeamTournament ? "Teams" : "Players"}</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSeedingManagerOpen(true)}
+                  className="
+                  transition-all duration-150
+                  active:scale-95 hover:scale-[1.03]
+                "
+                >
+                  <EmojiEventsIcon className="size-4 text-yellow-500" />
+                  <span className="text-yellow-500">Manage Seeding</span>
                 </Button>
 
                 <Button
@@ -343,6 +418,41 @@ export default function TournamentDetailPage() {
                 <GroupsIcon className="size-4 text-blue-500" />
                 <span className="text-blue-500">Manage Groups</span>
                 {hasPlayedMatches && <span className="ml-1 text-xs">🔒</span>}
+              </Button>
+            )}
+            
+            {isOrganizer && tournament.status !== "completed" && tournament.status !== "cancelled" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="border-red-300 text-red-700 hover:bg-red-50 transition-all duration-150 active:scale-95 hover:scale-[1.03]"
+              >
+                <CancelIcon className="size-4 text-red-500" />
+                <span className="text-red-500">{cancelling ? "Cancelling..." : "Cancel"}</span>
+              </Button>
+            )}
+
+            {isOrganizer && tournament.drawGenerated && tournament.status !== "completed" && tournament.status !== "cancelled" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={resetting || hasPlayedMatches}
+                className={`
+                  border-orange-300 text-orange-700 hover:bg-orange-50 
+                  transition-all duration-150 active:scale-95 hover:scale-[1.03]
+                  ${hasPlayedMatches ? "opacity-50 cursor-not-allowed" : ""}
+                `}
+                title={
+                  hasPlayedMatches
+                    ? "Cannot reset tournament with completed matches"
+                    : "Reset tournament to draft (removes all matches)"
+                }
+              >
+                <RestartAltIcon className="size-4 text-orange-500" />
+                <span className="text-orange-500">{resetting ? "Resetting..." : "Reset"}</span>
               </Button>
             )}
           </div>
@@ -571,7 +681,7 @@ export default function TournamentDetailPage() {
                 transition-all
               "
             >
-              Players
+              {isTeamTournament ? "Teams" : "Players"}
             </TabsTrigger>
 
             <TabsTrigger
@@ -595,6 +705,7 @@ export default function TournamentDetailPage() {
                   groups={tournament.groups}
                   advancePerGroup={tournament.advancePerGroup}
                   showDetailedStats={true}
+                  category={tournament.category}
                 />
               ) : (
                 <Card>
@@ -624,6 +735,7 @@ export default function TournamentDetailPage() {
                 showDetailedStats={true}
                 highlightTop={3}
                 tournamentId={tournamentId}
+                category={tournament.category}
               />
             ) : (
               <Card>
@@ -647,6 +759,7 @@ export default function TournamentDetailPage() {
                 matches={allMatchObjects as any}
                 onMatchClick={(matchId) => router.push(`/matches/${matchId}`)}
                 showThirdPlace={tournament.knockoutConfig?.thirdPlaceMatch}
+                category={tournament.category}
               />
             ) : roundsWithIds && roundsWithIds.length > 0 ? (
               <TournamentSchedule
@@ -675,7 +788,7 @@ export default function TournamentDetailPage() {
             <section className="bg-white/40 p-4">
               <header className="mb-3">
                 <h2 className="text-sm font-semibold text-slate-800 tracking-wide">
-                  Tournament Participants
+                  {isTeamTournament ? "Tournament Teams" : "Tournament Participants"}
                 </h2>
               </header>
 
@@ -684,52 +797,59 @@ export default function TournamentDetailPage() {
                   const seed = tournament.seeding?.find(
                     (s) => s.participant._id === p._id
                   );
+                  
+                  // Check if participant is a team
+                  const isTeam = isTeamParticipant(p);
+                  const displayName = getParticipantDisplayName(p);
+                  const image = getParticipantImage(p);
+                  const linkHref = isTeamTournament ? `/teams/${p._id}` : `/profile/${p._id}`;
+                  
+                  // Get subtext - username for users, city/player count for teams
+                  const subtext = isTeam 
+                    ? ((p as any).city || `${(p as any).players?.length || 0} players`)
+                    : `@${(p as any).username || "unknown"}`;
 
                   return (
                     <Link
                       key={p._id}
-                      href={`/profile/${p._id}`}
+                      href={linkHref}
                       className="
-            flex items-center gap-3 p-2
-            rounded-lg border border-slate-200
-            bg-slate-50/50 
-            hover:bg-slate-100 
-            transition-all duration-200
-            group
-          "
+                        flex items-center gap-3 p-2
+                        rounded-lg border border-slate-200
+                        bg-slate-50/50 
+                        hover:bg-slate-100 
+                        transition-all duration-200
+                        group
+                      "
                     >
                       {/* Avatar */}
                       <div className="flex-shrink-0">
-                        {p?.profileImage ? (
+                        {image ? (
                           <img
-                            src={p.profileImage}
-                            alt={p.fullName || p.username || "Player"}
+                            src={image}
+                            alt={displayName}
                             className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
                           <div
                             className="
-                  w-8 h-8 rounded-full bg-slate-200 text-slate-700
-                  flex items-center justify-center text-xs font-semibold 
-                  border border-slate-300
-                "
+                              w-8 h-8 rounded-full bg-slate-200 text-slate-700
+                              flex items-center justify-center text-xs font-semibold 
+                              border border-slate-300
+                            "
                           >
-                            {(
-                              p?.fullName?.[0] ||
-                              p?.username?.[0] ||
-                              "?"
-                            ).toUpperCase()}
+                            {displayName.charAt(0).toUpperCase() || "?"}
                           </div>
                         )}
                       </div>
 
-                      {/* Player Info */}
+                      {/* Participant Info */}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-xs text-slate-900 truncate">
-                          {p?.fullName || p?.username || "Unknown Player"}
+                          {displayName}
                         </p>
                         <p className="text-[10px] text-slate-500 truncate">
-                          @{p?.username || "unknown"}
+                          {subtext}
                         </p>
                       </div>
 
@@ -737,11 +857,11 @@ export default function TournamentDetailPage() {
                       {seed && (
                         <span
                           className="
-                text-[10px] px-2 py-0.5 rounded-full 
-                bg-slate-200 text-slate-700
-                border border-slate-300
-                font-medium
-              "
+                            text-[10px] px-2 py-0.5 rounded-full 
+                            bg-slate-200 text-slate-700
+                            border border-slate-300
+                            font-medium
+                          "
                         >
                           Seed {seed.seedNumber}
                         </span>
@@ -862,6 +982,7 @@ export default function TournamentDetailPage() {
           onOpenChange={setManageParticipantsOpen}
           tournamentId={tournament._id}
           participants={tournament.participants}
+          category={tournament.category}
           onUpdate={handleParticipantsUpdate}
         />
       )}
@@ -880,6 +1001,20 @@ export default function TournamentDetailPage() {
         />
       )}
 
+      {/* Seeding Manager Dialog */}
+      {tournament && (
+        <SeedingManager
+          open={seedingManagerOpen}
+          onOpenChange={setSeedingManagerOpen}
+          tournamentId={tournament._id}
+          participants={tournament.participants}
+          currentSeeding={tournament.seeding || []}
+          onUpdate={() => fetchTournament(true)}
+          category={tournament.category}
+        />
+      )}
+
     </div>
+    </TournamentErrorBoundary>
   );
 }

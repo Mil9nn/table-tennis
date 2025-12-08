@@ -216,6 +216,143 @@ export async function createScheduledTeamMatch(
 }
 
 /**
+ * Create a team match for a bracket position with bracket metadata
+ */
+export async function createBracketTeamMatch(
+  bracketMatch: BracketMatch,
+  tournament: ITournament,
+  scorerId: string
+): Promise<any> {
+  // Only create matches that have both participants (not TBD)
+  if (!bracketMatch.participant1 || !bracketMatch.participant2) {
+    return null;
+  }
+
+  // Fetch team docs
+  const team1 = await Team.findById(bracketMatch.participant1).lean();
+  const team2 = await Team.findById(bracketMatch.participant2).lean();
+
+  if (!team1 || !team2) {
+    throw new Error("Invalid team IDs in bracket match");
+  }
+
+  // Prepare submatches according to teamConfig (optional: if assignments exist)
+  const matchFormat = (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
+
+  const subMatches: any[] = [];
+  const team1Assignments = team1.assignments || {};
+  const team2Assignments = team2.assignments || {};
+
+  function findByPos(assignments: Record<string, string>, pos: string) {
+    const entries = Object.entries(assignments || {});
+    const found = entries.find(([, p]) => p === pos);
+    return found ? found[0] : null;
+  }
+
+  if (matchFormat === "five_singles") {
+    const order = [
+      ["A", "X"],
+      ["B", "Y"],
+      ["C", "Z"],
+      ["A", "Y"],
+      ["B", "X"],
+    ];
+    order.forEach((pair, idx) => {
+      const p1 = findByPos(team1Assignments as any, pair[0]);
+      const p2 = findByPos(team2Assignments as any, pair[1]);
+      if (p1 && p2) {
+        subMatches.push({
+          matchNumber: idx + 1,
+          matchType: "singles",
+          playerTeam1: [p1],
+          playerTeam2: [p2],
+          numberOfSets: setsPerSubMatch,
+          games: [],
+          status: "scheduled",
+          completed: false,
+        });
+      }
+    });
+  } else if (matchFormat === "single_double_single") {
+    const A = findByPos(team1Assignments as any, "A");
+    const B = findByPos(team1Assignments as any, "B");
+    const X = findByPos(team2Assignments as any, "X");
+    const Y = findByPos(team2Assignments as any, "Y");
+    if (A && X) {
+      subMatches.push({
+        matchNumber: 1,
+        matchType: "singles",
+        playerTeam1: [A],
+        playerTeam2: [X],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (A && B && X && Y) {
+      subMatches.push({
+        matchNumber: 2,
+        matchType: "doubles",
+        playerTeam1: [A, B],
+        playerTeam2: [X, Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (B && Y) {
+      subMatches.push({
+        matchNumber: 3,
+        matchType: "singles",
+        playerTeam1: [B],
+        playerTeam2: [Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  }
+
+  const teamMatch = new TeamMatch({
+    matchCategory: "team",
+    matchFormat: matchFormat,
+    numberOfSetsPerSubMatch: setsPerSubMatch,
+    numberOfSubMatches: subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    city: tournament.city,
+    venue: tournament.venue || tournament.city,
+    scorer: scorerId,
+    status: "scheduled",
+    tournament: tournament._id,
+    bracketPosition: bracketMatch.bracketPosition,
+    roundName: bracketMatch.roundName,
+    scheduledDate: bracketMatch.scheduledDate,
+    courtNumber: bracketMatch.courtNumber,
+    team1: {
+      name: (team1 as any).name,
+      captain: (team1 as any).captain,
+      players: (team1 as any).players,
+      city: (team1 as any).city,
+      assignments: team1.assignments || {},
+    },
+    team2: {
+      name: (team2 as any).name,
+      captain: (team2 as any).captain,
+      players: (team2 as any).players,
+      city: (team2 as any).city,
+      assignments: team2.assignments || {},
+    },
+    subMatches,
+  });
+
+  await teamMatch.save();
+  return teamMatch;
+}
+
+/**
  * Create a match for a bracket position with bracket metadata
  */
 export async function createBracketMatch(
@@ -228,10 +365,40 @@ export async function createBracketMatch(
     return null;
   }
 
-  const matchParticipants = [
-    new mongoose.Types.ObjectId(bracketMatch.participant1),
-    new mongoose.Types.ObjectId(bracketMatch.participant2),
-  ];
+  // Check if this is a doubles or mixed_doubles match
+  const isDoubles =
+    tournament.matchType === "doubles" ||
+    tournament.matchType === "mixed_doubles";
+
+  // Get match participants - for doubles, we need 4 participants
+  let matchParticipants: mongoose.Types.ObjectId[];
+  
+  if (isDoubles) {
+    // For doubles, we need to get the pairs
+    // The bracket stores participant IDs (first player of each pair)
+    // We need to find their partners using the same logic as getMatchParticipants
+    
+    // Always use the original tournament participants list to find partners
+    // because pairs are stored there. For hybrid knockout phase, qualifiedParticipants
+    // only contains the first player of each qualifying pair, but we need the full
+    // participants list to find partners.
+    const participantIds = tournament.participants.map((p: any) => p.toString());
+    
+    // Create a pairing object similar to what's used in round-robin
+    const pairing = {
+      player1: bracketMatch.participant1,
+      player2: bracketMatch.participant2,
+    };
+    
+    // Use the same logic as getMatchParticipants to get all 4 participants
+    matchParticipants = getMatchParticipants(pairing, true, participantIds);
+  } else {
+    // Singles - just 2 participants
+    matchParticipants = [
+      new mongoose.Types.ObjectId(bracketMatch.participant1),
+      new mongoose.Types.ObjectId(bracketMatch.participant2),
+    ];
+  }
 
   const match = new IndividualMatch({
     matchType: tournament.matchType,
@@ -542,9 +709,11 @@ export async function generateKnockoutMatches(
   // If custom matching is enabled, SKIP all automatic match document creation
   // The organizer will manually configure ALL matches starting from Round 1
   if (!allowCustomMatching) {
-    // Normal mode: Create IndividualMatch documents for ALL rounds where both participants are known
+    // Normal mode: Create match documents for ALL rounds where both participants are known
     // This includes first round real matches AND matches in later rounds where
     // both participants have been determined via byes
+    const isTeamCategory = (tournament as any).category === "team";
+    
     for (const round of bracket.rounds) {
       for (const bracketMatch of round.matches) {
         // Only create matches for non-bye matches (both participants present and not completed)
@@ -553,11 +722,17 @@ export async function generateKnockoutMatches(
           bracketMatch.participant2 &&
           !bracketMatch.completed
         ) {
-          const match = await createBracketMatch(
-            bracketMatch,
-            tournament,
-            scorerId
-          );
+          const match = isTeamCategory
+            ? await createBracketTeamMatch(
+                bracketMatch,
+                tournament,
+                scorerId
+              )
+            : await createBracketMatch(
+                bracketMatch,
+                tournament,
+                scorerId
+              );
           if (match) {
             bracketMatch.matchId = match._id.toString();
           }
@@ -690,40 +865,90 @@ export async function generateTournamentDraw(
 
   await tournament.save();
 
-  // Populate tournament data
-  await tournament.populate([
-    {
-      path: "organizer participants",
-      select: "username fullName profileImage",
-    },
-    { path: "seeding.participant", select: "username fullName profileImage" },
-    {
-      path: "standings.participant",
-      select: "username fullName profileImage",
-    },
-    {
-      path: "groups.standings.participant",
-      select: "username fullName profileImage",
-    },
-    {
-      path: "rounds.matches",
-      populate: {
-        path: "participants",
+  // Populate tournament data based on category
+  const isTeamTournament = (tournament as any).category === "team";
+  
+  if (isTeamTournament) {
+    // Team tournament population
+    await tournament.populate([
+      {
+        path: "organizer",
         select: "username fullName profileImage",
       },
-    },
-    {
-      path: "groups.participants",
-      select: "username fullName profileImage",
-    },
-    {
-      path: "groups.rounds.matches",
-      populate: {
+      {
         path: "participants",
+        model: Team,
+        select: "name logo city captain players",
+        populate: [
+          { path: "captain", select: "username fullName profileImage" },
+          { path: "players.user", select: "username fullName profileImage" },
+        ],
+      },
+      { 
+        path: "seeding.participant", 
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "standings.participant",
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "groups.standings.participant",
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "groups.participants",
+        model: Team,
+        select: "name logo city captain players",
+        populate: [
+          { path: "captain", select: "username fullName profileImage" },
+          { path: "players.user", select: "username fullName profileImage" },
+        ],
+      },
+    ]);
+    
+    // For team tournaments, rounds.matches are TeamMatch documents
+    // They don't have a "participants" field, they have team1/team2
+    // So we don't populate via the same mechanism
+  } else {
+    // Individual tournament population
+    await tournament.populate([
+      {
+        path: "organizer participants",
         select: "username fullName profileImage",
       },
-    },
-  ]);
+      { path: "seeding.participant", select: "username fullName profileImage" },
+      {
+        path: "standings.participant",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "groups.standings.participant",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "rounds.matches",
+        populate: {
+          path: "participants",
+          select: "username fullName profileImage",
+        },
+      },
+      {
+        path: "groups.participants",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "groups.rounds.matches",
+        populate: {
+          path: "participants",
+          select: "username fullName profileImage",
+        },
+      },
+    ]);
+  }
 
   // Calculate stats
   const stats = calculateTournamentStats(tournament);

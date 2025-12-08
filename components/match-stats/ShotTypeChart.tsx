@@ -64,6 +64,10 @@ export function ShotTypeChart({ data }: ShotTypeChartProps) {
               <Bar
                 dataKey="value"
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1200}
+                animationEasing="ease-out"
               >
                 {data.map((entry, i) => (
                   <Cell key={i} fill={getShotColor(entry.name)} />

@@ -1,6 +1,121 @@
 // types/tournament.type.ts
 import { KnockoutBracket, KnockoutConfig } from "./tournamentDraw";
 
+// ============================================
+// Participant Types (Users and Teams)
+// ============================================
+
+/**
+ * Individual participant (User)
+ */
+export interface UserParticipant {
+  _id: string;
+  username: string;
+  fullName?: string;
+  profileImage?: string;
+}
+
+/**
+ * Team player info
+ */
+export interface TeamPlayer {
+  user: {
+    _id: string;
+    username: string;
+    fullName?: string;
+    profileImage?: string;
+  };
+  role?: "captain" | "player";
+  joinedDate?: Date;
+  assignment?: string;
+}
+
+/**
+ * Team participant
+ */
+export interface TeamParticipant {
+  _id: string;
+  name: string;
+  logo?: string;
+  city?: string;
+  captain?: {
+    _id: string;
+    username: string;
+    fullName?: string;
+    profileImage?: string;
+  };
+  players?: TeamPlayer[];
+}
+
+/**
+ * Union type for participants - can be either User or Team
+ * Use helper functions to determine type
+ */
+export type Participant = UserParticipant | TeamParticipant;
+
+/**
+ * Type guard to check if participant is a team
+ */
+export function isTeamParticipant(participant: Participant): participant is TeamParticipant {
+  return 'name' in participant && !('username' in participant);
+}
+
+/**
+ * Type guard to check if participant is a user
+ */
+export function isUserParticipant(participant: Participant): participant is UserParticipant {
+  return 'username' in participant;
+}
+
+/**
+ * Get display name for any participant type
+ */
+export function getParticipantDisplayName(participant: Participant | null | undefined): string {
+  if (!participant) return "TBD";
+  if (isTeamParticipant(participant)) {
+    return participant.name;
+  }
+  return participant.fullName || participant.username || "Unknown";
+}
+
+/**
+ * Get avatar/logo URL for any participant type
+ */
+export function getParticipantImage(participant: Participant | null | undefined): string | undefined {
+  if (!participant) return undefined;
+  if (isTeamParticipant(participant)) {
+    return participant.logo;
+  }
+  return participant.profileImage;
+}
+
+/**
+ * Get link path for participant (profile or team page)
+ */
+export function getParticipantLink(participant: Participant, category: "individual" | "team"): string {
+  if (category === "team" || isTeamParticipant(participant)) {
+    return `/teams/${participant._id}`;
+  }
+  return `/profile/${participant._id}`;
+}
+
+// ============================================
+// Team Config (for team tournaments)
+// ============================================
+
+export interface TeamConfig {
+  matchFormat: "five_singles" | "single_double_single" | "custom";
+  setsPerSubMatch: number;
+  customSubMatches?: {
+    matchNumber: number;
+    matchType: "singles" | "doubles";
+  }[];
+}
+
+// ============================================
+// Tournament Interface
+// ============================================
+
 export interface Tournament {
   _id: string;
   name: string;
@@ -12,7 +127,7 @@ export interface Tournament {
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
 
   participants: Participant[];
-  organizer: Participant;
+  organizer: UserParticipant; // Organizer is always a user
 
   // Seeding
   seeding: Seeding[];
@@ -27,6 +142,9 @@ export interface Tournament {
   // Knockout specific
   knockoutConfig?: KnockoutConfig;
   bracket?: KnockoutBracket;
+
+  // Team tournament specific
+  teamConfig?: TeamConfig;
 
   // Hybrid format specific
   hybridConfig?: {
@@ -59,7 +177,7 @@ export interface Tournament {
 
   drawGenerated: boolean;
   drawGeneratedAt?: Date;
-  drawGeneratedBy?: Participant;
+  drawGeneratedBy?: UserParticipant;
 
   // Participant registration
   joinCode?: string;
@@ -74,6 +192,10 @@ export interface Tournament {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// Supporting Interfaces
+// ============================================
 
 export interface Seeding {
   participant: Participant;
@@ -114,11 +236,4 @@ export interface Standing {
   rank: number;
   form: string[]; // Last 5 results: "W", "L", "D"
   headToHead?: { [opponentId: string]: number };
-}
-
-export interface Participant {
-  _id: string;
-  username: string;
-  fullName?: string;
-  profileImage?: string;
 }

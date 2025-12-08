@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
+import Team from "@/models/Team";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import {
@@ -10,6 +11,7 @@ import {
 
 /**
  * Add a participant to a tournament (organizer only)
+ * Supports both individual (User) and team (Team) tournaments
  */
 export async function POST(
   req: NextRequest,
@@ -39,6 +41,8 @@ export async function POST(
       );
     }
 
+    const isTeamTournament = tournament.category === "team";
+
     // Validate organizer permissions
     const organizerCheck = TournamentValidators.validateIsOrganizer(
       tournament,
@@ -57,13 +61,23 @@ export async function POST(
       );
     }
 
-    // Check if participant exists
-    const participant = await User.findById(participantId);
-    if (!participant) {
-      return NextResponse.json(
-        { error: "Participant not found" },
-        { status: 404 }
-      );
+    // Check if participant exists based on tournament category
+    if (isTeamTournament) {
+      const team = await Team.findById(participantId);
+      if (!team) {
+        return NextResponse.json(
+          { error: "Team not found" },
+          { status: 404 }
+        );
+      }
+    } else {
+      const participant = await User.findById(participantId);
+      if (!participant) {
+        return NextResponse.json(
+          { error: "Participant not found" },
+          { status: 404 }
+        );
+      }
     }
 
     // Validate draw not generated
@@ -85,18 +99,35 @@ export async function POST(
     const capacityError = handleValidationResult(capacityCheck);
     if (capacityError) return capacityError;
 
-    // Add user to participants
+    // Add participant to tournament
     tournament.participants.push(participantId as any);
     await tournament.save();
 
-    // Populate tournament data
-    await tournament.populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "organizer", select: "username fullName" },
-    ]);
+    // Populate tournament data based on category
+    if (isTeamTournament) {
+      await tournament.populate([
+        { 
+          path: "participants", 
+          model: Team,
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        },
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "seeding.participant", model: Team, select: "name logo city captain" },
+      ]);
+    } else {
+      await tournament.populate([
+        { path: "participants", select: "username fullName profileImage" },
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "seeding.participant", select: "username fullName profileImage" },
+      ]);
+    }
 
     return NextResponse.json({
-      message: "Participant added successfully!",
+      message: isTeamTournament ? "Team added successfully!" : "Participant added successfully!",
       tournament,
     });
   } catch (err: any) {
@@ -110,6 +141,7 @@ export async function POST(
 
 /**
  * Remove a participant from a tournament (organizer only)
+ * Supports both individual (User) and team (Team) tournaments
  */
 export async function DELETE(
   req: NextRequest,
@@ -139,6 +171,8 @@ export async function DELETE(
       );
     }
 
+    const isTeamTournament = tournament.category === "team";
+
     // Validate organizer permissions
     const organizerCheck = TournamentValidators.validateIsOrganizer(
       tournament,
@@ -157,10 +191,27 @@ export async function DELETE(
       );
     }
 
-    // Validate draw not generated
-    const drawCheck = TournamentValidators.validateDrawNotGenerated(tournament);
-    const drawError = handleValidationResult(drawCheck);
-    if (drawError) return drawError;
+    // Prevent removal if draw has been generated
+    if (tournament.drawGenerated) {
+      return NextResponse.json(
+        { 
+          error: "Cannot remove participant after draw generation",
+          details: "Participants cannot be removed once the tournament draw has been generated. This would invalidate existing matches and standings."
+        },
+        { status: 400 }
+      );
+    }
+
+    // Prevent removal if tournament has started (status is not draft/upcoming)
+    if (tournament.status !== "draft" && tournament.status !== "upcoming") {
+      return NextResponse.json(
+        { 
+          error: "Cannot remove participant",
+          details: "Participants cannot be removed once the tournament has started."
+        },
+        { status: 400 }
+      );
+    }
 
     // Validate participant is in tournament
     const inTournamentCheck = TournamentValidators.validateParticipantInTournament(
@@ -169,6 +220,20 @@ export async function DELETE(
     );
     const inError = handleValidationResult(inTournamentCheck);
     if (inError) return inError;
+
+    // Check if removing this participant would violate minimum participants requirement
+    if (tournament.minParticipants) {
+      const newParticipantCount = tournament.participants.length - 1;
+      if (newParticipantCount < tournament.minParticipants) {
+        return NextResponse.json(
+          { 
+            error: "Cannot remove participant",
+            details: `Removing this participant would leave ${newParticipantCount} participants, but minimum ${tournament.minParticipants} participants are required.`
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Remove participant
     tournament.participants = tournament.participants.filter(
@@ -182,14 +247,31 @@ export async function DELETE(
 
     await tournament.save();
 
-    // Populate tournament data
-    await tournament.populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "organizer", select: "username fullName" },
-    ]);
+    // Populate tournament data based on category
+    if (isTeamTournament) {
+      await tournament.populate([
+        { 
+          path: "participants", 
+          model: Team,
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        },
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "seeding.participant", model: Team, select: "name logo city captain" },
+      ]);
+    } else {
+      await tournament.populate([
+        { path: "participants", select: "username fullName profileImage" },
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "seeding.participant", select: "username fullName profileImage" },
+      ]);
+    }
 
     return NextResponse.json({
-      message: "Participant removed successfully!",
+      message: isTeamTournament ? "Team removed successfully!" : "Participant removed successfully!",
       tournament,
     });
   } catch (err: any) {

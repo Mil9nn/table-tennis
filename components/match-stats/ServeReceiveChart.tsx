@@ -74,11 +74,19 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
                 dataKey="Serve"
                 fill={COLORS.serve}
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1000}
+                animationEasing="ease-out"
               />
               <Bar
                 dataKey="Receive"
                 fill={COLORS.receive}
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={200}
+                animationDuration={1000}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>

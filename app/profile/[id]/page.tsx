@@ -7,22 +7,29 @@ import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { motion } from "framer-motion";
-import {
-  Trophy,
-  Flame,
-  TrendingUp,
-  Users,
-  Swords,
-  Calendar,
-  MapPin,
-  ChevronRight,
-  Activity,
-  Award,
-  Crown,
-  Zap,
-  BarChart3,
-} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+// Material UI Icons
+import JoinRightIcon from '@mui/icons-material/JoinRight';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PeopleIcon from '@mui/icons-material/People';
+import SportsMmaIcon from '@mui/icons-material/SportsMma';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import SportsTennisIcon from '@mui/icons-material/SportsTennis';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
+import BoltIcon from '@mui/icons-material/Bolt';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 
 // Stat card component
@@ -30,55 +37,30 @@ const StatCard = ({
   label,
   value,
   subtitle,
-  icon: Icon,
-  color = "zinc",
   delay = 0,
 }: {
   label: string;
   value: string | number;
   subtitle?: string;
-  icon?: any;
-  color?: string;
   delay?: number;
 }) => {
-  const colorClasses: Record<string, string> = {
-    zinc: "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800",
-    green: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
-    blue: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
-    amber: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
-    purple: "bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800",
-    rose: "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800",
-  };
-
-  const iconClasses: Record<string, string> = {
-    zinc: "text-zinc-500",
-    green: "text-emerald-500",
-    blue: "text-blue-500",
-    amber: "text-amber-500",
-    purple: "text-purple-500",
-    rose: "text-rose-500",
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay * 0.1, duration: 0.4 }}
-      className={`p-4 rounded-xl border ${colorClasses[color]} transition-all duration-300 hover:shadow-md`}
+      className="p-4 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700"
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">
-            {label}
-          </p>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">
-            {value}
-          </p>
-          {subtitle && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>
-          )}
-        </div>
-        {Icon && <Icon className={`w-5 h-5 ${iconClasses[color]}`} />}
+      <div>
+        <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+          {label}
+        </p>
+        <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 font-mono mb-0.5">
+          {value}
+        </p>
+        {subtitle && (
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+        )}
       </div>
     </motion.div>
   );
@@ -137,6 +119,10 @@ export default function UserProfilePage() {
   const [profileData, setProfileData] = useState<any>(null);
   const [tournamentStats, setTournamentStats] = useState<any>(null);
   const [loadingTournaments, setLoadingTournaments] = useState(true);
+  const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
+  const [matchHistory, setMatchHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -163,6 +149,33 @@ export default function UserProfilePage() {
     } finally {
       setLoadingTournaments(false);
     }
+  };
+
+  const fetchMatchHistory = async (opponentId: string) => {
+    try {
+      setLoadingHistory(true);
+      const res = await axiosInstance.get(`/profile/${id}/head-to-head/${opponentId}`);
+      if (res.data.success) {
+        setMatchHistory(res.data.matches);
+      }
+    } catch (err) {
+      console.error("Error fetching match history:", err);
+      setMatchHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleOpponentClick = (opponent: any) => {
+    setSelectedOpponent(opponent);
+    setIsModalOpen(true);
+    fetchMatchHistory(opponent._id);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedOpponent(null);
+    setMatchHistory([]);
   };
 
   if (loading) {
@@ -197,7 +210,7 @@ export default function UserProfilePage() {
           className="text-center p-12 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800"
         >
           <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-zinc-400" />
+            <PeopleIcon className="w-8 h-8 text-zinc-400" />
           </div>
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
             Player Not Found
@@ -224,7 +237,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      <div className="max-w-5xl mx-auto py-6 space-y-6">
+      <div className="max-w-5xl mx-auto py-4">
         
         {/* Hero Section */}
         <motion.div
@@ -259,7 +272,7 @@ export default function UserProfilePage() {
               )}
               {currentStreak >= 3 && (
                 <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-1.5 ring-2 ring-zinc-900">
-                  <Flame className="w-4 h-4 text-white" />
+                  <LocalFireDepartmentIcon className="w-4 h-4 text-white" />
                 </div>
               )}
             </div>
@@ -274,12 +287,12 @@ export default function UserProfilePage() {
               {/* Quick Stats Pills */}
               <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                 <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 text-emerald-400" />
+                  <JoinRightIcon className="w-3 h-3 text-emerald-400" />
                   {totalMatches} Matches
                 </span>
                 {currentStreak > 0 && (
                   <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                    <Flame className="w-3 h-3 text-orange-400" />
+                    <LocalFireDepartmentIcon className="w-3 h-3 text-orange-400" />
                     {currentStreak} Win Streak
                   </span>
                 )}
@@ -293,45 +306,9 @@ export default function UserProfilePage() {
           </div>
         </motion.div>
 
-        {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-2">
-          <StatCard
-            label="Matches Won"
-            value={totalWins}
-            subtitle={`${totalLosses} losses`}
-            icon={Award}
-            color="green"
-            delay={1}
-          />
-          <StatCard
-            label="Sets Won"
-            value={setsWon}
-            subtitle={`${setsLost} lost`}
-            icon={BarChart3}
-            color="blue"
-            delay={2}
-          />
-          <StatCard
-            label="Tournaments"
-            value={tournamentStats?.overview?.totalTournaments || 0}
-            subtitle={tournamentStats?.overview?.tournamentWins ? `${tournamentStats.overview.tournamentWins} wins` : "No tournaments"}
-            icon={Trophy}
-            color="amber"
-            delay={3}
-          />
-          <StatCard
-            label="Current Streak"
-            value={currentStreak > 0 ? `${currentStreak}W` : currentStreak < 0 ? `${Math.abs(currentStreak)}L` : "—"}
-            subtitle={`Best: ${bestStreak}W`}
-            icon={Flame}
-            color={currentStreak > 0 ? "green" : currentStreak < 0 ? "rose" : "zinc"}
-            delay={4}
-          />
-        </div>
-
         {/* Tabbed Content */}
         <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="w-full max-w-lg mx-auto grid grid-cols-3 bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-xl">
+          <TabsList className="w-full max-w-lg mx-auto grid grid-cols-3 bg-zinc-100 dark:bg-zinc-800/50 rounded-none p-0">
             <TabsTrigger
               value="performance"
               className="rounded-none data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm text-sm font-medium transition-all"
@@ -364,7 +341,7 @@ export default function UserProfilePage() {
                 className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-5"
               >
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-blue-500" />
+                  <SportsTennisIcon className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                   Match Type Breakdown
                 </h3>
                 <div className="space-y-4">
@@ -374,6 +351,8 @@ export default function UserProfilePage() {
                       matches: stats.individual?.singles?.totalMatches || 0,
                       wins: stats.individual?.singles?.wins || 0,
                       losses: stats.individual?.singles?.losses || 0,
+                      setsWon: stats.individual?.singles?.setsWon || 0,
+                      setsLost: stats.individual?.singles?.setsLost || 0,
                       color: "bg-blue-500",
                     },
                     {
@@ -381,6 +360,8 @@ export default function UserProfilePage() {
                       matches: stats.individual?.doubles?.totalMatches || 0,
                       wins: stats.individual?.doubles?.wins || 0,
                       losses: stats.individual?.doubles?.losses || 0,
+                      setsWon: stats.individual?.doubles?.setsWon || 0,
+                      setsLost: stats.individual?.doubles?.setsLost || 0,
                       color: "bg-purple-500",
                     },
                     {
@@ -388,6 +369,8 @@ export default function UserProfilePage() {
                       matches: stats.individual?.mixed?.totalMatches || 0,
                       wins: stats.individual?.mixed?.wins || 0,
                       losses: stats.individual?.mixed?.losses || 0,
+                      setsWon: stats.individual?.mixed?.setsWon || 0,
+                      setsLost: stats.individual?.mixed?.setsLost || 0,
                       color: "bg-pink-500",
                     },
                     {
@@ -395,29 +378,59 @@ export default function UserProfilePage() {
                       matches: stats.team?.totalMatches || 0,
                       wins: stats.team?.wins || 0,
                       losses: stats.team?.losses || 0,
+                      setsWon: stats.team?.setsWon || 0,
+                      setsLost: stats.team?.setsLost || 0,
                       color: "bg-emerald-500",
                     },
                   ].filter(item => item.matches > 0).map((item, i) => {
                     const itemWinRate = item.matches > 0 ? Math.round((item.wins / item.matches) * 100) : 0;
+                    const totalSets = item.setsWon + item.setsLost;
+                    const setWinRate = totalSets > 0 ? Math.round((item.setsWon / totalSets) * 100) : 0;
                     return (
-                      <div key={i} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            {item.label}
-                          </span>
-                          <span className="text-xs text-zinc-500">
-                            {item.wins}W / {item.losses}L
-                          </span>
+                      <div key={i} className="space-y-3">
+                        {/* Match Stats */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                              {item.label}
+                            </span>
+                            <span className="text-xs text-zinc-500">
+                              {item.wins}W / {item.losses}L
+                            </span>
+                          </div>
+                          <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${itemWinRate}%` }}
+                              transition={{ duration: 0.8, delay: i * 0.1 }}
+                              className={`h-full ${item.color} rounded-full`}
+                            />
+                          </div>
+                          <p className="text-xs text-zinc-400">{itemWinRate}% win rate • {item.matches} matches</p>
                         </div>
-                        <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${itemWinRate}%` }}
-                            transition={{ duration: 0.8, delay: i * 0.1 }}
-                            className={`h-full ${item.color} rounded-full`}
-                          />
-                        </div>
-                        <p className="text-xs text-zinc-400">{itemWinRate}% win rate • {item.matches} matches</p>
+                        
+                        {/* Sets Stats Subsection */}
+                        {totalSets > 0 && (
+                          <div className="pl-3 border-l-2 border-zinc-200 dark:border-zinc-700 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                Sets
+                              </span>
+                              <span className="text-[10px] text-zinc-500">
+                                {item.setsWon}W / {item.setsLost}L
+                              </span>
+                            </div>
+                            <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${setWinRate}%` }}
+                                transition={{ duration: 0.8, delay: (i * 0.1) + 0.2 }}
+                                className={`h-full ${item.color} opacity-70 rounded-full`}
+                              />
+                            </div>
+                            <p className="text-[10px] text-zinc-400">{setWinRate}% win rate • {totalSets} sets</p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -435,7 +448,7 @@ export default function UserProfilePage() {
                 className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-5"
               >
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
+                  <BoltIcon className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                   Playing Style
                 </h3>
                 {stats.shotAnalysis && (stats.shotAnalysis.offensive > 0 || stats.shotAnalysis.defensive > 0) ? (
@@ -477,7 +490,7 @@ export default function UserProfilePage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-zinc-400">
-                    <Zap className="w-8 h-8 mb-2 opacity-30" />
+                    <BoltIcon className="w-8 h-8 mb-2 opacity-30" />
                     <p className="text-sm">No shot data available</p>
                   </div>
                 )}
@@ -494,8 +507,8 @@ export default function UserProfilePage() {
               >
                 <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-zinc-400" />
-                    Recent Matches
+                    <CalendarTodayIcon fontSize="small" className="text-blue-500" />
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Recent Matches</span>
                   </h3>
                 </div>
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -533,7 +546,7 @@ export default function UserProfilePage() {
                               {match.date ? new Date(match.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                             </p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 transition-colors" />
+                          <ChevronRightIcon className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 transition-colors" />
                         </div>
                       </Link>
                     );
@@ -553,27 +566,30 @@ export default function UserProfilePage() {
             ) : tournamentStats?.overview?.totalTournaments > 0 ? (
               <>
                 {/* Tournament Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                    <Crown className="w-5 h-5 text-amber-500 mb-2" />
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 font-mono">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="backdrop-blur-md bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-zinc-700/50 rounded-lg p-3 hover:bg-white/80 dark:hover:bg-zinc-900/80 shadow-sm transition-all">
+                    <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1.5">
+                      Championships
+                    </p>
+                    <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                       {tournamentStats.overview.tournamentWins}
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">Championships</p>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/40 dark:to-violet-950/40 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
-                    <Award className="w-5 h-5 text-purple-500 mb-2" />
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 font-mono">
+                  <div className="backdrop-blur-md bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-zinc-700/50 rounded-lg p-3 hover:bg-white/80 dark:hover:bg-zinc-900/80 shadow-sm transition-all">
+                    <p className="text-[10px] font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-1.5">
+                      Podium Finishes
+                    </p>
+                    <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                       {tournamentStats.overview.podiumFinishes}
                     </p>
-                    <p className="text-xs text-purple-700 dark:text-purple-300">Podium Finishes</p>
                   </div>
-                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-                    <TrendingUp className="w-5 h-5 text-emerald-500 mb-2" />
-                    <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 font-mono">
+                  <div className="backdrop-blur-md bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-zinc-700/50 rounded-lg p-3 hover:bg-white/80 dark:hover:bg-zinc-900/80 shadow-sm transition-all">
+                    <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1.5">
+                      Tournament Win Rate
+                    </p>
+                    <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                       {Math.round(tournamentStats.overview.winRate || 0)}%
                     </p>
-                    <p className="text-xs text-emerald-700 dark:text-emerald-300">Tournament Win Rate</p>
                   </div>
                 </div>
 
@@ -598,7 +614,7 @@ export default function UserProfilePage() {
                               <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
                                 {t.tournament.city && (
                                   <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
+                                    <LocationOnIcon sx={{ fontSize: 12 }} />
                                     {t.tournament.city}
                                   </span>
                                 )}
@@ -608,7 +624,7 @@ export default function UserProfilePage() {
                             <div className="text-right shrink-0">
                               {t.stats.position === 1 ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
-                                  <Crown className="w-3 h-3" />
+                                  <MilitaryTechIcon className="w-3 h-3" />
                                   Champion
                                 </span>
                               ) : t.stats.position && typeof t.stats.position === 'number' ? (
@@ -633,7 +649,7 @@ export default function UserProfilePage() {
                 animate={{ opacity: 1 }}
                 className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center"
               >
-                <Trophy className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
+                <EmojiEventsIcon className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-1">No Tournaments Yet</h3>
                 <p className="text-sm text-zinc-500">This player hasn't participated in any tournaments.</p>
               </motion.div>
@@ -650,7 +666,7 @@ export default function UserProfilePage() {
               >
                 <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <Swords className="w-4 h-4 text-zinc-400" />
+                    <SportsMmaIcon className="w-4 h-4 text-zinc-400" />
                     Head-to-Head Records
                   </h3>
                 </div>
@@ -659,10 +675,10 @@ export default function UserProfilePage() {
                     const isWinning = h2h.wins > h2h.losses;
                     const isLosing = h2h.losses > h2h.wins;
                     return (
-                      <Link
+                      <div
                         key={i}
-                        href={`/profile/${h2h.opponent._id}`}
-                        className="px-5 py-4 flex items-center gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+                        onClick={() => handleOpponentClick(h2h.opponent)}
+                        className="p-4 flex items-center gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group cursor-pointer"
                       >
                         {h2h.opponent.profileImage ? (
                           <Image
@@ -670,10 +686,10 @@ export default function UserProfilePage() {
                             alt={h2h.opponent.fullName || h2h.opponent.username}
                             width={44}
                             height={44}
-                            className="w-11 h-11 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-bold">
                             {(h2h.opponent.fullName?.[0] || h2h.opponent.username?.[0] || "?").toUpperCase()}
                           </div>
                         )}
@@ -696,9 +712,9 @@ export default function UserProfilePage() {
                             </div>
                             <p className="text-xs text-zinc-400">{h2h.total} matches</p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 transition-colors" />
+                          <ChevronRightIcon className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 transition-colors" />
                         </div>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>
@@ -709,7 +725,7 @@ export default function UserProfilePage() {
                 animate={{ opacity: 1 }}
                 className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center"
               >
-                <Swords className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
+                <SportsMmaIcon className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-1">No Rivals Yet</h3>
                 <p className="text-sm text-zinc-500">Play matches against other players to build your rivalry records.</p>
               </motion.div>
@@ -724,7 +740,7 @@ export default function UserProfilePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+            className="bg-white dark:bg-zinc-900 rounded-xl mt-4 border border-zinc-200 dark:border-zinc-800 overflow-hidden"
           >
             <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -738,9 +754,22 @@ export default function UserProfilePage() {
                   href={`/teams/${team._id}`}
                   className="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <div className="flex items-center gap-4">
+                    {team.logo ? (
+                      <Image
+                        src={team.logo}
+                        alt={team.name}
+                        width={44}
+                        height={44}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-bold flex-shrink-0">
+                        {(team.name?.[0] || "T").toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                         {team.name}
                       </p>
                       <p className="text-xs text-zinc-500 mt-0.5">
@@ -748,7 +777,7 @@ export default function UserProfilePage() {
                       </p>
                     </div>
                     {team.stats && (
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <p className="text-sm font-mono text-zinc-700 dark:text-zinc-300">
                           {team.stats.wins}W - {team.stats.losses}L
                         </p>
@@ -764,6 +793,138 @@ export default function UserProfilePage() {
           </motion.div>
           </div>
         )}
+
+        {/* Head-to-Head Match History Modal */}
+        <Dialog open={isModalOpen} onOpenChange={closeModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col p-0">
+            {selectedOpponent && (
+              <>
+                <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center gap-4">
+                    {selectedOpponent.profileImage ? (
+                      <Image
+                        src={selectedOpponent.profileImage}
+                        alt={selectedOpponent.fullName || selectedOpponent.username}
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-bold">
+                        {(selectedOpponent.fullName?.[0] || selectedOpponent.username?.[0] || "?").toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <DialogTitle className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        {selectedOpponent.fullName || selectedOpponent.username}
+                      </DialogTitle>
+                      <p className="text-sm text-zinc-500">@{selectedOpponent.username}</p>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {loadingHistory ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Skeleton className="w-8 h-8 rounded-full" />
+                      <p className="text-sm text-zinc-500">Loading match history...</p>
+                    </div>
+                  </div>
+                ) : matchHistory.length > 0 ? (
+                  <div className="flex flex-col overflow-hidden">
+                    {/* Summary Stats */}
+                    {(() => {
+                      const wins = matchHistory.filter((m) => m.result === "win").length;
+                      const losses = matchHistory.filter((m) => m.result === "loss").length;
+                      const total = wins + losses;
+                      const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+                      const isWinning = wins > losses;
+
+                      return (
+                        <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">
+                                Head-to-Head Record
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1 font-mono text-xl">
+                                  <span className={`font-bold ${isWinning ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                    {wins}
+                                  </span>
+                                  <span className="text-zinc-300 dark:text-zinc-600">-</span>
+                                  <span className={`font-bold ${!isWinning && losses > wins ? 'text-red-600 dark:text-red-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                    {losses}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-zinc-500">({winRate}% win rate)</span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-zinc-500">{total} total matches</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Match List */}
+                    <div className="overflow-y-auto flex-1">
+                      <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {matchHistory.map((match: any, i: number) => (
+                          <Link
+                            key={i}
+                            href={`/matches/${match.matchId}`}
+                            className="px-6 py-3 flex items-center gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+                          >
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                              match.result === 'win' 
+                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                              {match.result === 'win' ? 'W' : 'L'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 capitalize">
+                                  {match.matchType?.replace('_', ' ')}
+                                </p>
+                                {match.tournament && (
+                                  <span className="text-xs text-zinc-500">• {match.tournament.name}</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-zinc-500">
+                                {match.date ? new Date(match.date).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                }) : ''}
+                              </p>
+                            </div>
+                            <div className="text-right flex items-center gap-3">
+                              <div>
+                                <p className="text-sm font-mono font-medium text-zinc-700 dark:text-zinc-300">
+                                  {match.score || '—'}
+                                </p>
+                              </div>
+                              <ChevronRightIcon className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 transition-colors" />
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 px-6">
+                    <SportsMmaIcon className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                    <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-1">No Matches Found</h3>
+                    <p className="text-sm text-zinc-500 text-center">
+                      No completed matches found between you and this player.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

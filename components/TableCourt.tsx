@@ -104,7 +104,7 @@ export default function TableCourt({
           setHoveredZone(null);
           setHoverPosition(null);
         }}
-        className="relative w-full aspect-[2.74/1.525] bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 rounded-xl shadow-2xl cursor-crosshair hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300"
+        className="relative w-full max-w-full lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto aspect-[2.74/1.525] bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 rounded-xl shadow-2xl cursor-crosshair hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300"
       >
         {/* Floor/Off-table area with modern gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-200/50 via-gray-300/30 to-gray-400/20" />
@@ -137,6 +137,92 @@ export default function TableCourt({
           <div className="absolute inset-0 grid grid-cols-2 gap-px opacity-15 pointer-events-none">
             <div className="border border-white" />
             <div className="border border-white" />
+          </div>
+
+          {/* Sector dividing lines (horizontal) - Backhand, Crossover, Forehand */}
+          <div className="absolute left-0 right-0 top-[33.33%] h-[1px] bg-white/40 pointer-events-none" />
+          <div className="absolute left-0 right-0 top-[66.67%] h-[1px] bg-white/40 pointer-events-none" />
+
+          {/* Zone dividing lines (vertical) - Deep, Mid, Short on each side */}
+          {/* Left side divisions */}
+          <div className="absolute top-0 bottom-0 left-[16.67%] w-[1px] bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[33.33%] w-[1px] bg-white/40 pointer-events-none" />
+          {/* Right side divisions */}
+          <div className="absolute top-0 bottom-0 left-[66.67%] w-[1px] bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[83.33%] w-[1px] bg-white/40 pointer-events-none" />
+        </div>
+
+        {/* Sector labels in margins (vertical) - positioned to the left of table */}
+        <div className="absolute left-[12%] top-[25%] h-[50%] flex flex-col pointer-events-none z-10">
+          <div className="flex-1 flex items-start justify-center pt-1">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Backhand
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Crossover
+            </div>
+          </div>
+          <div className="flex-1 flex items-end justify-center pb-1">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Forehand
+            </div>
+          </div>
+        </div>
+
+        {/* Sector labels in margins (vertical) - positioned to the right of table */}
+        <div className="absolute right-[12%] top-[25%] h-[50%] flex flex-col pointer-events-none z-10">
+          <div className="flex-1 flex items-start justify-center pt-1">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Forehand
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Crossover
+            </div>
+          </div>
+          <div className="flex-1 flex items-end justify-center pb-1">
+            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
+              Backhand
+            </div>
+          </div>
+        </div>
+
+        {/* Zone labels in margins (horizontal) - positioned below table */}
+        <div className="absolute top-[77%] left-[25%] w-[50%] flex pointer-events-none z-10">
+          {/* Left side zones */}
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Deep
+            </div>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Mid
+            </div>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Short
+            </div>
+          </div>
+          {/* Right side zones */}
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Short
+            </div>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Mid
+            </div>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
+              Deep
+            </div>
           </div>
         </div>
 

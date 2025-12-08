@@ -133,6 +133,25 @@ const TeamMatchSchema = new mongoose.Schema(
 
     matchDuration: Number,
 
+    // Tournament context
+    tournament: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tournament",
+      default: null
+    },
+    groupId: { type: String, default: null }, // For round-robin group matches
+
+    // Knockout/Bracket metadata
+    bracketPosition: {
+      round: { type: Number }, // Round number in bracket
+      matchNumber: { type: Number }, // Match number within round
+      nextMatchNumber: { type: Number }, // Which match in next round winner advances to
+    },
+    roundName: { type: String }, // "Quarter-Finals", "Semi-Finals", "Final", etc.
+    courtNumber: { type: Number }, // Court assignment
+    isThirdPlaceMatch: { type: Boolean, default: false }, // Is this a 3rd place match
+    scheduledDate: { type: Date }, // Scheduled date/time for the match
+
     // -------------------- STATISTICS --------------------
     statistics: {
       longestStreak: { type: Number, default: 0 },

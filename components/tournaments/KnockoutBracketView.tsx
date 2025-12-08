@@ -12,12 +12,21 @@ import {
   resolveParticipant,
   getParticipantInitials,
 } from "@/services/tournament/utils/participantResolver";
+import {
+  Participant as TournamentParticipant,
+  isTeamParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+} from "@/types/tournament.type";
 
+// Local participant type for internal use (compatible with both users and teams)
 interface Participant {
   _id: string;
-  username: string;
+  username?: string;
   fullName?: string;
   profileImage?: string;
+  name?: string;
+  logo?: string;
 }
 
 interface MatchDetails {
@@ -36,10 +45,11 @@ interface MatchDetails {
 
 interface KnockoutBracketViewProps {
   bracket: KnockoutBracket;
-  participants: Participant[]; // All tournament participants
+  participants: TournamentParticipant[]; // All tournament participants (users or teams)
   matches: MatchDetails[]; // Created match documents
   onMatchClick?: (matchId: string) => void;
   showThirdPlace?: boolean;
+  category?: "individual" | "team";
 }
 
 /**
@@ -60,18 +70,57 @@ interface EnhancedMatchData {
   showScore: boolean;
 }
 
+// Helper to get display name for a local participant
+const getLocalParticipantName = (p: Participant | null): string => {
+  if (!p) return "TBD";
+  // Team: has 'name' but no 'username'
+  if (p.name && !p.username) return p.name;
+  return p.fullName || p.username || "Unknown";
+};
+
+// Helper to get image for a local participant
+const getLocalParticipantImage = (p: Participant | null): string | undefined => {
+  if (!p) return undefined;
+  // Team: has 'logo' instead of 'profileImage'
+  if (p.name && !p.username) return p.logo;
+  return p.profileImage;
+};
+
+// Helper to get initials for a local participant
+const getLocalParticipantInitials = (p: Participant | null): string => {
+  if (!p) return "?";
+  const name = getLocalParticipantName(p);
+  return name.substring(0, 2).toUpperCase();
+};
+
 const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   bracket,
   participants,
   matches,
   onMatchClick,
   showThirdPlace = false,
+  category = "individual",
 }) => {
   // Create participant lookup map for O(1) access
-  const participantMap = useMemo(
-    () => createParticipantMap(participants),
-    [participants]
-  );
+  // Convert TournamentParticipant[] to Participant[] for internal use
+  const participantMap = useMemo(() => {
+    const converted: Participant[] = participants.map(p => {
+      if (isTeamParticipant(p)) {
+        return {
+          _id: p._id,
+          name: p.name,
+          logo: p.logo,
+        };
+      }
+      return {
+        _id: p._id,
+        username: p.username,
+        fullName: p.fullName,
+        profileImage: p.profileImage,
+      };
+    });
+    return createParticipantMap(converted);
+  }, [participants]);
 
   // Create match lookup by bracket position
   const matchByPosition = useMemo(() => {
@@ -234,9 +283,9 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                 <Award className="w-8 h-8 mx-auto text-amber-500 mb-2" />
                 <div className="text-sm font-semibold text-amber-700">
                   {participant1 ? (
-                    <>{participant1.fullName || participant1.username} advances</>
+                    <>{getLocalParticipantName(participant1)} advances</>
                   ) : participant2 ? (
-                    <>{participant2.fullName || participant2.username} advances</>
+                    <>{getLocalParticipantName(participant2)} advances</>
                   ) : (
                     "BYE"
                   )}
@@ -264,11 +313,11 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                   {participant1 ? (
                     <>
                       <Avatar className="h-8 w-8 flex-shrink-0">
-                        {participant1.profileImage ? (
-                          <AvatarImage src={participant1.profileImage} />
+                        {getLocalParticipantImage(participant1) ? (
+                          <AvatarImage src={getLocalParticipantImage(participant1)} />
                         ) : (
                           <AvatarFallback className="bg-blue-500 text-white text-xs">
-                            {getParticipantInitials(participant1)}
+                            {getLocalParticipantInitials(participant1)}
                           </AvatarFallback>
                         )}
                       </Avatar>
@@ -278,7 +327,7 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                             isWinner(enhanced, 0) ? "text-green-700" : "text-slate-700"
                           }`}
                         >
-                          {participant1.fullName || participant1.username}
+                          {getLocalParticipantName(participant1)}
                         </div>
                       </div>
                       {showScore && matchDoc?.finalScore && (
@@ -311,11 +360,11 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                   {participant2 ? (
                     <>
                       <Avatar className="h-8 w-8 flex-shrink-0">
-                        {participant2.profileImage ? (
-                          <AvatarImage src={participant2.profileImage} />
+                        {getLocalParticipantImage(participant2) ? (
+                          <AvatarImage src={getLocalParticipantImage(participant2)} />
                         ) : (
                           <AvatarFallback className="bg-blue-500 text-white text-xs">
-                            {getParticipantInitials(participant2)}
+                            {getLocalParticipantInitials(participant2)}
                           </AvatarFallback>
                         )}
                       </Avatar>
@@ -325,7 +374,7 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                             isWinner(enhanced, 1) ? "text-green-700" : "text-slate-700"
                           }`}
                         >
-                          {participant2.fullName || participant2.username}
+                          {getLocalParticipantName(participant2)}
                         </div>
                       </div>
                       {showScore && matchDoc?.finalScore && (

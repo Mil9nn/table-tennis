@@ -455,6 +455,7 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
               games={individualMatch.games}
               currentGame={individualMatch.currentGame}
               participants={individualMatch.participants}
+              finalScore={individualMatch.finalScore}
             />
           </div>
         </div>

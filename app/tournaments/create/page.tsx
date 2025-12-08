@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import UserSearchInput from "@/app/match/componets/UserSearchInput";
+import TeamSearchInput from "@/components/search/TeamSearchInput";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,10 @@ const tournamentSchema = z.object({
   seedingMethod: z.enum(["manual", "none"]),
   thirdPlaceMatch: z.boolean().optional(),
   allowCustomMatching: z.boolean().optional(),
+
+  // Team tournament config
+  teamMatchFormat: z.enum(["five_singles", "single_double_single", "custom"]).optional(),
+  teamSetsPerSubMatch: z.string().optional(),
 
   // Hybrid format specific
   hybridRoundRobinUseGroups: z.boolean().optional(),
@@ -101,10 +106,14 @@ export default function CreateTournamentPage() {
       thirdPlaceMatch: false,
       allowCustomMatching: true,
 
+      // Team tournament config defaults
+      teamMatchFormat: "five_singles",
+      teamSetsPerSubMatch: "3",
+
       // Hybrid format defaults
-      hybridRoundRobinUseGroups: true,
+      hybridRoundRobinUseGroups: false,
       hybridRoundRobinNumberOfGroups: "4",
-      hybridQualificationMethod: "top_n_per_group",
+      hybridQualificationMethod: "top_n_overall",
       hybridQualifyingCount: "8",
       hybridQualifyingPerGroup: "2",
       hybridQualifyingPercentage: "50",
@@ -114,6 +123,7 @@ export default function CreateTournamentPage() {
   });
 
   const watchFormat = form.watch("format");
+  const watchCategory = form.watch("category");
   const watchUseGroups = form.watch("useGroups");
   const watchHybridRRUseGroups = form.watch("hybridRoundRobinUseGroups");
   const watchHybridQualMethod = form.watch("hybridQualificationMethod");
@@ -124,6 +134,13 @@ export default function CreateTournamentPage() {
       form.setValue("useGroups", false);
     }
   }, [watchFormat, watchUseGroups, form]);
+
+  // Reset hybrid groups when format changes to hybrid (ensure groups are disabled by default)
+  useEffect(() => {
+    if (watchFormat === "hybrid" && watchHybridRRUseGroups === undefined) {
+      form.setValue("hybridRoundRobinUseGroups", false);
+    }
+  }, [watchFormat, watchHybridRRUseGroups, form]);
 
   // Reset qualification method if "top_n_per_group" is selected but groups are disabled
   useEffect(() => {
@@ -164,7 +181,7 @@ export default function CreateTournamentPage() {
     }
 
     // Validate groups for hybrid format (round-robin phase)
-    if (data.format === "hybrid" && data.hybridRoundRobinUseGroups) {
+    if (data.format === "hybrid" && data.hybridRoundRobinUseGroups === true) {
       const numGroups = Number(data.hybridRoundRobinNumberOfGroups || 0);
       if (numGroups < 2) {
         toast.error("At least 2 groups required for round-robin phase");
@@ -218,6 +235,14 @@ export default function CreateTournamentPage() {
           ],
         },
       };
+
+      // Add team configuration if category is team
+      if (data.category === "team") {
+        payload.teamConfig = {
+          matchFormat: data.teamMatchFormat || "five_singles",
+          setsPerSubMatch: Number(data.teamSetsPerSubMatch) || 3,
+        };
+      }
 
       // Add hybrid configuration if format is hybrid
       if (data.format === "hybrid") {
@@ -303,7 +328,7 @@ export default function CreateTournamentPage() {
               )}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="format"
@@ -343,6 +368,47 @@ export default function CreateTournamentPage() {
 
               <FormField
                 control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#495057]">Category</FormLabel>
+
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: "Individual", value: "individual" },
+                        { label: "Team", value: "team" },
+                      ].map((opt) => {
+                        const isActive = field.value === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => field.onChange(opt.value)}
+                            className={`px-4 py-2 text-xs rounded-lg border transition-all
+                            ${
+                              isActive
+                                ? "bg-[#6c6fd5] text-white shadow"
+                                : "bg-[#F8F9FA] text-[#495057] border-gray-300 hover:bg-gray-100"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <FormDescription className="text-xs">
+                      Individual: players compete alone or in pairs
+                      <br />
+                      Team: teams compete against each other
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="matchType"
                 render={({ field }) => (
                   <FormItem>
@@ -373,11 +439,100 @@ export default function CreateTournamentPage() {
                       })}
                     </div>
 
+                    <FormDescription className="text-xs">
+                      {form.watch("category") === "team" 
+                        ? "Team match format (applies to submatches)"
+                        : "Individual match format"}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {/* Team Tournament Config */}
+            {watchCategory === "team" && (
+              <div className="space-y-4 rounded-lg border p-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+                <h3 className="font-semibold text-[#6c6fd5]">
+                  Team Match Configuration
+                  <p className="text-xs font-normal text-gray-500">Configure how team vs team matches work</p>
+                </h3>
+
+                <FormField
+                  control={form.control}
+                  name="teamMatchFormat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[#495057]">Match Format</FormLabel>
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { label: "5 Singles", value: "five_singles", desc: "5 singles matches, first to win 3" },
+                          { label: "S-D-S", value: "single_double_single", desc: "Singles, Doubles, Singles format" },
+                          { label: "Custom", value: "custom", desc: "Define your own format" },
+                        ].map((opt) => {
+                          const isActive = field.value === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => field.onChange(opt.value)}
+                              className={`px-4 py-2 text-xs rounded-lg border transition-all
+                                ${
+                                  isActive
+                                    ? "bg-[#6c6fd5] text-white shadow"
+                                    : "bg-white text-[#495057] border-gray-300 hover:bg-gray-100"
+                                }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormDescription className="text-xs">
+                        {field.value === "five_singles" && "Teams play 5 singles matches, first to win 3 overall wins"}
+                        {field.value === "single_double_single" && "Singles → Doubles → Singles format (common in leagues)"}
+                        {field.value === "custom" && "Define custom submatch format (coming soon)"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="teamSetsPerSubMatch"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[#495057]">Sets Per Submatch</FormLabel>
+                      <div className="flex gap-2">
+                        {["1", "3", "5"].map((n) => {
+                          const isActive = field.value === n;
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => field.onChange(n)}
+                              className={`px-4 text-xs py-2 rounded-lg border transition-all
+                                ${
+                                  isActive
+                                    ? "bg-[#6c6fd5] text-white shadow"
+                                    : "bg-white text-[#495057] border-gray-300 hover:bg-gray-100"
+                                }`}
+                            >
+                              Best of {n}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormDescription className="text-xs">
+                        Number of sets for each individual submatch within the team match
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             {/* Knockout Options */}
             {watchFormat === "knockout" && (
@@ -453,7 +608,7 @@ export default function CreateTournamentPage() {
                         </div>
                         <FormControl>
                           <Switch
-                            checked={field.value}
+                            checked={field.value ?? false}
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
@@ -878,14 +1033,22 @@ export default function CreateTournamentPage() {
           {/* Participants */}
           <div className="p-4 space-y-4">
             <h2 className="font-semibold text-[#1A73E8] text-lg">
-              Participants
+              {watchCategory === "team" ? "Teams" : "Participants"}
             </h2>
 
-            <UserSearchInput
-              placeholder="Search and add participants"
-              onSelect={addParticipant}
-              clearAfterSelect
-            />
+            {watchCategory === "team" ? (
+              <TeamSearchInput
+                placeholder="Search and add teams"
+                onSelect={addParticipant}
+                clearAfterSelect
+              />
+            ) : (
+              <UserSearchInput
+                placeholder="Search and add participants"
+                onSelect={addParticipant}
+                clearAfterSelect
+              />
+            )}
 
             {participants.length > 0 ? (
               <div className="space-y-2">
@@ -900,9 +1063,17 @@ export default function CreateTournamentPage() {
                       </div>
                       <div>
                         <p className="font-medium text-sm">
-                          {p.fullName || p.username}
+                          {watchCategory === "team" 
+                            ? p.name 
+                            : (p.fullName || p.username)}
                         </p>
-                        <p className="text-xs text-gray-500">@{p.username}</p>
+                        {watchCategory === "team" ? (
+                          <p className="text-xs text-gray-500">
+                            {p.players?.length || 0} players
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-500">@{p.username}</p>
+                        )}
                       </div>
                     </div>
                     <button
@@ -917,12 +1088,12 @@ export default function CreateTournamentPage() {
               </div>
             ) : (
               <p className="text-sm text-gray-500 text-center py-4">
-                No participants added yet
+                No {watchCategory === "team" ? "teams" : "participants"} added yet
               </p>
             )}
 
             <p className="text-xs text-gray-500">
-              Added: {participants.length} participants. Minimum: 2
+              Added: {participants.length} {watchCategory === "team" ? "teams" : "participants"}. Minimum: 2
             </p>
           </div>
 

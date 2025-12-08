@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Standing } from "@/types/tournament.type";
+import Link from "next/link";
+import { 
+  Standing,
+  isTeamParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+  getParticipantLink,
+} from "@/types/tournament.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 
 import {
@@ -29,9 +36,11 @@ import { Eye, Flame } from "lucide-react";
 interface DetailedPlayerStats {
   participant: {
     _id: string;
-    username: string;
+    username?: string;
     fullName?: string;
     profileImage?: string;
+    name?: string;
+    logo?: string;
   };
   standing: {
     rank: number;
@@ -63,8 +72,9 @@ interface DetailedPlayerStats {
     matchId: string;
     opponent: {
       _id: string;
-      username: string;
+      username?: string;
       fullName?: string;
+      name?: string;
     };
     result: "win" | "loss" | "draw";
     score: string;
@@ -79,8 +89,9 @@ interface DetailedPlayerStats {
   headToHead: {
     opponentId: string;
     opponent: {
-      username: string;
+      username?: string;
       fullName?: string;
+      name?: string;
     };
     matches: number;
     wins: number;
@@ -99,6 +110,7 @@ interface Props {
   highlightTop?: number;
   groupName?: string;
   tournamentId?: string;
+  category?: "individual" | "team";
 }
 
 export function EnhancedStandingsTable({
@@ -107,11 +119,14 @@ export function EnhancedStandingsTable({
   highlightTop = 3,
   groupName,
   tournamentId,
+  category = "individual",
 }: Props) {
   const [selectedPlayer, setSelectedPlayer] =
     useState<DetailedPlayerStats | null>(null);
   const [showPlayerDialog, setShowPlayerDialog] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const isTeamTournament = category === "team";
 
   const formChip = (r: string) => {
     const base =
@@ -136,7 +151,6 @@ export function EnhancedStandingsTable({
     return <div className="text-slate-400 text-[12px]">{rank}</div>;
   };
 
-  // Import calculation utilities
   const calculateWinRate = (won: number, played: number) => {
     if (played === 0) return 0;
     return (won / played) * 100;
@@ -203,11 +217,36 @@ export function EnhancedStandingsTable({
     }
   };
 
-  const getPlayerDisplayName = (player: {
-    username: string;
-    fullName?: string;
-  }) => {
-    return player.fullName || player.username;
+  // Get display name for any participant type
+  const getDisplayName = (p: any): string => {
+    if (!p) return "Unknown";
+    // Check if it's a team (has 'name' property but no 'username')
+    if (p.name && !p.username) return p.name;
+    return p.fullName || p.username || p.name || "Unknown";
+  };
+
+  // Get subtext for participant (username for users, city/player count for teams)
+  const getSubtext = (p: any): string => {
+    if (!p) return "";
+    // Check if it's a team
+    if (p.name && !p.username) {
+      return p.city || `${p.players?.length || 0} players`;
+    }
+    return `@${p.username || "unknown"}`;
+  };
+
+  // Get image for participant
+  const getImage = (p: any): string | undefined => {
+    if (!p) return undefined;
+    // Check if it's a team
+    if (p.name && !p.username) return p.logo;
+    return p.profileImage;
+  };
+
+  // Get initial for avatar fallback
+  const getInitial = (p: any): string => {
+    const name = getDisplayName(p);
+    return name.charAt(0).toUpperCase() || "?";
   };
 
   return (
@@ -228,7 +267,7 @@ export function EnhancedStandingsTable({
                 Rank
               </TableHead>
               <TableHead className="font-medium text-[11px] text-slate-600">
-                Player
+                {isTeamTournament ? "Team" : "Player"}
               </TableHead>
               <TableHead className="text-center font-medium text-[11px] text-slate-600">
                 MP
@@ -289,6 +328,9 @@ export function EnhancedStandingsTable({
           <TableBody>
             {standings.map((s) => {
               const highlight = s.rank <= highlightTop;
+              const participantLink = isTeamTournament 
+                ? `/teams/${s.participant._id}`
+                : `/profile/${s.participant._id}`;
 
               return (
                 <TableRow
@@ -302,24 +344,27 @@ export function EnhancedStandingsTable({
                     {rankChip(s.rank)}
                   </TableCell>
 
-                  {/* Player */}
+                  {/* Player/Team */}
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <Link href={participantLink} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                       <Avatar className="h-7 w-7">
                         <AvatarImage
-                          src={s.participant.profileImage}
-                          alt={s.participant.fullName}
+                          src={getImage(s.participant)}
+                          alt={getDisplayName(s.participant)}
                         />
+                        <AvatarFallback className="text-xs">
+                          {getInitial(s.participant)}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col leading-tight">
                         <span className="text-[13px] font-medium text-slate-700">
-                          {s.participant.fullName}
+                          {getDisplayName(s.participant)}
                         </span>
                         <span className="text-[11px] text-slate-500">
-                          @{s.participant.username}
+                          {getSubtext(s.participant)}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
 
                   {/* MP */}
@@ -438,7 +483,7 @@ export function EnhancedStandingsTable({
         </Table>
       </div>
 
-      {/* Player Details Dialog */}
+      {/* Player/Team Details Dialog */}
       <Dialog open={showPlayerDialog} onOpenChange={setShowPlayerDialog}>
         <DialogContent className="max-w-4xl max-h-[75vh] overflow-y-auto">
           {selectedPlayer && (
@@ -447,21 +492,19 @@ export function EnhancedStandingsTable({
                 <DialogTitle className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage
-                      src={selectedPlayer.participant.profileImage}
-                      alt={selectedPlayer.participant.username}
+                      src={getImage(selectedPlayer.participant)}
+                      alt={getDisplayName(selectedPlayer.participant)}
                     />
                     <AvatarFallback className="text-[11px]">
-                      {selectedPlayer.participant.username
-                        .substring(0, 2)
-                        .toUpperCase()}
+                      {getInitial(selectedPlayer.participant)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="text-base font-semibold text-slate-800">
-                      {getPlayerDisplayName(selectedPlayer.participant)}
+                      {getDisplayName(selectedPlayer.participant)}
                     </div>
                     <div className="text-[11px] text-slate-500 font-normal">
-                      @{selectedPlayer.participant.username}
+                      {getSubtext(selectedPlayer.participant)}
                     </div>
                   </div>
                   <Badge className="bg-indigo-100 text-indigo-700 text-[11px] font-semibold px-2.5 py-1">
@@ -513,7 +556,7 @@ export function EnhancedStandingsTable({
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="font-medium text-[13px] text-slate-700 truncate">
-                                vs {getPlayerDisplayName(match.opponent)}
+                                vs {getDisplayName(match.opponent)}
                               </div>
                               <div className="text-[11px] text-slate-500">
                                 {match.groupId ? "Group Stage" : "Round Robin"}
@@ -553,7 +596,7 @@ export function EnhancedStandingsTable({
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="font-semibold text-sm">
-                                vs {getPlayerDisplayName(h2h.opponent)}
+                                vs {getDisplayName(h2h.opponent)}
                               </div>
                               <Badge variant="outline" className="text-xs">
                                 {h2h.matches}{" "}
@@ -628,6 +671,3 @@ export function EnhancedStandingsTable({
     </div>
   );
 }
-  const getParticipantName = (p: any) => {
-    return p?.fullName || p?.username || p?.name || "Unknown";
-  };

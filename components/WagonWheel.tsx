@@ -6,6 +6,7 @@ import { useState } from "react";
 import { formatStrokeName } from "@/lib/utils";
 import { getShotColor } from "@/lib/match-stats-utils";
 import { generateShortCommentary } from "@/lib/shot-commentary-utils";
+import { motion } from "framer-motion";
 
 interface WagonWheelProps {
   shots: Shot[];
@@ -259,15 +260,23 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
               shot.originY! <= 100;
 
             return (
-              <g
+              <motion.g
                 key={idx}
                 onMouseEnter={() => setHoveredShot(idx)}
                 onMouseLeave={() => setHoveredShot(null)}
-                className="cursor-pointer transition-all"
-                opacity={hoveredShot !== null && !isHovered ? 0.3 : 1}
+                className="cursor-pointer"
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: hoveredShot !== null && !isHovered ? 0.3 : 1
+                }}
+                transition={{ 
+                  delay: idx * 0.03,
+                  duration: 0.5,
+                  ease: "easeOut"
+                }}
               >
                 {/* Shot trajectory line */}
-                <line
+                <motion.line
                   x1={x1}
                   y1={y1}
                   x2={x2}
@@ -275,24 +284,36 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                   stroke={shotColor}
                   strokeWidth={isHovered ? 2 : 1}
                   strokeLinecap="round"
-                  opacity="0.85"
-                  style={{ transition: "all 0.2s" }}
+                  initial={{ opacity: 0, pathLength: 0 }}
+                  animate={{ opacity: 0.85, pathLength: 1 }}
+                  transition={{ 
+                    delay: idx * 0.03 + 0.1,
+                    duration: 0.6,
+                    ease: "easeOut"
+                  }}
+                  style={{ transition: "stroke-width 0.2s" }}
                 />
 
                 {/* Origin marker (where player hit from) */}
-                <circle
+                <motion.circle
                   cx={x1}
                   cy={y1}
                   r={isHovered ? 5 : 2.5}
                   fill={originOnTable ? shotColor : "#9CA3AF"}
                   stroke="white"
                   strokeWidth="0.5"
-                  opacity="0.8"
-                  style={{ transition: "all 0.2s" }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 0.8, scale: 1 }}
+                  transition={{ 
+                    delay: idx * 0.03 + 0.2,
+                    duration: 0.4,
+                    ease: "easeOut"
+                  }}
+                  style={{ transition: "r 0.2s" }}
                 />
 
                 {/* Landing marker (where ball landed) */}
-                <circle
+                <motion.circle
                   cx={x2}
                   cy={y2}
                   r={isHovered ? 7 : 4}
@@ -300,9 +321,16 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                   stroke="white"
                   strokeWidth={isHovered ? "2" : "1"}
                   filter={isHovered ? "url(#glow)" : undefined}
-                  style={{ transition: "all 0.2s" }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    delay: idx * 0.03 + 0.3,
+                    duration: 0.4,
+                    ease: "easeOut"
+                  }}
+                  style={{ transition: "r 0.2s, stroke-width 0.2s" }}
                 />
-              </g>
+              </motion.g>
             );
           })}
         </svg>

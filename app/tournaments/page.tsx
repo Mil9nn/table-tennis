@@ -8,6 +8,7 @@ import FiltersBar, { type FilterState } from "./components/FiltersBar";
 import TournamentCard from "./components/TournamentCard";
 import EmptyState from "./components/EmptyState";
 import { Loader2 } from "lucide-react";
+import { TournamentErrorBoundary } from "@/components/tournaments/TournamentErrorBoundary";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -38,7 +39,7 @@ export default function TournamentsPage() {
   // Intersection Observer ref
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Fetch tournaments with pagination
+  // Fetch tournaments with pagination and filters
   const fetchTournaments = useCallback(async (pageNum: number, append = false) => {
     try {
       if (append) {
@@ -48,9 +49,39 @@ export default function TournamentsPage() {
       }
 
       const skip = pageNum * ITEMS_PER_PAGE;
-      const { data } = await axiosInstance.get(
-        `/tournaments?limit=${ITEMS_PER_PAGE}&skip=${skip}`
-      );
+      
+      // Build query params
+      const params = new URLSearchParams({
+        limit: ITEMS_PER_PAGE.toString(),
+        skip: skip.toString(),
+      });
+      
+      if (filters.status && filters.status !== "all") {
+        params.append("status", filters.status);
+      }
+      if (filters.format && filters.format !== "all") {
+        params.append("format", filters.format);
+      }
+      if (filters.query) {
+        params.append("search", filters.query);
+      }
+      
+      // Add sort parameters
+      if (filters.sort === "recent") {
+        params.append("sortBy", "startDate");
+        params.append("sortOrder", "desc");
+      } else if (filters.sort === "upcoming") {
+        params.append("sortBy", "startDate");
+        params.append("sortOrder", "asc");
+      } else if (filters.sort === "name") {
+        params.append("sortBy", "name");
+        params.append("sortOrder", "asc");
+      } else if (filters.sort === "participants") {
+        params.append("sortBy", "startDate"); // Participants sorting requires aggregation, keeping date sort
+        params.append("sortOrder", "desc");
+      }
+
+      const { data } = await axiosInstance.get(`/tournaments?${params.toString()}`);
 
       if (append) {
         setTournaments((prev) => [...prev, ...(data.tournaments || [])]);
@@ -65,12 +96,13 @@ export default function TournamentsPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [filters]);
 
-  // Initial fetch
+  // Initial fetch and refetch when filters change
   useEffect(() => {
+    setPage(0);
     fetchTournaments(0, false);
-  }, [fetchTournaments]);
+  }, [filters, fetchTournaments]);
 
   // Load more when intersection observer triggers
   useEffect(() => {
@@ -101,38 +133,24 @@ export default function TournamentsPage() {
     };
   }, [loadingMore, loading, hasMore, page, fetchTournaments]);
 
+  // Server-side filtering is now handled, but we still do client-side sorting for participants
+  // since server-side participant sorting requires aggregation
   const filtered = useMemo(() => {
-    const q = filters.query.trim().toLowerCase();
-    let list = tournaments.filter((t) => {
-      const matchesQuery = !q || t.name.toLowerCase().includes(q) || t.city.toLowerCase().includes(q);
-      const matchesStatus = filters.status === "all" || t.status === filters.status;
-      const matchesFormat = filters.format === "all" || t.format === filters.format;
-      return matchesQuery && matchesStatus && matchesFormat;
-    });
+    let list = [...tournaments];
 
-    switch (filters.sort) {
-      case "upcoming":
-        list = list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-        break;
-      case "participants":
-        list = list.sort((a, b) => (b.participants?.length || 0) - (a.participants?.length || 0));
-        break;
-      case "name":
-        list = list.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "recent":
-      default:
-        list = list.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-        break;
+    // Client-side sort only for participants (server doesn't support this efficiently)
+    if (filters.sort === "participants") {
+      list = list.sort((a, b) => (b.participants?.length || 0) - (a.participants?.length || 0));
     }
 
     return list;
-  }, [tournaments, filters]);
+  }, [tournaments, filters.sort]);
 
   const hasFilters = !!(filters.query || filters.status !== "all" || filters.format !== "all");
 
   return (
-    <div className="space-y-4">
+    <TournamentErrorBoundary>
+      <div className="space-y-4">
       <HeaderHero />
 
       <FiltersBar value={filters} onChange={setFilters} />
@@ -166,5 +184,6 @@ export default function TournamentsPage() {
         </>
       )}
     </div>
+    </TournamentErrorBoundary>
   );
 }

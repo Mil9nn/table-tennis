@@ -107,6 +107,16 @@ export interface ITournament extends Document {
   };
   bracket?: any; // Will store the bracket structure
 
+  // Team tournament config
+  teamConfig?: {
+    matchFormat: "five_singles" | "single_double_single" | "custom";
+    setsPerSubMatch: number;
+    customSubMatches?: Array<{
+      matchNumber: number;
+      matchType: "singles" | "doubles";
+    }>;
+  };
+
   // Hybrid format specific (round-robin -> knockout)
   hybridConfig?: {
     // Round-robin phase settings
@@ -197,7 +207,9 @@ const tournamentSchema = new Schema<ITournament>(
       default: "draft",
     },
 
-    participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    // Participants can be Users (individual) or Teams (team category)
+    // We don't use ref here to allow both types, population is handled manually based on category
+    participants: [{ type: Schema.Types.ObjectId }],
     organizer: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
     // Seeding
@@ -254,7 +266,24 @@ const tournamentSchema = new Schema<ITournament>(
       required: false,
     },
 
-    // Team format config removed for individual-only tournaments
+    // Team tournament config (for category: "team")
+    teamConfig: {
+      type: {
+        matchFormat: {
+          type: String,
+          enum: ["five_singles", "single_double_single", "custom"],
+          default: "five_singles",
+        },
+        setsPerSubMatch: { type: Number, default: 3 },
+        customSubMatches: [
+          {
+            matchNumber: { type: Number },
+            matchType: { type: String, enum: ["singles", "doubles"] },
+          },
+        ],
+      },
+      required: false,
+    },
 
     // Phase tracking for hybrid tournaments
     currentPhase: {

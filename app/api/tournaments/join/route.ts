@@ -63,6 +63,34 @@ export async function POST(req: NextRequest) {
     const joinError = handleValidationResult(canJoinCheck);
     if (joinError) return joinError;
 
+    // Check max participants limit
+    if (tournament.maxParticipants) {
+      const currentParticipantCount = tournament.participants.length;
+      if (currentParticipantCount >= tournament.maxParticipants) {
+        return NextResponse.json(
+          { 
+            error: "Tournament is full",
+            details: `Maximum ${tournament.maxParticipants} participants allowed. Currently ${currentParticipantCount} participants.`
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check registration deadline if set
+    if (tournament.registrationDeadline) {
+      const now = new Date();
+      if (now > tournament.registrationDeadline) {
+        return NextResponse.json(
+          { 
+            error: "Registration deadline has passed",
+            details: `Registration closed on ${tournament.registrationDeadline.toLocaleDateString()}`
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Add user to participants
     tournament.participants.push(decoded.userId as any);
     await tournament.save();

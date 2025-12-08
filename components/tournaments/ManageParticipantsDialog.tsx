@@ -12,21 +12,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { Loader2, UserPlus, X, Search, Users, Save } from "lucide-react";
+import { Loader2, X, Users2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@/types/user";
-import { Participant } from "@/types/tournament.type";
+import { 
+  Participant, 
+  TeamParticipant, 
+  UserParticipant,
+  isTeamParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+} from "@/types/tournament.type";
 import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import PersonIcon from '@mui/icons-material/Person';
+import PersonIcon from "@mui/icons-material/Person";
+import GroupsIcon from "@mui/icons-material/Groups";
+
+// Team type from search results
+interface TeamSearchResult {
+  _id: string;
+  name: string;
+  logo?: string;
+  city?: string;
+  captain?: {
+    _id: string;
+    username: string;
+    fullName?: string;
+  };
+  players?: any[];
+}
 
 interface ManageParticipantsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tournamentId: string;
   participants: Participant[];
+  category: "individual" | "team";
   onUpdate: (participants: Participant[]) => void;
 }
 
@@ -35,20 +58,23 @@ export function ManageParticipantsDialog({
   onOpenChange,
   tournamentId,
   participants,
+  category,
   onUpdate,
 }: ManageParticipantsDialogProps) {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<User[]>([]);
+  const [suggestions, setSuggestions] = useState<(User | TeamSearchResult)[]>([]);
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Track pending changes locally
-  const [pendingAdds, setPendingAdds] = useState<User[]>([]);
+  const [pendingAdds, setPendingAdds] = useState<(User | TeamSearchResult)[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
 
   // Local state for current participants (includes pending changes)
   const [localParticipants, setLocalParticipants] = useState<Participant[]>([]);
+
+  const isTeamTournament = category === "team";
 
   // Initialize local participants when dialog opens or participants change
   useEffect(() => {
@@ -70,15 +96,24 @@ export function ManageParticipantsDialog({
 
     setSearching(true);
     try {
-      const response = await axiosInstance.get(`/users/search?q=${val}`);
-      // Filter out users who are already participants (including pending adds)
+      // Use different search endpoint based on category
+      const endpoint = isTeamTournament 
+        ? `/teams/search?query=${val}`
+        : `/users/search?q=${val}`;
+      
+      const response = await axiosInstance.get(endpoint);
+      
+      // Filter out items who are already participants (including pending adds)
       const existingIds = new Set([
         ...localParticipants.map((p) => p._id),
-        ...pendingAdds.map((u) => u._id),
+        ...pendingAdds.map((item) => item._id),
       ]);
-      const filtered = (response.data?.users || []).filter(
-        (u: User) => !existingIds.has(u._id)
-      );
+
+      const data = isTeamTournament 
+        ? (response.data?.teams || [])
+        : (response.data?.users || []);
+      
+      const filtered = data.filter((item: any) => !existingIds.has(item._id));
       setSuggestions(filtered);
     } catch (err) {
       console.error("Error fetching suggestions:", err);
@@ -87,18 +122,34 @@ export function ManageParticipantsDialog({
     }
   };
 
-  const addParticipant = (user: User) => {
+  const addParticipant = (item: User | TeamSearchResult) => {
     // Add to pending adds and local participants
-    setPendingAdds([...pendingAdds, user]);
-    setLocalParticipants([
-      ...localParticipants,
-      {
+    setPendingAdds([...pendingAdds, item]);
+    
+    // Convert to participant format
+    let newParticipant: Participant;
+    
+    if (isTeamTournament) {
+      const team = item as TeamSearchResult;
+      newParticipant = {
+        _id: team._id,
+        name: team.name,
+        logo: team.logo,
+        city: team.city,
+        captain: team.captain,
+        players: team.players,
+      } as TeamParticipant;
+    } else {
+      const user = item as User;
+      newParticipant = {
         _id: user._id,
         username: user.username,
         fullName: user.fullName,
         profileImage: user.profileImage,
-      } as Participant,
-    ]);
+      } as UserParticipant;
+    }
+    
+    setLocalParticipants([...localParticipants, newParticipant]);
 
     // Clear search
     setQuery("");
@@ -107,11 +158,11 @@ export function ManageParticipantsDialog({
 
   const removeParticipant = (participant: Participant) => {
     // Check if it's a pending add (not yet saved)
-    const isPendingAdd = pendingAdds.some((u) => u._id === participant._id);
+    const isPendingAdd = pendingAdds.some((item) => item._id === participant._id);
 
     if (isPendingAdd) {
       // Remove from pending adds
-      setPendingAdds(pendingAdds.filter((u) => u._id !== participant._id));
+      setPendingAdds(pendingAdds.filter((item) => item._id !== participant._id));
     } else {
       // Add to pending removes
       setPendingRemoves([...pendingRemoves, participant._id]);
@@ -132,11 +183,11 @@ export function ManageParticipantsDialog({
     setSaving(true);
     try {
       // Apply all additions
-      for (const user of pendingAdds) {
+      for (const item of pendingAdds) {
         await axiosInstance.post(
           `/tournaments/${tournamentId}/add-participant`,
           {
-            participantId: user._id,
+            participantId: item._id,
           }
         );
       }
@@ -155,18 +206,17 @@ export function ManageParticipantsDialog({
       const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
       onUpdate(data.tournament.participants);
 
+      const entityName = isTeamTournament ? "team" : "participant";
+      const entityNamePlural = isTeamTournament ? "teams" : "participants";
+      
       toast.success(
         `Successfully ${
           pendingAdds.length > 0
-            ? `added ${pendingAdds.length} participant${
-                pendingAdds.length > 1 ? "s" : ""
-              }`
+            ? `added ${pendingAdds.length} ${pendingAdds.length > 1 ? entityNamePlural : entityName}`
             : ""
         }${pendingAdds.length > 0 && pendingRemoves.length > 0 ? " and " : ""}${
           pendingRemoves.length > 0
-            ? `removed ${pendingRemoves.length} participant${
-                pendingRemoves.length > 1 ? "s" : ""
-              }`
+            ? `removed ${pendingRemoves.length} ${pendingRemoves.length > 1 ? entityNamePlural : entityName}`
             : ""
         }`
       );
@@ -194,16 +244,54 @@ export function ManageParticipantsDialog({
 
   const getInitial = (name: string) => name?.charAt(0)?.toUpperCase() || "?";
 
+  // Helper to get display info for a suggestion item
+  const getSuggestionDisplay = (item: User | TeamSearchResult) => {
+    if (isTeamTournament) {
+      const team = item as TeamSearchResult;
+      return {
+        name: team.name,
+        subtext: team.city ? team.city : `${team.players?.length || 0} players`,
+        image: team.logo,
+      };
+    } else {
+      const user = item as User;
+      return {
+        name: user.fullName || user.username,
+        subtext: `@${user.username}`,
+        image: user.profileImage,
+      };
+    }
+  };
+
+  // Helper to get display info for a participant
+  const getParticipantDisplay = (p: Participant) => {
+    if (isTeamParticipant(p)) {
+      return {
+        name: p.name,
+        subtext: p.city || `${p.players?.length || 0} players`,
+        image: p.logo,
+      };
+    } else {
+      return {
+        name: p.fullName || p.username,
+        subtext: `@${p.username}`,
+        image: p.profileImage,
+      };
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ManageAccountsIcon className="size-5 text-indigo-500" />
-            <span className="text-indigo-500">Manage Participants</span>
+            <span className="text-indigo-500">
+              Manage {isTeamTournament ? "Teams" : "Participants"}
+            </span>
           </DialogTitle>
           <DialogDescription>
-            Add or remove participants before generating the draw.
+            Add or remove {isTeamTournament ? "teams" : "participants"} before generating the draw.
           </DialogDescription>
         </DialogHeader>
 
@@ -211,11 +299,14 @@ export function ManageParticipantsDialog({
           {/* Search to add participants */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">
-              Add Participant
+              Add {isTeamTournament ? "Team" : "Participant"}
             </label>
             <div className="relative">
               <Input
-                placeholder="Search users by name or username..."
+                placeholder={isTeamTournament 
+                  ? "Search teams by name..." 
+                  : "Search users by name or username..."
+                }
                 value={query}
                 onChange={(e) => fetchSuggestions(e.target.value)}
                 onFocus={() => setFocused(true)}
@@ -231,32 +322,32 @@ export function ManageParticipantsDialog({
               {/* Dropdown suggestions */}
               {focused && suggestions.length > 0 && (
                 <ul className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                  {suggestions.map((u) => {
-                    const displayName = u.fullName || u.username;
+                  {suggestions.map((item) => {
+                    const display = getSuggestionDisplay(item);
 
                     return (
                       <li
-                        key={u._id}
+                        key={item._id}
                         className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 cursor-pointer transition-colors"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => addParticipant(u)}
+                        onClick={() => addParticipant(item)}
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
                             <AvatarImage
-                              src={u.profileImage}
-                              alt={displayName}
+                              src={display.image}
+                              alt={display.name}
                             />
                             <AvatarFallback className="text-xs">
-                              {getInitial(displayName)}
+                              {getInitial(display.name)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col leading-tight">
                             <span className="text-sm font-medium">
-                              {displayName}
+                              {display.name}
                             </span>
                             <span className="text-xs text-slate-500">
-                              @{u.username}
+                              {display.subtext}
                             </span>
                           </div>
                         </div>
@@ -271,7 +362,7 @@ export function ManageParticipantsDialog({
                 suggestions.length === 0 &&
                 !searching && (
                   <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg p-3 text-center text-sm text-slate-500">
-                    No users found
+                    No {isTeamTournament ? "teams" : "users"} found
                   </div>
                 )}
             </div>
@@ -281,23 +372,28 @@ export function ManageParticipantsDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-slate-700">
-                Participants ({localParticipants.length})
+                {isTeamTournament ? "Teams" : "Participants"} ({localParticipants.length})
               </label>
             </div>
 
             <ScrollArea className="h-[240px] border rounded-lg">
               {localParticipants.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-slate-500">
-                  <PersonIcon className="size-6 mb-2" />
-                  <p className="text-sm">No participants yet</p>
+                  {isTeamTournament ? (
+                    <GroupsIcon className="size-6 mb-2" />
+                  ) : (
+                    <PersonIcon className="size-6 mb-2" />
+                  )}
+                  <p className="text-sm">No {isTeamTournament ? "teams" : "participants"} yet</p>
                 </div>
               ) : (
                 <div className="divide-y">
                   {localParticipants.map((p) => {
                     const isPendingAdd = pendingAdds.some(
-                      (u) => u._id === p._id
+                      (item) => item._id === p._id
                     );
                     const isPendingRemove = pendingRemoves.includes(p._id);
+                    const display = getParticipantDisplay(p);
 
                     return (
                       <div
@@ -313,17 +409,17 @@ export function ManageParticipantsDialog({
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7">
                             <AvatarImage
-                              src={p.profileImage}
-                              alt={p.username}
+                              src={display.image}
+                              alt={display.name}
                             />
                             <AvatarFallback className="text-xs">
-                              {getInitial(p.fullName || p.username)}
+                              {getInitial(display.name)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col leading-tight">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-slate-800">
-                                {p.fullName || p.username}
+                                {display.name}
                               </span>
                               {isPendingAdd && (
                                 <span className="text-xs text-green-600 font-medium">
@@ -332,7 +428,7 @@ export function ManageParticipantsDialog({
                               )}
                             </div>
                             <span className="text-xs text-slate-500">
-                              @{p.username}
+                              {display.subtext}
                             </span>
                           </div>
                         </div>

@@ -174,6 +174,8 @@ export default function MatchStatsPage() {
               games={allGames}
               side1Name={side1Name}
               side2Name={side2Name}
+              participants={allParticipants}
+              finalScore={match.finalScore}
             />
           </TabsContent>
 
@@ -338,6 +340,11 @@ export default function MatchStatsPage() {
                     games={smGames}
                     side1Name={player1}
                     side2Name={player2}
+                    participants={[
+                      ...(Array.isArray(subMatch.playerTeam1) ? subMatch.playerTeam1 : [subMatch.playerTeam1]),
+                      ...(Array.isArray(subMatch.playerTeam2) ? subMatch.playerTeam2 : [subMatch.playerTeam2]),
+                    ]}
+                    finalScore={subMatch.finalScore}
                   />
                 </div>
               );

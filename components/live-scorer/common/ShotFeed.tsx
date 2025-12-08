@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Shot } from "@/types/shot.type";
 import { ChevronDown, ChevronUp, Target, MessageSquare } from "lucide-react";
-import { generateShortCommentary } from "@/lib/shot-commentary-utils";
+import { generateFullCommentary, generateShortCommentary } from "@/lib/shot-commentary-utils";
 
 interface ShotFeedProps {
-  games: { gameNumber: number; shots: Shot[] }[];
+  games: { gameNumber: number; shots: Shot[]; side1Score?: number; side2Score?: number; winnerSide?: string | null }[];
   currentGame: number;
   participants: { _id: string; fullName?: string; username?: string }[];
+  finalScore?: { side1Sets: number; side2Sets: number };
 }
 
 function formatShotType(stroke?: string | null) {
@@ -23,7 +24,15 @@ export default function ShotFeed({
   games,
   currentGame,
   participants,
+  finalScore,
 }: ShotFeedProps) {
+  // Derive side names from participants
+  const side1Name = participants.length > 0 
+    ? (typeof participants[0] === 'string' ? participants[0] : participants[0].fullName || participants[0].username || "Player 1")
+    : "Player 1";
+  const side2Name = participants.length > 1
+    ? (typeof participants[1] === 'string' ? participants[1] : participants[1].fullName || participants[1].username || "Player 2")
+    : "Player 2";
   const [expandedGames, setExpandedGames] = useState<number[]>([currentGame]);
 
   const toggleGame = (gameNumber: number) => {
@@ -110,9 +119,58 @@ export default function ShotFeed({
                       shot.originY != null &&
                       shot.landingX != null &&
                       shot.landingY != null;
-                    const commentary = hasCoordinates
-                      ? generateShortCommentary(shot)
-                      : null;
+                    
+                    // Calculate game score at the time of this shot
+                    // Count shots by side up to and including this shot
+                    let gameScoreSide1 = 0;
+                    let gameScoreSide2 = 0;
+                    for (let j = 0; j <= i; j++) {
+                      if (shots[j].side === "side1") {
+                        gameScoreSide1++;
+                      } else if (shots[j].side === "side2") {
+                        gameScoreSide2++;
+                      }
+                    }
+                    const currentGameScore = {
+                      side1Score: gameScoreSide1,
+                      side2Score: gameScoreSide2,
+                    };
+                    
+                    // Calculate set score at the time of this shot
+                    // Count completed games before this one
+                    let setsWonSide1 = 0;
+                    let setsWonSide2 = 0;
+                    for (let j = 0; j < games.length; j++) {
+                      const g = games[j];
+                      if (g.gameNumber < game.gameNumber && g.winnerSide === "side1") {
+                        setsWonSide1++;
+                      } else if (g.gameNumber < game.gameNumber && g.winnerSide === "side2") {
+                        setsWonSide2++;
+                      }
+                    }
+                    const currentSetScore = finalScore || {
+                      side1Sets: setsWonSide1,
+                      side2Sets: setsWonSide2,
+                    };
+                    
+                    let commentary: string | null = null;
+                    if (hasCoordinates) {
+                      if (participants) {
+                        // Use calculated set score (either from finalScore prop or calculated from games)
+                        commentary = generateFullCommentary(
+                          shot,
+                          participants,
+                          games,
+                          currentSetScore,
+                          side1Name,
+                          side2Name,
+                          currentGameScore
+                        );
+                      } else {
+                        // Fallback to short commentary if we don't have participants
+                        commentary = generateShortCommentary(shot);
+                      }
+                    }
 
                     return (
                       <li
@@ -141,9 +199,15 @@ export default function ShotFeed({
                         {commentary && (
                           <div className="flex items-start gap-2 ml-8 text-xs">
                             <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-600 dark:text-zinc-400 italic leading-relaxed">
-                              {commentary}
-                            </span>
+                            <span 
+                              className="text-gray-600 dark:text-zinc-400 italic leading-relaxed"
+                              dangerouslySetInnerHTML={{ 
+                                __html: commentary.replace(
+                                  /<strong>(.*?)<\/strong>/g, 
+                                  '<strong class="font-bold text-gray-900 dark:text-zinc-100 not-italic">$1</strong>'
+                                )
+                              }}
+                            />
                           </div>
                         )}
                       </li>

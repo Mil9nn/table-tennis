@@ -75,6 +75,10 @@ export function GameProgressionChart({
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1200}
+                animationEasing="ease-out"
               />
               <Line
                 type="monotone"
@@ -83,6 +87,10 @@ export function GameProgressionChart({
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
+                isAnimationActive={true}
+                animationBegin={200}
+                animationDuration={1200}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>

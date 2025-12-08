@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import Tournament from "@/models/Tournament";
 import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
 import { User } from "@/models/User";
+import Team from "@/models/Team";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+
+// Helper to get population config based on tournament category
+function getParticipantPopulateConfig(category: "individual" | "team") {
+  if (category === "team") {
+    return {
+      model: Team,
+      select: "name logo city captain players",
+      populate: [
+        { path: "captain", select: "username fullName profileImage" },
+        { path: "players.user", select: "username fullName profileImage" },
+      ],
+    };
+  }
+  return {
+    model: User,
+    select: "username fullName profileImage",
+  };
+}
+
+// Helper to get match model based on tournament category
+function getMatchModel(category: "individual" | "team") {
+  return category === "team" ? TeamMatch : IndividualMatch;
+}
 
 export async function GET(
   req: NextRequest,
@@ -13,35 +38,116 @@ export async function GET(
     await connectDB();
 
     // Ensure models are registered for population
-    if (!IndividualMatch || !User) {
+    if (!IndividualMatch || !User || !Team || !TeamMatch) {
       throw new Error("Required models not loaded");
     }
 
     const { id } = await context.params;
 
-    const tournament = await Tournament.findById(id)
-      .populate("organizer", "username fullName profileImage")
-      .populate("participants", "username fullName profileImage")
-      .populate("standings.participant", "username fullName profileImage")
-      .populate("groups.standings.participant", "username fullName profileImage")
-      .populate("groups.participants", "username fullName profileImage")
-      .populate("seeding.participant", "username fullName profileImage")
+    // First, fetch tournament to check its category
+    const tournamentRaw = await Tournament.findById(id);
+    if (!tournamentRaw) {
+      return NextResponse.json(
+        { error: "Tournament not found" },
+        { status: 404 }
+      );
+    }
+
+    const isTeamTournament = tournamentRaw.category === "team";
+    const participantConfig = getParticipantPopulateConfig(tournamentRaw.category);
+    const MatchModel = getMatchModel(tournamentRaw.category);
+
+    // Build the populate configuration dynamically
+    let query = Tournament.findById(id)
+      .populate("organizer", "username fullName profileImage");
+
+    // Populate participants based on category
+    if (isTeamTournament) {
+      query = query
+        .populate({
+          path: "participants",
+          model: Team,
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        })
+        .populate({
+          path: "standings.participant",
+          model: Team,
+          select: "name logo city captain",
+        })
+        .populate({
+          path: "groups.standings.participant",
+          model: Team,
+          select: "name logo city captain",
+        })
+        .populate({
+          path: "groups.participants",
+          model: Team,
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        })
+        .populate({
+          path: "seeding.participant",
+          model: Team,
+          select: "name logo city captain",
+        })
+        .populate({
+          path: "qualifiedParticipants",
+          model: Team,
+          select: "name logo city captain",
+        });
+    } else {
+      query = query
+        .populate("participants", "username fullName profileImage")
+        .populate("standings.participant", "username fullName profileImage")
+        .populate("groups.standings.participant", "username fullName profileImage")
+        .populate("groups.participants", "username fullName profileImage")
+        .populate("seeding.participant", "username fullName profileImage")
+        .populate("qualifiedParticipants", "username fullName profileImage");
+    }
+
+    // Populate matches based on category
+    const matchModelName = isTeamTournament ? "TeamMatch" : "IndividualMatch";
+    
+    query = query
       .populate({
         path: "rounds.matches",
-        model: "IndividualMatch",
-        populate: {
-          path: "participants",
-          select: "username fullName profileImage",
-        },
+        model: matchModelName,
+        populate: isTeamTournament
+          ? [
+              { path: "team1.captain", select: "username fullName profileImage" },
+              { path: "team2.captain", select: "username fullName profileImage" },
+              { path: "subMatches.playerTeam1", select: "username fullName profileImage" },
+              { path: "subMatches.playerTeam2", select: "username fullName profileImage" },
+            ]
+          : {
+              path: "participants",
+              select: "username fullName profileImage",
+            },
       })
       .populate({
         path: "groups.rounds.matches",
-        model: "IndividualMatch",
-        populate: {
-          path: "participants",
-          select: "username fullName profileImage",
-        },
+        model: matchModelName,
+        populate: isTeamTournament
+          ? [
+              { path: "team1.captain", select: "username fullName profileImage" },
+              { path: "team2.captain", select: "username fullName profileImage" },
+              { path: "subMatches.playerTeam1", select: "username fullName profileImage" },
+              { path: "subMatches.playerTeam2", select: "username fullName profileImage" },
+            ]
+          : {
+              path: "participants",
+              select: "username fullName profileImage",
+            },
       });
+
+    const tournament = await query;
 
     if (!tournament) {
       return NextResponse.json(
@@ -50,14 +156,14 @@ export async function GET(
       );
     }
 
-    // For knockout tournaments, manually populate bracket matches
+    // For knockout/hybrid tournaments, manually populate bracket matches
     // (bracket is Schema.Types.Mixed, so auto-populate doesn't work)
-    if (tournament.format === "knockout" && tournament.bracket) {
+    if ((tournament.format === "knockout" || tournament.format === "hybrid") && tournament.bracket) {
       const matchIds: string[] = [];
 
       // Collect all matchIds from bracket
-      tournament.bracket.rounds.forEach((round: any) => {
-        round.matches.forEach((match: any) => {
+      tournament.bracket.rounds?.forEach((round: any) => {
+        round.matches?.forEach((match: any) => {
           if (match.matchId) {
             matchIds.push(match.matchId);
           }
@@ -71,9 +177,20 @@ export async function GET(
 
       // Fetch and populate all bracket matches
       if (matchIds.length > 0) {
-        const bracketMatches = await IndividualMatch.find({
-          _id: { $in: matchIds },
-        }).populate("participants", "username fullName profileImage");
+        let bracketMatchesQuery;
+        
+        if (isTeamTournament) {
+          bracketMatchesQuery = TeamMatch.find({ _id: { $in: matchIds } })
+            .populate("team1.captain", "username fullName profileImage")
+            .populate("team2.captain", "username fullName profileImage")
+            .populate("subMatches.playerTeam1", "username fullName profileImage")
+            .populate("subMatches.playerTeam2", "username fullName profileImage");
+        } else {
+          bracketMatchesQuery = IndividualMatch.find({ _id: { $in: matchIds } })
+            .populate("participants", "username fullName profileImage");
+        }
+
+        const bracketMatches = await bracketMatchesQuery;
 
         // Create a map for quick lookup
         const matchMap = new Map();
@@ -82,8 +199,8 @@ export async function GET(
         });
 
         // Replace matchIds with populated match objects in bracket structure
-        tournament.bracket.rounds.forEach((round: any) => {
-          round.matches.forEach((bracketMatch: any) => {
+        tournament.bracket.rounds?.forEach((round: any) => {
+          round.matches?.forEach((bracketMatch: any) => {
             if (bracketMatch.matchId) {
               const populatedMatch = matchMap.get(bracketMatch.matchId.toString());
               if (populatedMatch) {
@@ -101,6 +218,59 @@ export async function GET(
           );
           if (populatedMatch) {
             tournament.bracket.thirdPlaceMatch.matchId = populatedMatch;
+          }
+        }
+      }
+
+      // For team tournaments, also populate participant info in bracket
+      if (isTeamTournament && tournament.bracket.rounds) {
+        const participantIds = new Set<string>();
+        
+        // Collect all participant IDs from bracket
+        tournament.bracket.rounds.forEach((round: any) => {
+          round.matches?.forEach((match: any) => {
+            if (match.participant1) participantIds.add(match.participant1.toString());
+            if (match.participant2) participantIds.add(match.participant2.toString());
+          });
+        });
+        if (tournament.bracket.thirdPlaceMatch) {
+          const tpm = tournament.bracket.thirdPlaceMatch;
+          if (tpm.participant1) participantIds.add(tpm.participant1.toString());
+          if (tpm.participant2) participantIds.add(tpm.participant2.toString());
+        }
+
+        // Fetch team info
+        if (participantIds.size > 0) {
+          const teams = await Team.find({ _id: { $in: Array.from(participantIds) } })
+            .select("name logo city captain")
+            .populate("captain", "username fullName profileImage")
+            .lean();
+
+          const teamMap = new Map();
+          teams.forEach((team: any) => {
+            teamMap.set(team._id.toString(), team);
+          });
+
+          // Add team info to bracket
+          tournament.bracket.rounds.forEach((round: any) => {
+            round.matches?.forEach((match: any) => {
+              if (match.participant1) {
+                match.participant1Info = teamMap.get(match.participant1.toString());
+              }
+              if (match.participant2) {
+                match.participant2Info = teamMap.get(match.participant2.toString());
+              }
+            });
+          });
+
+          if (tournament.bracket.thirdPlaceMatch) {
+            const tpm = tournament.bracket.thirdPlaceMatch;
+            if (tpm.participant1) {
+              tpm.participant1Info = teamMap.get(tpm.participant1.toString());
+            }
+            if (tpm.participant2) {
+              tpm.participant2Info = teamMap.get(tpm.participant2.toString());
+            }
           }
         }
       }
@@ -134,9 +304,9 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Explicitly ensure IndividualMatch is registered
-    if (!IndividualMatch) {
-      throw new Error("IndividualMatch model not loaded");
+    // Explicitly ensure models are registered
+    if (!IndividualMatch || !TeamMatch) {
+      throw new Error("Match models not loaded");
     }
 
     const { id } = await context.params;
@@ -162,7 +332,7 @@ export async function PUT(
     const body = await req.json();
 
     // Whitelist allowed update fields (prevent mass assignment)
-    const allowedFields = ["name", "description", "venue", "city", "startDate", "endDate", "status"];
+    const allowedFields = ["name", "description", "venue", "city", "startDate", "endDate", "status", "teamConfig"];
     const updateData: Record<string, any> = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
@@ -170,16 +340,50 @@ export async function PUT(
       }
     }
 
-    const tournament = await Tournament.findByIdAndUpdate(
+    const isTeamTournament = existingTournament.category === "team";
+
+    let query = Tournament.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true }
-    )
-      .populate("organizer", "username fullName profileImage")
-      .populate("participants", "username fullName profileImage")
-      .populate("standings.participant", "username fullName profileImage")
-      .populate("groups.standings.participant", "username fullName profileImage")
-      .populate("seeding.participant", "username fullName profileImage");
+    ).populate("organizer", "username fullName profileImage");
+
+    // Populate based on category
+    if (isTeamTournament) {
+      query = query
+        .populate({
+          path: "participants",
+          model: Team,
+          select: "name logo city captain players",
+          populate: [
+            { path: "captain", select: "username fullName profileImage" },
+            { path: "players.user", select: "username fullName profileImage" },
+          ],
+        })
+        .populate({
+          path: "standings.participant",
+          model: Team,
+          select: "name logo city captain",
+        })
+        .populate({
+          path: "groups.standings.participant",
+          model: Team,
+          select: "name logo city captain",
+        })
+        .populate({
+          path: "seeding.participant",
+          model: Team,
+          select: "name logo city captain",
+        });
+    } else {
+      query = query
+        .populate("participants", "username fullName profileImage")
+        .populate("standings.participant", "username fullName profileImage")
+        .populate("groups.standings.participant", "username fullName profileImage")
+        .populate("seeding.participant", "username fullName profileImage");
+    }
+
+    const tournament = await query;
 
     return NextResponse.json({
       tournament,

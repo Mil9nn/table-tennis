@@ -284,8 +284,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         gameWinner: gameWinnerSide,
       };
 
-      // Shot Data
-      if (increment > 0) {
+      // Shot Data - Only add if shotType is provided (required for shot recording)
+      if (increment > 0 && shotType) {
         let shotPlayerId = playerId || pendingPlayer?.playerId;
 
         if (!shotPlayerId) {

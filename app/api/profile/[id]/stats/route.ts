@@ -34,7 +34,7 @@ export async function GET(
 
     // Fetch teams this user belongs to
     const teams = await Team.find({ "players.user": id })
-      .select("_id name captain players")
+      .select("_id name captain players logo")
       .lean();
 
     // Fetch TeamStats for these teams
@@ -198,6 +198,7 @@ export async function GET(
       return {
         _id: t._id,
         name: t.name,
+        logo: t.logo,
         role: isCaptain ? "Captain" : "Player",
         playerCount: t.players.length,
         stats: teamStat

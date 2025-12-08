@@ -12,6 +12,15 @@ import {
  */
 
 /**
+ * Validation result interface
+ */
+export interface BracketValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
  * Advance winner to the next round
  * @param bracket - The knockout bracket
  * @param roundNumber - Current round number
@@ -476,4 +485,213 @@ export function getMatchesNeedingDocuments(bracket: KnockoutBracket): BracketMat
   }
 
   return matchesNeeding;
+}
+
+/**
+ * Validate bracket integrity
+ * Checks for structural issues, missing data, and logical inconsistencies
+ * @param bracket - The knockout bracket to validate
+ * @returns Validation result with errors and warnings
+ */
+export function validateBracketIntegrity(bracket: KnockoutBracket): BracketValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check bracket structure
+  if (!bracket.rounds || bracket.rounds.length === 0) {
+    errors.push("Bracket has no rounds");
+    return { isValid: false, errors, warnings };
+  }
+
+  // Validate rounds
+  let expectedMatchesInRound = bracket.size;
+  for (let i = 0; i < bracket.rounds.length; i++) {
+    const round = bracket.rounds[i];
+    
+    if (round.roundNumber !== i + 1) {
+      errors.push(`Round ${round.roundNumber} has incorrect round number (expected ${i + 1})`);
+    }
+
+    if (!round.matches || round.matches.length === 0) {
+      errors.push(`Round ${round.roundNumber} has no matches`);
+      continue;
+    }
+
+    // Check expected number of matches in each round
+    const actualMatches = round.matches.length;
+    if (actualMatches !== expectedMatchesInRound) {
+      errors.push(
+        `Round ${round.roundNumber} has ${actualMatches} matches but expected ${expectedMatchesInRound}`
+      );
+    }
+
+    // Validate matches in round
+    round.matches.forEach((match, matchIdx) => {
+      if (!match.bracketPosition) {
+        errors.push(`Round ${round.roundNumber} match ${matchIdx + 1} has no bracket position`);
+      } else {
+        if (match.bracketPosition.round !== round.roundNumber) {
+          errors.push(
+            `Round ${round.roundNumber} match ${matchIdx + 1} has incorrect round number in bracket position`
+          );
+        }
+      }
+
+      // Check match state consistency
+      if (match.completed && !match.winner) {
+        errors.push(`Round ${round.roundNumber} match ${matchIdx + 1} is marked complete but has no winner`);
+      }
+
+      if (match.winner && !match.completed) {
+        warnings.push(`Round ${round.roundNumber} match ${matchIdx + 1} has winner but is not marked complete`);
+      }
+
+      // Validate participants
+      if (match.participant1 === null && match.participant2 === null && !match.completed) {
+        errors.push(`Round ${round.roundNumber} match ${matchIdx + 1} has no participants`);
+      }
+
+      if (match.completed && match.participant1 && match.participant2) {
+        if (match.winner !== match.participant1 && match.winner !== match.participant2) {
+          errors.push(
+            `Round ${round.roundNumber} match ${matchIdx + 1} winner is not one of the participants`
+          );
+        }
+      }
+    });
+
+    // Check round completion
+    if (round.completed) {
+      const incompleteMatches = round.matches.filter((m) => !m.completed);
+      if (incompleteMatches.length > 0) {
+        errors.push(
+          `Round ${round.roundNumber} is marked complete but has ${incompleteMatches.length} incomplete matches`
+        );
+      }
+    } else {
+      const allCompleted = round.matches.every((m) => m.completed);
+      if (allCompleted && round.matches.length > 0) {
+        warnings.push(`Round ${round.roundNumber} is not marked complete but all matches are completed`);
+      }
+    }
+
+    expectedMatchesInRound = Math.floor(expectedMatchesInRound / 2);
+  }
+
+  // Validate bracket completion
+  if (bracket.completed) {
+    const incompleteRounds = bracket.rounds.filter((r) => !r.completed);
+    if (incompleteRounds.length > 0) {
+      errors.push(`Bracket is marked complete but has ${incompleteRounds.length} incomplete rounds`);
+    }
+  }
+
+  // Validate third place match if configured
+  if (bracket.thirdPlaceMatch) {
+    if (bracket.rounds.length < 2) {
+      warnings.push("Third place match configured but bracket has fewer than 2 rounds");
+    } else {
+      const semiFinalRound = bracket.rounds[bracket.rounds.length - 2];
+      if (semiFinalRound && semiFinalRound.completed) {
+        if (!bracket.thirdPlaceMatch.participant1 || !bracket.thirdPlaceMatch.participant2) {
+          warnings.push("Semi-finals completed but third place match participants not set");
+        }
+      }
+
+      if (bracket.thirdPlaceMatch.completed && !bracket.thirdPlaceMatch.winner) {
+        errors.push("Third place match is marked complete but has no winner");
+      }
+    }
+  }
+
+  // Validate current round
+  if (bracket.currentRound < 1 || bracket.currentRound > bracket.rounds.length) {
+    errors.push(`Current round ${bracket.currentRound} is out of bounds (1-${bracket.rounds.length})`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Attempt to repair bracket structure
+ * Fixes common issues found during validation
+ * @param bracket - The bracket to repair
+ * @returns Repaired bracket and list of fixes applied
+ */
+export function repairBracket(bracket: KnockoutBracket): {
+  bracket: KnockoutBracket;
+  fixes: string[];
+} {
+  const fixes: string[] = [];
+
+  // Fix round numbers
+  bracket.rounds.forEach((round, index) => {
+    if (round.roundNumber !== index + 1) {
+      round.roundNumber = index + 1;
+      fixes.push(`Fixed round number from ${round.roundNumber} to ${index + 1}`);
+    }
+  });
+
+  // Fix match bracket positions
+  bracket.rounds.forEach((round) => {
+    round.matches.forEach((match, matchIdx) => {
+      if (!match.bracketPosition) {
+        match.bracketPosition = {
+          round: round.roundNumber,
+          matchNumber: matchIdx + 1,
+          nextMatchNumber: matchIdx + 1 === round.matches.length ? undefined : Math.floor((matchIdx + 1) / 2) + 1,
+        };
+        fixes.push(`Added bracket position to round ${round.roundNumber} match ${matchIdx + 1}`);
+      } else if (match.bracketPosition.round !== round.roundNumber) {
+        match.bracketPosition.round = round.roundNumber;
+        fixes.push(`Fixed bracket position round number for round ${round.roundNumber} match ${matchIdx + 1}`);
+      }
+    });
+  });
+
+  // Fix match completion flags
+  bracket.rounds.forEach((round) => {
+    round.matches.forEach((match) => {
+      if (match.winner && !match.completed) {
+        match.completed = true;
+        fixes.push(`Set match completion flag for round ${round.roundNumber} match ${match.bracketPosition?.matchNumber || 'unknown'}`);
+      }
+    });
+
+    // Fix round completion
+    const allMatchesCompleted = round.matches.length > 0 && round.matches.every((m) => m.completed);
+    if (allMatchesCompleted && !round.completed) {
+      round.completed = true;
+      fixes.push(`Set round ${round.roundNumber} completion flag`);
+    }
+  });
+
+  // Fix bracket completion
+  const allRoundsCompleted = bracket.rounds.length > 0 && bracket.rounds.every((r) => r.completed);
+  if (allRoundsCompleted && !bracket.completed) {
+    bracket.completed = true;
+    fixes.push("Set bracket completion flag");
+  }
+
+  // Fix current round
+  const lastCompletedRound = bracket.rounds
+    .slice()
+    .reverse()
+    .find((r) => r.completed);
+  if (lastCompletedRound) {
+    const nextRoundNumber = lastCompletedRound.roundNumber + 1;
+    if (nextRoundNumber <= bracket.rounds.length) {
+      bracket.currentRound = nextRoundNumber;
+      fixes.push(`Updated current round to ${nextRoundNumber}`);
+    } else if (bracket.completed) {
+      bracket.currentRound = bracket.rounds.length;
+      fixes.push(`Set current round to final round ${bracket.rounds.length}`);
+    }
+  }
+
+  return { bracket, fixes };
 }

@@ -202,10 +202,9 @@ export default function TeamsPage() {
 
   const myTeams = useMemo(() => {
     if (!user) return [];
+    // Only show teams where the user is the captain (teams they created)
     return teams.filter((team) => {
-      const isCaptain = team.captain?._id === user._id;
-      const isPlayer = team.players.some((p) => p.user._id === user._id);
-      return isCaptain || isPlayer;
+      return team.captain?._id === user._id;
     });
   }, [teams, user]);
 

@@ -19,12 +19,13 @@ import {
 } from "recharts";
 
 import { Shot } from "@/types/shot.type";
+import { Participant } from "@/types/match.type";
 import {
   computeStats,
   getShotColor,
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
-import { generateShortCommentary } from "@/lib/shot-commentary-utils";
+import { generateShortCommentary, generateFullCommentary } from "@/lib/shot-commentary-utils";
 import { MessageSquare } from "lucide-react";
 
 function formatShotType(stroke?: string | null) {
@@ -47,12 +48,16 @@ interface GameByGameBreakdownProps {
   games: Game[];
   side1Name: string;
   side2Name: string;
+  participants?: Participant[];
+  finalScore?: { side1Sets?: number; side2Sets?: number };
 }
 
 export function GameByGameBreakdown({
   games,
   side1Name,
   side2Name,
+  participants,
+  finalScore,
 }: GameByGameBreakdownProps) {
   return (
     <Card className="shadow-sm border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 backdrop-blur">
@@ -119,7 +124,14 @@ export function GameByGameBreakdown({
                         <XAxis dataKey="name" style={{ fontSize: "11px" }} />
                         <YAxis width={25} />
                         <Tooltip />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        <Bar 
+                          dataKey="value" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true}
+                          animationBegin={idx * 100}
+                          animationDuration={800}
+                          animationEasing="ease-out"
+                        >
                           {strokeData.map((entry, i) => (
                             <Cell key={i} fill={getShotColor(entry.name)} />
                           ))}
@@ -155,9 +167,56 @@ export function GameByGameBreakdown({
                         shot.originY != null &&
                         shot.landingX != null &&
                         shot.landingY != null;
-                      const commentary = hasCoordinates
-                        ? generateShortCommentary(shot)
-                        : null;
+                      
+                      // Calculate game score at the time of this shot
+                      // Count shots by side up to and including this shot
+                      let gameScoreSide1 = 0;
+                      let gameScoreSide2 = 0;
+                      for (let j = 0; j <= i; j++) {
+                        if (gameShots[j].side === "side1") {
+                          gameScoreSide1++;
+                        } else if (gameShots[j].side === "side2") {
+                          gameScoreSide2++;
+                        }
+                      }
+                      const currentGameScore = {
+                        side1Score: gameScoreSide1,
+                        side2Score: gameScoreSide2,
+                      };
+                      
+                      // Generate full commentary with server, game score, and set score if available
+                      let commentary: string | null = null;
+                      if (hasCoordinates) {
+                        if (participants && finalScore) {
+                          // Calculate set score at the time of this shot
+                          // Count completed games before this one
+                          let setsWonSide1 = 0;
+                          let setsWonSide2 = 0;
+                          for (let j = 0; j < idx; j++) {
+                            if (games[j].winnerSide === "side1") setsWonSide1++;
+                            if (games[j].winnerSide === "side2") setsWonSide2++;
+                          }
+                          // For current game, the set score is what it was at the start
+                          // (since this shot is part of this game)
+                          const currentSetScore = {
+                            side1Sets: setsWonSide1,
+                            side2Sets: setsWonSide2,
+                          };
+                          
+                          commentary = generateFullCommentary(
+                            shot,
+                            participants,
+                            games,
+                            currentSetScore,
+                            side1Name,
+                            side2Name,
+                            currentGameScore
+                          );
+                        } else {
+                          // Fallback to short commentary
+                          commentary = generateShortCommentary(shot);
+                        }
+                      }
 
                       return (
                         <li
@@ -186,9 +245,15 @@ export function GameByGameBreakdown({
                           {commentary && (
                             <div className="flex items-start gap-2 ml-8 text-xs">
                               <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-600 dark:text-zinc-400 italic leading-relaxed">
-                                {commentary}
-                              </span>
+                              <span 
+                                className="text-gray-600 dark:text-zinc-400 italic leading-relaxed"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: commentary.replace(
+                                    /<strong>(.*?)<\/strong>/g, 
+                                    '<strong class="font-bold text-gray-900 dark:text-zinc-100 not-italic">$1</strong>'
+                                  )
+                                }}
+                              />
                             </div>
                           )}
                         </li>

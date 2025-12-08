@@ -21,11 +21,19 @@ export async function GET(req: NextRequest) {
     const teams = await Team.find({
       name: { $regex: safeQuery, $options: "i" },
     })
-      .select("_id name city logo captain")
+      .select("_id name city logo captain players")
       .populate("captain", "username fullName")
+      .populate("players.user", "username fullName profileImage")
+      .lean()
       .limit(10);
+    
+    // Convert players to array format for consistency
+    const formattedTeams = teams.map((team: any) => ({
+      ...team,
+      players: team.players || [],
+    }));
 
-    return NextResponse.json({ success: true, teams });
+    return NextResponse.json({ success: true, teams: formattedTeams });
   } catch (error: any) {
     console.error("Error searching teams:", error);
     return NextResponse.json(

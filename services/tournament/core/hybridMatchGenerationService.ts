@@ -146,6 +146,38 @@ export async function transitionToKnockoutPhase(
     };
   }
 
+  // Additional validation: Verify all round-robin matches are actually completed
+  const { getAllMatchIds, fetchMatches } = await import("../tournamentUpdateService");
+  const roundRobinMatchIds = getAllMatchIds(tournament);
+  
+  if (roundRobinMatchIds.length > 0) {
+    const roundRobinMatches = await fetchMatches(roundRobinMatchIds, true);
+    const incompleteMatches = roundRobinMatches.filter((m: any) => m && m.status !== "completed");
+    
+    if (incompleteMatches.length > 0) {
+      return {
+        success: false,
+        phase: "round_robin",
+        matchesCreated: 0,
+        message: "Cannot transition to knockout phase",
+        errors: [
+          `${incompleteMatches.length} round-robin match(es) are not yet completed. All matches must be completed before transitioning.`
+        ],
+      };
+    }
+  }
+
+  // Validate standings are calculated and up-to-date
+  if (!tournament.standings || tournament.standings.length === 0) {
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Cannot transition to knockout phase",
+      errors: ["Standings must be calculated before transitioning. Please ensure all match results are recorded."],
+    };
+  }
+
   // Validate qualification configuration
   const qualificationValidation = validateQualificationConfig(tournament);
   if (!qualificationValidation.isValid) {
@@ -163,6 +195,19 @@ export async function transitionToKnockoutPhase(
 
   // Determine qualified participants
   const qualificationResult = determineQualifiedParticipants(tournament);
+
+  // Validate that qualification will result in at least 2 qualified participants
+  if (qualificationResult.qualifiedCount < 2) {
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Cannot transition to knockout phase",
+      errors: [
+        `Only ${qualificationResult.qualifiedCount} participant(s) would qualify, but at least 2 participants are required for knockout phase.`
+      ],
+    };
+  }
 
   // Apply qualification results
   applyQualificationResults(tournament, qualificationResult);

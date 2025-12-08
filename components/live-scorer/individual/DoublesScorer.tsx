@@ -150,6 +150,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             games={match.games}
             currentGame={currentGame}
             participants={match.participants}
+            finalScore={match.finalScore}
           />
 
           {(status as MatchStatus) !== "completed" && (
