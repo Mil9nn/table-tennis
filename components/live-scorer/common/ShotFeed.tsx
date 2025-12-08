@@ -5,10 +5,12 @@ import { Shot } from "@/types/shot.type";
 import { ChevronDown, ChevronUp, Target, MessageSquare } from "lucide-react";
 import { generateFullCommentary, generateShortCommentary } from "@/lib/shot-commentary-utils";
 
+import { Participant } from "@/types/match.type";
+
 interface ShotFeedProps {
   games: { gameNumber: number; shots: Shot[]; side1Score?: number; side2Score?: number; winnerSide?: string | null }[];
   currentGame: number;
-  participants: { _id: string; fullName?: string; username?: string }[];
+  participants: Participant[];
   finalScore?: { side1Sets: number; side2Sets: number };
 }
 

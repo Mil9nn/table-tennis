@@ -679,12 +679,8 @@ export function generateFullCommentary(
   
   // Add line of play if available, with proper formatting
   if (commentary.line) {
-    // Format line: "cross court" -> "cross-court", "down the line" -> "down the line", "middle line" -> "middle line"
-    let lineFormatted = commentary.line;
-    if (commentary.line === "cross court") {
-      lineFormatted = "cross-court";
-    }
-    shotParts.push(`played ${lineFormatted}`);
+    // Format line: "cross court" -> "cross court", "down the line" -> "down the line", "middle line" -> "middle line"
+    shotParts.push(`played ${commentary.line}`);
   }
   
   // Add landing details: focus on specific placement with zones

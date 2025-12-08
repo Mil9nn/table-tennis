@@ -343,8 +343,13 @@ export default function MatchStatsPage() {
                     participants={[
                       ...(Array.isArray(subMatch.playerTeam1) ? subMatch.playerTeam1 : [subMatch.playerTeam1]),
                       ...(Array.isArray(subMatch.playerTeam2) ? subMatch.playerTeam2 : [subMatch.playerTeam2]),
-                    ]}
-                    finalScore={subMatch.finalScore}
+                    ].filter((p): p is import("@/types/match.type").Participant => 
+                      p != null && typeof p === "object" && "username" in p
+                    )}
+                    finalScore={subMatch.finalScore ? {
+                      side1Sets: subMatch.finalScore.team1Sets ?? 0,
+                      side2Sets: subMatch.finalScore.team2Sets ?? 0,
+                    } : undefined}
                   />
                 </div>
               );

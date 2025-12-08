@@ -15,6 +15,7 @@ import {
 import {
   Participant as TournamentParticipant,
   isTeamParticipant,
+  isUserParticipant,
   getParticipantDisplayName,
   getParticipantImage,
 } from "@/types/tournament.type";
@@ -102,23 +103,21 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   category = "individual",
 }) => {
   // Create participant lookup map for O(1) access
-  // Convert TournamentParticipant[] to Participant[] for internal use
+  // Convert TournamentParticipant[] to ParticipantBase[] for internal use
+  // Only include user participants (teams are handled separately in rendering)
   const participantMap = useMemo(() => {
-    const converted: Participant[] = participants.map(p => {
-      if (isTeamParticipant(p)) {
+    const userParticipants = participants.filter(isUserParticipant);
+    const converted = userParticipants.map(p => {
+      if (isUserParticipant(p)) {
         return {
           _id: p._id,
-          name: p.name,
-          logo: p.logo,
+          username: p.username,
+          fullName: p.fullName,
+          profileImage: p.profileImage,
         };
       }
-      return {
-        _id: p._id,
-        username: p.username,
-        fullName: p.fullName,
-        profileImage: p.profileImage,
-      };
-    });
+      return null;
+    }).filter((p): p is NonNullable<typeof p> => p !== null);
     return createParticipantMap(converted);
   }, [participants]);
 

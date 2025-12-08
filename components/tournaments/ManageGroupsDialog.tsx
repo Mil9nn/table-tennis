@@ -13,7 +13,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { Loader2, UserPlus, X, Save, Plus, Trash2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Group, Participant } from "@/types/tournament.type";
+import { Group, Participant, isUserParticipant, getParticipantDisplayName, getParticipantImage } from "@/types/tournament.type";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
@@ -232,15 +232,13 @@ export function ManageGroupsDialog({
                     className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-lg"
                   >
                     <Avatar className="w-6 h-6">
-                      <AvatarImage src={participant.profileImage} />
+                      <AvatarImage src={getParticipantImage(participant)} />
                       <AvatarFallback className="text-xs">
-                        {getInitial(
-                          participant.fullName || participant.username
-                        )}
+                        {getInitial(getParticipantDisplayName(participant))}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-xs font-medium">
-                      {participant.fullName || participant.username}
+                      {getParticipantDisplayName(participant)}
                     </span>
                   </div>
                 ))}
@@ -294,15 +292,13 @@ export function ManageGroupsDialog({
                               className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border rounded-lg group"
                             >
                               <Avatar className="w-6 h-6">
-                                <AvatarImage src={participant.profileImage} />
+                                <AvatarImage src={getParticipantImage(participant)} />
                                 <AvatarFallback className="text-xs">
-                                  {getInitial(
-                                    participant.fullName || participant.username
-                                  )}
+                                  {getInitial(getParticipantDisplayName(participant))}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-xs font-medium">
-                                {participant.fullName || participant.username}
+                                {getParticipantDisplayName(participant)}
                               </span>
                               <Button
                                 variant="ghost"
@@ -345,7 +341,7 @@ export function ManageGroupsDialog({
                               >
                                 <AddCircleIcon className="w-3 h-3 mr-1" />
                                 Add{" "}
-                                {participant.fullName || participant.username}
+                                {getParticipantDisplayName(participant)}
                               </Button>
                             ))}
                           </div>

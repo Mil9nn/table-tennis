@@ -385,7 +385,9 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       });
       if (updatedBracket.thirdPlaceMatch?.matchId) {
         const thirdPlaceId = updatedBracket.thirdPlaceMatch.matchId;
-        allBracketMatchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : thirdPlaceId.toString());
+        if (thirdPlaceId) {
+          allBracketMatchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : String(thirdPlaceId));
+        }
       }
 
       // Fetch all bracket matches to verify completion
@@ -649,8 +651,8 @@ async function convertMatchesToStandingsFormat(matches: any[], tournament: any):
             const team1Doc = participantTeams.find((t: any) => t.name === team1Name);
             const team2Doc = participantTeams.find((t: any) => t.name === team2Name);
             
-            if (team1Doc) team1Id = team1Doc._id.toString();
-            if (team2Doc) team2Id = team2Doc._id.toString();
+            if (team1Doc && team1Doc._id) team1Id = String(team1Doc._id);
+            if (team2Doc && team2Doc._id) team2Id = String(team2Doc._id);
           } catch (error) {
             console.warn(`[convertMatchesToStandingsFormat] Error fetching teams for match ${match._id}:`, error);
             // Fallback to team names if lookup fails

@@ -6,7 +6,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tournament } from "@/types/tournament.type";
+import { Tournament, isUserParticipant } from "@/types/tournament.type";
 import CustomKnockoutMatcher from "@/components/tournaments/CustomKnockoutMatcher";
 
 export default function CustomMatchingPage() {
@@ -152,7 +152,7 @@ export default function CustomMatchingPage() {
         <CustomKnockoutMatcher
           tournamentId={tournamentId}
           bracket={tournament.bracket}
-          participants={tournament.participants}
+          participants={tournament.participants.filter(isUserParticipant)}
           currentRound={selectedRound}
           onSuccess={handleSuccess}
         />

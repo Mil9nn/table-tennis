@@ -109,8 +109,8 @@ export async function createScheduledTeamMatch(
   const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
 
   const subMatches: any[] = [];
-  const team1Assignments = team1.assignments || {};
-  const team2Assignments = team2.assignments || {};
+  const team1Assignments = (team1 as any).assignments || {};
+  const team2Assignments = (team2 as any).assignments || {};
 
   function findByPos(assignments: Record<string, string>, pos: string) {
     const entries = Object.entries(assignments || {});
@@ -199,14 +199,14 @@ export async function createScheduledTeamMatch(
       captain: (team1 as any).captain,
       players: (team1 as any).players,
       city: (team1 as any).city,
-      assignments: team1.assignments || {},
+      assignments: (team1 as any).assignments || {},
     },
     team2: {
       name: (team2 as any).name,
       captain: (team2 as any).captain,
       players: (team2 as any).players,
       city: (team2 as any).city,
-      assignments: team2.assignments || {},
+      assignments: (team2 as any).assignments || {},
     },
     subMatches,
   });
@@ -241,8 +241,8 @@ export async function createBracketTeamMatch(
   const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
 
   const subMatches: any[] = [];
-  const team1Assignments = team1.assignments || {};
-  const team2Assignments = team2.assignments || {};
+  const team1Assignments = (team1 as any).assignments || {};
+  const team2Assignments = (team2 as any).assignments || {};
 
   function findByPos(assignments: Record<string, string>, pos: string) {
     const entries = Object.entries(assignments || {});
@@ -336,14 +336,14 @@ export async function createBracketTeamMatch(
       captain: (team1 as any).captain,
       players: (team1 as any).players,
       city: (team1 as any).city,
-      assignments: team1.assignments || {},
+      assignments: (team1 as any).assignments || {},
     },
     team2: {
       name: (team2 as any).name,
       captain: (team2 as any).captain,
       players: (team2 as any).players,
       city: (team2 as any).city,
-      assignments: team2.assignments || {},
+      assignments: (team2 as any).assignments || {},
     },
     subMatches,
   });
