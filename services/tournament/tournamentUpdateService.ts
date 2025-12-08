@@ -441,8 +441,17 @@ export async function updateRoundRobinStandings(tournament: any) {
   const usesGroups = tournament.useGroups || 
     (tournament.format === "hybrid" && tournament.hybridConfig?.roundRobinUseGroups);
 
-  // CASE 1: Tournament with Groups
-  if (usesGroups && tournament.groups && tournament.groups.length > 0) {
+  // CRITICAL: Groups should not be used for pure round-robin format
+  // This is a safeguard in case of existing invalid data
+  if (tournament.format === "round_robin" && tournament.useGroups) {
+    console.warn(
+      `[updateRoundRobinStandings] Tournament ${tournament._id} has invalid configuration: round_robin format with groups. This should not happen. Treating as single round-robin.`
+    );
+    // Fall through to single round-robin logic below
+  }
+
+  // CASE 1: Tournament with Groups (only valid for hybrid format)
+  if (usesGroups && tournament.groups && tournament.groups.length > 0 && tournament.format !== "round_robin") {
     for (const group of tournament.groups) {
       // Fetch all matches for this group
       const groupMatchIds = group.rounds.flatMap((r: any) => r.matches);

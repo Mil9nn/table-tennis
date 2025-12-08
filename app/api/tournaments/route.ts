@@ -71,6 +71,18 @@ export async function POST(request: NextRequest) {
         }))
       : [];
 
+    // CRITICAL: Validate that groups are not used for round-robin format
+    // Groups only make sense when there's a next phase (use hybrid format instead)
+    if (format === "round_robin" && useGroups) {
+      return NextResponse.json(
+        {
+          error:
+            "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Use 'hybrid' format for round-robin → knockout tournaments.",
+        },
+        { status: 400 }
+      );
+    }
+
     const tournament = new Tournament({
       name,
       format,
@@ -81,9 +93,10 @@ export async function POST(request: NextRequest) {
       venue,
       participants: participants || [],
       organizer: auth.userId,
-      useGroups: useGroups || false,
-      numberOfGroups: numberOfGroups || undefined,
-      advancePerGroup: advancePerGroup || undefined,
+      // Force groups to false for round-robin format
+      useGroups: format === "round_robin" ? false : (useGroups || false),
+      numberOfGroups: format === "round_robin" ? undefined : (numberOfGroups || undefined),
+      advancePerGroup: format === "round_robin" ? undefined : (advancePerGroup || undefined),
       seedingMethod: seedingMethod || "none",
       knockoutConfig: knockoutConfig || undefined,
       hybridConfig: hybridConfig || undefined,

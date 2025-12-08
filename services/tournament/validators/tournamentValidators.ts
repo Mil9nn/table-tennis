@@ -108,6 +108,16 @@ export class TournamentValidators {
       return { isValid: true };
     }
 
+    // CRITICAL: Groups are only meaningful when there's a next phase
+    // Round-robin format has no next phase, so groups are useless
+    if (tournament.format === "round_robin") {
+      return {
+        isValid: false,
+        error: "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase (use 'hybrid' format for round-robin → knockout).",
+        statusCode: 400,
+      };
+    }
+
     const groupCount = numberOfGroups || tournament.numberOfGroups || 2;
     const participantCount = tournament.participants.length;
 

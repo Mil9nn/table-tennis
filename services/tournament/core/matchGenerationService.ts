@@ -827,16 +827,24 @@ export async function generateTournamentDraw(
       scorerId: new mongoose.Types.ObjectId(scorerId),
       ...options,
     });
-  } else if (tournament.useGroups && tournament.numberOfGroups) {
-    await generateGroupMatches(
+  } else if (tournament.format === "round_robin") {
+    // CRITICAL: Groups are not allowed for pure round-robin format
+    // Groups only make sense when there's a next phase (use hybrid format instead)
+    if (tournament.useGroups) {
+      throw new Error(
+        "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Use 'hybrid' format for round-robin → knockout tournaments."
+      );
+    }
+    await generateSingleRoundRobinMatches(
       tournament,
       participantIds,
       seeding,
       scorerId,
       options
     );
-  } else if (tournament.format === "round_robin") {
-    await generateSingleRoundRobinMatches(
+  } else if (tournament.useGroups && tournament.numberOfGroups) {
+    // Groups for knockout format (if supported in future)
+    await generateGroupMatches(
       tournament,
       participantIds,
       seeding,
