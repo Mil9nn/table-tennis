@@ -368,7 +368,7 @@ export async function POST(request: NextRequest) {
       numberOfSetsPerSubMatch: Number(setsPerTie),
       numberOfSubMatches: subMatches.length,
       city,
-      venue: venue || city,
+      venue: venue,
       scorer: scorer._id,
       team1: {
         name: team1.name,

@@ -53,7 +53,7 @@ const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
   startDate: z.date(),
   city: z.string().min(2, "City is required"),
-  venue: z.string().optional(),
+  venue: z.string().min(1, "Venue is required"),
 
   // ═══════════════════════════════════════════
   // TOURNAMENT TYPE
@@ -261,8 +261,8 @@ export default function CreateTournamentPage() {
         category: data.category,
         matchType: data.matchType,
         startDate: data.startDate,
-        city: data.city,
-        venue: data.venue || undefined,
+      city: data.city,
+      venue: data.venue,
         participants: participants.map((p) => p._id),
         seedingMethod: "none",
         rules: {
@@ -425,7 +425,7 @@ export default function CreateTournamentPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700">
-                        Venue (Optional)
+                        Venue
                       </FormLabel>
                       <FormControl>
                         <Input

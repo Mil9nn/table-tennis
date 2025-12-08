@@ -117,11 +117,11 @@ const ShotAnalysisPage = () => {
               <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Total Shots Tracked
+                    Winning Shots
                   </h3>
                 </div>
                 <p className="text-xl font-bold text-gray-700">{totalShots}</p>
-                <p className="text-xs text-gray-500 mt-1">Across all matches</p>
+                <p className="text-xs text-gray-500 mt-1">Point-winning shots across all matches</p>
               </div>
 
               <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
@@ -181,24 +181,23 @@ const ShotAnalysisPage = () => {
                   Shot Landing Heatmap
                 </h3>
                 <p className="text-xs text-gray-500 mb-4">
-                  Colors represent dominant shot type in each zone. Brighter = more shots.
+                  Aggregated shot landing positions from all your matches. Colors represent dominant shot type in each zone. Brighter = more shots.
                 </p>
 
                 <div className="flex justify-center">
                   <div className="inline-block border-4 border-gray-800 rounded-lg overflow-hidden">
                     <div className="relative">
-                      <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gray-800 z-10 -translate-y-1/2"></div>
+                      {/* Net line - vertical, dividing left/right */}
+                      <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-gray-800 z-10 -translate-x-1/2"></div>
 
                       <div className="grid grid-cols-10">
                         {heatmapGrid.map((row, r: number) =>
                           row.map((cell, c: number) => (
                             <div
                               key={`${r}-${c}`}
-                              className="w-10 h-10 border border-gray-300/50 flex items-center justify-center text-[10px] font-semibold text-white relative group cursor-pointer"
+                              className="w-12 h-8 border border-gray-300/50 flex items-center justify-center relative group cursor-pointer"
                               style={getHeatmapStyle(cell)}
                             >
-                              {cell?.count > 0 ? cell.count : ""}
-                              
                               {/* Tooltip on hover */}
                               {cell?.count > 0 && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">
@@ -234,7 +233,7 @@ const ShotAnalysisPage = () => {
 
                     <div className="bg-gray-100 py-1 text-center">
                       <p className="text-[10px] font-semibold text-gray-700">
-                        Opponent ↑ | ↓ You
+                        Your Side ← | → Opponent Side
                       </p>
                     </div>
                   </div>

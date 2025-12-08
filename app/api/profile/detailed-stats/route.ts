@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
         date: match.createdAt,
         result: isWin ? "win" : "loss",
         opponent: opponent.fullName || opponent.username,
+        opponentImage: opponent.profileImage,
         score: `${match.finalScore?.side1Sets || 0}-${match.finalScore?.side2Sets || 0}`,
       });
 
@@ -144,13 +145,18 @@ export async function GET(request: NextRequest) {
         }
       });
 
+      const opponentTeam = isTeam1 ? match.team2 : match.team1;
+      const opponentTeamName = opponentTeam.name || "Unknown Team";
+      const opponentTeamLogo = opponentTeam.logo;
+      
       recentMatches.push({
         _id: match._id,
         type: "team",
         matchFormat: match.matchFormat,
         date: match.createdAt,
         result: isWin ? "win" : "loss",
-        teams: `${match.team1.name} vs ${match.team2.name}`,
+        teams: `${match.team1.name} vs ${opponentTeamName}`,
+        teamLogo: opponentTeamLogo,
         score: `${match.finalScore?.team1Matches || 0}-${match.finalScore?.team2Matches || 0}`,
       });
 
@@ -227,12 +233,20 @@ export async function GET(request: NextRequest) {
         headToHead: headToHeadArray,
         recentMatches: recentMatches.slice(0, 10),
         monthlyActivity: monthlyActivityArray,
-        teams: userTeams.map((t: any) => ({
-          _id: t._id,
-          name: t.name,
-          role: t.captain.toString() === userId.toString() ? "Captain" : "Player",
-          playerCount: t.players.length,
-        })),
+        teams: userTeams.map((t: any) => {
+          // Handle both populated (object) and unpopulated (ID) captain
+          const captainId = typeof t.captain === 'object' && t.captain._id 
+            ? t.captain._id.toString() 
+            : t.captain.toString();
+          
+          return {
+            _id: t._id,
+            name: t.name,
+            logo: t.logo,
+            role: captainId === userId.toString() ? "Captain" : "Player",
+            playerCount: t.players.length,
+          };
+        }),
       },
     });
   } catch (error) {

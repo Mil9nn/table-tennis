@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       status: "completed",
     })
       .populate("participants", "username fullName profileImage")
-      .populate("tournament", "name type")
+      .populate("tournament", "name format")
       .lean();
 
     const teamMatches = await TeamMatch.find({
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       ],
     })
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
-      .populate("tournament", "name type")
+      .populate("tournament", "name format")
       .lean();
 
     // A. Singles and Doubles Stats
@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
 
     // E. Match-by-Match Performance Table
     const matchPerformance: any[] = [];
-    const setBreakdown: any[] = [];
     const pointsPerMatchData: any[] = [];
 
     // Process individual matches
@@ -102,9 +101,11 @@ export async function GET(request: NextRequest) {
       stats.setsLost += opponentSets;
       totalSets += userSets + opponentSets;
 
-      // Track by tournament type
-      const tournamentType = match.tournament?.type || "casual";
-      stats.matchesByTournamentType[tournamentType] = (stats.matchesByTournamentType[tournamentType] || 0) + 1;
+      // Track by tournament format (only for tournament matches)
+      if (match.tournament?.format) {
+        const tournamentType = match.tournament.format;
+        stats.matchesByTournamentType[tournamentType] = (stats.matchesByTournamentType[tournamentType] || 0) + 1;
+      }
 
       // Process games for scoring and server stats
       let matchPointsScored = 0;
@@ -118,18 +119,6 @@ export async function GET(request: NextRequest) {
 
         matchPointsScored += userScore || 0;
         matchPointsConceded += opponentScore || 0;
-
-        // Set-by-set breakdown
-        setBreakdown.push({
-          matchId: match._id.toString(),
-          matchNumber: matchIndex + 1,
-          setNumber: gameIndex + 1,
-          matchType,
-          userScore,
-          opponentScore,
-          won: userScore > opponentScore,
-          date: match.createdAt,
-        });
 
         // Server stats from shots
         let currentServer: string | null = null;
@@ -195,7 +184,7 @@ export async function GET(request: NextRequest) {
         score: `${userSets}-${opponentSets}`,
         pointsScored: matchPointsScored,
         pointsConceded: matchPointsConceded,
-        tournamentType: match.tournament?.type || "casual",
+        tournamentType: match.tournament?.format || null,
         tournamentName: match.tournament?.name,
         date: match.createdAt,
       });
@@ -252,18 +241,6 @@ export async function GET(request: NextRequest) {
             matchPointsScored += userScore || 0;
             matchPointsConceded += opponentScore || 0;
 
-            // Set breakdown
-            setBreakdown.push({
-              matchId: match._id.toString(),
-              matchNumber: individualMatches.length + matchIndex + 1,
-              setNumber: gameIndex + 1,
-              matchType: subMatchType,
-              userScore,
-              opponentScore,
-              won: userScore > opponentScore,
-              date: match.createdAt,
-            });
-
             // Server stats
             let currentServer: string | null = null;
             game.shots?.forEach((shot: any, shotIndex: number) => {
@@ -302,7 +279,7 @@ export async function GET(request: NextRequest) {
           score: `${userSets}-${opponentSets}`,
           pointsScored: matchPointsScored,
           pointsConceded: matchPointsConceded,
-          tournamentType: match.tournament?.type || "casual",
+          tournamentType: match.tournament?.format || null,
           tournamentName: match.tournament?.name,
           date: match.createdAt,
         });
@@ -321,7 +298,6 @@ export async function GET(request: NextRequest) {
 
     // Sort tables by date
     matchPerformance.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setBreakdown.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     pointsPerMatchData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return NextResponse.json({
@@ -346,7 +322,6 @@ export async function GET(request: NextRequest) {
         },
         tables: {
           matchPerformance: matchPerformance.slice(0, 50), // Last 50 matches
-          setBreakdown: setBreakdown.slice(0, 100), // Last 100 sets
         },
         charts: {
           pointsPerMatch: pointsPerMatchData.slice(-20), // Last 20 matches

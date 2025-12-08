@@ -25,6 +25,21 @@ import {
   Line,
 } from "recharts";
 
+// Helper function to format tournament type for display
+const formatTournamentType = (type: string | null | undefined): string => {
+  if (!type) return "Non-Tournament";
+  switch (type) {
+    case "round_robin":
+      return "Round Robin";
+    case "knockout":
+      return "Knockout";
+    case "hybrid":
+      return "Hybrid";
+    default:
+      return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ");
+  }
+};
+
 const PlayerStatsPage = () => {
   const router = useRouter();
   const [statsData, setStatsData] = useState<any>(null);
@@ -54,7 +69,6 @@ const PlayerStatsPage = () => {
   const server = statsData?.server || {};
   const tables = statsData?.tables || {
     matchPerformance: [],
-    setBreakdown: [],
   };
   const charts = statsData?.charts || { pointsPerMatch: [] };
 
@@ -162,8 +176,8 @@ const PlayerStatsPage = () => {
                               key={type}
                               className="flex justify-between items-center text-xs"
                             >
-                              <span className="capitalize text-zinc-600">
-                                {type}
+                              <span className="text-zinc-600">
+                                {formatTournamentType(type)}
                               </span>
                               <span className="font-semibold text-zinc-800">
                                 {count as number}
@@ -213,8 +227,8 @@ const PlayerStatsPage = () => {
                               key={type}
                               className="flex justify-between items-center text-xs"
                             >
-                              <span className="capitalize text-zinc-600">
-                                {type}
+                              <span className="text-zinc-600">
+                                {formatTournamentType(type)}
                               </span>
                               <span className="font-semibold text-zinc-800">
                                 {count as number}
@@ -407,8 +421,10 @@ const PlayerStatsPage = () => {
                             <td className="py-3 px-4 text-gray-600">
                               {match.pointsScored} - {match.pointsConceded}
                             </td>
-                            <td className="py-3 px-4 text-gray-600 text-xs capitalize">
-                              {match.tournamentName || match.tournamentType}
+                            <td className="py-3 px-4 text-gray-600 text-xs">
+                              {match.tournamentName && match.tournamentType
+                                ? `${match.tournamentName} (${formatTournamentType(match.tournamentType)})`
+                                : match.tournamentName || formatTournamentType(match.tournamentType)}
                             </td>
                             <td className="py-3 px-4 text-gray-500 text-xs">
                               {new Date(match.date).toLocaleDateString()}
@@ -421,85 +437,6 @@ const PlayerStatsPage = () => {
               </div>
             )}
 
-            {/* E. Set-by-Set Breakdown */}
-            {tables.setBreakdown.length > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">
-                  Set-by-Set Breakdown
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Match #
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Set #
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Type
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Your Score
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Opponent Score
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Result
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Date
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tables.setBreakdown
-                        .slice(0, 50)
-                        .map((set: any, index: number) => (
-                          <tr
-                            key={index}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-4 text-gray-600">
-                              {set.matchNumber}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600">
-                              {set.setNumber}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700 capitalize">
-                                {set.matchType}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 font-bold text-blue-700">
-                              {set.userScore}
-                            </td>
-                            <td className="py-3 px-4 font-bold text-gray-600">
-                              {set.opponentScore}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                                  set.won
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
-                              >
-                                {set.won ? "Won" : "Lost"}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-gray-500 text-xs">
-                              {new Date(set.date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

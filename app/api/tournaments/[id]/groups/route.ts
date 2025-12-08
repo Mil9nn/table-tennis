@@ -49,7 +49,7 @@ async function createScheduledMatch(
     matchCategory: "individual",
     numberOfSets: tournament.rules.setsPerMatch,
     city: tournament.city,
-    venue: tournament.venue || tournament.city,
+    venue: tournament.venue,
     participants: matchParticipants,
     scorer: userId,
     status: "scheduled",

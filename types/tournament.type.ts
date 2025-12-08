@@ -184,7 +184,7 @@ export interface Tournament {
   allowJoinByCode?: boolean;
   registrationDeadline?: Date;
 
-  venue?: string;
+  venue: string;
   city: string;
   maxParticipants?: number;
   minParticipants?: number;

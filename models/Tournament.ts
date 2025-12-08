@@ -172,7 +172,7 @@ export interface ITournament extends Document {
   allowJoinByCode: boolean; // Allow participants to self-register
   registrationDeadline?: Date; // Deadline for joining
 
-  venue?: string;
+  venue: string;
   city: string;
   maxParticipants?: number;
   minParticipants?: number;
@@ -333,7 +333,7 @@ const tournamentSchema = new Schema<ITournament>(
     allowJoinByCode: { type: Boolean, default: false },
     registrationDeadline: { type: Date },
 
-    venue: { type: String },
+    venue: { type: String, required: true },
     city: { type: String, required: true },
     maxParticipants: { type: Number },
     minParticipants: { type: Number, default: 2 },

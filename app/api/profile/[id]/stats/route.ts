@@ -192,7 +192,11 @@ export async function GET(
 
     // Format team list with user's role
     const userTeams = teams.map((t: any) => {
-      const isCaptain = t.captain.toString() === id.toString();
+      // Handle both populated (object) and unpopulated (ID) captain
+      const captainId = typeof t.captain === 'object' && t.captain._id 
+        ? t.captain._id.toString() 
+        : t.captain.toString();
+      const isCaptain = captainId === id.toString();
       const teamStat = teamStats.find((ts: any) => ts.team._id.toString() === t._id.toString());
 
       return {

@@ -22,6 +22,15 @@ export async function GET(request: NextRequest) {
 
     const userId = decoded.userId;
 
+    // Normalize landing coordinates to side1 perspective (left side player)
+    // This ensures all shots are shown from a consistent perspective
+    // If player was on side2 (right), flip the X coordinate
+    function normalizeLandingX(landingX: number, side: string | undefined): number {
+      if (!side) return landingX;
+      // Normalize to side1 perspective: if on side2, flip X coordinate
+      return side === "side2" || side === "team2" ? 100 - landingX : landingX;
+    }
+
     // Fetch all completed matches
     const individualMatches = await IndividualMatch.find({
       participants: userId,
@@ -79,7 +88,9 @@ export async function GET(request: NextRequest) {
 
             // Add to heatmap if landing coordinates exist
             if (shot.landingX !== undefined && shot.landingY !== undefined) {
-              const zoneX = Math.min(Math.floor(shot.landingX / 10), 9);
+              // Normalize coordinates to side1 perspective
+              const normalizedX = normalizeLandingX(shot.landingX, shot.side);
+              const zoneX = Math.min(Math.floor(normalizedX / 10), 9);
               const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
               heatmapZones[zoneY][zoneX]++;
               
@@ -113,7 +124,18 @@ export async function GET(request: NextRequest) {
 
                 // Add to heatmap
                 if (shot.landingX !== undefined && shot.landingY !== undefined) {
-                  const zoneX = Math.min(Math.floor(shot.landingX / 10), 9);
+                  // Normalize coordinates to side1 perspective
+                  // Use shot.side if available, otherwise determine from subMatch structure
+                  let shotSide = shot.side;
+                  if (!shotSide) {
+                    // Fallback: determine side from subMatch structure
+                    const userInTeam1 = Array.isArray(sub.playerTeam1) 
+                      ? sub.playerTeam1.some((p: any) => p.toString() === userId.toString())
+                      : sub.playerTeam1?.toString() === userId.toString();
+                    shotSide = userInTeam1 ? "team1" : "team2";
+                  }
+                  const normalizedX = normalizeLandingX(shot.landingX, shotSide);
+                  const zoneX = Math.min(Math.floor(normalizedX / 10), 9);
                   const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
                   heatmapZones[zoneY][zoneX]++;
                   

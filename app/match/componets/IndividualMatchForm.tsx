@@ -46,7 +46,7 @@ const schema = z.object({
   player3: userSchema.optional(),
   player4: userSchema.optional(),
   city: z.string().min(1, "City is required"),
-  venue: z.string().optional(),
+  venue: z.string().min(1, "Venue is required"),
 });
 
 export default function IndividualMatchForm({
@@ -111,7 +111,7 @@ export default function IndividualMatchForm({
         matchType: data.matchType,
         numberOfSets: Number(data.numberOfSets),
         city: data.city,
-        venue: data.venue || data.city,
+        venue: data.venue,
         participants:
           data.matchType === "singles"
             ? [data.player1!._id, data.player2!._id]
@@ -296,10 +296,11 @@ export default function IndividualMatchForm({
                 name="venue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Venue (optional)</FormLabel>
+                    <FormLabel>Venue</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter venue" {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

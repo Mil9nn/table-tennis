@@ -13,7 +13,6 @@ import {
   History,
   Zap,
   Calendar,
-  Shield,
   ChevronRight,
   Loader2,
 } from "lucide-react";
@@ -21,6 +20,7 @@ import ProfileHeader from "./components/ProfileHeader";
 
 import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
+import GroupWorkIcon from '@mui/icons-material/GroupWork';
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -78,7 +78,7 @@ const ProfilePage = () => {
       id: "my-teams",
       title: "My Teams",
 
-      icon: Shield,
+      icon: GroupWorkIcon,
       color: "text-indigo-500",
       route: "/profile/my-teams",
     },

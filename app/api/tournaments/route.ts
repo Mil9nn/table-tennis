@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate
-    if (!name || !format || !category || !matchType || !startDate || !city) {
+    if (!name || !format || !category || !matchType || !startDate || !city || !venue) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

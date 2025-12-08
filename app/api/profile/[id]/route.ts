@@ -98,12 +98,19 @@ export async function GET(
           totalWins: individualStats.wins + teamStats.wins,
           totalLosses: individualStats.losses + teamStats.losses,
         },
-        teams: userTeams.map((t: any) => ({
-          _id: t._id,
-          name: t.name,
-          role: t.captain.toString() === id ? "Captain" : "Player",
-          playerCount: t.players.length,
-        })),
+        teams: userTeams.map((t: any) => {
+          // Handle both populated (object) and unpopulated (ID) captain
+          const captainId = typeof t.captain === 'object' && t.captain._id 
+            ? t.captain._id.toString() 
+            : t.captain.toString();
+          
+          return {
+            _id: t._id,
+            name: t.name,
+            role: captainId === id ? "Captain" : "Player",
+            playerCount: t.players.length,
+          };
+        }),
       },
     });
   } catch (error) {

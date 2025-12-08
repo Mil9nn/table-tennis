@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       matchCategory: "individual",
       numberOfSets: Number(body.numberOfSets),
       city: body.city,
-      venue: body.venue || body.city,
+      venue: body.venue,
       participants: body.participants, // just IDs
       scorer: scorer._id,
     });

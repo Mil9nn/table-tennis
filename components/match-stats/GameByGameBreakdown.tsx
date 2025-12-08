@@ -149,7 +149,7 @@ export function GameByGameBreakdown({
                     Shot Feed (This Game)
                   </h4>
                   <Badge variant="secondary" className="text-xs">
-                    {gameShots.length} total
+                    {gameShots.length} winning shots
                   </Badge>
                 </div>
 

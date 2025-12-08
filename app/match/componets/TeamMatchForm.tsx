@@ -35,7 +35,7 @@ const schema = z.object({
   team1Id: z.string().min(1, "Select Team 1"),
   team2Id: z.string().min(1, "Select Team 2"),
   city: z.string().min(1, "Enter city/venue"),
-  venue: z.string().optional(),
+  venue: z.string().min(1, "Venue is required"),
 });
 
 type TeamMatchFormValues = z.infer<typeof schema>;
@@ -234,7 +234,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
         matchFormat: data.matchFormat,
         setsPerTie: Number(data.setsPerTie),
         city: data.city,
-        venue: data.venue || data.city,
+        venue: data.venue,
         team1Id: data.team1Id,
         team2Id: data.team2Id,
         team1Assignments,
@@ -423,10 +423,11 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
             name="venue"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Venue (optional)</FormLabel>
+                <FormLabel>Venue</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter venue" {...field} />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
