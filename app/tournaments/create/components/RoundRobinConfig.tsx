@@ -54,6 +54,7 @@ export function RoundRobinConfig({
                 onCheckedChange={field.onChange}
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />

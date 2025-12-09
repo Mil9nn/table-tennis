@@ -7,6 +7,8 @@ import {
   BracketNode,
 } from "@/types/tournamentDraw";
 import { SeedingInfo } from "../types/tournament.types";
+import BracketState, { IBracketState } from "@/models/BracketState";
+import mongoose, { ClientSession } from "mongoose";
 
 /**
  * Bracket Generation Service
@@ -476,4 +478,57 @@ export function isBracketCompleted(bracket: KnockoutBracket): boolean {
   }
 
   return allRoundsComplete;
+}
+
+/**
+ * Create or update BracketState document from a KnockoutBracket
+ * @param tournamentId - Tournament ID
+ * @param bracket - The knockout bracket to save
+ * @param session - Optional MongoDB session for transactions
+ * @returns Created or updated BracketState document
+ */
+export async function createOrUpdateBracketState(
+  tournamentId: string,
+  bracket: KnockoutBracket,
+  session?: ClientSession
+): Promise<IBracketState> {
+  // Check if bracket state already exists
+  const existingState = session
+    ? await BracketState.findOne({ tournament: tournamentId }).session(session)
+    : await BracketState.findOne({ tournament: tournamentId });
+
+  if (existingState) {
+    // Update existing state
+    existingState.size = bracket.size;
+    existingState.rounds = bracket.rounds;
+    existingState.currentRound = bracket.currentRound;
+    existingState.completed = bracket.completed;
+    existingState.thirdPlaceMatch = bracket.thirdPlaceMatch;
+
+    if (session) {
+      await existingState.save({ session });
+    } else {
+      await existingState.save();
+    }
+
+    return existingState;
+  }
+
+  // Create new bracket state
+  const bracketStateData = {
+    tournament: new mongoose.Types.ObjectId(tournamentId),
+    size: bracket.size,
+    rounds: bracket.rounds,
+    currentRound: bracket.currentRound,
+    completed: bracket.completed,
+    thirdPlaceMatch: bracket.thirdPlaceMatch,
+  };
+
+  if (session) {
+    const [bracketState] = await BracketState.create([bracketStateData], { session });
+    return bracketState;
+  } else {
+    const [bracketState] = await BracketState.create([bracketStateData]);
+    return bracketState;
+  }
 }

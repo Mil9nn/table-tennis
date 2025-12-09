@@ -24,11 +24,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, X, ChevronLeft } from "lucide-react";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
-import BoltIcon from "@mui/icons-material/Bolt";
+import AdjustIcon from "@mui/icons-material/Adjust";
 import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
+import MultipleStopIcon from "@mui/icons-material/MultipleStop";
+import DonutLargeIcon from "@mui/icons-material/DonutLarge";
+
 import { axiosInstance } from "@/lib/axiosInstance";
 import UserSearchInput from "@/app/match/componets/UserSearchInput";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
@@ -46,86 +47,127 @@ import {
 // CLEAN SCHEMA - Organized by logical sections
 // ============================================================================
 
-const tournamentSchema = z.object({
-  // ═══════════════════════════════════════════
-  // BASIC INFO (always required)
-  // ═══════════════════════════════════════════
-  name: z.string().min(3, "Tournament name must be at least 3 characters"),
-  startDate: z.date(),
-  city: z.string().min(2, "City is required"),
-  venue: z.string().min(1, "Venue is required"),
+const tournamentSchema = z
+  .object({
+    // ═══════════════════════════════════════════
+    // BASIC INFO (always required)
+    // ═══════════════════════════════════════════
+    name: z.string().min(3, "Tournament name must be at least 3 characters"),
+    startDate: z.date(),
+    city: z.string().min(2, "City is required"),
+    venue: z.string().min(1, "Venue is required"),
 
-  // ═══════════════════════════════════════════
-  // TOURNAMENT TYPE
-  // ═══════════════════════════════════════════
-  format: z.enum(["round_robin", "knockout", "hybrid"]),
-  category: z.enum(["individual", "team"]),
+    // ═══════════════════════════════════════════
+    // TOURNAMENT TYPE
+    // ═══════════════════════════════════════════
+    format: z.enum(["round_robin", "knockout", "hybrid"]),
+    category: z.enum(["individual", "team"]),
 
-  // ═══════════════════════════════════════════
-  // MATCH SETTINGS
-  // ═══════════════════════════════════════════
-  matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
-  setsPerMatch: z.enum(["1", "3", "5", "7", "9"]),
+    // ═══════════════════════════════════════════
+    // MATCH SETTINGS
+    // ═══════════════════════════════════════════
+    matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
+    setsPerMatch: z.enum(["1", "3", "5", "7", "9"]),
 
-  // ═══════════════════════════════════════════
-  // TEAM CONFIG (only when category === "team")
-  // ═══════════════════════════════════════════
-  teamConfig: z
-    .object({
-      matchFormat: z.enum(["five_singles", "single_double_single", "custom"]),
-      setsPerSubMatch: z.string(),
-    })
-    .optional(),
+    // ═══════════════════════════════════════════
+    // PARTICIPANTS (stored in form for validation)
+    // ═══════════════════════════════════════════
+    participants: z
+      .array(z.string())
+      .min(2, "At least 2 participants are required"),
 
-  // ═══════════════════════════════════════════
-  // ROUND ROBIN CONFIG (format === "round_robin" OR hybrid phase 1)
-  // ═══════════════════════════════════════════
-  useGroups: z.boolean(),
-  numberOfGroups: z.string().optional(),
-  advancePerGroup: z.string().optional(),
+    // ═══════════════════════════════════════════
+    // TEAM CONFIG (only when category === "team")
+    // ═══════════════════════════════════════════
+    teamConfig: z
+      .object({
+        matchFormat: z.enum(["five_singles", "single_double_single", "custom"]),
+        setsPerSubMatch: z.string(),
+      })
+      .optional(),
 
-  // ═══════════════════════════════════════════
-  // KNOCKOUT CONFIG (format === "knockout" OR hybrid phase 2)
-  // ═══════════════════════════════════════════
-  knockout: z
-    .object({
-      thirdPlaceMatch: z.boolean(),
-      allowCustomMatching: z.boolean(),
-    })
-    .optional(),
+    // ═══════════════════════════════════════════
+    // ROUND ROBIN CONFIG (format === "round_robin" OR hybrid phase 1)
+    // ═══════════════════════════════════════════
+    useGroups: z.boolean(),
+    numberOfGroups: z.string().optional(),
+    advancePerGroup: z.string().optional(),
 
-  // ═══════════════════════════════════════════
-  // HYBRID-SPECIFIC: Round Robin phase groups
-  // ═══════════════════════════════════════════
-  hybridRoundRobin: z
-    .object({
-      useGroups: z.boolean(),
-      numberOfGroups: z.string().optional(),
-    })
-    .optional(),
+    // ═══════════════════════════════════════════
+    // KNOCKOUT CONFIG (format === "knockout" OR hybrid phase 2)
+    // ═══════════════════════════════════════════
+    knockout: z
+      .object({
+        thirdPlaceMatch: z.boolean(),
+        allowCustomMatching: z.boolean(),
+      })
+      .optional(),
 
-  // ═══════════════════════════════════════════
-  // HYBRID-SPECIFIC: Qualification settings
-  // ═══════════════════════════════════════════
-  qualification: z
-    .object({
-      method: z.enum(["top_n_overall", "top_n_per_group", "percentage"]),
-      count: z.string().optional(),
-      perGroup: z.string().optional(),
-      percentage: z.string().optional(),
-    })
-    .optional(),
+    // ═══════════════════════════════════════════
+    // HYBRID-SPECIFIC: Round Robin phase groups
+    // ═══════════════════════════════════════════
+    hybridRoundRobin: z
+      .object({
+        useGroups: z.boolean(),
+        numberOfGroups: z.string().optional(),
+      })
+      .optional(),
 
-  // ═══════════════════════════════════════════
-  // HYBRID-SPECIFIC: Knockout phase settings
-  // ═══════════════════════════════════════════
-  hybridKnockout: z
-    .object({
-      thirdPlaceMatch: z.boolean(),
-      allowCustomMatching: z.boolean(),
-    })
-    .optional(),
-});
+    // ═══════════════════════════════════════════
+    // HYBRID-SPECIFIC: Qualification settings
+    // ═══════════════════════════════════════════
+    qualification: z
+      .object({
+        method: z.enum(["top_n_overall", "top_n_per_group", "percentage"]),
+        count: z.string().optional(),
+        perGroup: z.string().optional(),
+        percentage: z.string().optional(),
+      })
+      .optional(),
+
+    // ═══════════════════════════════════════════
+    // HYBRID-SPECIFIC: Knockout phase settings
+    // ═══════════════════════════════════════════
+    hybridKnockout: z
+      .object({
+        thirdPlaceMatch: z.boolean(),
+        allowCustomMatching: z.boolean(),
+      })
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Validate: Round-robin format cannot use groups
+    // Groups only make sense when there's a next phase (use hybrid format instead)
+    if (data.format === "round_robin" && data.useGroups) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Please use 'hybrid' format for round-robin → knockout tournaments, or disable groups for pure round-robin.",
+        path: ["useGroups"],
+      });
+    }
+
+    // Validate: Hybrid format groups
+    if (data.format === "hybrid" && data.hybridRoundRobin?.useGroups) {
+      const numGroups = Number(data.hybridRoundRobin.numberOfGroups || 0);
+
+      if (numGroups < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "At least 2 groups required for round-robin phase",
+          path: ["hybridRoundRobin", "numberOfGroups"],
+        });
+      }
+
+      if (data.participants.length < numGroups) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Need at least ${numGroups} participants for ${numGroups} groups`,
+          path: ["participants"],
+        });
+      }
+    }
+  });
 
 type TournamentFormValues = z.infer<typeof tournamentSchema>;
 
@@ -137,6 +179,7 @@ export default function CreateTournamentPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [startDateOpen, setStartDateOpen] = useState(false);
 
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentSchema),
@@ -150,6 +193,9 @@ export default function CreateTournamentPage() {
 
       matchType: "singles",
       setsPerMatch: "3",
+
+      // Participants (synced with state)
+      participants: [],
 
       // Team config defaults
       teamConfig: {
@@ -210,48 +256,33 @@ export default function CreateTournamentPage() {
 
   const addParticipant = (user: any) => {
     if (!participants.find((p) => p._id === user._id)) {
-      setParticipants([...participants, user]);
+      const updated = [...participants, user];
+      setParticipants(updated);
+      // Sync with form for validation
+      form.setValue(
+        "participants",
+        updated.map((p) => p._id),
+        { shouldValidate: true }
+      );
     }
   };
 
   const removeParticipant = (userId: string) => {
-    setParticipants(participants.filter((p) => p._id !== userId));
+    const updated = participants.filter((p) => p._id !== userId);
+    setParticipants(updated);
+    // Sync with form for validation
+    form.setValue(
+      "participants",
+      updated.map((p) => p._id),
+      { shouldValidate: true }
+    );
   };
 
   // ═══════════════════════════════════════════
   // FORM SUBMISSION - Map to API format
   // ═══════════════════════════════════════════
   const onSubmit = async (data: TournamentFormValues) => {
-    if (participants.length < 2) {
-      toast.error("Add at least 2 participants");
-      return;
-    }
-
-    // Validate groups for round-robin format
-    // CRITICAL: Groups are not allowed for pure round-robin format
-    // Groups only make sense when there's a next phase (use hybrid format instead)
-    if (data.format === "round_robin" && data.useGroups) {
-      toast.error(
-        "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Please use 'hybrid' format for round-robin → knockout tournaments, or disable groups for pure round-robin."
-      );
-      return;
-    }
-
-    // Validate groups for hybrid format
-    if (data.format === "hybrid" && data.hybridRoundRobin?.useGroups) {
-      const numGroups = Number(data.hybridRoundRobin.numberOfGroups || 0);
-      if (numGroups < 2) {
-        toast.error("At least 2 groups required for round-robin phase");
-        return;
-      }
-      if (participants.length < numGroups) {
-        toast.error(
-          `Need at least ${numGroups} participants for ${numGroups} groups`
-        );
-        return;
-      }
-    }
-
+    // All validation is now handled by zod schema
     setIsSubmitting(true);
     try {
       // Build the API payload
@@ -261,9 +292,9 @@ export default function CreateTournamentPage() {
         category: data.category,
         matchType: data.matchType,
         startDate: data.startDate,
-      city: data.city,
-      venue: data.venue,
-        participants: participants.map((p) => p._id),
+        city: data.city,
+        venue: data.venue,
+        participants: data.participants,
         seedingMethod: "none",
         rules: {
           setsPerMatch: Number(data.setsPerMatch),
@@ -375,46 +406,56 @@ export default function CreateTournamentPage() {
             {/* ═══════════════════════════════════════════
                 SECTION 1: BASIC INFO
             ═══════════════════════════════════════════ */}
-            <div className="p-5 space-y-4 border-b">
-              <h2 className="text-lg font-semibold text-[#667eea]">
+            <div className="p-4 space-y-3 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-[#667eea]">
                 Basic Information
               </h2>
 
+              {/* Tournament Name */}
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700">
+                    <FormLabel className="text-sm font-medium text-gray-700">
                       Tournament Name
                     </FormLabel>
+
                     <FormControl>
                       <Input
-                        className="bg-gray-50 border-gray-200"
+                        className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                       placeholder:text-gray-400 placeholder:opacity-70"
                         placeholder="Spring Championship 2025"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* City + Venue */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">City</FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">
+                        City
+                      </FormLabel>
+
                       <FormControl>
                         <Input
-                          className="bg-gray-50 border-gray-200"
+                          className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                         placeholder:text-gray-400 placeholder:opacity-70"
                           placeholder="New York"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
@@ -424,36 +465,46 @@ export default function CreateTournamentPage() {
                   name="venue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-sm font-medium text-gray-700">
                         Venue
                       </FormLabel>
+
                       <FormControl>
                         <Input
-                          className="bg-gray-50 border-gray-200"
+                          className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                         placeholder:text-gray-400 placeholder:opacity-70"
                           placeholder="Sports Center"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
               </div>
 
+              {/* Start Date */}
               <FormField
                 control={form.control}
                 name="startDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="text-gray-700">Start Date</FormLabel>
-                    <Popover>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Start Date
+                    </FormLabel>
+
+                    <Popover
+                      open={startDateOpen}
+                      onOpenChange={setStartDateOpen}
+                    >
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
                             variant="outline"
                             className={cn(
-                              "pl-3 text-left font-normal bg-gray-50 border-gray-200",
-                              !field.value && "text-muted-foreground"
+                              "pl-3 text-left font-normal text-sm bg-gray-50 h-10 rounded-lg border-gray-200",
+                              !field.value && "text-gray-400"
                             )}
                           >
                             {field.value ? (
@@ -461,21 +512,26 @@ export default function CreateTournamentPage() {
                             ) : (
                               <span>Pick a date</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
+
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setStartDateOpen(false);
+                          }}
                           disabled={(date) => date < new Date()}
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -484,7 +540,7 @@ export default function CreateTournamentPage() {
             {/* ═══════════════════════════════════════════
                 SECTION 2: TOURNAMENT TYPE
             ═══════════════════════════════════════════ */}
-            <div className="p-5 space-y-4 border-b">
+            <div className="p-4 space-y-4 border-b">
               <h2 className="text-lg font-semibold text-[#667eea]">
                 Tournament Type
               </h2>
@@ -501,14 +557,18 @@ export default function CreateTournamentPage() {
                           {
                             label: "Round Robin",
                             value: "round_robin",
-                            Icon: AutorenewIcon,
+                            Icon: AdjustIcon,
                           },
                           {
                             label: "Knockout",
                             value: "knockout",
-                            Icon: EmojiEventsIcon,
+                            Icon: DonutLargeIcon,
                           },
-                          { label: "Hybrid", value: "hybrid", Icon: BoltIcon },
+                          {
+                            label: "Hybrid",
+                            value: "hybrid",
+                            Icon: MultipleStopIcon,
+                          },
                         ].map((opt) => {
                           const isActive = field.value === opt.value;
                           const IconComponent = opt.Icon;
@@ -518,15 +578,16 @@ export default function CreateTournamentPage() {
                               type="button"
                               onClick={() => field.onChange(opt.value)}
                               className={cn(
-                                "w-fit p-2 px-4 text-xs rounded-xl border-2 transition-all flex flex-row items-center gap-2",
+                                "w-fit p-1 px-4 text-xs rounded-xl border-2 transition-all flex flex-row items-center gap-2",
                                 isActive
                                   ? "bg-[#667eea] text-white border-[#667eea] shadow-lg scale-105"
                                   : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#667eea]/50"
                               )}
                             >
                               <IconComponent
+                                sx={{ fontSize: 16 }}
                                 className={cn(
-                                  "w-4 h-4 flex-shrink-0",
+                                  "flex-shrink-0",
                                   isActive ? "text-white" : "text-gray-500"
                                 )}
                               />
@@ -537,14 +598,6 @@ export default function CreateTournamentPage() {
                           );
                         })}
                       </div>
-                      <FormDescription className="text-xs mt-2">
-                        {field.value === "round_robin" &&
-                          "Everyone plays everyone"}
-                        {field.value === "knockout" &&
-                          "Single elimination bracket"}
-                        {field.value === "hybrid" &&
-                          "Round robin qualifies to knockout"}
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -556,7 +609,7 @@ export default function CreateTournamentPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700">Category</FormLabel>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {[
                           {
                             label: "Individual",
@@ -573,15 +626,16 @@ export default function CreateTournamentPage() {
                               type="button"
                               onClick={() => field.onChange(opt.value)}
                               className={cn(
-                                "p-3 text-xs rounded-xl border-2 transition-all flex flex-row items-center justify-center gap-2",
+                                "p-2 px-4 text-xs rounded-xl border-2 transition-all flex flex-row items-center justify-center gap-2",
                                 isActive
                                   ? "bg-[#667eea] text-white border-[#667eea] shadow-lg scale-105"
                                   : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#667eea]/50"
                               )}
                             >
                               <IconComponent
+                                sx={{ fontSize: 16 }}
                                 className={cn(
-                                  "w-4 h-4 flex-shrink-0",
+                                  "flex-shrink-0",
                                   isActive ? "text-white" : "text-gray-500"
                                 )}
                               />
@@ -592,11 +646,6 @@ export default function CreateTournamentPage() {
                           );
                         })}
                       </div>
-                      <FormDescription className="text-xs mt-2">
-                        {field.value === "individual"
-                          ? "Players compete individually"
-                          : "Teams compete against each other"}
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -698,18 +747,9 @@ export default function CreateTournamentPage() {
             ═══════════════════════════════════════════ */}
             <div className="p-5 space-y-4 border-b">
               <h2 className="text-lg font-semibold text-[#667eea]">
-                {watchFormat === "round_robin" && "Round Robin Settings"}
                 {watchFormat === "knockout" && "Knockout Settings"}
                 {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
               </h2>
-
-              {/* ROUND ROBIN FORMAT */}
-              {watchFormat === "round_robin" && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                  {/* Groups disabled for round-robin - they're meaningless without a next phase */}
-                  <input type="hidden" {...form.register("useGroups")} value="false" />
-                </div>
-              )}
 
               {/* KNOCKOUT FORMAT */}
               {watchFormat === "knockout" && (
@@ -741,14 +781,6 @@ export default function CreateTournamentPage() {
 
                   {/* Qualification */}
                   <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded">
-                        QUALIFY
-                      </span>
-                      <span className="text-sm font-medium text-purple-800">
-                        Who advances to knockout?
-                      </span>
-                    </div>
                     <QualificationConfig
                       form={form}
                       useGroups={watchHybridUseGroups ?? false}
@@ -779,19 +811,30 @@ export default function CreateTournamentPage() {
                 {watchCategory === "team" ? "Teams" : "Participants"}
               </h2>
 
-              {watchCategory === "team" ? (
-                <TeamSearchInput
-                  placeholder="Search and add teams..."
-                  onSelect={addParticipant}
-                  clearAfterSelect
-                />
-              ) : (
-                <UserSearchInput
-                  placeholder="Search and add participants..."
-                  onSelect={addParticipant}
-                  clearAfterSelect
-                />
-              )}
+              <FormField
+                control={form.control}
+                name="participants"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      {watchCategory === "team" ? (
+                        <TeamSearchInput
+                          placeholder="Search and add teams..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
+                      ) : (
+                        <UserSearchInput
+                          placeholder="Search and add participants..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {participants.length > 0 ? (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -848,7 +891,7 @@ export default function CreateTournamentPage() {
           <Button
             type="submit"
             className="w-full py-6 rounded-none bg-blue-500 text-white font-semibold text-base shadow-lg"
-            disabled={isSubmitting || participants.length < 2}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>

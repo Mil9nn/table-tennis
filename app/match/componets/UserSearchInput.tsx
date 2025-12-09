@@ -104,30 +104,36 @@ function UserSearchInput({
       )}
 
       {/* Dropdown suggestions */}
-      {focused && suggestions.length > 0 && (
+      {focused && query.length >= 2 && !loading && !selectedUser && (
         <ul className="absolute z-20 w-full bottom-full mb-1 bg-background border rounded-lg shadow-lg overflow-hidden animate-in fade-in-50 slide-in-from-bottom-1 max-h-60 overflow-y-auto">
-          {suggestions.map((u) => {
-            const displayName = u.fullName || u.username;
-            return (
-              <li
-                key={u._id}
-                onMouseDown={() => handleSelect(u)}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer transition-colors"
-              >
-                <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
-                  <AvatarImage src={u.profileImage} alt={displayName} />
-                  <AvatarFallback>{getInitial(displayName)}</AvatarFallback>
-                </Avatar>
+          {suggestions.length > 0 ? (
+            suggestions.map((u) => {
+              const displayName = u.fullName || u.username;
+              return (
+                <li
+                  key={u._id}
+                  onMouseDown={() => handleSelect(u)}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer transition-colors"
+                >
+                  <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
+                    <AvatarImage src={u.profileImage} alt={displayName} />
+                    <AvatarFallback>{getInitial(displayName)}</AvatarFallback>
+                  </Avatar>
 
-                <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-medium">{displayName}</span>
-                  {u.fullName && (
-                    <span className="text-xs text-muted-foreground">@{u.username}</span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-sm font-medium">{displayName}</span>
+                    {u.fullName && (
+                      <span className="text-xs text-muted-foreground">@{u.username}</span>
+                    )}
+                  </div>
+                </li>
+              );
+            })
+          ) : (
+            <li className="px-3 py-4 text-center text-sm text-muted-foreground">
+              No users found. Try a different search term.
+            </li>
+          )}
         </ul>
       )}
     </div>

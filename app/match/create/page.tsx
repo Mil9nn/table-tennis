@@ -15,17 +15,17 @@ export default function CreateMatchPage() {
   const router = useRouter();
 
   return (
-    <div className="px-4 py-8 sm:py-12 bg-[#6C6FD5]">
+    <div className="py-8 bg-[#6C6FD5]">
       {/* Header */}
-      <header className="flex items-center gap-3 mb-8">
+      <header className="flex items-center gap-2 px-2 mb-8">
         <button
           onClick={() => router.back()}
           className="p-2 rounded-full hover:bg-blue-500 bg-gray-100 transition"
         >
           <ChevronLeft className="w-5 h-5 text-[#808996]" />
         </button>
-        <div className="flex flex-col items-center mx-auto gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-white">
+        <div className="flex flex-col mx-auto gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Create New Match
           </h1>
           <p className="text-sm text-white/89">
@@ -35,7 +35,7 @@ export default function CreateMatchPage() {
       </header>
 
       {/* Match Category Toggle */}
-      <div className="mt-6 py-6 max-w-2xl mx-auto bg-white rounded-xl shadow-sm">
+      <div className="mt-6 py-6 max-w-2xl mx-auto bg-white">
         <div className="flex items-center justify-center flex-wrap gap-4">
           {[
             {

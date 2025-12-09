@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import Tournament from "@/models/Tournament";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
-import { generateTournamentDraw } from "@/services/tournament/core/matchGenerationService";
+import { matchGenerationOrchestrator } from "@/services/tournament/core/matchGenerationOrchestrator";
+import { tournamentRepository } from "@/services/tournament/repositories/TournamentRepository";
 import {
   TournamentValidators,
   handleValidationResult,
 } from "@/services/tournament/validators/tournamentValidators";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 /**
  * Generate tournament matches with ITTF-compliant scheduling
@@ -17,9 +18,13 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/tournaments/${id}/generate-matches`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
-    const { id } = await context.params;
 
     // Authenticate user
     const token = getTokenFromRequest(req);
@@ -32,8 +37,8 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Find tournament
-    const tournament = await Tournament.findById(id);
+    // Find tournament using repository
+    const tournament = await tournamentRepository.findById(id);
     if (!tournament) {
       return NextResponse.json(
         { error: "Tournament not found" },
@@ -62,11 +67,15 @@ export async function POST(
       );
     }
 
-    // Generate tournament draw using service
-    const result = await generateTournamentDraw(tournament, decoded.userId, {
-      courtsAvailable: 1,
-      matchDuration: 60,
-    });
+    // Generate tournament draw using orchestrator
+    const result = await matchGenerationOrchestrator.generateTournamentDraw(
+      id,
+      decoded.userId,
+      {
+        courtsAvailable: 1,
+        matchDuration: 60,
+      }
+    );
 
     return NextResponse.json({
       message: "Tournament draw generated successfully",
@@ -74,9 +83,12 @@ export async function POST(
       stats: result.stats,
     });
   } catch (err: any) {
-    console.error("Error generating matches:", err);
+    console.error("[tournaments/[id]/generate-matches] Error:", err);
     return NextResponse.json(
-      { error: "Failed to generate matches", details: err.message },
+      { 
+        error: "Failed to generate matches",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

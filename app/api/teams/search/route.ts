@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import Team from "@/models/Team";
 import { connectDB } from "@/lib/mongodb";
 import { escapeRegex } from "@/lib/utils";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(req, "GET", "/api/teams/search");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -35,9 +40,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, teams: formattedTeams });
   } catch (error: any) {
-    console.error("Error searching teams:", error);
+    console.error("[teams/search] Error:", error);
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      { 
+        success: false, 
+        message: "Failed to search teams",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
       { status: 500 }
     );
   }

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import IndividualMatch from "@/models/IndividualMatch";
 import { User } from "@/models/User";
-import Tournament from "@/models/Tournament";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
+import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,23 +36,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid player IDs" }, { status: 400 });
     }
 
-    // 📝 Create match
-    const match = new IndividualMatch({
+    // 📝 Create match using repository
+    const match = await matchRepository.createIndividualMatch({
       matchType: body.matchType,
-      matchCategory: "individual",
       numberOfSets: Number(body.numberOfSets),
       city: body.city,
       venue: body.venue,
       participants: body.participants, // just IDs
-      scorer: scorer._id,
+      scorer: scorer._id.toString(),
     });
 
-    await match.save();
-
     // 👇 Populate with profileImage
-    await match.populate("participants", "username fullName profileImage");
-
-    const matchObj = match.toObject();
+    const populatedMatch = await matchRepository.findByIdWithParticipants(match._id.toString());
+    const matchObj = populatedMatch?.toObject() || match.toObject();
 
     return NextResponse.json(
       { message: "Individual match created", match: matchObj },
@@ -69,20 +64,54 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Ensure models are registered before populate
-    Tournament;
-    User;
-
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "0", 10);
     const skip = parseInt(searchParams.get("skip") || "0", 10);
     const context = searchParams.get("context"); // "casual", "tournament", or null (all)
 
-    // Build filter based on context
-    let filter = {};
+    // Use repository for casual matches
     if (context === "casual") {
-      filter = { tournament: null };
-    } else if (context === "tournament") {
+      const matches = await matchRepository.findCasualMatches({
+        limit: limit > 0 ? limit : undefined,
+        skip,
+      });
+
+      // Populate participants
+      const IndividualMatch = (await import("@/models/IndividualMatch")).default;
+      const populatedMatches = await Promise.all(
+        matches.map(async (m) => {
+          if (m.matchCategory === "individual") {
+            return IndividualMatch.findById(m._id)
+              .populate("participants", "username fullName profileImage")
+              .populate("scorer", "username fullName")
+              .populate("games.shots.player", "username fullName")
+              .populate("tournament", "name format status");
+          }
+          return m;
+        })
+      );
+
+      const totalCount = await matchRepository.findCasualMatches().then(m => m.length);
+
+      return NextResponse.json({
+        matches: populatedMatches,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + matches.length < totalCount
+        }
+      });
+    }
+
+    // For tournament matches or all matches, use direct query for now
+    // TODO: Add repository method for tournament matches
+    const IndividualMatch = (await import("@/models/IndividualMatch")).default;
+    const Tournament = (await import("@/models/Tournament")).default;
+
+    // Build filter based on context
+    let filter: any = {};
+    if (context === "tournament") {
       filter = { tournament: { $ne: null } };
     }
 

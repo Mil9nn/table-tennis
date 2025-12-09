@@ -5,10 +5,17 @@ import {
   BracketRound,
   BracketMatch,
 } from "@/types/tournamentDraw";
+import BracketState, { IBracketState } from "@/models/BracketState";
+import { ClientSession } from "mongoose";
+import { TransactionManager } from "@/services/database/TransactionManager";
+import { matchRepository } from "../repositories/MatchRepository";
+import { tournamentRepository } from "../repositories/TournamentRepository";
 
 /**
  * Bracket Progression Service
  * Handles match completion and winner advancement in knockout brackets
+ * 
+ * UPDATED: Now uses BracketState model and transactions for data integrity
  */
 
 /**
@@ -109,11 +116,184 @@ export function advanceWinner(
 }
 
 /**
- * Update bracket after a match completion
+ * Update bracket after a match completion (using BracketState and transactions)
+ * @param tournamentId - Tournament ID
+ * @param matchId - ID of the completed match
+ * @param winnerId - ID of the winner
+ * @returns Updated bracket state
+ */
+export async function updateBracketAfterMatchWithState(
+  tournamentId: string,
+  matchId: string,
+  winnerId: string
+): Promise<IBracketState> {
+  const txManager = new TransactionManager();
+  
+  return txManager.executeInTransaction(async (session) => {
+    // Load bracket state
+    const bracketState = await BracketState.findOne({ tournament: tournamentId }).session(session);
+    
+    if (!bracketState) {
+      throw new Error(`Bracket state not found for tournament ${tournamentId}`);
+    }
+
+    // Find the match in the bracket
+    let foundMatch: BracketMatch | null = null;
+    let foundRound: BracketRound | null = null;
+
+    for (const round of bracketState.rounds) {
+      const match = round.matches.find((m) => m.matchId === matchId);
+      if (match) {
+        foundMatch = match;
+        foundRound = round;
+        break;
+      }
+    }
+
+    // Check third place match
+    if (!foundMatch && bracketState.thirdPlaceMatch?.matchId === matchId) {
+      foundMatch = bracketState.thirdPlaceMatch;
+      foundMatch.winner = winnerId;
+      foundMatch.completed = true;
+      await bracketState.save({ session });
+      return bracketState;
+    }
+
+    if (!foundMatch || !foundRound) {
+      throw new Error(`Match ${matchId} not found in bracket`);
+    }
+
+    // Use advanceWinner to handle the progression
+    advanceWinnerInState(
+      bracketState,
+      foundRound.roundNumber,
+      foundMatch.bracketPosition.matchNumber,
+      winnerId
+    );
+
+    // Auto-populate third place match if semi-finals just completed
+    if (
+      bracketState.thirdPlaceMatch &&
+      foundRound.roundNumber === bracketState.rounds.length - 1 && // Semi-final round
+      foundRound.completed // Round just completed
+    ) {
+      try {
+        // Collect losers from semi-finals
+        const semiFinalLosers: string[] = [];
+        for (const match of foundRound.matches) {
+          if (match.completed && match.winner) {
+            const loser = getMatchLoser(match);
+            if (loser) {
+              semiFinalLosers.push(loser);
+            }
+          }
+        }
+
+        // Only update if we have exactly 2 losers
+        if (semiFinalLosers.length === 2) {
+          bracketState.thirdPlaceMatch.participant1 = semiFinalLosers[0];
+          bracketState.thirdPlaceMatch.participant2 = semiFinalLosers[1];
+        }
+      } catch (error) {
+        console.error("Failed to auto-populate third place match:", error);
+      }
+    }
+
+    // Save bracket state (Mongoose auto-tracks changes)
+    await bracketState.save({ session });
+    
+    return bracketState;
+  });
+}
+
+/**
+ * Advance winner in BracketState
+ */
+function advanceWinnerInState(
+  bracketState: IBracketState,
+  roundNumber: number,
+  matchNumber: number,
+  winnerId: string
+): void {
+  const currentRound = bracketState.rounds.find((r) => r.roundNumber === roundNumber);
+
+  if (!currentRound) {
+    throw new Error(`Round ${roundNumber} not found in bracket`);
+  }
+
+  const currentMatch = currentRound.matches.find(
+    (m) => m.bracketPosition.matchNumber === matchNumber
+  );
+
+  if (!currentMatch) {
+    throw new Error(`Match ${matchNumber} not found in round ${roundNumber}`);
+  }
+
+  // Verify winner is a participant in this match
+  if (
+    winnerId !== currentMatch.participant1?.toString() &&
+    winnerId !== currentMatch.participant2?.toString()
+  ) {
+    throw new Error(`Winner ${winnerId} is not a participant in this match`);
+  }
+
+  // Mark current match as completed
+  currentMatch.winner = winnerId;
+  currentMatch.completed = true;
+
+  // If this is the final round, don't advance further
+  if (roundNumber === bracketState.rounds.length) {
+    bracketState.completed = true;
+    return;
+  }
+
+  // Find next round and match
+  const nextRoundNumber = roundNumber + 1;
+  const nextMatchNumber = currentMatch.bracketPosition.nextMatchNumber;
+
+  if (!nextMatchNumber) {
+    throw new Error(`No next match defined for round ${roundNumber} match ${matchNumber}`);
+  }
+
+  const nextRound = bracketState.rounds.find((r) => r.roundNumber === nextRoundNumber);
+
+  if (!nextRound) {
+    throw new Error(`Next round ${nextRoundNumber} not found in bracket`);
+  }
+
+  const nextMatch = nextRound.matches.find(
+    (m) => m.bracketPosition.matchNumber === nextMatchNumber
+  );
+
+  if (!nextMatch) {
+    throw new Error(
+      `Next match ${nextMatchNumber} not found in round ${nextRoundNumber}`
+    );
+  }
+
+  // Determine which position in the next match (odd match numbers go to participant1)
+  if (matchNumber % 2 === 1) {
+    nextMatch.participant1 = winnerId;
+  } else {
+    nextMatch.participant2 = winnerId;
+  }
+
+  // Check if current round is complete
+  currentRound.completed = currentRound.matches.every((m) => m.completed);
+
+  // If current round is complete, advance to next round
+  if (currentRound.completed) {
+    bracketState.currentRound = nextRoundNumber;
+  }
+}
+
+/**
+ * Update bracket after a match completion (legacy - uses in-memory bracket)
  * @param bracket - The knockout bracket
  * @param matchId - ID of the completed match
  * @param winnerId - ID of the winner
  * @returns Updated bracket
+ * @deprecated Use updateBracketAfterMatchWithState instead
  */
 export function updateBracketAfterMatch(
   bracket: KnockoutBracket,

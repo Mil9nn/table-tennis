@@ -92,6 +92,11 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/tournaments/${id}/custom-bracket`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -494,9 +499,12 @@ export async function POST(
       matches: populatedMatches,
     });
   } catch (error: any) {
-    console.error("Error creating custom bracket:", error);
+    console.error("[tournaments/[id]/custom-bracket] Error:", error);
     return NextResponse.json(
-      { error: "Failed to create custom bracket", details: error.message },
+      { 
+        error: "Failed to create custom bracket",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
       { status: 500 }
     );
   }

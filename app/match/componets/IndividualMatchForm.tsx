@@ -38,16 +38,111 @@ const userSchema = z.object({
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional(),
 });
 
-const schema = z.object({
-  matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
-  numberOfSets: z.enum(["1", "3", "5", "7", "9"]),
-  player1: userSchema.optional(),
-  player2: userSchema.optional(),
-  player3: userSchema.optional(),
-  player4: userSchema.optional(),
-  city: z.string().min(1, "City is required"),
-  venue: z.string().min(1, "Venue is required"),
-});
+const schema = z
+  .object({
+    matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
+    numberOfSets: z.enum(["1", "3", "5", "7", "9"]),
+    player1: userSchema.optional(),
+    player2: userSchema.optional(),
+    player3: userSchema.optional(),
+    player4: userSchema.optional(),
+    city: z.string().min(1, "City is required"),
+    venue: z.string().min(1, "Venue is required"),
+  })
+  .superRefine((data, ctx) => {
+    // Singles: require player1 and player2
+    if (data.matchType === "singles") {
+      if (!data.player1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 1 is required for singles matches",
+          path: ["player1"],
+        });
+      }
+      if (!data.player2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 2 is required for singles matches",
+          path: ["player2"],
+        });
+      }
+    }
+
+    // Doubles and Mixed Doubles: require all 4 players
+    if (data.matchType === "doubles" || data.matchType === "mixed_doubles") {
+      if (!data.player1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 1 is required",
+          path: ["player1"],
+        });
+      }
+      if (!data.player2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 2 is required",
+          path: ["player2"],
+        });
+      }
+      if (!data.player3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 3 is required",
+          path: ["player3"],
+        });
+      }
+      if (!data.player4) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Player 4 is required",
+          path: ["player4"],
+        });
+      }
+    }
+
+    // Mixed Doubles: validate gender composition
+    if (data.matchType === "mixed_doubles") {
+      // Validate Team 1 (player1 and player2)
+      if (data.player1 && data.player2) {
+        const team1Genders = [data.player1.gender, data.player2.gender].filter(
+          (g): g is "male" | "female" =>
+            g === "male" || g === "female"
+        );
+
+        if (
+          team1Genders.length !== 2 ||
+          !team1Genders.includes("male") ||
+          !team1Genders.includes("female")
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Team 1 must include one male and one female player",
+            path: ["player1"],
+          });
+        }
+      }
+
+      // Validate Team 2 (player3 and player4)
+      if (data.player3 && data.player4) {
+        const team2Genders = [data.player3.gender, data.player4.gender].filter(
+          (g): g is "male" | "female" =>
+            g === "male" || g === "female"
+        );
+
+        if (
+          team2Genders.length !== 2 ||
+          !team2Genders.includes("male") ||
+          !team2Genders.includes("female")
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Team 2 must include one male and one female player",
+            path: ["player3"],
+          });
+        }
+      }
+    }
+  });
 
 export default function IndividualMatchForm({
   endpoint,
@@ -74,39 +169,7 @@ export default function IndividualMatchForm({
     setIsSubmitting(true);
 
     try {
-      // Validation
-      if (data.matchType === "singles" && (!data.player1 || !data.player2)) {
-        toast.error("Select both players before creating a singles match.");
-        return setIsSubmitting(false);
-      }
-
-      if (
-        data.matchType !== "singles" &&
-        (!data.player1 || !data.player2 || !data.player3 || !data.player4)
-      ) {
-        toast.error("Select all four players before creating a doubles match.");
-        return setIsSubmitting(false);
-      }
-
-      if (data.matchType === "mixed_doubles") {
-        const validTeam = (team: any[]) => {
-          const gs = team.map((p) => p?.gender).filter(Boolean);
-          return (
-            gs.length === 2 && gs.includes("male") && gs.includes("female")
-          );
-        };
-
-        if (
-          !validTeam([data.player1, data.player2]) ||
-          !validTeam([data.player3, data.player4])
-        ) {
-          toast.error(
-            "Each mixed doubles team must include one male and one female."
-          );
-          return setIsSubmitting(false);
-        }
-      }
-
+      // All validation is now handled by zod schema
       const payload: any = {
         matchType: data.matchType,
         numberOfSets: Number(data.numberOfSets),
@@ -180,6 +243,7 @@ export default function IndividualMatchForm({
                       );
                     })}
                   </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -212,24 +276,47 @@ export default function IndividualMatchForm({
                       );
                     })}
                   </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
           </section>
 
           {/* ========== PLAYERS SECTION ========== */}
-          <section className="space-y-4">
+          <section className="space-y-2">
             <h3 className="text-base font-semibold">Participants</h3>
 
             {matchType === "singles" ? (
               <>
-                <UserSearchInput
-                  placeholder="Select Player 1"
-                  onSelect={(u) => form.setValue("player1", u)}
+                <FormField
+                  control={form.control}
+                  name="player1"
+                  render={() => (
+                    <FormItem>
+                      <FormControl>
+                        <UserSearchInput
+                          placeholder="Select Player 1"
+                          onSelect={(u) => form.setValue("player1", u)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <UserSearchInput
-                  placeholder="Select Player 2"
-                  onSelect={(u) => form.setValue("player2", u)}
+                <FormField
+                  control={form.control}
+                  name="player2"
+                  render={() => (
+                    <FormItem>
+                      <FormControl>
+                        <UserSearchInput
+                          placeholder="Select Player 2"
+                          onSelect={(u) => form.setValue("player2", u)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </>
             ) : (
@@ -245,13 +332,35 @@ export default function IndividualMatchForm({
                   <h4 className="font-medium text-sm text-muted-foreground">
                     Side A
                   </h4>
-                  <UserSearchInput
-                    placeholder="Player A"
-                    onSelect={(u) => form.setValue("player1", u)}
+                  <FormField
+                    control={form.control}
+                    name="player1"
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <UserSearchInput
+                            placeholder="Player A"
+                            onSelect={(u) => form.setValue("player1", u)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <UserSearchInput
-                    placeholder="Partner A"
-                    onSelect={(u) => form.setValue("player2", u)}
+                  <FormField
+                    control={form.control}
+                    name="player2"
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <UserSearchInput
+                            placeholder="Partner A"
+                            onSelect={(u) => form.setValue("player2", u)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
 
@@ -260,13 +369,35 @@ export default function IndividualMatchForm({
                   <h4 className="font-medium text-sm text-muted-foreground">
                     Side B
                   </h4>
-                  <UserSearchInput
-                    placeholder="Player B"
-                    onSelect={(u) => form.setValue("player3", u)}
+                  <FormField
+                    control={form.control}
+                    name="player3"
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <UserSearchInput
+                            placeholder="Player B"
+                            onSelect={(u) => form.setValue("player3", u)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <UserSearchInput
-                    placeholder="Partner B"
-                    onSelect={(u) => form.setValue("player4", u)}
+                  <FormField
+                    control={form.control}
+                    name="player4"
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <UserSearchInput
+                            placeholder="Partner B"
+                            onSelect={(u) => form.setValue("player4", u)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
               </>
@@ -277,7 +408,7 @@ export default function IndividualMatchForm({
           <section className="space-y-6">
             <h3 className="text-base font-semibold">Location</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="city"
@@ -287,6 +418,7 @@ export default function IndividualMatchForm({
                     <FormControl>
                       <Input placeholder="Enter city" {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

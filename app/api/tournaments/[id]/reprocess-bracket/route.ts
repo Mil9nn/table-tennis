@@ -8,6 +8,7 @@ import {
   getMatchesNeedingDocuments,
 } from "@/services/tournament/core/bracketProgressionService";
 import { createBracketMatch } from "@/services/tournament/core/matchGenerationService";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 /**
  * Reprocess knockout bracket based on completed matches
@@ -26,6 +27,11 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/tournaments/${id}/reprocess-bracket`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -260,9 +266,12 @@ export async function POST(
       })
     });
   } catch (error: any) {
-    console.error("[reprocess-bracket] Error:", error);
+    console.error("[tournaments/[id]/reprocess-bracket] Error:", error);
     return NextResponse.json(
-      { error: "Failed to reprocess bracket", details: error.message },
+      { 
+        error: "Failed to reprocess bracket",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
       { status: 500 }
     );
   }

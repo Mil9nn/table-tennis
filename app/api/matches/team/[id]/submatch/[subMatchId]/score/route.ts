@@ -4,16 +4,20 @@ import { withAuth } from "@/lib/api-utils";
 import { SubMatch } from "@/types/match.type";
 import { getNextServerForTeamMatch } from "@/services/match/serverCalculationService";
 import { populateTeamMatch } from "@/services/match/populationService";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string; subMatchId: string }> }
 ) {
+  // Rate limiting
+  const { id, subMatchId } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/matches/team/${id}/submatch/${subMatchId}/score`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
-
-    const { id, subMatchId } = await context.params;
     const body = await req.json();
 
     const match = await TeamMatch.findById(id);
@@ -209,10 +213,13 @@ export async function POST(
           ? "Team match completed!"
           : "Score updated",
     });
-  } catch (err) {
-    console.error("SubMatch score update error:", err);
+  } catch (err: any) {
+    console.error("[matches/team/[id]/submatch/[subMatchId]/score] Error:", err);
     return NextResponse.json(
-      { error: "Failed to update score", details: (err as Error).message },
+      { 
+        error: "Failed to update score",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

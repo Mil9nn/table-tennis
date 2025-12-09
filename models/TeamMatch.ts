@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
+import Match from "./MatchBase";
 import {
   createShotSchema,
   createTeamGameSchema,
@@ -6,6 +7,38 @@ import {
   playerStatsSchema,
   teamInfoSchema,
 } from "./shared/matchSchemas";
+
+/**
+ * Team Match Model
+ *
+ * Extends the base Match model with team-specific fields
+ * Supports: five_singles, single_double_single, custom formats
+ *
+ * Uses MongoDB discriminators for proper type separation
+ */
+
+export interface ITeamMatch extends Document {
+  matchCategory: 'team';
+  matchFormat: 'five_singles' | 'single_double_single' | 'custom';
+  numberOfSetsPerSubMatch: number;
+  numberOfSubMatches: number;
+  currentSubMatch: number;
+  team1: any; // teamInfoSchema
+  team2: any; // teamInfoSchema
+  subMatches: any[];
+  finalScore: {
+    team1Matches: number;
+    team2Matches: number;
+  };
+  winnerTeam: 'team1' | 'team2' | null;
+  serverConfig: any;
+  statistics?: {
+    longestStreak: number;
+    clutchPointsWon: number;
+    playerStats: Map<string, any>;
+  };
+  scheduledDate?: Date;
+}
 
 // Create schemas with team match enums (team1/team2)
 const shotSchema = createShotSchema(["team1", "team2"]);
@@ -65,23 +98,11 @@ const subMatchSchema = new mongoose.Schema({
 });
 
 /* -------------------- TEAM / TEAMMATCH SCHEMA -------------------- */
-
-
-/* -------------------- MAIN TEAM MATCH SCHEMA -------------------- */
-
+// Team Match Schema - extends base Match (base fields inherited automatically)
 const TeamMatchSchema = new mongoose.Schema(
   {
-    matchCategory: {
-      type: String,
-      enum: ["team"],
-      required: true,
-      default: "team",
-    },
+    // Team-specific fields only (base fields inherited from Match)
 
-    matchType: {
-      type: String,
-    },
-    
     matchFormat: {
       type: String,
       enum: [
@@ -114,42 +135,12 @@ const TeamMatchSchema = new mongoose.Schema(
 
     winnerTeam: { type: String, enum: ["team1", "team2"], default: null },
 
-    scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-    // match-level server config & currentServer (for default singles server behavior)
+    // match-level server config
     serverConfig: {
       type: serverConfigSchema,
       default: null,
     },
 
-    // status, timestamps, meta
-    city: String,
-    venue: String,
-    status: {
-      type: String,
-      enum: ["scheduled", "in_progress", "completed", "cancelled"],
-      default: "scheduled",
-    },
-
-    matchDuration: Number,
-
-    // Tournament context
-    tournament: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Tournament",
-      default: null
-    },
-    groupId: { type: String, default: null }, // For round-robin group matches
-
-    // Knockout/Bracket metadata
-    bracketPosition: {
-      round: { type: Number }, // Round number in bracket
-      matchNumber: { type: Number }, // Match number within round
-      nextMatchNumber: { type: Number }, // Which match in next round winner advances to
-    },
-    roundName: { type: String }, // "Quarter-Finals", "Semi-Finals", "Final", etc.
-    courtNumber: { type: Number }, // Court assignment
-    isThirdPlaceMatch: { type: Boolean, default: false }, // Is this a 3rd place match
     scheduledDate: { type: Date }, // Scheduled date/time for the match
 
     // -------------------- STATISTICS --------------------
@@ -163,8 +154,7 @@ const TeamMatchSchema = new mongoose.Schema(
         of: playerStatsSchema,
       },
     },
-  },
-  { timestamps: true }
+  }
 );
 
 /* -------------------- VIRTUALS -------------------- */
@@ -177,7 +167,6 @@ TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
   // Map stored as native Map in mongoose doc; iterate safely
   try {
     this.statistics.playerStats.forEach((stats: any, playerId: string) => {
-
       // stats may be a Mongoose subdocument; convert to plain object if possible
       const statsObj = stats.toObject ? stats.toObject() : { ...stats };
       result[playerId] = {
@@ -197,5 +186,28 @@ TeamMatchSchema.virtual("playerStatsWithRatio").get(function () {
   return result;
 });
 
-export default mongoose.models.TeamMatch ||
-  mongoose.model("TeamMatch", TeamMatchSchema);
+// Validation: Ensure teams are properly configured
+TeamMatchSchema.pre('save', function(next) {
+  if (!this.team1 || !this.team2) {
+    return next(new Error('Team matches must have both team1 and team2'));
+  }
+
+  if (this.matchFormat === 'custom' && (!this.subMatches || this.subMatches.length === 0)) {
+    return next(new Error('Custom format requires subMatches configuration'));
+  }
+
+  next();
+});
+
+// Create discriminator model (prevent overwrite during hot reload)
+let TeamMatch: mongoose.Model<ITeamMatch>;
+if (Match.discriminators && Match.discriminators['team']) {
+  TeamMatch = Match.discriminators['team'] as mongoose.Model<ITeamMatch>;
+} else {
+  TeamMatch = Match.discriminator<ITeamMatch>(
+    'team',
+    TeamMatchSchema
+  );
+}
+
+export default TeamMatch;

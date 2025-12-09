@@ -1,10 +1,39 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
+import Match from "./MatchBase";
 import {
   createShotSchema,
   createGameSchema,
   createServerConfigSchema,
   playerStatsSchema,
 } from "./shared/matchSchemas";
+
+/**
+ * Individual Match Model
+ *
+ * Extends the base Match model with individual-specific fields
+ * Supports: singles, doubles, mixed_doubles
+ *
+ * Uses MongoDB discriminators for proper type separation
+ */
+
+export interface IIndividualMatch extends Document {
+  matchCategory: 'individual';
+  matchType: 'singles' | 'doubles' | 'mixed_doubles';
+  numberOfSets: number;
+  participants: mongoose.Types.ObjectId[];
+  currentGame: number;
+  currentServer: string | null;
+  games: any[];
+  finalScore: {
+    side1Sets: number;
+    side2Sets: number;
+  };
+  winnerSide: 'side1' | 'side2' | null;
+  serverConfig: any;
+  statistics?: {
+    playerStats: Map<string, any>;
+  };
+}
 
 // Create schemas with individual match enums (side1/side2)
 const shotSchema = createShotSchema(["side1", "side2"]);
@@ -14,21 +43,10 @@ const serverConfigSchema = createServerConfigSchema(
   ["side1_main", "side1_partner", "side2_main", "side2_partner"]
 );
 
-// Match Schema
+// Individual Match Schema - extends base Match
 const IndividualMatchSchema = new mongoose.Schema(
   {
-    tournament: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Tournament",
-      default: null
-    },
-
-    matchCategory: {
-      type: String,
-      enum: ["individual"],
-      required: true,
-      default: "individual",
-    },
+    // Individual-specific fields only (base fields inherited from Match)
 
     matchType: {
       type: String,
@@ -42,15 +60,6 @@ const IndividualMatchSchema = new mongoose.Schema(
       { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     ],
 
-    scorer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    city: String,
-    venue: String,
-
-    status: {
-      type: String,
-      enum: ["scheduled", "in_progress", "completed", "cancelled"],
-      default: "scheduled",
-    },
     currentGame: { type: Number, default: 1 },
 
     currentServer: {
@@ -79,21 +88,6 @@ const IndividualMatchSchema = new mongoose.Schema(
       default: null,
     },
 
-    matchDuration: Number,
-
-    // Tournament context
-    groupId: { type: String, default: null }, // For round-robin group matches
-
-    // Knockout/Bracket metadata
-    bracketPosition: {
-      round: { type: Number }, // Round number in bracket
-      matchNumber: { type: Number }, // Match number within round
-      nextMatchNumber: { type: Number }, // Which match in next round winner advances to
-    },
-    roundName: { type: String }, // "Quarter-Finals", "Semi-Finals", "Final", etc.
-    courtNumber: { type: Number }, // Court assignment
-    isThirdPlaceMatch: { type: Boolean, default: false }, // Is this a 3rd place match
-
     // Enhanced Match Statistics
     statistics: {
       // Per-player stats (works for singles/doubles)
@@ -102,16 +96,15 @@ const IndividualMatchSchema = new mongoose.Schema(
         of: playerStatsSchema,
       },
     },
-  },
-  { timestamps: true }
+  }
 );
 
+// Virtuals
 IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
   if (!this.statistics?.playerStats) return {};
 
   const result: Record<string, any> = {};
   this.statistics.playerStats.forEach((stats: any, playerId: string) => {
-
     result[playerId] = {
       ...stats.toObject()
     };
@@ -120,5 +113,29 @@ IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
   return result;
 });
 
-export default mongoose.models.IndividualMatch ||
-  mongoose.model("IndividualMatch", IndividualMatchSchema);
+// Validation: Doubles requires even number of participants (2 or 4)
+IndividualMatchSchema.pre('save', function(next) {
+  if (this.matchType === 'doubles' || this.matchType === 'mixed_doubles') {
+    if (this.participants.length !== 4) {
+      return next(new Error('Doubles matches require exactly 4 participants'));
+    }
+  } else {
+    if (this.participants.length !== 2) {
+      return next(new Error('Singles matches require exactly 2 participants'));
+    }
+  }
+  next();
+});
+
+// Create discriminator model (prevent overwrite during hot reload)
+let IndividualMatch: mongoose.Model<IIndividualMatch>;
+if (Match.discriminators && Match.discriminators['individual']) {
+  IndividualMatch = Match.discriminators['individual'] as mongoose.Model<IIndividualMatch>;
+} else {
+  IndividualMatch = Match.discriminator<IIndividualMatch>(
+    'individual',
+    IndividualMatchSchema
+  );
+}
+
+export default IndividualMatch;

@@ -4,16 +4,20 @@ import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { statsService } from "@/services/statsService";
 import { updateTournamentAfterMatch } from "@/services/tournament/tournamentUpdateService";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/matches/individual/${id}/status`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
-
-    const { id } = await context.params;
     const { status, winnerSide } = await req.json();
 
     if (
@@ -79,10 +83,13 @@ export async function POST(
     }
 
     return NextResponse.json({ match });
-  } catch (err) {
-    console.error("Status error:", err);
+  } catch (err: any) {
+    console.error("[matches/individual/[id]/status] Error:", err);
     return NextResponse.json(
-      { error: "Failed to update match status" },
+      { 
+        error: "Failed to update match status",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

@@ -29,14 +29,150 @@ import TeamSearchInput from "@/components/search/TeamSearchInput";
 import CustomFormatConfig from "./CustomFormatConfig";
 import PositionAssignment from "./PositionAssignment";
 
-const schema = z.object({
-  matchFormat: z.string().min(1, "Select a team format"),
-  setsPerTie: z.enum(["1", "3", "5", "7"]),
-  team1Id: z.string().min(1, "Select Team 1"),
-  team2Id: z.string().min(1, "Select Team 2"),
-  city: z.string().min(1, "Enter city/venue"),
-  venue: z.string().min(1, "Venue is required"),
-});
+// Helper function to get required positions based on match format
+const getRequiredPositionsForSchema = (format: string): string[] => {
+  switch (format) {
+    case "five_singles":
+      return ["A", "B", "C"];
+    case "single_double_single":
+      return ["A", "B"];
+    case "custom":
+      return [];
+    default:
+      return [];
+  }
+};
+
+const getTeam2PositionsForSchema = (format: string): string[] => {
+  switch (format) {
+    case "five_singles":
+      return ["X", "Y", "Z"];
+    case "single_double_single":
+      return ["X", "Y"];
+    case "custom":
+      return [];
+    default:
+      return [];
+  }
+};
+
+const schema = z
+  .object({
+    matchFormat: z.string().min(1, "Select a team format"),
+    setsPerTie: z.enum(["1", "3", "5", "7"]),
+    team1Id: z.string().min(1, "Select Team 1"),
+    team2Id: z.string().min(1, "Select Team 2"),
+    city: z.string().min(1, "Enter city/venue"),
+    venue: z.string().min(1, "Venue is required"),
+    // These will be set via form.setValue when assignments/config change
+    team1Assignments: z.record(z.string(), z.string()).optional(),
+    team2Assignments: z.record(z.string(), z.string()).optional(),
+    customConfig: z
+      .object({
+        matches: z.array(
+          z.object({
+            type: z.enum(["singles", "doubles"]),
+            team1Players: z.array(z.string()),
+            team2Players: z.array(z.string()),
+          })
+        ),
+      })
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Validate teams are different
+    if (data.team1Id === data.team2Id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Team 1 and Team 2 cannot be the same",
+        path: ["team2Id"],
+      });
+    }
+
+    // Validate position assignments for formats that need them
+    const requiredPositions = getRequiredPositionsForSchema(data.matchFormat);
+    const requiredTeam2Positions = getTeam2PositionsForSchema(data.matchFormat);
+
+    if (requiredPositions.length > 0) {
+      const team1Assignments = data.team1Assignments || {};
+      const team2Assignments = data.team2Assignments || {};
+
+      const team1AssignedPositions = new Set(Object.values(team1Assignments));
+      const team2AssignedPositions = new Set(Object.values(team2Assignments));
+
+      const missingTeam1Positions = requiredPositions.filter(
+        (pos) => !team1AssignedPositions.has(pos)
+      );
+      const missingTeam2Positions = requiredTeam2Positions.filter(
+        (pos) => !team2AssignedPositions.has(pos)
+      );
+
+      if (missingTeam1Positions.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Team 1 missing position assignments: ${missingTeam1Positions.join(", ")}`,
+          path: ["team1Assignments"],
+        });
+      }
+
+      if (missingTeam2Positions.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Team 2 missing position assignments: ${missingTeam2Positions.join(", ")}`,
+          path: ["team2Assignments"],
+        });
+      }
+    }
+
+    // Validate custom format
+    if (data.matchFormat === "custom") {
+      if (!data.customConfig || !data.customConfig.matches || data.customConfig.matches.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please configure at least one match for custom format",
+          path: ["customConfig"],
+        });
+        return; // Early return to avoid further validation
+      }
+
+      // Validate all matches have players selected
+      data.customConfig.matches.forEach((match, index) => {
+        const requiredPlayers = match.type === "singles" ? 1 : 2;
+        
+        if (match.team1Players.length !== requiredPlayers) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Match ${index + 1}: Team 1 must have ${requiredPlayers} player(s)`,
+            path: ["customConfig", "matches", index, "team1Players"],
+          });
+        }
+
+        if (match.team2Players.length !== requiredPlayers) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Match ${index + 1}: Team 2 must have ${requiredPlayers} player(s)`,
+            path: ["customConfig", "matches", index, "team2Players"],
+          });
+        }
+
+        if (match.team1Players.some((p) => !p)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Match ${index + 1}: Team 1 has incomplete player selection`,
+            path: ["customConfig", "matches", index, "team1Players"],
+          });
+        }
+
+        if (match.team2Players.some((p) => !p)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Match ${index + 1}: Team 2 has incomplete player selection`,
+            path: ["customConfig", "matches", index, "team2Players"],
+          });
+        }
+      });
+    }
+  });
 
 type TeamMatchFormValues = z.infer<typeof schema>;
 
@@ -58,6 +194,9 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       team2Id: "",
       city: "",
       venue: "",
+      team1Assignments: {},
+      team2Assignments: {},
+      customConfig: undefined,
     },
   });
 
@@ -78,12 +217,14 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
             assignmentsObj[key] = value as string;
           }
           setTeam1Assignments(assignmentsObj);
+          form.setValue("team1Assignments", assignmentsObj);
         } else {
           setTeam1Assignments({});
+          form.setValue("team1Assignments", {});
         }
       });
     }
-  }, [team1Id]);
+  }, [team1Id, form]);
 
   useEffect(() => {
     if (team2Id) {
@@ -97,12 +238,14 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
             assignmentsObj[key] = value as string;
           }
           setTeam2Assignments(assignmentsObj);
+          form.setValue("team2Assignments", assignmentsObj);
         } else {
           setTeam2Assignments({});
+          form.setValue("team2Assignments", {});
         }
       });
     }
-  }, [team2Id]);
+  }, [team2Id, form]);
 
   const teamMatchFormats = [
     { value: "five_singles", label: "Swaythling Format [5 singles]" },
@@ -146,6 +289,8 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       } else {
         newAssignments[playerId] = position;
       }
+      // Update form value for validation
+      form.setValue("team1Assignments", newAssignments, { shouldValidate: true });
       return newAssignments;
     });
   };
@@ -158,6 +303,8 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       } else {
         newAssignments[playerId] = position;
       }
+      // Update form value for validation
+      form.setValue("team2Assignments", newAssignments, { shouldValidate: true });
       return newAssignments;
     });
   };
@@ -165,71 +312,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const handleSubmit = async (data: TeamMatchFormValues) => {
     setIsSubmitting(true);
     try {
-      if (data.team1Id === data.team2Id) {
-        toast.error("Team 1 and Team 2 cannot be the same.");
-        return setIsSubmitting(false);
-      }
-
-      // Validate position assignments for formats that need them
-      const requiredPositions = getRequiredPositions(data.matchFormat);
-      const requiredTeam2Positions = getTeam2Positions(data.matchFormat);
-
-      if (requiredPositions.length > 0) {
-        const team1AssignedPositions = new Set(Object.values(team1Assignments));
-        const team2AssignedPositions = new Set(Object.values(team2Assignments));
-
-        const missingTeam1Positions = requiredPositions.filter(
-          pos => !team1AssignedPositions.has(pos)
-        );
-        const missingTeam2Positions = requiredTeam2Positions.filter(
-          pos => !team2AssignedPositions.has(pos)
-        );
-
-        if (missingTeam1Positions.length > 0) {
-          toast.error(
-            `Team 1 missing position assignments: ${missingTeam1Positions.join(", ")}`
-          );
-          return setIsSubmitting(false);
-        }
-
-        if (missingTeam2Positions.length > 0) {
-          toast.error(
-            `Team 2 missing position assignments: ${missingTeam2Positions.join(", ")}`
-          );
-          return setIsSubmitting(false);
-        }
-      }
-
-      // Validate custom format
-      if (data.matchFormat === "custom") {
-        if (
-          !customConfig ||
-          !customConfig.matches ||
-          customConfig.matches.length === 0
-        ) {
-          toast.error("Please configure at least one match for custom format");
-          return setIsSubmitting(false);
-        }
-
-        // Validate all matches have players selected
-        const invalidMatch = customConfig.matches.findIndex((m: any) => {
-          const requiredPlayers = m.type === "singles" ? 1 : 2;
-          return (
-            m.team1Players.length !== requiredPlayers ||
-            m.team2Players.length !== requiredPlayers ||
-            m.team1Players.some((p: string) => !p) ||
-            m.team2Players.some((p: string) => !p)
-          );
-        });
-
-        if (invalidMatch !== -1) {
-          toast.error(
-            `Match ${invalidMatch + 1} has incomplete player selection`
-          );
-          return setIsSubmitting(false);
-        }
-      }
-
+      // All validation is now handled by zod schema
       const matchData: any = {
         matchFormat: data.matchFormat,
         setsPerTie: Number(data.setsPerTie),
@@ -237,13 +320,13 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
         venue: data.venue,
         team1Id: data.team1Id,
         team2Id: data.team2Id,
-        team1Assignments,
-        team2Assignments,
+        team1Assignments: data.team1Assignments || team1Assignments,
+        team2Assignments: data.team2Assignments || team2Assignments,
       };
 
       // Add custom config if custom format
       if (data.matchFormat === "custom") {
-        matchData.customConfig = customConfig;
+        matchData.customConfig = data.customConfig || customConfig;
       }
 
       const response = await axiosInstance.post(endpoint, matchData);
@@ -288,6 +371,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -323,6 +407,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
                     );
                   })}
                 </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -374,32 +459,68 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
                 <h3 className="text-sm font-medium">Assign Player Positions</h3>
               </div>
 
-              <PositionAssignment
-                teamName={team1Data.name}
-                players={team1Data.players || []}
-                positions={getRequiredPositions(matchFormat)}
-                assignments={team1Assignments}
-                onAssignmentChange={handleTeam1AssignmentChange}
+              <FormField
+                control={form.control}
+                name="team1Assignments"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <PositionAssignment
+                        teamName={team1Data.name}
+                        players={team1Data.players || []}
+                        positions={getRequiredPositions(matchFormat)}
+                        assignments={team1Assignments}
+                        onAssignmentChange={handleTeam1AssignmentChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
-              <PositionAssignment
-                teamName={team2Data.name}
-                players={team2Data.players || []}
-                positions={getTeam2Positions(matchFormat)}
-                assignments={team2Assignments}
-                onAssignmentChange={handleTeam2AssignmentChange}
+              <FormField
+                control={form.control}
+                name="team2Assignments"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <PositionAssignment
+                        teamName={team2Data.name}
+                        players={team2Data.players || []}
+                        positions={getTeam2Positions(matchFormat)}
+                        assignments={team2Assignments}
+                        onAssignmentChange={handleTeam2AssignmentChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
           )}
 
           {/* Custom Format Configuration */}
           {matchFormat === "custom" && team1Data && team2Data && (
-            <CustomFormatConfig
-              team1Players={team1Data.players || []}
-              team2Players={team2Data.players || []}
-              team1Name={team1Data.name}
-              team2Name={team2Data.name}
-              onChange={setCustomConfig}
+            <FormField
+              control={form.control}
+              name="customConfig"
+              render={() => (
+                <FormItem>
+                  <FormControl>
+                    <CustomFormatConfig
+                      team1Players={team1Data.players || []}
+                      team2Players={team2Data.players || []}
+                      team1Name={team1Data.name}
+                      team2Name={team2Data.name}
+                      onChange={(config) => {
+                        setCustomConfig(config);
+                        form.setValue("customConfig", config, { shouldValidate: true });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           )}
 
@@ -413,6 +534,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
                 <FormControl>
                   <Input placeholder="Enter city" {...field} />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />

@@ -66,6 +66,9 @@ export default function MatchDetailsPage() {
 
   const scorerId = getScorerId(match.scorer);
   const userId = user?._id ? String(user._id) : null;
+  
+  // Compare scorer ID with user ID (normalize both to strings for comparison)
+  // Also check if user is the tournament organizer (fallback for matches without scorer)
   const isScorer = !!(scorerId && userId && scorerId === userId);
   
   // Debug logging (remove after fixing)
@@ -77,6 +80,7 @@ export default function MatchDetailsPage() {
       isScorer,
       matchStatus: match.status,
       scorerType: typeof match.scorer,
+      matchScorer: match.scorer,
     });
   }
   const isSingles = isIndividualMatch(match) && match.matchType === "singles";

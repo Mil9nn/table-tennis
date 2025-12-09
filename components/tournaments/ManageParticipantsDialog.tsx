@@ -79,7 +79,16 @@ export function ManageParticipantsDialog({
   // Initialize local participants when dialog opens or participants change
   useEffect(() => {
     if (open) {
-      setLocalParticipants(participants);
+      // Filter out null/undefined participants
+      // Accept objects (populated participants) - even if missing fields, display will handle it
+      // Reject strings (ObjectIds that weren't populated - this shouldn't happen but handle it)
+      const validParticipants = (participants || []).filter((p) => {
+        // Must be an object (populated participant)
+        // Reject null, undefined, strings, numbers, etc.
+        return p !== null && p !== undefined && typeof p === 'object' && !Array.isArray(p);
+      });
+      
+      setLocalParticipants(validParticipants);
       setPendingAdds([]);
       setPendingRemoves([]);
       setQuery("");
@@ -105,8 +114,8 @@ export function ManageParticipantsDialog({
       
       // Filter out items who are already participants (including pending adds)
       const existingIds = new Set([
-        ...localParticipants.map((p) => p._id),
-        ...pendingAdds.map((item) => item._id),
+        ...localParticipants.map((p) => p._id || p.id || String(p)),
+        ...pendingAdds.map((item) => item._id || item.id || String(item)),
       ]);
 
       const data = isTeamTournament 
@@ -157,20 +166,25 @@ export function ManageParticipantsDialog({
   };
 
   const removeParticipant = (participant: Participant) => {
+    const participantId = (participant as any)._id || (participant as any).id || String(participant);
+    
     // Check if it's a pending add (not yet saved)
-    const isPendingAdd = pendingAdds.some((item) => item._id === participant._id);
+    const isPendingAdd = pendingAdds.some((item) => (item._id || item.id) === participantId);
 
     if (isPendingAdd) {
       // Remove from pending adds
-      setPendingAdds(pendingAdds.filter((item) => item._id !== participant._id));
+      setPendingAdds(pendingAdds.filter((item) => (item._id || item.id) !== participantId));
     } else {
       // Add to pending removes
-      setPendingRemoves([...pendingRemoves, participant._id]);
+      setPendingRemoves([...pendingRemoves, participantId]);
     }
 
     // Remove from local participants
     setLocalParticipants(
-      localParticipants.filter((p) => p._id !== participant._id)
+      localParticipants.filter((p) => {
+        const pId = (p as any)._id || (p as any).id || String(p);
+        return pId !== participantId;
+      })
     );
   };
 
@@ -264,18 +278,30 @@ export function ManageParticipantsDialog({
   };
 
   // Helper to get display info for a participant
-  const getParticipantDisplay = (p: Participant) => {
+  const getParticipantDisplay = (p: Participant | any) => {
+    // Handle null/undefined or non-object participants
+    if (!p || typeof p !== 'object') {
+      return {
+        name: "Unknown",
+        subtext: "N/A",
+        image: undefined,
+      };
+    }
+
     if (isTeamParticipant(p)) {
       return {
-        name: p.name,
+        name: p.name || "Unknown Team",
         subtext: p.city || `${p.players?.length || 0} players`,
         image: p.logo,
       };
     } else {
+      // Use the helper function for consistency
+      const displayName = getParticipantDisplayName(p);
+      const username = p.username || "unknown";
       return {
-        name: p.fullName || p.username,
-        subtext: `@${p.username}`,
-        image: p.profileImage,
+        name: displayName,
+        subtext: `@${username}`,
+        image: getParticipantImage(p),
       };
     }
   };
@@ -388,16 +414,19 @@ export function ManageParticipantsDialog({
                 </div>
               ) : (
                 <div className="divide-y">
-                  {localParticipants.map((p) => {
+                  {localParticipants
+                    .filter((p) => p && typeof p === 'object')
+                    .map((p) => {
+                    const participantId = p._id || p.id || String(p);
                     const isPendingAdd = pendingAdds.some(
-                      (item) => item._id === p._id
+                      (item) => (item._id || item.id) === participantId
                     );
-                    const isPendingRemove = pendingRemoves.includes(p._id);
+                    const isPendingRemove = pendingRemoves.includes(participantId);
                     const display = getParticipantDisplay(p);
 
                     return (
                       <div
-                        key={p._id}
+                        key={participantId}
                         className={`flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors ${
                           isPendingAdd
                             ? "bg-green-50"

@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/matches/individual/${id}/current-server`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
-    const { id } = await context.params;
     const { currentServer } = await req.json();
 
     const token = getTokenFromRequest(req);
@@ -37,10 +42,13 @@ export async function POST(
     await match.save();
 
     return NextResponse.json({ success: true, currentServer });
-  } catch (err) {
-    console.error("Failed to update currentServer:", err);
+  } catch (err: any) {
+    console.error("[matches/individual/[id]/current-server] Error:", err);
     return NextResponse.json(
-      { error: "Failed to update currentServer" },
+      { 
+        error: "Failed to update current server",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

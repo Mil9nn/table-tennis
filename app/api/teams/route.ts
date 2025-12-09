@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,12 +53,22 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error fetching teams:", error);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
+    console.error("[teams GET] Error:", error);
+    return NextResponse.json(
+      { 
+        message: "Failed to fetch teams",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(req, "POST", "/api/teams");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
@@ -171,9 +182,12 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("Error creating team:", error);
+    console.error("[teams POST] Error:", error);
     return NextResponse.json(
-      { message: "Server error", details: error.message },
+      { 
+        message: "Failed to create team",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
       { status: 500 }
     );
   }

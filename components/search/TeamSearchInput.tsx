@@ -110,26 +110,32 @@ export default function TeamSearchInput({
       )}
 
       {/* Dropdown */}
-      {focused && teams.length > 0 && !selectedTeam && (
+      {focused && query.trim().length >= 2 && !loading && !selectedTeam && (
         <div className="absolute z-50 mt-1 w-full bg-background border rounded-lg shadow-lg overflow-y-auto max-h-64 animate-in fade-in-50 slide-in-from-top-1">
-          {teams.map((team) => (
-            <button
-              key={team._id}
-              type="button"
-              onMouseDown={() => handleSelect(team)}
-              className={cn(
-                "w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-left"
-              )}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={team.logo} alt={team.name} />
-                <AvatarFallback className="">{getInitial(team.name)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-medium text-foreground">{team.name}</p>
-              </div>
-            </button>
-          ))}
+          {teams.length > 0 ? (
+            teams.map((team) => (
+              <button
+                key={team._id}
+                type="button"
+                onMouseDown={() => handleSelect(team)}
+                className={cn(
+                  "w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-left"
+                )}
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={team.logo} alt={team.name} />
+                  <AvatarFallback className="">{getInitial(team.name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{team.name}</p>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+              No teams found. Try a different search term.
+            </div>
+          )}
         </div>
       )}
     </div>

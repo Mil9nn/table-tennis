@@ -1,7 +1,12 @@
 import { connectDB } from "@/lib/mongodb";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(request, "POST", "/api/auth/logout");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
     const response = NextResponse.json({ message: "Logged out successfully" }, { status: 200 });

@@ -91,7 +91,7 @@ export function QualificationConfig({ form, useGroups }: QualificationConfigProp
                 />
               </FormControl>
               <FormDescription className="text-xs">
-                How many participants advance to knockout (should be power of 2: 4, 8, 16...)
+                Participants advancing to knockout (should be power of 2 like 4, 8, 16...)
               </FormDescription>
               <FormMessage />
             </FormItem>

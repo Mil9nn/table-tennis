@@ -12,14 +12,8 @@ function TeamMatchRowSkeleton() {
         {/* Meta info */}
         <div className="flex items-center gap-2 mt-1">
           <div className="bg-accent rounded-md h-3 w-16" />
-          <div className="bg-accent rounded-md h-3 w-1" />
           <div className="bg-accent rounded-md h-3 w-14" />
         </div>
-      </div>
-
-      {/* Status & Arrow */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="bg-accent rounded-md w-4 h-4" />
       </div>
     </div>
   );

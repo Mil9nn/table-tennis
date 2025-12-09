@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -40,12 +41,23 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       team: { ...team.toObject(), players: playersWithAssignments },
     });
   } catch (error: any) {
-    console.error("Error fetching team:", error);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
+    console.error("[teams/[id] GET] Error:", error);
+    return NextResponse.json(
+      { 
+        message: "Failed to fetch team",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "PUT", `/api/teams/${id}`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -161,11 +173,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     return NextResponse.json({ message: "Team updated successfully", team: updatedTeam });
   } catch (error: any) {
-    console.error("Error updating team:", error);
-    return NextResponse.json({
-      message: "Server error",
-      details: error.message
-    }, { status: 500 });
+    console.error("[teams/[id] PUT] Error:", error);
+    return NextResponse.json(
+      {
+        message: "Failed to update team",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -210,7 +225,13 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Team deleted successfully" });
   } catch (error: any) {
-    console.error("Error deleting team:", error);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
+    console.error("[teams/[id] DELETE] Error:", error);
+    return NextResponse.json(
+      { 
+        message: "Failed to delete team",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
+      { status: 500 }
+    );
   }
 }

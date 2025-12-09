@@ -6,11 +6,16 @@ import {
   TournamentValidators,
   handleValidationResult,
 } from "@/services/tournament/validators/tournamentValidators";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 /**
  * Join a tournament using a join code
  */
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(req, "POST", "/api/tournaments/join");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -106,9 +111,12 @@ export async function POST(req: NextRequest) {
       tournament,
     });
   } catch (err: any) {
-    console.error("Error joining tournament:", err);
+    console.error("[tournaments/join] Error:", err);
     return NextResponse.json(
-      { error: "Failed to join tournament", details: err.message },
+      { 
+        error: "Failed to join tournament",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

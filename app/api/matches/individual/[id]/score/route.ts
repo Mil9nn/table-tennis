@@ -9,16 +9,20 @@ import {
 import { statsService } from "@/services/statsService";
 import { updateTournamentAfterMatch } from "@/services/tournament/tournamentUpdateService";
 import { emitToMatchRoom } from "@/lib/socketEmitter";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const { id } = await context.params;
+  const rateLimitResponse = await rateLimit(request, "POST", `/api/matches/individual/${id}/score`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const auth = await withAuth(request);
     if (!auth.success) return auth.response;
-
-    const { id } = await context.params;
     const body = await request.json();
 
     const match = await IndividualMatch.findById(id);
@@ -341,10 +345,13 @@ export async function POST(
       message:
         match.status === "completed" ? "Match completed!" : "Score updated",
     });
-  } catch (err) {
-    console.error("Score update error:", err);
+  } catch (err: any) {
+    console.error("[matches/individual/[id]/score] Error:", err);
     return NextResponse.json(
-      { error: "Failed to update score", details: (err as Error).message },
+      { 
+        error: "Failed to update score",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

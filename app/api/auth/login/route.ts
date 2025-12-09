@@ -4,8 +4,13 @@ import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { generateToken, setAuthCookie } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(request, "POST", "/api/auth/login");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
     const { email, password } = await request.json();

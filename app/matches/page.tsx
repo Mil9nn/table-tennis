@@ -5,6 +5,7 @@ import MatchesList from "@/components/MatchesList";
 import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { Plus, Search, Loader2 } from "lucide-react";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -368,20 +369,40 @@ export default function MatchesPage() {
             <TeamMatchesListSkeleton />
           ) : (
             <>
-              <TeamMatchesList matches={filteredTeamMatches} />
-
-              {/* Intersection Observer Target */}
-              <div ref={teamObserverTarget} className="h-20 flex items-center justify-center">
-                {teamLoadingMore && (
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Loader2 className="animate-spin" size={20} />
-                    <span className="text-sm">Loading more matches...</span>
+              {filteredTeamMatches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <GroupsIcon 
+                      sx={{ fontSize: 48, color: '#9ca3af' }}
+                    />
                   </div>
-                )}
-                {!teamHasMore && teamMatches.length > 0 && (
-                  <p className="text-sm text-gray-500">No more matches to load</p>
-                )}
-              </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No Team Matches Found
+                  </h3>
+                  <p className="text-sm text-gray-500 text-center max-w-md mb-6">
+                    {teamMatches.length === 0
+                      ? "Get started by creating your first team match."
+                      : "No matches match your current filters."}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <TeamMatchesList matches={filteredTeamMatches} />
+
+                  {/* Intersection Observer Target */}
+                  <div ref={teamObserverTarget} className="h-20 flex items-center justify-center">
+                    {teamLoadingMore && (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <Loader2 className="animate-spin" size={20} />
+                        <span className="text-sm">Loading more matches...</span>
+                      </div>
+                    )}
+                    {!teamHasMore && teamMatches.length > 0 && (
+                      <p className="text-sm text-gray-500">No more matches to load</p>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
         </TabsContent>

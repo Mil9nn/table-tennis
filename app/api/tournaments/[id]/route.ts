@@ -38,7 +38,13 @@ export async function GET(
     await connectDB();
 
     // Ensure models are registered for population
-    if (!IndividualMatch || !User || !Team || !TeamMatch) {
+    // Explicitly reference models to ensure they're loaded
+    const IndividualMatchModel = IndividualMatch;
+    const TeamMatchModel = TeamMatch;
+    const UserModel = User;
+    const TeamModel = Team;
+    
+    if (!IndividualMatchModel || !UserModel || !TeamModel || !TeamMatchModel) {
       throw new Error("Required models not loaded");
     }
 
@@ -55,7 +61,8 @@ export async function GET(
 
     const isTeamTournament = tournamentRaw.category === "team";
     const participantConfig = getParticipantPopulateConfig(tournamentRaw.category);
-    const MatchModel = getMatchModel(tournamentRaw.category);
+    // Use the actual model instead of string name to ensure it's registered
+    const MatchModel = isTeamTournament ? TeamMatch : IndividualMatch;
 
     // Build the populate configuration dynamically
     let query = Tournament.findById(id)
@@ -103,8 +110,14 @@ export async function GET(
           select: "name logo city captain",
         });
     } else {
+      // For individual tournaments, populate participants from User model
       query = query
-        .populate("participants", "username fullName profileImage")
+        .populate({
+          path: "participants",
+          model: User,
+          select: "username fullName profileImage",
+          options: { strictPopulate: false } // Don't fail if some users don't exist
+        })
         .populate("standings.participant", "username fullName profileImage")
         .populate("groups.standings.participant", "username fullName profileImage")
         .populate("groups.participants", "username fullName profileImage")
@@ -113,12 +126,10 @@ export async function GET(
     }
 
     // Populate matches based on category
-    const matchModelName = isTeamTournament ? "TeamMatch" : "IndividualMatch";
-    
     query = query
       .populate({
         path: "rounds.matches",
-        model: matchModelName,
+        model: MatchModel,
         populate: isTeamTournament
           ? [
               { path: "team1.captain", select: "username fullName profileImage" },
@@ -133,7 +144,7 @@ export async function GET(
       })
       .populate({
         path: "groups.rounds.matches",
-        model: matchModelName,
+        model: MatchModel,
         populate: isTeamTournament
           ? [
               { path: "team1.captain", select: "username fullName profileImage" },
@@ -276,7 +287,35 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ tournament }, { status: 200 });
+    // Convert Mongoose document to plain object to ensure proper serialization
+    const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+    
+    // Filter out null participants (deleted users/teams) and ensure they're populated objects
+    if (tournamentData.participants && Array.isArray(tournamentData.participants)) {
+      tournamentData.participants = tournamentData.participants.filter(
+        (p: any) => {
+          // Filter out null, undefined, and ObjectIds (unpopulated references)
+          // Only keep populated objects
+          if (!p || typeof p !== 'object' || Array.isArray(p)) {
+            return false;
+          }
+          
+          // Must have an ID
+          if (!p._id && !p.id) {
+            return false;
+          }
+          
+          // Must have required fields based on category
+          if (isTeamTournament) {
+            return !!p.name; // Teams must have a name
+          } else {
+            return !!(p.username || p.fullName); // Users must have username or fullName
+          }
+        }
+      );
+    }
+    
+    return NextResponse.json({ tournament: tournamentData }, { status: 200 });
   } catch (error) {
     console.error("Error fetching tournament:", error);
     return NextResponse.json(

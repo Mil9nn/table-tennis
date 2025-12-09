@@ -5,8 +5,13 @@ import { User } from "@/models/User";
 import Team from "@/models/Team";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(request, "POST", "/api/tournaments");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const auth = await withAuth(request);
     if (!auth.success) return auth.response;
@@ -161,19 +166,20 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: any) {
-    console.error("Error creating tournament:", err);
-    console.error("Error details:", err.message);
+    console.error("[tournaments POST] Error:", err);
     if (err.errors) {
-      console.error("Validation errors:", err.errors);
+      console.error("[tournaments POST] Validation errors:", err.errors);
     }
     return NextResponse.json(
       {
         error: "Failed to create tournament",
-        details: err.message,
-        validationErrors: err.errors ? Object.keys(err.errors).map(key => ({
-          field: key,
-          message: err.errors[key].message
-        })) : undefined
+        ...(process.env.NODE_ENV === "development" && {
+          details: err.message,
+          validationErrors: err.errors ? Object.keys(err.errors).map(key => ({
+            field: key,
+            message: err.errors[key].message
+          })) : undefined
+        })
       },
       { status: 500 }
     );
@@ -405,10 +411,13 @@ export async function GET(req: NextRequest) {
         hasMore: skip + populatedTournaments.length < totalCount
       }
     }, { status: 200 });
-  } catch (err) {
-    console.error("Error fetching tournaments:", err);
+  } catch (err: any) {
+    console.error("[tournaments GET] Error:", err);
     return NextResponse.json(
-      { error: "Failed to fetch tournaments" },
+      { 
+        error: "Failed to fetch tournaments",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

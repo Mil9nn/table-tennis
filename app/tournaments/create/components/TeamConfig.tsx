@@ -19,9 +19,6 @@ export function TeamConfig({ form }: TeamConfigProps) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">
-        Configure how team vs team encounters work
-      </p>
 
       <FormField
         control={form.control}
@@ -65,14 +62,6 @@ export function TeamConfig({ form }: TeamConfigProps) {
                 );
               })}
             </div>
-            <FormDescription className="text-xs mt-2">
-              {watchMatchFormat === "five_singles" &&
-                "Teams play 5 singles matches. First to win 3 matches wins."}
-              {watchMatchFormat === "single_double_single" &&
-                "Alternating Singles → Doubles → Singles format (common in leagues)"}
-              {watchMatchFormat === "custom" &&
-                "Define custom submatch structure (advanced)"}
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -99,14 +88,11 @@ export function TeamConfig({ form }: TeamConfigProps) {
                           : "bg-white text-[#495057] border-gray-300 hover:bg-gray-100"
                       }`}
                   >
-                    Best of {n}
+                    {n}
                   </button>
                 );
               })}
             </div>
-            <FormDescription className="text-xs">
-              Number of sets for each individual match within the team encounter
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

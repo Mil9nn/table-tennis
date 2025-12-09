@@ -56,24 +56,31 @@ export type Participant = UserParticipant | TeamParticipant;
 /**
  * Type guard to check if participant is a team
  */
-export function isTeamParticipant(participant: Participant): participant is TeamParticipant {
+export function isTeamParticipant(participant: Participant | any): participant is TeamParticipant {
+  if (!participant || typeof participant !== 'object') {
+    return false;
+  }
   return 'name' in participant && !('username' in participant);
 }
 
 /**
  * Type guard to check if participant is a user
  */
-export function isUserParticipant(participant: Participant): participant is UserParticipant {
+export function isUserParticipant(participant: Participant | any): participant is UserParticipant {
+  if (!participant || typeof participant !== 'object') {
+    return false;
+  }
   return 'username' in participant;
 }
 
 /**
  * Get display name for any participant type
  */
-export function getParticipantDisplayName(participant: Participant | null | undefined): string {
+export function getParticipantDisplayName(participant: Participant | null | undefined | any): string {
   if (!participant) return "TBD";
+  if (typeof participant !== 'object') return "Unknown";
   if (isTeamParticipant(participant)) {
-    return participant.name;
+    return participant.name || "Unknown Team";
   }
   return participant.fullName || participant.username || "Unknown";
 }
@@ -81,8 +88,8 @@ export function getParticipantDisplayName(participant: Participant | null | unde
 /**
  * Get avatar/logo URL for any participant type
  */
-export function getParticipantImage(participant: Participant | null | undefined): string | undefined {
-  if (!participant) return undefined;
+export function getParticipantImage(participant: Participant | null | undefined | any): string | undefined {
+  if (!participant || typeof participant !== 'object') return undefined;
   if (isTeamParticipant(participant)) {
     return participant.logo;
   }

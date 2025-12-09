@@ -3,38 +3,43 @@ import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(request: NextRequest) {
-  const token = getTokenFromRequest(request);
-  if (!token) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const decoded = verifyToken(token);
-  if (!decoded?.userId) {
-    return NextResponse.json({ message: "Invalid token" }, { status: 401 });
-  }
-
-  const formData = await request.formData();
-  const file = formData.get("profileImage") as Blob;
-
-  if (!file || file.size === 0) {
-    return NextResponse.json(
-      { success: false, message: "No file uploaded" },
-      { status: 400 }
-    );
-  }
-
-  // Validate file type
-  const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    return NextResponse.json(
-      { success: false, message: "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed." },
-      { status: 400 }
-    );
-  }
-
   try {
+    // Rate limiting
+    const rateLimitResponse = await rateLimit(request, "POST", "/api/profile/image");
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const token = getTokenFromRequest(request);
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded?.userId) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get("profileImage") as Blob;
+
+    if (!file || file.size === 0) {
+      return NextResponse.json(
+        { success: false, message: "No file uploaded" },
+        { status: 400 }
+      );
+    }
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed." },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
     const buffer = Buffer.from(await file.arrayBuffer());
     // convert buffer to base64
@@ -52,10 +57,14 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, url: uploadResult.secure_url });
-  } catch (error) {
-    console.error("Upload profile image error:", error);
+  } catch (error: any) {
+    console.error("[profile/image] Error:", error);
     return NextResponse.json(
-      { success: false, message: "Something went wrong" },
+      { 
+        success: false, 
+        message: "Failed to upload profile image",
+        ...(process.env.NODE_ENV === "development" && { details: error.message })
+      },
       { status: 500 }
     );
   }

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  X,
-  LogIn,
-  LogOut,
-} from "lucide-react";
+import { X, LogIn, LogOut } from "lucide-react";
+import HouseIcon from "@mui/icons-material/House";
+import JoinRightIcon from "@mui/icons-material/JoinRight";
+import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useProfileStore } from "@/hooks/useProfileStore";
 import {
@@ -29,11 +30,11 @@ export default function Navbar() {
   const previewUrl = useProfileStore((state) => state.previewUrl);
 
   const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Matches", href: "/matches" },
-    { label: "Tournaments", href: "/tournaments" },
-    { label: "Teams", href: "/teams" },
-    { label: "Leaderboard", href: "/leaderboard"}
+    { label: "Home", href: "/", icon: HouseIcon },
+    { label: "Matches", href: "/matches", icon: JoinRightIcon },
+    { label: "Tournaments", href: "/tournaments", icon: EmojiEventsIcon },
+    { label: "Teams", href: "/teams", icon: GroupWorkIcon },
+    { label: "Leaderboard", href: "/leaderboard", icon: LeaderboardIcon },
   ];
 
   function isActive(href: string) {
@@ -48,7 +49,14 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Left: Brand */}
         <Link href="/" className="items-center hidden sm:flex">
-          <Image src="/imgs/logo.png" alt="logo" width={48} height={48} className="w-12 h-12" priority />
+          <Image
+            src="/imgs/logo.png"
+            alt="logo"
+            width={48}
+            height={48}
+            className="w-12 h-12"
+            priority
+          />
           <span className="font-semibold text-gray-800 text-lg italic">
             TTPro
           </span>
@@ -82,12 +90,12 @@ export default function Navbar() {
             ) : (
               <div className="p-2 shadow-md rounded-full">
                 <Image
-                src="/svgs/menu.svg"
-                alt="menu-icon"
-                width={25}
-                height={25}
-                className="w-4"
-              />
+                  src="/svgs/menu.svg"
+                  alt="menu-icon"
+                  width={25}
+                  height={25}
+                  className="w-4"
+                />
               </div>
             )}
           </button>
@@ -177,22 +185,64 @@ export default function Navbar() {
           </span>
         </div>
 
+        {/* Create Buttons */}
+        <div className="flex flex-col border-b">
+          {/* Create Match */}
+          <Link
+            href="/match/create"
+            onClick={() => setOpen(false)}
+            className="
+            flex items-center justify-center gap-2 w-full py-4 
+            font-medium text-sm transition-all
+            bg-black text-white 
+            hover:bg-black/80 active:bg-black/90
+            "
+          >
+            <JoinRightIcon sx={{ fontSize: 20 }} />
+            Create a Match
+          </Link>
+
+          {/* Create Tournament */}
+          <Link
+            href="/tournaments/create"
+            onClick={() => setOpen(false)}
+            className="
+              flex items-center justify-center gap-2 w-full py-4 
+              font-medium text-sm transition-all
+              bg-gray-200 text-gray-900 
+              hover:bg-gray-300 active:bg-gray-400
+            "
+          >
+            <EmojiEventsIcon sx={{ fontSize: 20 }} />
+            Create a Tournament
+          </Link>
+        </div>
+
         {/* Sidebar Links */}
-        <div className="flex flex-col px-6 py-6 gap-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`text-base font-medium transition ${
-                isActive(item.href)
-                  ? "text-indigo-600 font-semibold"
-                  : "text-gray-700 hover:text-indigo-600"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="flex flex-col pt-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 text-base font-medium px-6 py-3 transition ${
+                  isActive(item.href)
+                    ? "text-indigo-600 font-semibold bg-indigo-50"
+                    : "text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                }`}
+              >
+                <Icon
+                  sx={{
+                    fontSize: 24,
+                    color: isActive(item.href) ? "#4f46e5" : "#374151",
+                  }}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { connectDB } from "@/lib/mongodb";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string; subMatchId: string }> }
 ) {
+  // Rate limiting
+  const { id, subMatchId } = await context.params;
+  const rateLimitResponse = await rateLimit(req, "POST", `/api/matches/team/${id}/submatch/${subMatchId}/status`);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
-
-    const { id, subMatchId } = await context.params;
 
     const body = await req.json();
 
@@ -61,12 +65,12 @@ export async function POST(
         { status: 400 }
       );
     }
-  } catch (err) {
-    console.error("SubMatch status update error:", err);
+  } catch (err: any) {
+    console.error("[matches/team/[id]/submatch/[subMatchId]/status POST] Error:", err);
     return NextResponse.json(
       {
         error: "Failed to update submatch status",
-        details: (err as Error).message,
+        ...(process.env.NODE_ENV === "development" && { details: err.message }),
       },
       { status: 500 }
     );
@@ -103,10 +107,13 @@ export async function GET(
     }
 
     return NextResponse.json({ subMatch });
-  } catch (err) {
-    console.error("Error fetching submatch:", err);
+  } catch (err: any) {
+    console.error("[matches/team/[id]/submatch/[subMatchId]/status GET] Error:", err);
     return NextResponse.json(
-      { error: "Failed to fetch submatch", details: (err as Error).message },
+      { 
+        error: "Failed to fetch submatch",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }

@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import { escapeRegex } from "@/lib/utils";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 
 // Returns up to 10 results for autocomplete fields.
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(req, "GET", "/api/users/search");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
 
@@ -30,10 +35,13 @@ export async function GET(req: NextRequest) {
       .limit(10);
 
     return NextResponse.json({ users });
-  } catch (err) {
-    console.error("Error searching users:", err);
+  } catch (err: any) {
+    console.error("[users/search] Error:", err);
     return NextResponse.json(
-      { message: "Failed to search users" },
+      { 
+        message: "Failed to search users",
+        ...(process.env.NODE_ENV === "development" && { details: err.message })
+      },
       { status: 500 }
     );
   }
