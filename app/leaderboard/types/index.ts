@@ -18,6 +18,42 @@ export interface PlayerStats {
   };
 }
 
+export interface FormatSpecificStats {
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  setsWon: number;
+  setsLost: number;
+  points: {
+    totalScored: number;
+    totalConceded: number;
+    differential: number;
+    avgPerSet: number;
+    avgConcededPerSet: number;
+  };
+  serve: {
+    totalServes: number;
+    pointsWonOnServe: number;
+    serveWinPercentage: number;
+  };
+  distribution: {
+    individual: number;
+    team: number;
+    tournament: number;
+  };
+  recentMatches: Array<{
+    matchId: string;
+    opponent: string;
+    result: 'win' | 'loss';
+    score: string;
+    pointsScored: number;
+    pointsConceded: number;
+    date: Date;
+    source: 'individual' | 'team' | 'tournament';
+  }>;
+}
+
 export interface TeamStats {
   rank: number;
   team: {
