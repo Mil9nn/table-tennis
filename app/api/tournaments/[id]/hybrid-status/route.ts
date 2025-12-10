@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Tournament from "@/models/Tournament";
+import { User } from "@/models/User";
+import Team from "@/models/Team";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import {
   getHybridTournamentStatus,
@@ -24,6 +26,15 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    // Ensure models are registered (explicitly reference to ensure they're loaded)
+    const TournamentModel = Tournament;
+    const UserModel = User;
+    const TeamModel = Team;
+    
+    if (!TournamentModel || !UserModel || !TeamModel) {
+      throw new Error("Required models not loaded");
+    }
 
     const token = getTokenFromRequest(request);
     if (!token) {
@@ -39,15 +50,39 @@ export async function GET(
     const tournamentId = params.id;
 
     // Find tournament
-    const tournament = await Tournament.findById(tournamentId)
-      .populate("participants", "name email profilePicture")
-      .populate("qualifiedParticipants", "name email profilePicture");
-
+    const tournament = await Tournament.findById(tournamentId);
+    
     if (!tournament) {
       return NextResponse.json(
         { error: "Tournament not found" },
         { status: 404 }
       );
+    }
+
+    // Populate participants based on tournament category
+    const isTeamTournament = tournament.category === "team";
+    if (isTeamTournament) {
+      await tournament.populate({
+        path: "participants",
+        model: Team,
+        select: "name logo city captain",
+      });
+      await tournament.populate({
+        path: "qualifiedParticipants",
+        model: Team,
+        select: "name logo city captain",
+      });
+    } else {
+      await tournament.populate({
+        path: "participants",
+        model: User,
+        select: "username fullName profileImage",
+      });
+      await tournament.populate({
+        path: "qualifiedParticipants",
+        model: User,
+        select: "username fullName profileImage",
+      });
     }
 
     // If not hybrid, return basic info

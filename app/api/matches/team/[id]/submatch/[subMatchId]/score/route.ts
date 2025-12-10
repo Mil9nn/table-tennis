@@ -29,7 +29,8 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const subMatch = match.subMatches.id(subMatchId);
+    const subMatchIdNum = parseInt(subMatchId);
+    const subMatch = match.subMatches.find((sm: any) => sm.matchNumber === subMatchIdNum);
     if (!subMatch) {
       return NextResponse.json(
         { error: "SubMatch not found" },

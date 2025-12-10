@@ -59,7 +59,7 @@ export async function POST(
         // Also revert team match if it was completed
         if (match.status === "completed") {
           match.status = "in_progress";
-          match.winnerTeam = undefined;
+          match.winnerTeam = null;
         }
       }
     } else {

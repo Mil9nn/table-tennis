@@ -247,23 +247,19 @@ export class BracketProgressionServiceV2 {
         }, session);
 
         // Update bracket with matchId
-        bracketMatch.matchId = match._id.toString();
+        bracketMatch.matchId = (match._id as any).toString();
       } else {
-        const match = await this.matchRepo.createTeamMatch({
-          tournament: tournamentId,
-          matchFormat: (tournament as any).teamConfig.matchFormat,
-          numberOfSetsPerSubMatch: (tournament as any).teamConfig.setsPerSubMatch,
-          team1: {} as any, // TODO: Fetch team data
-          team2: {} as any, // TODO: Fetch team data
-          subMatches: [],
-          bracketPosition: bracketMatch.bracketPosition,
-          roundName: bracketMatch.roundName,
-          isThirdPlaceMatch: bracketMatch.isThirdPlaceMatch,
-          city: tournament.city,
-          venue: tournament.venue
-        }, session);
+        // Use createBracketTeamMatch helper which properly fetches team data
+        const { createBracketTeamMatch } = await import('./matchGenerationService');
+        const match = await createBracketTeamMatch(
+          bracketMatch,
+          tournament,
+          tournament.organizer.toString()
+        );
 
-        bracketMatch.matchId = match._id.toString();
+        if (match) {
+          bracketMatch.matchId = (match._id as any).toString();
+        }
       }
     }
   }

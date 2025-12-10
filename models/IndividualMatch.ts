@@ -1,5 +1,5 @@
 import mongoose, { Document } from "mongoose";
-import Match from "./MatchBase";
+import Match, { IMatchBase } from "./MatchBase";
 import {
   createShotSchema,
   createGameSchema,
@@ -16,7 +16,7 @@ import {
  * Uses MongoDB discriminators for proper type separation
  */
 
-export interface IIndividualMatch extends Document {
+export interface IIndividualMatch extends IMatchBase {
   matchCategory: 'individual';
   matchType: 'singles' | 'doubles' | 'mixed_doubles';
   numberOfSets: number;

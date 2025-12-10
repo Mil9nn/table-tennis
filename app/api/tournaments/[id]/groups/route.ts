@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Tournament from "@/models/Tournament";
-import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import {
@@ -8,6 +6,15 @@ import {
   generateSeededRoundRobinSchedule,
 } from "@/services/tournament";
 import mongoose from "mongoose";
+
+// CRITICAL: Import models in correct order to ensure discriminators are registered
+// 1. Import base Match model first
+import Match from "@/models/MatchBase";
+// 2. Import discriminators (this registers them on Match)
+import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+// 3. Import Tournament model
+import Tournament from "@/models/Tournament";
 
 /**
  * Helper: Get match participants for singles or doubles
@@ -38,20 +45,45 @@ function getMatchParticipants(
 
 /**
  * Helper: Create and save a scheduled match
+ * Uses multiple strategies to get the model for Next.js hot reload compatibility
  */
 async function createScheduledMatch(
   matchParticipants: any[],
   tournament: any,
   userId: string
 ) {
-  const match = new IndividualMatch({
+  // CRITICAL: Discriminators are registered with their discriminator key, not model name
+  // Strategy 1: Try Match discriminators (most reliable)
+  let Model = Match.discriminators?.['individual'];
+
+  // Strategy 2: Try mongoose.models with discriminator key
+  if (!Model) {
+    Model = mongoose.models.individual;
+  }
+
+  // Strategy 3: Try mongoose.models with model name (unlikely to work but try anyway)
+  if (!Model) {
+    Model = mongoose.models.IndividualMatch;
+  }
+
+  // Strategy 4: Try imported model
+  if (!Model) {
+    Model = IndividualMatch;
+  }
+
+  if (!Model) {
+    throw new Error('IndividualMatch model not available. Server restart may be required.');
+  }
+
+  // Create match using the retrieved model
+  const match = new Model({
     matchType: tournament.matchType,
     matchCategory: "individual",
     numberOfSets: tournament.rules.setsPerMatch,
     city: tournament.city,
     venue: tournament.venue,
     participants: matchParticipants,
-    scorer: userId,
+    scorer: new mongoose.Types.ObjectId(userId),
     status: "scheduled",
     tournament: tournament._id,
   });
@@ -70,6 +102,7 @@ export async function PUT(
 ) {
   try {
     await connectDB();
+
     const { id } = await context.params;
 
     const token = getTokenFromRequest(req);
@@ -151,11 +184,25 @@ export async function PUT(
 
     // Check if any matches have been played (not just scheduled)
     if (matchesGenerated && tournament.groups) {
+      // Get IndividualMatch model with fallbacks
+      // CRITICAL: Use discriminator key 'individual', not model name 'IndividualMatch'
+      const MatchModel = Match.discriminators?.['individual'] ||
+                        mongoose.models.individual ||
+                        mongoose.models.IndividualMatch ||
+                        IndividualMatch;
+
+      if (!MatchModel) {
+        return NextResponse.json(
+          { error: "Server model error. Please restart the development server." },
+          { status: 500 }
+        );
+      }
+
       for (const group of tournament.groups) {
         if (group.rounds) {
           for (const round of group.rounds) {
             if (round.matches && round.matches.length > 0) {
-              const matches = await IndividualMatch.find({
+              const matches = await MatchModel.find({
                 _id: { $in: round.matches },
               });
               const hasPlayedMatches = matches.some(
@@ -186,11 +233,25 @@ export async function PUT(
 
     // If matches were already generated, delete old matches before updating groups
     if (matchesGenerated && tournament.groups) {
+      // Get IndividualMatch model with fallbacks
+      // CRITICAL: Use discriminator key 'individual', not model name 'IndividualMatch'
+      const MatchModel = Match.discriminators?.['individual'] ||
+                        mongoose.models.individual ||
+                        mongoose.models.IndividualMatch ||
+                        IndividualMatch;
+
+      if (!MatchModel) {
+        return NextResponse.json(
+          { error: "Server model error. Please restart the development server." },
+          { status: 500 }
+        );
+      }
+
       for (const oldGroup of tournament.groups) {
         if (oldGroup.rounds) {
           for (const round of oldGroup.rounds) {
             if (round.matches && round.matches.length > 0) {
-              await IndividualMatch.deleteMany({ _id: { $in: round.matches } });
+              await MatchModel.deleteMany({ _id: { $in: round.matches } });
             }
           }
         }

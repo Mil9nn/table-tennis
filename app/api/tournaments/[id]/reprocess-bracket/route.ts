@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import Tournament from "@/models/Tournament";
-import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { rateLimit } from "@/lib/rate-limit/middleware";
 import {
   updateBracketAfterMatch,
   getMatchesNeedingDocuments,
 } from "@/services/tournament/core/bracketProgressionService";
 import { createBracketMatch } from "@/services/tournament/core/matchGenerationService";
-import { rateLimit } from "@/lib/rate-limit/middleware";
+
+// CRITICAL: Import models in correct order to ensure discriminators are registered
+// 1. Import base Match model first
+import Match from "@/models/MatchBase";
+// 2. Import discriminators (this registers them on Match)
+import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+// 3. Import other models
+import Tournament from "@/models/Tournament";
 
 /**
  * Reprocess knockout bracket based on completed matches
@@ -162,10 +169,10 @@ export async function POST(
         // Check if this match is already processed in the bracket
         const bracketMatch = tournament.bracket.rounds
           .flatMap((r: any) => r.matches)
-          .find((bm: any) => bm.matchId?.toString() === match._id.toString());
+          .find((bm: any) => bm.matchId?.toString() === (match._id as any).toString());
 
         if (bracketMatch?.completed && bracketMatch?.winner === winnerId) {
-          console.log(`[reprocess-bracket] Match ${match._id} already processed, skipping`);
+          console.log(`[reprocess-bracket] Match ${(match._id as any)} already processed, skipping`);
           continue;
         }
 
@@ -173,15 +180,15 @@ export async function POST(
         try {
           tournament.bracket = updateBracketAfterMatch(
             tournament.bracket,
-            match._id.toString(),
+            (match._id as any).toString(),
             winnerId
           );
           tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
           advancedCount++;
-          console.log(`[reprocess-bracket] Advanced winner ${winnerId} from match ${match._id}`);
+          console.log(`[reprocess-bracket] Advanced winner ${winnerId} from match ${(match._id as any)}`);
         } catch (advanceError: any) {
           console.error(
-            `[reprocess-bracket] Error advancing winner for match ${match._id}:`,
+            `[reprocess-bracket] Error advancing winner for match ${(match._id as any)}:`,
             advanceError.message
           );
           // Continue with other matches

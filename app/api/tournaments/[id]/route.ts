@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import Tournament from "@/models/Tournament";
-import IndividualMatch from "@/models/IndividualMatch";
-import TeamMatch from "@/models/TeamMatch";
-import { User } from "@/models/User";
-import Team from "@/models/Team";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+
+// CRITICAL: Import models in correct order to ensure discriminators are registered
+// 1. Import base Match model first
+import Match from "@/models/MatchBase";
+// 2. Import discriminators (this registers them on Match)
+import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+// 3. Import other models
+import Tournament from "@/models/Tournament";
+import { User } from "@/models/User";
+import Team from "@/models/Team";
+import BracketState from "@/models/BracketState";
 
 // Helper to get population config based on tournament category
 function getParticipantPopulateConfig(category: "individual" | "team") {
@@ -165,6 +172,24 @@ export async function GET(
         { error: "Tournament not found" },
         { status: 404 }
       );
+    }
+
+    // For knockout/hybrid tournaments, load bracket from BracketState if not in tournament document
+    if (tournament.format === "knockout" || tournament.format === "hybrid") {
+      // If bracket is not in tournament document, try to load from BracketState
+      if (!tournament.bracket) {
+        const bracketState = await BracketState.findOne({ tournament: id });
+        if (bracketState) {
+          // Convert BracketState document to bracket object
+          (tournament as any).bracket = {
+            size: bracketState.size,
+            rounds: bracketState.rounds,
+            currentRound: bracketState.currentRound,
+            completed: bracketState.completed,
+            thirdPlaceMatch: bracketState.thirdPlaceMatch,
+          };
+        }
+      }
     }
 
     // For knockout/hybrid tournaments, manually populate bracket matches

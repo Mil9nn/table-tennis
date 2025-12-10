@@ -22,7 +22,7 @@ const standingSchema = new Schema({
 
 const roundSchema = new Schema({
   roundNumber: { type: Number, required: true },
-  matches: [{ type: Schema.Types.ObjectId, ref: "IndividualMatch" }],
+  matches: [{ type: Schema.Types.ObjectId, ref: "Match" }],
   completed: { type: Boolean, default: false },
   scheduledDate: { type: Date },
   scheduledTime: { type: String },

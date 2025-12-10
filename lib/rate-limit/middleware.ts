@@ -4,16 +4,17 @@ import { Redis } from "@upstash/redis";
 import {
   getRateLimitConfig,
   DEFAULT_RATE_LIMIT,
-  RateLimitConfig,
-  RateLimitResult,
 } from "./config";
+import { RateLimitConfig } from "./types";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || "",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
+// Initialize Redis client only if credentials are available
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
 
 // Cache for rate limiters to avoid recreating them
 const rateLimiterCache = new Map<string, Ratelimit>();
@@ -21,9 +22,13 @@ const rateLimiterCache = new Map<string, Ratelimit>();
 /**
  * Get or create a rate limiter instance
  */
-function getRateLimiter(config: RateLimitConfig): Ratelimit {
+function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
+  if (!redis) {
+    return null;
+  }
+
   const cacheKey = `${config.algorithm}-${config.limit}-${config.window}`;
-  
+
   if (rateLimiterCache.has(cacheKey)) {
     return rateLimiterCache.get(cacheKey)!;
   }
@@ -135,7 +140,7 @@ function getClientIP(request: NextRequest): string {
   }
 
   // Fallback to connection remote address (may not work in serverless)
-  return request.ip || "unknown";
+  return (request as any).ip || "unknown";
 }
 
 /**
@@ -263,6 +268,11 @@ export async function rateLimit(
     // Get rate limiter
     const ratelimit = getRateLimiter(config);
 
+    // If rate limiter is not available, skip
+    if (!ratelimit) {
+      return null;
+    }
+
     // Create unique key for this route and identifier
     const key = `ratelimit:${method}:${pathname}:${identifier}`;
 
@@ -317,9 +327,14 @@ export async function rateLimitWithHeaders(
   const config = getRateLimitConfig(method, pathname) || DEFAULT_RATE_LIMIT;
   const identifier = getIdentifier(request, config);
 
-  if (identifier !== "bypass" && process.env.UPSTASH_REDIS_REST_URL) {
+  if (identifier !== "bypass" && process.env.UPSTASH_REDIS_REST_URL && redis) {
     try {
       const ratelimit = getRateLimiter(config);
+
+      if (!ratelimit) {
+        return response;
+      }
+
       const key = `ratelimit:${method}:${pathname}:${identifier}`;
       const result = await ratelimit.limit(key);
 

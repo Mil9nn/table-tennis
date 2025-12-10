@@ -1,5 +1,5 @@
 // services/database/TransactionManager.ts
-import mongoose, { ClientSession, TransactionOptions } from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
 
 /**
  * Transaction Manager Service
@@ -31,7 +31,7 @@ export interface TransactionResult<T> {
 }
 
 export class TransactionManager {
-  private defaultOptions: TransactionOptions = {
+  private defaultOptions: any = {
     readPreference: 'primary',
     readConcern: { level: 'majority' },
     writeConcern: { w: 'majority' }
@@ -47,7 +47,7 @@ export class TransactionManager {
    */
   async executeInTransaction<T>(
     operation: (session: ClientSession) => Promise<T>,
-    options?: TransactionOptions
+    options?: any
   ): Promise<T> {
     const session = await mongoose.startSession();
 
@@ -85,7 +85,7 @@ export class TransactionManager {
    */
   async executeWithResult<T>(
     operation: (session: ClientSession) => Promise<T>,
-    options?: TransactionOptions
+    options?: any
   ): Promise<TransactionResult<T>> {
     try {
       const data = await this.executeInTransaction(operation, options);
@@ -111,7 +111,7 @@ export class TransactionManager {
    */
   async executeBatch<T>(
     operations: Array<(session: ClientSession) => Promise<T>>,
-    options?: TransactionOptions
+    options?: any
   ): Promise<T[]> {
     return this.executeInTransaction(async (session) => {
       const results: T[] = [];
@@ -139,7 +139,7 @@ export class TransactionManager {
     operation: (session: ClientSession) => Promise<T>,
     maxRetries: number = 3,
     retryDelay: number = 100,
-    options?: TransactionOptions
+    options?: any
   ): Promise<T> {
     let lastError: Error | null = null;
 
@@ -230,7 +230,7 @@ export const transactionManager = new TransactionManager();
  */
 export async function withTransaction<T>(
   operation: (session: ClientSession) => Promise<T>,
-  options?: TransactionOptions
+  options?: any
 ): Promise<T> {
   return transactionManager.executeInTransaction(operation, options);
 }

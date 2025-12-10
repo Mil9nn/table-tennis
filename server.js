@@ -24,47 +24,46 @@ app.prepare().then(() => {
     }
   });
 
-  // Initialize Socket.IO
-  const io = new Server(httpServer, {
-    cors: {
-      origin: dev
-        ? ["http://localhost:3000", "http://127.0.0.1:3000"]
-        : process.env.NEXT_PUBLIC_SOCKET_URL 
-          ? [process.env.NEXT_PUBLIC_SOCKET_URL]
-          : false, // Disable CORS if not configured (same-origin only)
-      credentials: true,
-      methods: ["GET", "POST"],
-    },
-    path: "/socket.io/",
-    transports: ["websocket", "polling"],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-  });
+  // Socket.IO - DISABLED (uncomment to enable real-time features)
+  // const io = new Server(httpServer, {
+  //   cors: {
+  //     origin: dev
+  //       ? ["http://localhost:3000", "http://127.0.0.1:3000"]
+  //       : process.env.NEXT_PUBLIC_SOCKET_URL
+  //         ? [process.env.NEXT_PUBLIC_SOCKET_URL]
+  //         : false,
+  //     credentials: true,
+  //     methods: ["GET", "POST"],
+  //   },
+  //   path: "/socket.io/",
+  //   transports: ["websocket", "polling"],
+  //   pingTimeout: 60000,
+  //   pingInterval: 25000,
+  // });
 
-  // Make io instance globally accessible
-  global.io = io;
+  // global.io = io;
 
-  // Initialize socket handlers (using dynamic import for ES module)
-  Promise.resolve()
-    .then(() => {
-      // Try to load the handler as ES module first
-      return import("./lib/socketHandler.js");
-    })
-    .then((module) => {
-      const { initializeSocketHandlers } = module;
-      initializeSocketHandlers(io);
-      console.log("[Socket.IO] Handlers initialized successfully");
-    })
-    .catch((error) => {
-      console.error("[Socket.IO] Failed to initialize handlers:", error);
-      console.error("[Socket.IO] Socket.IO will run without handlers");
-    });
+  // Promise.resolve()
+  //   .then(() => {
+  //     return import("./lib/socketHandler.js");
+  //   })
+  //   .then((module) => {
+  //     const { initializeSocketHandlers } = module;
+  //     initializeSocketHandlers(io);
+  //     console.log("[Socket.IO] Handlers initialized successfully");
+  //   })
+  //   .catch((error) => {
+  //     console.error("[Socket.IO] Failed to initialize handlers:", error);
+  //     console.error("[Socket.IO] Socket.IO will run without handlers");
+  //   });
+
+  console.log("[Socket.IO] Disabled - Live updates not available");
 
   // Start server
   httpServer.listen(port, (err) => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
-    console.log(`> Socket.IO server running on same port`);
+    console.log(`> Socket.IO: Disabled`);
     console.log(`> Environment: ${dev ? "development" : "production"}`);
   });
 
@@ -72,9 +71,12 @@ app.prepare().then(() => {
   const gracefulShutdown = () => {
     console.log("\n[Server] Received shutdown signal, closing connections...");
 
-    io.close(() => {
-      console.log("[Socket.IO] All socket connections closed");
-    });
+    // Socket.IO close (disabled)
+    // if (global.io) {
+    //   global.io.close(() => {
+    //     console.log("[Socket.IO] All socket connections closed");
+    //   });
+    // }
 
     httpServer.close(() => {
       console.log("[Server] HTTP server closed");

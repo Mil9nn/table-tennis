@@ -105,13 +105,36 @@ export default function TournamentDetailPage() {
       const { data } = await axiosInstance.post(
         `/tournaments/${tournamentId}/generate-matches`
       );
-      setTournament(data.tournament);
-      toast.success(
-        `Tournament draw generated! ${data.stats.totalMatches} matches created.`
-      );
+
+      // Fetch the complete tournament data to ensure all matches are populated
+      await fetchTournament(true);
+
+      // Check if this is a custom matching tournament
+      const isCustomMatching =
+        tournament?.format === "knockout" &&
+        tournament?.knockoutConfig?.allowCustomMatching === true;
+
+      // Show appropriate message based on matches created
+      if (data.stats.totalMatches === 0) {
+        toast.error(
+          "No matches were generated. Please check your tournament configuration and try again.",
+          { duration: 5000 }
+        );
+      } else if (isCustomMatching) {
+        toast.success(
+          `Bracket structure created! Use the Custom Matching interface to assign participants and create matches.`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success(
+          `Tournament draw generated! ${data.stats.totalMatches} matches created.`
+        );
+      }
     } catch (err: any) {
       console.error("Error generating matches:", err);
       toast.error(err.response?.data?.error || "Failed to generate matches");
+      // Refresh tournament data even on error to ensure UI is in sync
+      await fetchTournament(true);
     } finally {
       setGenerating(false);
     }
@@ -236,6 +259,10 @@ export default function TournamentDetailPage() {
   }
 
   const isOrganizer = user && tournament.organizer?._id === user._id;
+  const isCustomMatchingTournament = 
+    tournament.format === "knockout" &&
+    tournament.knockoutConfig?.allowCustomMatching === true;
+  
   const canGenerateMatches =
     isOrganizer &&
     !tournament.drawGenerated &&
@@ -327,6 +354,40 @@ export default function TournamentDetailPage() {
     (m: any) => m?.status === "in_progress" || m?.status === "completed"
   );
 
+  // For hybrid tournaments, allow group management before round-robin phase is generated
+  const canManageGroups = () => {
+    if (!hasGroups()) return false;
+    
+    // Check if any matches have been played
+    const hasPlayedMatchesCheck = allMatchObjects.some(
+      (m: any) => m?.status === "in_progress" || m?.status === "completed"
+    );
+    
+    // If matches have been played, don't allow group management
+    if (hasPlayedMatchesCheck) return false;
+    
+    if (tournament.format === "hybrid") {
+      // For hybrid, allow if:
+      // 1. No groups exist yet, OR
+      // 2. Groups exist but are empty (no participants), OR
+      // 3. Groups exist but draw hasn't been generated yet
+      if (!tournament.groups || tournament.groups.length === 0) {
+        return true;
+      }
+      
+      // Check if groups are empty (no participants in any group)
+      const groupsHaveParticipants = tournament.groups.some(
+        (group: any) => group.participants && group.participants.length > 0
+      );
+      
+      // Allow if groups are empty or if draw hasn't been generated
+      return !groupsHaveParticipants || !tournament.drawGenerated;
+    }
+    
+    // For other formats, allow if draw hasn't been generated
+    return !tournament.drawGenerated;
+  };
+
   // Transform rounds to have match IDs instead of full objects for TournamentSchedule
   // For group tournaments, keep rounds separated by group
   const getRoundsForSchedule = () => {
@@ -404,15 +465,15 @@ export default function TournamentDetailPage() {
     <TournamentErrorBoundary>
       <div className="min-h-screen bg-slate-50">
         {/* Modern Header */}
-        <div className="bg-blue-200 border-b border-slate-400">
+        <div className="bg-blue-500 border-b border-slate-400">
           <div className="max-w-7xl mx-auto">
             <div className="">
               {/* Header Row */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 p-2 px-4">
-                <div className="flex-1">
+                <div className="flex-1 space-y-2">
                   {/* Title + Status */}
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+                  <div className="flex items-center gap-4">
+                    <h1 className="text-xl font-semibold text-slate-100 tracking-tight">
                       {tournament.name}
                     </h1>
 
@@ -428,7 +489,7 @@ export default function TournamentDetailPage() {
                   </div>
 
                   {/* Meta Info */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-black/80">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
                     <span className="font-medium">
                       {tournament.format?.replace("_", " ").toUpperCase() ||
                         "N/A"}
@@ -456,7 +517,7 @@ export default function TournamentDetailPage() {
                 {isOrganizer && (
                   <div className="flex items-center gap-2">
                     {/* Primary Action */}
-                    {canGenerateMatches && (
+                    {canGenerateMatches && !isCustomMatchingTournament && (
                       <Button
                         onClick={generateMatches}
                         disabled={generating}
@@ -472,6 +533,26 @@ export default function TournamentDetailPage() {
                           <>
                             <Play className="w-4 h-4 " />
                             Generate Draw
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {canGenerateMatches && isCustomMatchingTournament && (
+                      <Button
+                        onClick={generateMatches}
+                        disabled={generating}
+                        size="sm"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        {generating ? (
+                          <>
+                            <Loader2 className="w-4 h-4  animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 " />
+                            Generate Bracket
                           </>
                         )}
                       </Button>
@@ -509,26 +590,6 @@ export default function TournamentDetailPage() {
                               <EmojiEventsIcon className="w-4 h-4 " />
                               Manage Seeding
                             </DropdownMenuItem>
-                            {hasGroups() && (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  if (hasPlayedMatches) {
-                                    toast.error(
-                                      "Cannot modify groups after matches have been played."
-                                    );
-                                  } else {
-                                    setManageGroupsOpen(true);
-                                  }
-                                }}
-                                disabled={hasPlayedMatches}
-                              >
-                                <GroupsIcon className="w-4 h-4 " />
-                                Manage Groups
-                                {hasPlayedMatches && (
-                                  <span className="ml-auto text-xs">🔒</span>
-                                )}
-                              </DropdownMenuItem>
-                            )}
                             <DropdownMenuItem
                               onClick={() => setJoinCodeDialogOpen(true)}
                             >
@@ -537,6 +598,27 @@ export default function TournamentDetailPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                           </>
+                        )}
+                        {/* Show Manage Groups if groups are enabled and can be managed (outside drawGenerated check for hybrid tournaments) */}
+                        {canManageGroups() && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (hasPlayedMatches) {
+                                toast.error(
+                                  "Cannot modify groups after matches have been played."
+                                );
+                              } else {
+                                setManageGroupsOpen(true);
+                              }
+                            }}
+                            disabled={hasPlayedMatches}
+                          >
+                            <GroupsIcon className="w-4 h-4 " />
+                            Manage Groups
+                            {hasPlayedMatches && (
+                              <span className="ml-auto text-xs">🔒</span>
+                            )}
+                          </DropdownMenuItem>
                         )}
 
                         {tournament.drawGenerated &&
@@ -548,7 +630,7 @@ export default function TournamentDetailPage() {
                                 disabled={resetting || hasPlayedMatches}
                                 variant="destructive"
                               >
-                                <RestartAltIcon className="w-4 h-4 " />
+                                <RestartAltIcon className="size-4" />
                                 Reset Tournament
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -562,7 +644,7 @@ export default function TournamentDetailPage() {
                               disabled={cancelling}
                               variant="destructive"
                             >
-                              <CancelIcon className="w-4 h-4 " />
+                              <CancelIcon sx={{ fontSize: 16 }} />
                               {cancelling
                                 ? "Cancelling..."
                                 : "Cancel Tournament"}
@@ -613,7 +695,7 @@ export default function TournamentDetailPage() {
                     )}
                   </p>
                 </div>
-                <span className="text-slate-500">•</span>
+                
                 {tournament.status !== "draft" && totalMatches > 0 && (
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -645,12 +727,12 @@ export default function TournamentDetailPage() {
         {/* Content Area */}
         <div className="max-w-7xl mx-auto">
           {/* Generate Matches CTA - Compact */}
-          {canGenerateMatches && (
+          {canGenerateMatches && !isCustomMatchingTournament && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+              <Card className="border-indigo-200 rounded-none bg-gradient-to-r from-indigo-50 to-blue-50">
                 <CardContent className="">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -685,25 +767,113 @@ export default function TournamentDetailPage() {
             </motion.div>
           )}
 
+          {/* Generate Bracket CTA for Custom Matching Tournaments */}
+          {canGenerateMatches && isCustomMatchingTournament && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="border-indigo-200 rounded-none bg-gradient-to-r from-indigo-50 to-blue-50">
+                <CardContent className="">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-slate-900 mb-1">
+                        Ready to Create Bracket?
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        Generate the bracket structure. You'll then configure matchups manually.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={generateMatches}
+                      disabled={generating}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4  animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 " />
+                          Generate Bracket
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Error Recovery - Draw generated but no matches (only show if NOT custom matching) */}
+          {isOrganizer &&
+            tournament.drawGenerated &&
+            !canGenerateMatches &&
+            totalMatches === 0 &&
+            !hasPlayedMatches &&
+            tournament.format === "knockout" &&
+            tournament.knockoutConfig?.allowCustomMatching !== true && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-red-200 rounded-none bg-gradient-to-r from-red-50 to-orange-50">
+                  <CardContent className="">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-semibold text-red-900 mb-1">
+                          No Matches Generated
+                        </h3>
+                        <p className="text-sm text-red-700">
+                          The draw was generated but no matches were created. Please
+                          reset and try again, or check your tournament
+                          configuration.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleReset}
+                          disabled={resetting}
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50"
+                        >
+                          {resetting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Resetting...
+                            </>
+                          ) : (
+                            <>
+                              <RestartAltIcon className="w-4 h-4" />
+                              Reset & Retry
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
           {/* Custom Matching Button for Knockout */}
           {isOrganizer &&
             tournament.format === "knockout" &&
             tournament.knockoutConfig?.allowCustomMatching === true &&
             tournament.drawGenerated === true && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50">
-                  <CardContent className="p-4">
+                <section className={`rounded-none`}>
+                  <div className="p-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <h3 className="font-semibold text-slate-900 mb-1">
-                          Custom Matching
+                          {totalMatches === 0 ? 'Action Required: Configure Custom Matchups' : 'Custom Matching'}
                         </h3>
                         <p className="text-sm text-slate-600">
-                          Manually configure matchups for knockout rounds
+                          {totalMatches === 0
+                            ? 'The bracket has been created. Click below to assign participants and create matches.'
+                            : 'Manually configure matchups for knockout rounds'}
                         </p>
                       </div>
                       <Button
@@ -713,14 +883,12 @@ export default function TournamentDetailPage() {
                           )
                         }
                         variant="outline"
-                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
                       >
-                        Configure Matchups
+                        {totalMatches === 0 ? 'Configure Matchups Now' : 'Configure Matchups'}
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </div>
+                </section>
             )}
 
           {/* Hybrid Tournament Manager */}
@@ -743,14 +911,14 @@ export default function TournamentDetailPage() {
             defaultValue={hasGroups() ? "groups" : "standings"}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-3xl p-1 bg-slate-100 rounded-lg grid-cols-4 h-auto">
+            <TabsList className="grid w-full max-w-2xl rounded-none p-0 grid-cols-4 h-auto">
               {/* Groups Tab - Show for tournaments with groups */}
               {hasGroups() && (
                 <TabsTrigger
                   value="groups"
                   className="
-                    rounded-md text-sm font-medium px-4 py-2
-                    data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm
+                    rounded-none text-sm font-medium px-4 py-2
+                    data-[state=active]:bg-white data-[state=active]:shadow-sm
                     data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                     transition-all
                   "
@@ -764,8 +932,8 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="standings"
                   className="
-                    rounded-md text-sm font-medium px-4 py-2
-                    data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm
+                    rounded-none text-sm font-medium px-4 py-2
+                    data-[state=active]:bg-white data-[state=active]:shadow-sm
                     data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                     transition-all
                   "
@@ -778,8 +946,8 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="schedule"
                 className="
-                  rounded-md text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm
+                  rounded-none text-sm font-medium px-4 py-2
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -790,8 +958,8 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="participants"
                 className="
-                  rounded-md text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm
+                  rounded-none text-sm font-medium px-4 py-2
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -802,8 +970,8 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="info"
                 className="
-                  rounded-md text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm
+                  rounded-none text-sm font-medium px-4 py-2
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -814,9 +982,9 @@ export default function TournamentDetailPage() {
 
             {/* Groups Tab */}
             {hasGroups() && (
-              <TabsContent value="groups" className="mt-0">
-                <Card>
-                  <CardContent className="p-6">
+              <TabsContent value="groups" className="">
+                <div>
+                  <div className="">
                     {tournament.groups && tournament.groups.length > 0 ? (
                       <GroupsView
                         groups={tournament.groups}
@@ -830,26 +998,26 @@ export default function TournamentDetailPage() {
                         <p>No groups generated yet</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </TabsContent>
             )}
 
             {/* Standings Tab */}
             <TabsContent value="standings" className="">
-              <Card className="rounded-none p-0">
-                <CardHeader className="flex items-center gap-2">
+              <section className="rounded-none p-0">
+                <div className="flex items-center gap-2 p-2 px-4">
                   <EmojiEventsIcon className="size-5 text-slate-600" />
                   <div>
-                    <CardTitle className="text-base">
+                    <h3 className="text-base font-semibold text-slate-900">
                       Tournament Standings
-                    </CardTitle>
+                    </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
                       View detailed statistics and match history
                     </p>
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
+                </div>
+                <div className="">
                   {tournament.standings && tournament.standings.length > 0 ? (
                     <EnhancedStandingsTable
                       standings={tournament.standings}
@@ -867,14 +1035,14 @@ export default function TournamentDetailPage() {
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             </TabsContent>
 
             {/* Schedule Tab */}
             <TabsContent value="schedule" className="p-0">
-              <Card className="rounded-none p-0">
-                <CardContent className="p-4">
+              <section className="rounded-none p-0">
+                <div className="p-4">
                   {tournament.format === "knockout" && tournament.bracket ? (
                     <KnockoutBracketView
                       bracket={tournament.bracket}
@@ -907,30 +1075,52 @@ export default function TournamentDetailPage() {
                       showTime={false}
                       venue={tournament.venue}
                     />
+                  ) : isCustomMatchingTournament && tournament.drawGenerated ? (
+                    <div className="py-12 text-center text-muted-foreground">
+                      <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p>Bracket structure created</p>
+                      <p className="text-sm mt-2">
+                        Use the Custom Matching interface to configure matchups and create matches
+                      </p>
+                      {isOrganizer && (
+                        <Button
+                          onClick={() =>
+                            router.push(
+                              `/tournaments/${tournamentId}/custom-matching`
+                            )
+                          }
+                          className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                          Configure Matchups
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <div className="py-12 text-center text-muted-foreground">
                       <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
                       <p>No schedule available yet</p>
                       <p className="text-sm mt-2">
-                        Generate matches to create the schedule
+                        {isCustomMatchingTournament
+                          ? "Generate bracket to get started"
+                          : "Generate matches to create the schedule"}
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             </TabsContent>
 
             {/* Participants Tab */}
-            <TabsContent value="participants" className="mt-0">
-              <Card className="rounded-none p-0">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
+            <TabsContent value="participants">
+              <section className="rounded-none p-0">
+                <div className="p-2">
+                  <p className="text-base font-semibold text-slate-900">
                     {isTeamTournament
                       ? "Tournament Teams"
                       : "Tournament Participants"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </p>
+                </div>
+                <div className="p-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                     {(tournament.participants || []).map((p) => {
                       const seed = tournament.seeding?.find(
@@ -1012,20 +1202,20 @@ export default function TournamentDetailPage() {
                       );
                     })}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             </TabsContent>
 
             {/* Info Tab */}
             <TabsContent value="info" className="mt-0">
-              <Card className="rounded-none p-0">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold text-neutral-800">
+              <section className="rounded-none p-0">
+                <div className="p-2">
+                  <p className="text-base font-semibold text-neutral-800">
                     Tournament Information
-                  </CardTitle>
-                </CardHeader>
+                  </p>
+                </div>
 
-                <CardContent className="space-y-4">
+                <div className="space-y-4 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* DETAILS */}
                     <div>
@@ -1099,8 +1289,8 @@ export default function TournamentDetailPage() {
                       </dl>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             </TabsContent>
           </Tabs>
         </div>

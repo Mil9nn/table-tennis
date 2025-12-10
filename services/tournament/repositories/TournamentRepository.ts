@@ -133,8 +133,8 @@ export class TournamentRepository {
     if (!tournament) return null;
 
     // Populate bracket virtual
-    await tournament.populate('bracket');
-    return tournament;
+    const populated = await (tournament as any).populate('bracket');
+    return populated as Tournament;
   }
 
   /**
@@ -142,7 +142,7 @@ export class TournamentRepository {
    */
   async findByIdPopulated(id: string): Promise<Tournament | null> {
     // Try individual first
-    let tournament = await TournamentIndividual.findById(id)
+    let tournament: Tournament | null = await TournamentIndividual.findById(id)
       .populate('participants', 'username fullName profileImage rank')
       .populate('organizer', 'username fullName profileImage')
       .populate('seeding.participant', 'username fullName profileImage')
@@ -151,7 +151,7 @@ export class TournamentRepository {
     if (tournament) return tournament;
 
     // Try team
-    tournament = await TournamentTeam.findById(id)
+    tournament = (await TournamentTeam.findById(id)
       .populate({
         path: 'participants',
         select: 'name logo captain players',
@@ -161,7 +161,7 @@ export class TournamentRepository {
         }
       })
       .populate('organizer', 'username fullName profileImage')
-      .populate('bracket');
+      .populate('bracket')) as Tournament | null;
 
     return tournament;
   }

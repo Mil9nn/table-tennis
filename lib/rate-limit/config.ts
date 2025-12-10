@@ -191,12 +191,6 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
   },
 
   // Team Management Routes
-  "PUT:/api/teams/[id]": {
-    limit: 20,
-    window: "1 h",
-    algorithm: "fixedWindow",
-    identifier: "user",
-  },
   "PUT:/api/teams/[id]/assign": {
     limit: 30,
     window: "1 h",

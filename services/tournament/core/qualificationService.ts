@@ -10,6 +10,7 @@
 
 import mongoose from "mongoose";
 import { ITournament, IStanding } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
 
 export interface QualificationResult {
   qualified: mongoose.Types.ObjectId[];
@@ -28,7 +29,7 @@ export interface QualificationResult {
  * Qualify participants based on overall standings (all groups combined)
  */
 function qualifyTopNOverall(
-  tournament: ITournament,
+  tournament: Tournament,
   count: number
 ): QualificationResult {
   if (!tournament.standings || tournament.standings.length === 0) {
@@ -64,7 +65,7 @@ function qualifyTopNOverall(
  * Qualify top N participants from each group
  */
 function qualifyTopNPerGroup(
-  tournament: ITournament,
+  tournament: Tournament,
   countPerGroup: number
 ): QualificationResult {
   if (!tournament.useGroups || !tournament.groups || tournament.groups.length === 0) {
@@ -121,7 +122,7 @@ function qualifyTopNPerGroup(
  * Qualify top percentage of participants
  */
 function qualifyByPercentage(
-  tournament: ITournament,
+  tournament: Tournament,
   percentage: number
 ): QualificationResult {
   if (!tournament.standings || tournament.standings.length === 0) {
@@ -146,7 +147,7 @@ function qualifyByPercentage(
  * Main function to determine qualified participants
  */
 export function determineQualifiedParticipants(
-  tournament: ITournament
+  tournament: Tournament
 ): QualificationResult {
   if (tournament.format !== "hybrid") {
     throw new Error("Tournament must be hybrid format");
@@ -191,7 +192,7 @@ export function determineQualifiedParticipants(
  * Apply qualification results to tournament
  */
 export function applyQualificationResults(
-  tournament: ITournament,
+  tournament: Tournament,
   result: QualificationResult
 ): void {
   tournament.qualifiedParticipants = result.qualified;
@@ -201,7 +202,7 @@ export function applyQualificationResults(
  * Check if a participant qualified for knockout phase
  */
 export function isParticipantQualified(
-  tournament: ITournament,
+  tournament: Tournament,
   participantId: mongoose.Types.ObjectId | string
 ): boolean {
   if (!tournament.qualifiedParticipants) {
@@ -218,7 +219,7 @@ export function isParticipantQualified(
  * Get qualification summary for display
  */
 export function getQualificationSummary(
-  tournament: ITournament
+  tournament: Tournament
 ): {
   method: string;
   totalParticipants: number;
@@ -251,7 +252,7 @@ export function getQualificationSummary(
 /**
  * Validate qualification configuration before applying
  */
-export function validateQualificationConfig(tournament: ITournament): {
+export function validateQualificationConfig(tournament: Tournament): {
   isValid: boolean;
   errors: string[];
   warnings: string[];

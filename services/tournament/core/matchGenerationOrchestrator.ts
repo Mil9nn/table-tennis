@@ -15,9 +15,8 @@
 
 import { ClientSession } from "mongoose";
 import { TransactionManager } from "@/services/database/TransactionManager";
-import { tournamentRepository } from "../repositories/TournamentRepository";
+import { tournamentRepository, Tournament } from "../repositories/TournamentRepository";
 import { matchRepository } from "../repositories/MatchRepository";
-import { ITournament } from "@/models/Tournament";
 import {
   generateKnockoutBracket,
   createOrUpdateBracketState,
@@ -37,7 +36,7 @@ export interface MatchGenerationOptions {
 }
 
 export interface MatchGenerationResult {
-  tournament: ITournament;
+  tournament: Tournament;
   stats: {
     totalMatches: number;
     totalRounds: number;
@@ -75,13 +74,16 @@ export class MatchGenerationOrchestrator {
       // Update tournament seeding
       await this.tournamentRepo.updateSeeding(tournamentId, seeding, session);
 
-      // Generate matches based on format
+      // Generate matches based on format and store bracket reference for stats
+      let generatedBracket: any = null;
+
       if (tournament.format === "hybrid") {
         // For hybrid, only generate round-robin phase initially
         const { generateHybridRoundRobinPhase } = await import("./hybridMatchGenerationService");
         await generateHybridRoundRobinPhase(tournament, {
           scorerId: new (await import("mongoose")).Types.ObjectId(scorerId),
           ...options,
+          session,
         });
       } else if (tournament.format === "round_robin") {
         await this.generateRoundRobinMatches(
@@ -93,7 +95,7 @@ export class MatchGenerationOrchestrator {
           session
         );
       } else if (tournament.format === "knockout") {
-        await this.generateKnockoutMatches(
+        generatedBracket = await this.generateKnockoutMatches(
           tournament,
           participantIds,
           seeding,
@@ -109,27 +111,78 @@ export class MatchGenerationOrchestrator {
       await this.tournamentRepo.markDrawGenerated(tournamentId, scorerId, session);
       await this.tournamentRepo.updateStatus(tournamentId, "upcoming", session);
 
-      // Reload tournament with populated data
-      const updatedTournament = await this.tournamentRepo.findByIdPopulated(tournamentId);
-      if (!updatedTournament) {
-        throw new Error("Failed to reload tournament after generation");
-      }
-
-      // Calculate stats
-      const stats = this.calculateStats(updatedTournament);
+      // Calculate stats from the generated bracket/matches
+      // We need to do this before the transaction completes since bracket virtual won't be populated yet
+      const stats = this.calculateStatsFromGeneration(tournament, generatedBracket);
+      console.log("[generateTournamentDraw] Stats calculated from generation:", stats);
 
       return {
-        tournament: updatedTournament,
+        tournament,
         stats,
       };
     });
   }
 
   /**
+   * Calculate stats from the generated data (before bracket virtual is populated)
+   * This is used inside transactions where the bracket virtual can't be accessed yet
+   */
+  private calculateStatsFromGeneration(tournament: Tournament, bracket?: any): {
+    totalMatches: number;
+    totalRounds: number;
+    groups?: number;
+    format: string;
+  } {
+    if (tournament.format === "knockout" && bracket) {
+      // Use the bracket object that was created during generation
+      console.log("[calculateStatsFromGeneration] Using generated bracket for stats");
+      console.log("[calculateStatsFromGeneration] Bracket rounds:", bracket.rounds?.length || 0);
+
+      let totalMatches = 0;
+      if (bracket.rounds && Array.isArray(bracket.rounds)) {
+        totalMatches = bracket.rounds.reduce(
+          (sum: number, round: any) => {
+            const matchCount = round.matches?.length || 0;
+            console.log(`[calculateStatsFromGeneration] Round ${round.roundNumber}: ${matchCount} matches`);
+            return sum + matchCount;
+          },
+          0
+        );
+      }
+
+      // Add third place match if it exists
+      if (bracket.thirdPlaceMatch) {
+        totalMatches += 1;
+      }
+
+      console.log("[calculateStatsFromGeneration] Total matches:", totalMatches);
+
+      return {
+        totalMatches,
+        totalRounds: bracket.rounds?.length || 0,
+        format: "knockout",
+      };
+    }
+
+    if (tournament.format === "knockout") {
+      // Fallback if bracket wasn't provided
+      console.warn("[calculateStatsFromGeneration] No bracket provided for knockout tournament");
+      return {
+        totalMatches: 0,
+        totalRounds: 0,
+        format: "knockout",
+      };
+    }
+
+    // For other formats, use existing logic
+    return this.calculateStats(tournament);
+  }
+
+  /**
    * Generate round-robin matches
    */
   private async generateRoundRobinMatches(
-    tournament: ITournament,
+    tournament: Tournament,
     participantIds: string[],
     seeding: any[],
     scorerId: string,
@@ -137,8 +190,8 @@ export class MatchGenerationOrchestrator {
     session: ClientSession
   ): Promise<void> {
     const isDoubles =
-      tournament.matchType === "doubles" ||
-      tournament.matchType === "mixed_doubles";
+      (tournament as any).matchType === "doubles" ||
+      (tournament as any).matchType === "mixed_doubles";
 
     if (tournament.useGroups && tournament.numberOfGroups) {
       // Generate group matches
@@ -167,7 +220,7 @@ export class MatchGenerationOrchestrator {
    * Generate single round-robin matches
    */
   private async generateSingleRoundRobin(
-    tournament: ITournament,
+    tournament: Tournament,
     participantIds: string[],
     seeding: any[],
     scorerId: string,
@@ -175,8 +228,8 @@ export class MatchGenerationOrchestrator {
     session: ClientSession
   ): Promise<void> {
     const isDoubles =
-      tournament.matchType === "doubles" ||
-      tournament.matchType === "mixed_doubles";
+      (tournament as any).matchType === "doubles" ||
+      (tournament as any).matchType === "mixed_doubles";
 
     const schedule =
       seeding.length > 0
@@ -210,8 +263,8 @@ export class MatchGenerationOrchestrator {
 
           const match = await this.matchRepo.createIndividualMatch(
             {
-              tournament: tournament._id.toString(),
-              matchType: tournament.matchType,
+              tournament: String(tournament._id),
+              matchType: (tournament as any).matchType,
               numberOfSets: tournament.rules.setsPerMatch,
               participants: matchParticipants.map((p: any) => p.toString()),
               scorer: scorerId, // Set scorer so organizer can start matches
@@ -221,7 +274,7 @@ export class MatchGenerationOrchestrator {
             session
           );
 
-          matchIds.push(match._id.toString());
+          matchIds.push(String(match._id));
         }
       }
 
@@ -236,7 +289,7 @@ export class MatchGenerationOrchestrator {
 
     // Update tournament with rounds and standings
     await this.tournamentRepo.updateById(
-      tournament._id.toString(),
+      String(tournament._id),
       {
         rounds,
         standings: this.initializeStandings(participantIds),
@@ -249,7 +302,7 @@ export class MatchGenerationOrchestrator {
    * Generate group matches
    */
   private async generateGroupMatches(
-    tournament: ITournament,
+    tournament: Tournament,
     participantIds: string[],
     seeding: any[],
     scorerId: string,
@@ -265,14 +318,16 @@ export class MatchGenerationOrchestrator {
    * Generate knockout matches
    */
   private async generateKnockoutMatches(
-    tournament: ITournament,
+    tournament: Tournament,
     participantIds: string[],
     seeding: any[],
     scorerId: string,
     options: MatchGenerationOptions,
     session: ClientSession
-  ): Promise<void> {
+  ): Promise<KnockoutBracket> {
     const allowCustomMatching = (tournament as any).knockoutConfig?.allowCustomMatching === true;
+
+    console.log(`[generateKnockoutMatches] Custom matching: ${allowCustomMatching}, Participants: ${participantIds.length}`);
 
     // Generate bracket structure
     const bracket = generateKnockoutBracket(
@@ -288,8 +343,24 @@ export class MatchGenerationOrchestrator {
       }
     );
 
+    console.log(`[generateKnockoutMatches] Bracket created - Size: ${bracket.size}, Rounds: ${bracket.rounds.length}`);
+    bracket.rounds.forEach((round, idx) => {
+      console.log(`[generateKnockoutMatches] Round ${idx + 1} (${round.roundName}): ${round.matches.length} matches`);
+    });
+
     // Create or update BracketState
-    await createOrUpdateBracketState(tournament._id.toString(), bracket, session);
+    const bracketState = await createOrUpdateBracketState(String(tournament._id), bracket, session);
+    console.log(`[generateKnockoutMatches] BracketState saved with ID: ${bracketState._id}`);
+
+    // Also store bracket directly in tournament for easier access
+    // Update the tournament object directly and save it
+    (tournament as any).bracket = bracket;
+    (tournament as any).markModified('bracket');
+    if (session) {
+      await tournament.save({ session });
+    } else {
+      await tournament.save();
+    }
 
     // Create match documents if not in custom matching mode
     if (!allowCustomMatching) {
@@ -303,13 +374,21 @@ export class MatchGenerationOrchestrator {
             !bracketMatch.completed
           ) {
             if (isTeamCategory) {
-              // TODO: Implement team match creation
-              throw new Error("Team bracket match creation not yet implemented");
+              // Create team match using helper function
+              const match = await createBracketTeamMatch(
+                bracketMatch,
+                tournament,
+                scorerId
+              );
+
+              if (match) {
+                bracketMatch.matchId = String(match._id);
+              }
             } else {
               const match = await this.matchRepo.createIndividualMatch(
                 {
-                  tournament: tournament._id.toString(),
-                  matchType: tournament.matchType,
+                  tournament: String(tournament._id),
+                  matchType: (tournament as any).matchType,
                   numberOfSets: tournament.rules.setsPerMatch,
                   participants: [bracketMatch.participant1, bracketMatch.participant2],
                   scorer: scorerId, // Set scorer so organizer can start matches
@@ -321,15 +400,26 @@ export class MatchGenerationOrchestrator {
                 session
               );
 
-              bracketMatch.matchId = match._id.toString();
+              bracketMatch.matchId = String(match._id);
             }
           }
         }
       }
 
       // Update bracket state with match IDs
-      await createOrUpdateBracketState(tournament._id.toString(), bracket, session);
+      await createOrUpdateBracketState(String(tournament._id), bracket, session);
+      
+      // Update tournament bracket with match IDs
+      (tournament as any).bracket = bracket;
+      (tournament as any).markModified('bracket');
+      if (session) {
+        await tournament.save({ session });
+      } else {
+        await tournament.save();
+      }
     }
+
+    return bracket;
   }
 
   /**
@@ -373,7 +463,7 @@ export class MatchGenerationOrchestrator {
   /**
    * Calculate tournament statistics
    */
-  private calculateStats(tournament: ITournament): {
+  private calculateStats(tournament: Tournament): {
     totalMatches: number;
     totalRounds: number;
     groups?: number;
@@ -381,10 +471,87 @@ export class MatchGenerationOrchestrator {
   } {
     if (tournament.format === "knockout") {
       // For knockout, stats come from bracket
+      const bracket = (tournament as any).bracket;
+      console.log("[calculateStats] Bracket exists:", !!bracket);
+      console.log("[calculateStats] Bracket rounds:", bracket?.rounds?.length || 0);
+
+      if (!bracket) {
+        console.log("[calculateStats] No bracket found, returning 0 matches");
+        return {
+          totalMatches: 0,
+          totalRounds: 0,
+          format: "knockout",
+        };
+      }
+
+      // Count matches from all rounds in the bracket
+      let totalMatches = 0;
+      if (bracket.rounds && Array.isArray(bracket.rounds)) {
+        totalMatches = bracket.rounds.reduce(
+          (sum: number, round: any) => {
+            const matchCount = round.matches?.length || 0;
+            console.log(`[calculateStats] Round ${round.roundNumber}: ${matchCount} matches`);
+            return sum + matchCount;
+          },
+          0
+        );
+      }
+
+      // Add third place match if it exists
+      if (bracket.thirdPlaceMatch) {
+        totalMatches += 1;
+      }
+
+      console.log("[calculateStats] Total matches calculated:", totalMatches);
+
       return {
-        totalMatches: 0, // TODO: Calculate from bracket
-        totalRounds: 0,
+        totalMatches,
+        totalRounds: bracket.rounds?.length || 0,
         format: "knockout",
+      };
+    }
+
+    if (tournament.format === "hybrid") {
+      // For hybrid tournaments, count matches from both phases
+      let totalMatches = 0;
+      let totalRounds = 0;
+
+      // Count round-robin phase matches
+      if ((tournament as any).hybridConfig?.roundRobinUseGroups && tournament.groups) {
+        totalMatches += tournament.groups.reduce(
+          (sum: number, g: any) =>
+            sum + g.rounds.reduce((s: number, r: any) => s + r.matches.length, 0),
+          0
+        );
+        totalRounds += tournament.groups[0]?.rounds.length || 0;
+      } else if (tournament.rounds) {
+        totalMatches += tournament.rounds.reduce(
+          (sum: number, r: any) => sum + r.matches.length,
+          0
+        );
+        totalRounds += tournament.rounds.length;
+      }
+
+      // Count knockout phase matches if they exist
+      const bracket = (tournament as any).bracket;
+      if (bracket?.rounds && Array.isArray(bracket.rounds)) {
+        totalMatches += bracket.rounds.reduce(
+          (sum: number, round: any) => sum + (round.matches?.length || 0),
+          0
+        );
+        totalRounds += bracket.rounds.length;
+
+        // Add third place match if it exists
+        if (bracket.thirdPlaceMatch) {
+          totalMatches += 1;
+        }
+      }
+
+      return {
+        totalMatches,
+        totalRounds,
+        groups: (tournament as any).hybridConfig?.roundRobinNumberOfGroups,
+        format: "hybrid",
       };
     }
 

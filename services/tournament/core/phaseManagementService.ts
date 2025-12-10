@@ -11,13 +11,14 @@
 
 import mongoose from "mongoose";
 import { ITournament } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
 
 export type TournamentPhase = "round_robin" | "knockout" | "transition";
 
 /**
  * Initialize a hybrid tournament with round-robin phase
  */
-export function initializeHybridTournament(tournament: ITournament): void {
+export function initializeHybridTournament(tournament: Tournament): void {
   if (tournament.format !== "hybrid") {
     throw new Error("Tournament must be hybrid format");
   }
@@ -39,7 +40,7 @@ export function initializeHybridTournament(tournament: ITournament): void {
 /**
  * Check if round-robin phase is complete
  */
-export function isRoundRobinPhaseComplete(tournament: ITournament): boolean {
+export function isRoundRobinPhaseComplete(tournament: Tournament): boolean {
   if (tournament.format !== "hybrid" || tournament.currentPhase !== "round_robin") {
     return false;
   }
@@ -63,7 +64,7 @@ export function isRoundRobinPhaseComplete(tournament: ITournament): boolean {
 /**
  * Check if knockout phase is complete
  */
-export function isKnockoutPhaseComplete(tournament: ITournament): boolean {
+export function isKnockoutPhaseComplete(tournament: Tournament): boolean {
   if (tournament.format !== "hybrid" || tournament.currentPhase !== "knockout") {
     return false;
   }
@@ -79,7 +80,7 @@ export function isKnockoutPhaseComplete(tournament: ITournament): boolean {
 /**
  * Check if tournament can transition to knockout phase
  */
-export function canTransitionToKnockout(tournament: ITournament): {
+export function canTransitionToKnockout(tournament: Tournament): {
   canTransition: boolean;
   reason?: string;
 } {
@@ -114,7 +115,7 @@ export function canTransitionToKnockout(tournament: ITournament): {
 /**
  * Mark tournament as transitioning to knockout phase
  */
-export function markTransitionPhase(tournament: ITournament): void {
+export function markTransitionPhase(tournament: Tournament): void {
   if (tournament.format !== "hybrid") {
     throw new Error("Tournament must be hybrid format");
   }
@@ -126,7 +127,7 @@ export function markTransitionPhase(tournament: ITournament): void {
 /**
  * Complete transition to knockout phase
  */
-export function completeTransitionToKnockout(tournament: ITournament): void {
+export function completeTransitionToKnockout(tournament: Tournament): void {
   if (tournament.format !== "hybrid") {
     throw new Error("Tournament must be hybrid format");
   }
@@ -141,7 +142,7 @@ export function completeTransitionToKnockout(tournament: ITournament): void {
 /**
  * Get current phase information
  */
-export function getPhaseInfo(tournament: ITournament): {
+export function getPhaseInfo(tournament: Tournament): {
   currentPhase: TournamentPhase | null;
   roundRobinComplete: boolean;
   knockoutComplete: boolean;
@@ -176,7 +177,7 @@ export function getPhaseInfo(tournament: ITournament): {
 /**
  * Validate hybrid configuration
  */
-export function validateHybridConfig(tournament: ITournament): {
+export function validateHybridConfig(tournament: Tournament): {
   isValid: boolean;
   errors: string[];
 } {
@@ -260,7 +261,7 @@ export function validateHybridConfig(tournament: ITournament): {
 /**
  * Reset tournament to round-robin phase (for testing or re-runs)
  */
-export function resetToRoundRobinPhase(tournament: ITournament): void {
+export function resetToRoundRobinPhase(tournament: Tournament): void {
   if (tournament.format !== "hybrid") {
     throw new Error("Tournament must be hybrid format");
   }

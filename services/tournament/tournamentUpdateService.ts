@@ -15,9 +15,9 @@ import { createBracketMatch, createBracketTeamMatch } from "./core/matchGenerati
 export async function fetchMatches(matchIds: any[], lean = false) {
   // Try to fetch as IndividualMatch first
   const individualMatches = await IndividualMatch.find({ _id: { $in: matchIds } });
-  const individualMatchIds = individualMatches.map(m => m._id.toString());
+  const individualMatchIds = individualMatches.map(m => String(m._id));
   const remainingIds = matchIds.filter(id => !individualMatchIds.includes(id.toString()));
-  
+
   // Fetch remaining as TeamMatch
   let teamMatches: any[] = [];
   if (remainingIds.length > 0) {
@@ -26,9 +26,9 @@ export async function fetchMatches(matchIds: any[], lean = false) {
   
   // Combine results
   const allMatches = [...individualMatches, ...teamMatches];
-  
+
   // Sort to match original order
-  const matchMap = new Map(allMatches.map(m => [m._id.toString(), m]));
+  const matchMap = new Map(allMatches.map(m => [String(m._id), m]));
   return matchIds.map(id => matchMap.get(id.toString())).filter(Boolean);
 }
 
@@ -545,7 +545,7 @@ export async function updateRoundRobinStandings(tournament: any) {
   // Update round completion status
   const allMatchIds = getAllMatchIds(tournament);
   const allMatches = await fetchMatches(allMatchIds, true);
-  const matchMap = new Map(allMatches.map((m: any) => [m._id.toString(), m]));
+  const matchMap = new Map(allMatches.map((m: any) => [String(m._id), m]));
 
   // Update round completion for groups
   if (usesGroups && tournament.groups) {

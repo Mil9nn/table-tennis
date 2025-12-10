@@ -100,6 +100,9 @@ export interface ITournamentTeam extends Document {
   // Standings (Teams)
   standings: IStanding[];
 
+  // Virtual property (populated from BracketState)
+  bracket?: any;
+
   // All base fields from TournamentBase
   name: string;
   format: "round_robin" | "knockout" | "hybrid";
@@ -164,7 +167,7 @@ const teamGroupSchema = new Schema({
   standings: [teamStandingSchema]
 }, { _id: false });
 
-const tournamentTeamSchema = new Schema<ITournamentTeam>(
+const tournamentTeamSchema = new Schema(
   {
     // Fixed category
     category: {
@@ -224,13 +227,15 @@ const tournamentTeamSchema = new Schema<ITournamentTeam>(
   },
   {
     timestamps: true,
-    collection: 'tournaments' // Share collection with individual tournaments
+    collection: 'tournaments', // Share collection with individual tournaments
+    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
+    toObject: { virtuals: true } // Include virtuals when converting to object
   }
 );
 
 // Indexes
 baseTournamentIndexes.forEach(index => {
-  tournamentTeamSchema.index(index);
+  tournamentTeamSchema.index(index as any);
 });
 
 // Additional team-specific indexes
@@ -240,13 +245,13 @@ tournamentTeamSchema.index({ 'teamConfig.matchFormat': 1 });
 
 // Validation: Ensure teamConfig is properly set
 tournamentTeamSchema.pre('save', function(next) {
-  if (!this.teamConfig || !this.teamConfig.matchFormat) {
+  if (!(this as any).teamConfig || !(this as any).teamConfig.matchFormat) {
     return next(new Error('Team tournaments must have teamConfig with matchFormat'));
   }
 
   // Validate custom subMatches if format is custom
-  if (this.teamConfig.matchFormat === 'custom') {
-    if (!this.teamConfig.customSubMatches || this.teamConfig.customSubMatches.length === 0) {
+  if ((this as any).teamConfig.matchFormat === 'custom') {
+    if (!(this as any).teamConfig.customSubMatches || (this as any).teamConfig.customSubMatches.length === 0) {
       return next(new Error('Custom team format requires customSubMatches configuration'));
     }
   }
@@ -311,9 +316,9 @@ tournamentTeamSchema.pre('findOneAndDelete', async function() {
   }
 });
 
-const TournamentTeam = mongoose.model<ITournamentTeam>(
-  'TournamentTeam',
-  tournamentTeamSchema
-);
+// Prevent OverwriteModelError in Next.js development hot reload
+const TournamentTeam =
+  (mongoose.models.TournamentTeam as mongoose.Model<ITournamentTeam>) ||
+  mongoose.model<ITournamentTeam>('TournamentTeam', tournamentTeamSchema);
 
 export default TournamentTeam;

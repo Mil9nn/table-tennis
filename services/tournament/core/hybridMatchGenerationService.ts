@@ -9,7 +9,7 @@
  */
 
 import mongoose from "mongoose";
-import { ITournament } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
 import {
   initializeHybridTournament,
   markTransitionPhase,
@@ -33,6 +33,7 @@ export interface HybridGenerationOptions {
   courtsAvailable?: number;
   matchDuration?: number;
   startDate?: Date;
+  session?: mongoose.ClientSession;
 }
 
 export interface HybridGenerationResult {
@@ -49,7 +50,7 @@ export interface HybridGenerationResult {
  * Generate round-robin phase matches for hybrid tournament
  */
 export async function generateHybridRoundRobinPhase(
-  tournament: ITournament,
+  tournament: Tournament,
   options: HybridGenerationOptions
 ): Promise<HybridGenerationResult> {
   // Validate hybrid configuration
@@ -83,6 +84,13 @@ export async function generateHybridRoundRobinPhase(
       }
     );
 
+    // Save tournament with groups data
+    if (options.session) {
+      await tournament.save({ session: options.session });
+    } else {
+      await tournament.save();
+    }
+
     // Count matches created
     const matchCount = tournament.groups?.reduce(
       (total, group) =>
@@ -111,6 +119,13 @@ export async function generateHybridRoundRobinPhase(
       }
     );
 
+    // Save tournament with rounds data
+    if (options.session) {
+      await tournament.save({ session: options.session });
+    } else {
+      await tournament.save();
+    }
+
     // Count matches created
     const matchCount = tournament.rounds.reduce(
       (total, round) => total + round.matches.length,
@@ -131,7 +146,7 @@ export async function generateHybridRoundRobinPhase(
  * Transition tournament from round-robin to knockout phase
  */
 export async function transitionToKnockoutPhase(
-  tournament: ITournament,
+  tournament: Tournament,
   options: HybridGenerationOptions
 ): Promise<HybridGenerationResult> {
   // Validate transition is possible
@@ -213,7 +228,11 @@ export async function transitionToKnockoutPhase(
   applyQualificationResults(tournament, qualificationResult);
 
   // Save tournament with qualification data
-  await tournament.save();
+  if (options.session) {
+    await tournament.save({ session: options.session });
+  } else {
+    await tournament.save();
+  }
 
   // Generate knockout bracket with qualified participants
   const hybridConfig = tournament.hybridConfig!;
@@ -268,7 +287,7 @@ export async function transitionToKnockoutPhase(
  * after round-robin is complete and standings are calculated.
  */
 export async function generateCompleteHybridTournament(
-  tournament: ITournament,
+  tournament: Tournament,
   options: HybridGenerationOptions
 ): Promise<HybridGenerationResult> {
   // Only generate round-robin phase initially
@@ -290,7 +309,7 @@ export async function generateCompleteHybridTournament(
 /**
  * Get hybrid tournament status
  */
-export function getHybridTournamentStatus(tournament: ITournament): {
+export function getHybridTournamentStatus(tournament: Tournament): {
   format: string;
   currentPhase: string | null;
   roundRobinComplete: boolean;

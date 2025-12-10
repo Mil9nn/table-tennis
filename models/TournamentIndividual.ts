@@ -91,6 +91,9 @@ export interface ITournamentIndividual extends Document {
   // Standings (Users)
   standings: IStanding[];
 
+  // Virtual property (populated from BracketState)
+  bracket?: any;
+
   // All base fields from TournamentBase
   name: string;
   format: "round_robin" | "knockout" | "hybrid";
@@ -155,7 +158,7 @@ const individualGroupSchema = new Schema({
   standings: [individualStandingSchema]
 }, { _id: false });
 
-const tournamentIndividualSchema = new Schema<ITournamentIndividual>(
+const tournamentIndividualSchema = new Schema(
   {
     // Fixed category
     category: {
@@ -204,13 +207,15 @@ const tournamentIndividualSchema = new Schema<ITournamentIndividual>(
   },
   {
     timestamps: true,
-    collection: 'tournaments' // Share collection with team tournaments
+    collection: 'tournaments', // Share collection with team tournaments
+    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
+    toObject: { virtuals: true } // Include virtuals when converting to object
   }
 );
 
 // Indexes
 baseTournamentIndexes.forEach(index => {
-  tournamentIndividualSchema.index(index);
+  tournamentIndividualSchema.index(index as any);
 });
 
 // Additional individual-specific indexes
@@ -220,8 +225,8 @@ tournamentIndividualSchema.index({ participants: 1 });
 
 // Validation: Doubles requires even number of participants
 tournamentIndividualSchema.pre('save', function(next) {
-  if (this.matchType === 'doubles' || this.matchType === 'mixed_doubles') {
-    if (this.participants.length % 2 !== 0) {
+  if ((this as any).matchType === 'doubles' || (this as any).matchType === 'mixed_doubles') {
+    if ((this as any).participants.length % 2 !== 0) {
       return next(new Error('Doubles tournaments require an even number of participants'));
     }
   }
@@ -285,9 +290,9 @@ tournamentIndividualSchema.pre('findOneAndDelete', async function() {
   }
 });
 
-const TournamentIndividual = mongoose.model<ITournamentIndividual>(
-  'TournamentIndividual',
-  tournamentIndividualSchema
-);
+// Prevent OverwriteModelError in Next.js development hot reload
+const TournamentIndividual =
+  (mongoose.models.TournamentIndividual as mongoose.Model<ITournamentIndividual>) ||
+  mongoose.model<ITournamentIndividual>('TournamentIndividual', tournamentIndividualSchema);
 
 export default TournamentIndividual;

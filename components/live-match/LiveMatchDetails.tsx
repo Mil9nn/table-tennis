@@ -34,12 +34,12 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
     }
   }, [matchId, fetchMatch, category]);
 
-  // Socket integration for real-time updates
+  // Socket integration for real-time updates - DISABLED
   const { isConnected, isJoined } = useMatchSocket({
     matchId,
     matchCategory: category,
     role: "viewer",
-    enabled: !!matchId,
+    enabled: false, // Socket.IO disabled - enable when needed
   });
 
   // --- Loading state

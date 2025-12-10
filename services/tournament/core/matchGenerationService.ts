@@ -3,6 +3,7 @@ import TeamMatch from "@/models/TeamMatch";
 import Team from "@/models/Team";
 import mongoose from "mongoose";
 import { ITournament, ISeeding } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
 import {
   generateRoundRobinSchedule,
   generateSeededRoundRobinSchedule,
@@ -24,7 +25,7 @@ interface MatchGenerationOptions {
 }
 
 interface MatchGenerationResult {
-  tournament: ITournament;
+  tournament: Tournament;
   stats: {
     totalMatches: number;
     totalRounds: number;
@@ -66,12 +67,12 @@ export function getMatchParticipants(
  */
 export async function createScheduledMatch(
   matchParticipants: mongoose.Types.ObjectId[],
-  tournament: ITournament,
+  tournament: Tournament,
   scorerId: string,
   groupId?: string
 ): Promise<any> {
   const match = new IndividualMatch({
-    matchType: tournament.matchType,
+    matchType: (tournament as any).matchType,
     matchCategory: "individual",
     numberOfSets: tournament.rules.setsPerMatch,
     city: tournament.city,
@@ -92,7 +93,7 @@ export async function createScheduledMatch(
  */
 export async function createScheduledTeamMatch(
   pairing: any,
-  tournament: ITournament,
+  tournament: Tournament,
   scorerId: string,
   groupId?: string
 ): Promise<any> {
@@ -220,7 +221,7 @@ export async function createScheduledTeamMatch(
  */
 export async function createBracketTeamMatch(
   bracketMatch: BracketMatch,
-  tournament: ITournament,
+  tournament: Tournament,
   scorerId: string
 ): Promise<any> {
   // Only create matches that have both participants (not TBD)
@@ -357,7 +358,7 @@ export async function createBracketTeamMatch(
  */
 export async function createBracketMatch(
   bracketMatch: BracketMatch,
-  tournament: ITournament,
+  tournament: Tournament,
   scorerId: string
 ): Promise<any> {
   // Only create matches that have both participants (not TBD)
@@ -367,8 +368,8 @@ export async function createBracketMatch(
 
   // Check if this is a doubles or mixed_doubles match
   const isDoubles =
-    tournament.matchType === "doubles" ||
-    tournament.matchType === "mixed_doubles";
+    (tournament as any).matchType === "doubles" ||
+    (tournament as any).matchType === "mixed_doubles";
 
   // Get match participants - for doubles, we need 4 participants
   let matchParticipants: mongoose.Types.ObjectId[];
@@ -401,7 +402,7 @@ export async function createBracketMatch(
   }
 
   const match = new IndividualMatch({
-    matchType: tournament.matchType,
+    matchType: (tournament as any).matchType,
     matchCategory: "individual",
     numberOfSets: tournament.rules.setsPerMatch,
     city: tournament.city,
@@ -447,7 +448,7 @@ export function initializeStandings(participantIds: string[]) {
  * Generate or initialize seeding for tournament
  */
 export function prepareSeeding(
-  tournament: ITournament,
+  tournament: any,
   participantIds: string[]
 ): ISeeding[] {
   // Use existing seeding if available
@@ -487,15 +488,15 @@ function validateScheduleCompleteness(
  * Generate matches for tournament with groups
  */
 export async function generateGroupMatches(
-  tournament: ITournament,
+  tournament: Tournament,
   participantIds: string[],
   seeding: ISeeding[],
   scorerId: string,
   options: MatchGenerationOptions
 ): Promise<void> {
   const isDoubles =
-    tournament.matchType === "doubles" ||
-    tournament.matchType === "mixed_doubles";
+    (tournament as any).matchType === "doubles" ||
+    (tournament as any).matchType === "mixed_doubles";
 
   const groupAllocations = allocateGroups(
     participantIds,
@@ -595,15 +596,15 @@ export async function generateGroupMatches(
  * Generate matches for single round-robin tournament (no groups)
  */
 export async function generateSingleRoundRobinMatches(
-  tournament: ITournament,
+  tournament: Tournament,
   participantIds: string[],
   seeding: ISeeding[],
   scorerId: string,
   options: MatchGenerationOptions
 ): Promise<void> {
   const isDoubles =
-    tournament.matchType === "doubles" ||
-    tournament.matchType === "mixed_doubles";
+    (tournament as any).matchType === "doubles" ||
+    (tournament as any).matchType === "mixed_doubles";
 
   const schedule =
     seeding.length > 0
@@ -675,7 +676,7 @@ export async function generateSingleRoundRobinMatches(
  * Generate matches for knockout tournament
  */
 export async function generateKnockoutMatches(
-  tournament: ITournament,
+  tournament: Tournament,
   participantIds: string[],
   seeding: ISeeding[],
   scorerId: string,
@@ -759,7 +760,7 @@ export async function generateKnockoutMatches(
 /**
  * Calculate tournament statistics
  */
-function calculateTournamentStats(tournament: ITournament): {
+function calculateTournamentStats(tournament: Tournament): {
   totalMatches: number;
   totalRounds: number;
   groups?: number;
@@ -808,7 +809,7 @@ function calculateTournamentStats(tournament: ITournament): {
  * Main function: Generate tournament draw
  */
 export async function generateTournamentDraw(
-  tournament: ITournament,
+  tournament: Tournament,
   scorerId: string,
   options: MatchGenerationOptions = {}
 ): Promise<MatchGenerationResult> {
@@ -878,7 +879,7 @@ export async function generateTournamentDraw(
   
   if (isTeamTournament) {
     // Team tournament population
-    await tournament.populate([
+    await (tournament as any).populate([
       {
         path: "organizer",
         select: "username fullName profileImage",
@@ -923,7 +924,7 @@ export async function generateTournamentDraw(
     // So we don't populate via the same mechanism
   } else {
     // Individual tournament population
-    await tournament.populate([
+    await (tournament as any).populate([
       {
         path: "organizer participants",
         select: "username fullName profileImage",

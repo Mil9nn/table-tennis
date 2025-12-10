@@ -15,6 +15,15 @@ import type { KnockoutBracket, BracketRound, BracketMatch } from "@/types/tourna
 
 export interface IBracketState extends Document, KnockoutBracket {
   tournament: mongoose.Types.ObjectId;
+
+  // Virtual properties
+  pendingMatches: BracketMatch[];
+  bracketWinner: string | null;
+
+  // Methods
+  findMatch(roundNumber: number, matchNumber: number): BracketMatch | null;
+  updateMatch(roundNumber: number, matchNumber: number, updates: Partial<BracketMatch>): boolean;
+  getMatchesNeedingDocuments(): BracketMatch[];
 }
 
 const bracketMatchSchema = new Schema<BracketMatch>({
@@ -54,8 +63,7 @@ const bracketStateSchema = new Schema<IBracketState>({
     type: Schema.Types.ObjectId,
     ref: 'Tournament',
     required: true,
-    unique: true,
-    index: true
+    unique: true // unique constraint automatically creates an index
   },
   size: { type: Number, required: true },
   rounds: [bracketRoundSchema],
@@ -68,7 +76,7 @@ const bracketStateSchema = new Schema<IBracketState>({
 });
 
 // Indexes for efficient querying
-bracketStateSchema.index({ tournament: 1 });
+// Note: tournament field already has unique index from schema definition
 bracketStateSchema.index({ completed: 1 });
 
 // Virtual to get pending matches
@@ -175,6 +183,9 @@ bracketStateSchema.methods.getMatchesNeedingDocuments = function(
   return needingDocs;
 };
 
-const BracketState = mongoose.model<IBracketState>('BracketState', bracketStateSchema);
+// Prevent OverwriteModelError in Next.js development hot reload
+const BracketState =
+  (mongoose.models.BracketState as mongoose.Model<IBracketState>) ||
+  mongoose.model<IBracketState>('BracketState', bracketStateSchema);
 
 export default BracketState;

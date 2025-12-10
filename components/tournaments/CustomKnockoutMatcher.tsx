@@ -300,7 +300,7 @@ export default function CustomKnockoutMatcher({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <Card className={isComplete ? "border-green-200" : ""}>
+                <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 flex-wrap">
                       {/* Match Number */}

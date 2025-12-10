@@ -253,7 +253,7 @@ export const tournamentCacheService = new TournamentCacheService();
 /**
  * Cache middleware helper for easy integration
  */
-export function withCache<T>(
+export function withCache<T extends {}>(
   cacheKey: string,
   fetchFn: () => Promise<T>,
   cache: LRUCache<string, T>

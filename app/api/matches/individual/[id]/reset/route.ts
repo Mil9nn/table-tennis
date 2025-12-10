@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // ✅ Reset existing game
         match.games[gameIndex].side1Score = 0;
         match.games[gameIndex].side2Score = 0;
-        match.games[gameIndex].winnerSide = undefined;
+        match.games[gameIndex].winnerSide = null;
         match.games[gameIndex].shots = [];
       } else {
         // ✅ Create fresh current game
@@ -43,15 +43,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
           side1Score: 0,
           side2Score: 0,
           shots: [],
-          winnerSide: undefined
+          winnerSide: null
         });
       }
 
       // ✅ FIXED: If match was completed, revert status and recalculate sets
       if (match.status === "completed") {
         match.status = "in_progress";
-        match.winnerSide = undefined;
-        
+        match.winnerSide = null;
+
         // Recalculate set scores from completed games only
         const completedGames = match.games.filter((g: any) => g.winnerSide);
         match.finalScore.side1Sets = completedGames.filter((g: any) => g.winnerSide === "side1").length;
@@ -66,12 +66,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
           side1Score: 0,
           side2Score: 0,
           shots: [],
-          winnerSide: undefined
+          winnerSide: null
         },
       ];
       match.currentGame = 1;
       match.finalScore = { side1Sets: 0, side2Sets: 0 };
-      match.winnerSide = undefined;
+      match.winnerSide = null;
       match.status = "scheduled";
       match.matchDuration = 0;
     }

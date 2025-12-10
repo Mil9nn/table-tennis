@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 👇 Populate with profileImage
-    const populatedMatch = await matchRepository.findByIdWithParticipants(match._id.toString());
+    const populatedMatch = await matchRepository.findByIdWithParticipants(String(match._id));
     const matchObj = populatedMatch?.toObject() || match.toObject();
 
     return NextResponse.json(

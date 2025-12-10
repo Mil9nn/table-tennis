@@ -282,7 +282,7 @@ export async function POST(
       });
 
       // Update statistics
-      const stats = match.statistics || {};
+      const stats = match.statistics || { playerStats: new Map() };
       const playerId = body.shotData.player.toString();
 
       if (!stats.playerStats) stats.playerStats = new Map();
@@ -325,6 +325,10 @@ export async function POST(
       { path: "participants", select: "username fullName profileImage" },
       { path: "games.shots.player", select: "username fullName profileImage" },
     ]);
+
+    if (!updatedMatchDoc) {
+      return NextResponse.json({ error: "Match not found after update" }, { status: 404 });
+    }
 
     // ✅ Convert to plain object safely and include all schema-defined fields
     const updatedMatch = updatedMatchDoc.toObject({

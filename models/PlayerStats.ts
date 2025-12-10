@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const recentMatchSchema = new mongoose.Schema({
-  matchId: { type: mongoose.Schema.Types.ObjectId, ref: "IndividualMatch", required: true },
+  matchId: { type: mongoose.Schema.Types.ObjectId, ref: "Match", required: true },
   opponent: { type: String, required: true },
   result: { type: String, enum: ["win", "loss"], required: true },
   score: { type: String, required: true },

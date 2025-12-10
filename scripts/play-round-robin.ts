@@ -122,7 +122,7 @@ async function playMatch(matchId: string, scorerId: string): Promise<void> {
 
   // Set match to in_progress
   match.status = "in_progress";
-  match.scorer = scorerId;
+  match.scorer = new mongoose.Types.ObjectId(scorerId);
 
   // Generate random score
   const score = generateMatchScore(match.numberOfSets || 3);
@@ -245,7 +245,7 @@ async function generateMatches(tournamentId: string, organizerId: string): Promi
           });
 
           await match.save();
-          roundMatches.push(match._id);
+          roundMatches.push((match._id as mongoose.Types.ObjectId).toString());
         }
 
         groupRounds.push({
@@ -321,7 +321,7 @@ async function generateMatches(tournamentId: string, organizerId: string): Promi
         });
 
         await match.save();
-        roundMatches.push(match._id);
+        roundMatches.push((match._id as mongoose.Types.ObjectId).toString());
       }
 
       rounds.push({

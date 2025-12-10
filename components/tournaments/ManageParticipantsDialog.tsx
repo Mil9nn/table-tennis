@@ -113,9 +113,10 @@ export function ManageParticipantsDialog({
       const response = await axiosInstance.get(endpoint);
       
       // Filter out items who are already participants (including pending adds)
+      // Note: We don't include pendingRemoves here so users can re-add participants they just removed
       const existingIds = new Set([
-        ...localParticipants.map((p) => p._id || p.id || String(p)),
-        ...pendingAdds.map((item) => item._id || item.id || String(item)),
+        ...localParticipants.map((p) => p._id || (p as any).id || String(p)),
+        ...pendingAdds.map((item) => item._id || (item as any).id || String(item)),
       ]);
 
       const data = isTeamTournament 
@@ -132,12 +133,22 @@ export function ManageParticipantsDialog({
   };
 
   const addParticipant = (item: User | TeamSearchResult) => {
-    // Add to pending adds and local participants
-    setPendingAdds([...pendingAdds, item]);
-    
+    const itemId = item._id;
+
+    // Check if this participant was previously removed in this session
+    const wasPendingRemove = pendingRemoves.includes(itemId);
+
+    if (wasPendingRemove) {
+      // Remove from pending removes (undoing the removal)
+      setPendingRemoves(pendingRemoves.filter((id) => id !== itemId));
+    } else {
+      // Add to pending adds (new addition)
+      setPendingAdds([...pendingAdds, item]);
+    }
+
     // Convert to participant format
     let newParticipant: Participant;
-    
+
     if (isTeamTournament) {
       const team = item as TeamSearchResult;
       newParticipant = {
@@ -157,7 +168,7 @@ export function ManageParticipantsDialog({
         profileImage: user.profileImage,
       } as UserParticipant;
     }
-    
+
     setLocalParticipants([...localParticipants, newParticipant]);
 
     // Clear search
@@ -169,11 +180,11 @@ export function ManageParticipantsDialog({
     const participantId = (participant as any)._id || (participant as any).id || String(participant);
     
     // Check if it's a pending add (not yet saved)
-    const isPendingAdd = pendingAdds.some((item) => (item._id || item.id) === participantId);
+    const isPendingAdd = pendingAdds.some((item) => (item._id || (item as any).id) === participantId);
 
     if (isPendingAdd) {
       // Remove from pending adds
-      setPendingAdds(pendingAdds.filter((item) => (item._id || item.id) !== participantId));
+      setPendingAdds(pendingAdds.filter((item) => (item._id || (item as any).id) !== participantId));
     } else {
       // Add to pending removes
       setPendingRemoves([...pendingRemoves, participantId]);
@@ -417,9 +428,9 @@ export function ManageParticipantsDialog({
                   {localParticipants
                     .filter((p) => p && typeof p === 'object')
                     .map((p) => {
-                    const participantId = p._id || p.id || String(p);
+                    const participantId = p._id || (p as any).id || String(p);
                     const isPendingAdd = pendingAdds.some(
-                      (item) => (item._id || item.id) === participantId
+                      (item) => (item._id || (item as any).id) === participantId
                     );
                     const isPendingRemove = pendingRemoves.includes(participantId);
                     const display = getParticipantDisplay(p);

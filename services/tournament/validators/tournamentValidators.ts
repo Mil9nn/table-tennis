@@ -1,5 +1,5 @@
 // services/tournament/validators/tournamentValidators.ts
-import { ITournament } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
 
 /**
  * Validation result type
@@ -18,7 +18,7 @@ export class TournamentValidators {
   /**
    * Validate if draw has been generated (blocks participant changes)
    */
-  static validateDrawNotGenerated(tournament: ITournament): ValidationResult {
+  static validateDrawNotGenerated(tournament: Tournament): ValidationResult {
     if (tournament.drawGenerated) {
       return {
         isValid: false,
@@ -32,7 +32,7 @@ export class TournamentValidators {
   /**
    * Validate tournament capacity
    */
-  static validateCapacity(tournament: ITournament): ValidationResult {
+  static validateCapacity(tournament: Tournament): ValidationResult {
     if (
       tournament.maxParticipants &&
       tournament.participants.length >= tournament.maxParticipants
@@ -49,7 +49,7 @@ export class TournamentValidators {
   /**
    * Validate registration deadline
    */
-  static validateRegistrationDeadline(tournament: ITournament): ValidationResult {
+  static validateRegistrationDeadline(tournament: Tournament): ValidationResult {
     if (tournament.registrationDeadline) {
       const now = new Date();
       const deadline = new Date(tournament.registrationDeadline);
@@ -67,7 +67,7 @@ export class TournamentValidators {
   /**
    * Validate minimum participants for draw generation
    */
-  static validateMinimumParticipants(tournament: ITournament): ValidationResult {
+  static validateMinimumParticipants(tournament: Tournament): ValidationResult {
     const minParticipants = tournament.minParticipants || 2;
     if (tournament.participants.length < minParticipants) {
       return {
@@ -82,10 +82,10 @@ export class TournamentValidators {
   /**
    * Validate doubles tournament requirements (even number of participants)
    */
-  static validateDoublesParticipants(tournament: ITournament): ValidationResult {
+  static validateDoublesParticipants(tournament: Tournament): ValidationResult {
     const isDoubles =
-      tournament.matchType === "doubles" ||
-      tournament.matchType === "mixed_doubles";
+      (tournament as any).matchType === "doubles" ||
+      (tournament as any).matchType === "mixed_doubles";
 
     if (isDoubles && tournament.participants.length % 2 !== 0) {
       return {
@@ -101,7 +101,7 @@ export class TournamentValidators {
    * Validate group configuration
    */
   static validateGroupConfiguration(
-    tournament: ITournament,
+    tournament: Tournament,
     numberOfGroups?: number
   ): ValidationResult {
     if (!tournament.useGroups) {
@@ -137,7 +137,7 @@ export class TournamentValidators {
    * Validate participant is in tournament
    */
   static validateParticipantInTournament(
-    tournament: ITournament,
+    tournament: Tournament,
     participantId: string
   ): ValidationResult {
     const isParticipant = tournament.participants.some(
@@ -158,7 +158,7 @@ export class TournamentValidators {
    * Validate participant NOT already in tournament (for adding)
    */
   static validateParticipantNotInTournament(
-    tournament: ITournament,
+    tournament: Tournament,
     participantId: string
   ): ValidationResult {
     const isAlreadyParticipant = tournament.participants.some(
@@ -179,7 +179,7 @@ export class TournamentValidators {
    * Validate organizer permissions
    */
   static validateIsOrganizer(
-    tournament: ITournament,
+    tournament: Tournament,
     userId: string
   ): ValidationResult {
     if (tournament.organizer.toString() !== userId) {
@@ -195,7 +195,7 @@ export class TournamentValidators {
   /**
    * Validate tournament uses groups
    */
-  static validateUsesGroups(tournament: ITournament): ValidationResult {
+  static validateUsesGroups(tournament: Tournament): ValidationResult {
     if (!tournament.useGroups) {
       return {
         isValid: false,
@@ -210,7 +210,7 @@ export class TournamentValidators {
    * Validate join code
    */
   static validateJoinCode(
-    tournament: ITournament,
+    tournament: Tournament,
     providedCode: string
   ): ValidationResult {
     if (!tournament.allowJoinByCode) {
@@ -265,8 +265,8 @@ export class TournamentValidators {
    * Validate tournament status for specific operations
    */
   static validateTournamentStatus(
-    tournament: ITournament,
-    allowedStatuses: ITournament["status"][]
+    tournament: Tournament,
+    allowedStatuses: Tournament["status"][]
   ): ValidationResult {
     if (!allowedStatuses.includes(tournament.status)) {
       return {
@@ -283,7 +283,7 @@ export class TournamentValidators {
    * Combines multiple validation checks
    */
   static canJoinTournament(
-    tournament: ITournament,
+    tournament: Tournament,
     userId: string
   ): ValidationResult {
     // Check draw not generated
@@ -308,7 +308,7 @@ export class TournamentValidators {
   /**
    * Composite validation: Can generate tournament draw?
    */
-  static canGenerateDraw(tournament: ITournament): ValidationResult {
+  static canGenerateDraw(tournament: Tournament): ValidationResult {
     // Check minimum participants
     let result = this.validateMinimumParticipants(tournament);
     if (!result.isValid) return result;
@@ -327,7 +327,7 @@ export class TournamentValidators {
   /**
    * Validate tournament is knockout format
    */
-  static validateKnockoutFormat(tournament: ITournament): ValidationResult {
+  static validateKnockoutFormat(tournament: Tournament): ValidationResult {
     if (tournament.format !== "knockout") {
       return {
         isValid: false,
@@ -341,7 +341,7 @@ export class TournamentValidators {
   /**
    * Validate bracket exists
    */
-  static validateBracketExists(tournament: ITournament): ValidationResult {
+  static validateBracketExists(tournament: Tournament): ValidationResult {
     if (!(tournament as any).bracket) {
       return {
         isValid: false,
@@ -355,7 +355,7 @@ export class TournamentValidators {
   /**
    * Validate custom matching is allowed
    */
-  static validateCustomMatchingAllowed(tournament: ITournament): ValidationResult {
+  static validateCustomMatchingAllowed(tournament: Tournament): ValidationResult {
     if (!(tournament as any).knockoutConfig?.allowCustomMatching) {
       return {
         isValid: false,

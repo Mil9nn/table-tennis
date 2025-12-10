@@ -1,5 +1,5 @@
 import mongoose, { Document } from "mongoose";
-import Match from "./MatchBase";
+import Match, { IMatchBase } from "./MatchBase";
 import {
   createShotSchema,
   createTeamGameSchema,
@@ -17,7 +17,7 @@ import {
  * Uses MongoDB discriminators for proper type separation
  */
 
-export interface ITeamMatch extends Document {
+export interface ITeamMatch extends IMatchBase {
   matchCategory: 'team';
   matchFormat: 'five_singles' | 'single_double_single' | 'custom';
   numberOfSetsPerSubMatch: number;
@@ -25,7 +25,7 @@ export interface ITeamMatch extends Document {
   currentSubMatch: number;
   team1: any; // teamInfoSchema
   team2: any; // teamInfoSchema
-  subMatches: any[];
+  subMatches: mongoose.Types.DocumentArray<any>;
   finalScore: {
     team1Matches: number;
     team2Matches: number;

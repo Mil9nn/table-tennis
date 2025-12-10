@@ -34,12 +34,12 @@ export default function LiveScorer({
     if (matchId && category) fetchMatch(matchId, category);
   }, [matchId, fetchMatch, category]);
 
-  // Socket integration for real-time updates (scorer role)
+  // Socket integration for real-time updates (scorer role) - DISABLED
   const { isConnected, isJoined } = useMatchSocket({
     matchId,
     matchCategory: category || "individual",
     role: "scorer",
-    enabled: !!matchId && !!category && !!match,
+    enabled: false, // Socket.IO disabled - enable when needed
   });
 
   useEffect(() => {

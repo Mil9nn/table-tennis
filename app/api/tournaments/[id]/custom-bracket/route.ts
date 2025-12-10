@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import Tournament from "@/models/Tournament";
-import IndividualMatch from "@/models/IndividualMatch";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { rateLimit } from "@/lib/rate-limit/middleware";
+import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
 import { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
 import { scheduleRound } from "@/services/tournament/core/bracketSchedulingService";
+
+// CRITICAL: Import models in correct order to ensure discriminators are registered
+// 1. Import base Match model first
+import Match from "@/models/MatchBase";
+// 2. Import discriminators (this registers them on Match)
+import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+// 3. Import other models
+import Tournament from "@/models/Tournament";
+import BracketState from "@/models/BracketState";
 
 /**
  * Get all participants who have been eliminated (lost their matches)
@@ -100,9 +111,38 @@ export async function POST(
   try {
     await connectDB();
 
-    // Ensure models are registered
-    if (!IndividualMatch) {
-      throw new Error("IndividualMatch model not loaded");
+    // Ensure models are registered (explicitly reference to ensure they're loaded)
+    // Import base Match model to ensure discriminator models are registered
+    const MatchModel = Match;
+    const TournamentModel = Tournament;
+    const BracketStateModel = BracketState;
+    
+    // Force model registration by accessing the model
+    // This ensures discriminators are registered in Next.js hot reload scenarios
+    if (!MatchModel || !IndividualMatch || !TournamentModel || !BracketStateModel) {
+      throw new Error("Required models not loaded");
+    }
+    
+    // Explicitly ensure IndividualMatch discriminator is registered
+    // Access the model to trigger registration if needed
+    if (!Match.discriminators || !Match.discriminators['individual']) {
+      // Force re-import to ensure registration
+      const IndividualMatchModule = await import("@/models/IndividualMatch");
+      const _ = IndividualMatchModule.default;
+      // Verify it's now registered
+      if (!Match.discriminators || !Match.discriminators['individual']) {
+        console.error("[Custom Bracket] IndividualMatch discriminator still not registered after import");
+        // Try accessing through mongoose.models as fallback
+        if (!mongoose.models['Match']?.discriminators?.['individual']) {
+          throw new Error("IndividualMatch discriminator not registered. Please restart the server.");
+        }
+      }
+    }
+    
+    // Get the IndividualMatch model (discriminator or direct import)
+    const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+    if (!IndividualMatchModel) {
+      throw new Error("IndividualMatch model not accessible");
     }
 
     // Authenticate user
@@ -175,6 +215,37 @@ export async function POST(
         { error: "Custom matching is not enabled for this tournament" },
         { status: 400 }
       );
+    }
+
+    // Load bracket from BracketState if not in tournament document
+    if (!tournament.bracket) {
+      const BracketState = (await import("@/models/BracketState")).default;
+      const bracketState = await BracketState.findOne({ tournament: id });
+      if (bracketState) {
+        // Convert BracketState document to bracket object
+        (tournament as any).bracket = {
+          size: bracketState.size,
+          rounds: bracketState.rounds,
+          currentRound: bracketState.currentRound,
+          completed: bracketState.completed,
+          thirdPlaceMatch: bracketState.thirdPlaceMatch,
+        };
+      }
+    }
+
+    // Load bracket from BracketState if not in tournament document
+    if (!tournament.bracket) {
+      const bracketState = await BracketState.findOne({ tournament: id });
+      if (bracketState) {
+        // Convert BracketState document to bracket object
+        (tournament as any).bracket = {
+          size: bracketState.size,
+          rounds: bracketState.rounds,
+          currentRound: bracketState.currentRound,
+          completed: bracketState.completed,
+          thirdPlaceMatch: bracketState.thirdPlaceMatch,
+        };
+      }
     }
 
     // Verify bracket exists
@@ -358,33 +429,36 @@ export async function POST(
 
       if (!bracketMatch) continue;
 
-      // Create IndividualMatch document
-      const newMatch = new IndividualMatch({
-        tournament: id,
+      // Create IndividualMatch document - use model directly to ensure it's registered
+      const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+      const newMatch = new IndividualMatchModel({
+        tournament: new mongoose.Types.ObjectId(id),
         matchCategory: "individual",
         matchType: tournament.matchType,
         numberOfSets: tournament.rules.setsPerMatch || 3,
-        participants: [customMatch.participant1, customMatch.participant2],
-        scorer: decoded.userId, // Set organizer as scorer
+        participants: [
+          new mongoose.Types.ObjectId(customMatch.participant1),
+          new mongoose.Types.ObjectId(customMatch.participant2)
+        ],
+        scorer: new mongoose.Types.ObjectId(decoded.userId),
         status: "scheduled",
         bracketPosition: {
           round: roundNumber,
           matchNumber: customMatch.matchNumber,
           nextMatchNumber: bracketMatch.bracketPosition.nextMatchNumber,
         },
-        sourceMatches: bracketMatch.sourceMatches, // Preserve source match info
         roundName: round.roundName,
         city: tournament.city,
         venue: tournament.venue,
-        courtNumber: bracketMatch.courtNumber, // Add court assignment
-        scheduledDate: bracketMatch.scheduledDate, // Add scheduled date
+        courtNumber: bracketMatch.courtNumber,
+        scheduledDate: bracketMatch.scheduledDate,
       });
-
       await newMatch.save();
+
       createdMatches.push(newMatch);
 
       // Update bracket with matchId
-      bracketMatch.matchId = newMatch._id.toString();
+      bracketMatch.matchId = (newMatch._id as any).toString();
     }
 
     // SPECIAL HANDLING FOR ROUND 1: Auto-advance bye recipients
@@ -463,9 +537,98 @@ export async function POST(
       }
     }
 
-    // Save updated bracket
+    // After advancing bye winners, create match documents for any newly-ready matches
+    // (matches that now have both participants known)
+    const newlyReadyMatches: any[] = [];
+
+    for (const round of bracket.rounds) {
+      for (const bracketMatch of round.matches) {
+        // Skip if match already has a document
+        if (bracketMatch.matchId) continue;
+
+        // Check if both participants are now known
+        if (bracketMatch.participant1 && bracketMatch.participant2 && !bracketMatch.completed) {
+          newlyReadyMatches.push(bracketMatch);
+        }
+      }
+    }
+
+    if (newlyReadyMatches.length > 0) {
+      console.log(`[Custom Bracket] Creating ${newlyReadyMatches.length} match documents for newly-ready matches`);
+
+      for (const bracketMatch of newlyReadyMatches) {
+        try {
+          const isTeamCategory = tournament.category === "team";
+
+          if (isTeamCategory) {
+            // Import team match creation helper
+            const { createBracketTeamMatch } = await import("@/services/tournament/core/matchGenerationService");
+            const match = await createBracketTeamMatch(
+              bracketMatch,
+              tournament,
+              decoded.userId
+            );
+
+            if (match) {
+              bracketMatch.matchId = (match._id as any).toString();
+              console.log(`[Custom Bracket] Created team match ${match._id} for round ${bracketMatch.bracketPosition.round}`);
+            }
+          } else {
+            // Use model directly to ensure it's registered
+            const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+            const newMatch = new IndividualMatchModel({
+              tournament: new mongoose.Types.ObjectId(id),
+              matchCategory: "individual",
+              matchType: tournament.matchType,
+              numberOfSets: tournament.rules.setsPerMatch || 3,
+              participants: [
+                new mongoose.Types.ObjectId(bracketMatch.participant1),
+                new mongoose.Types.ObjectId(bracketMatch.participant2)
+              ],
+              scorer: new mongoose.Types.ObjectId(decoded.userId),
+              status: "scheduled",
+              bracketPosition: bracketMatch.bracketPosition,
+              roundName: bracketMatch.roundName,
+              city: tournament.city,
+              venue: tournament.venue,
+            });
+            await newMatch.save();
+
+            bracketMatch.matchId = (newMatch._id as any).toString();
+            console.log(`[Custom Bracket] Created match ${newMatch._id} for round ${bracketMatch.bracketPosition.round}`);
+          }
+        } catch (err) {
+          console.error(`[Custom Bracket] Error creating match document:`, err);
+          // Continue with other matches
+        }
+      }
+    }
+
+    // Save updated bracket with new matchIds
     tournament.bracket = bracket;
     tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+
+    // Also update BracketState model for consistency
+    try {
+      const BracketState = (await import("@/models/BracketState")).default;
+      const existingBracketState = await BracketState.findOne({ tournament: id });
+
+      if (existingBracketState) {
+        existingBracketState.rounds = bracket.rounds;
+        existingBracketState.thirdPlaceMatch = bracket.thirdPlaceMatch;
+        existingBracketState.currentRound = bracket.currentRound;
+        existingBracketState.completed = bracket.completed;
+        await existingBracketState.save();
+        console.log(`[Custom Bracket] Updated BracketState for consistency`);
+      }
+    } catch (bracketStateErr) {
+      console.error(`[Custom Bracket] Warning: Failed to update BracketState:`, bracketStateErr);
+      // Continue - not critical since Tournament.bracket is the source of truth for now
+    }
+
+    // Update tournament bracket field
+    (tournament as any).bracket = bracket;
+    (tournament as any).markModified('bracket');
 
     // Update tournament status if needed
     if (tournament.status === "draft" || tournament.status === "upcoming") {

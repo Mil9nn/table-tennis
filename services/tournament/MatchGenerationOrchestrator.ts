@@ -106,7 +106,7 @@ export class MatchGenerationOrchestrator {
 
         for (const pairing of roundPairings) {
           const match = await this.matchRepo.createIndividualMatch({
-            tournament: tournament._id.toString(),
+            tournament: String(tournament._id),
             matchType: individualTournament.matchType,
             numberOfSets: tournament.rules.setsPerMatch,
             participants: pairing,
@@ -114,8 +114,8 @@ export class MatchGenerationOrchestrator {
             venue: tournament.venue
           }, session);
 
-          matchIds.push(match._id.toString());
-          roundMatches.push(match._id.toString());
+          matchIds.push(String(match._id));
+          roundMatches.push(String(match._id));
         }
 
         // Update tournament with round information
@@ -158,7 +158,7 @@ export class MatchGenerationOrchestrator {
           // Note: Team match creation requires more complex setup
           // This is a simplified version - actual implementation needs team info
           const match = await this.matchRepo.createTeamMatch({
-            tournament: tournament._id.toString(),
+            tournament: String(tournament._id),
             matchFormat: teamTournament.teamConfig.matchFormat,
             numberOfSetsPerSubMatch: teamTournament.teamConfig.setsPerSubMatch,
             team1: { /* team1 data */ } as any,
@@ -168,8 +168,8 @@ export class MatchGenerationOrchestrator {
             venue: tournament.venue
           }, session);
 
-          matchIds.push(match._id.toString());
-          roundMatches.push(match._id.toString());
+          matchIds.push(String(match._id));
+          roundMatches.push(String(match._id));
         }
 
         if (!tournament.rounds) {
@@ -212,13 +212,12 @@ export class MatchGenerationOrchestrator {
 
     // Generate bracket structure
     const bracket = generateKnockoutBracket(participants, seeding, {
-      thirdPlaceMatch: tournament.knockoutConfig?.thirdPlaceMatch || false,
-      allowCustomMatching: tournament.knockoutConfig?.allowCustomMatching || false
+      thirdPlaceMatch: tournament.knockoutConfig?.thirdPlaceMatch || false
     });
 
     // Create BracketState document
     const bracketState = await BracketState.create([{
-      tournament: tournament._id,
+      tournament: String(tournament._id),
       size: bracket.size,
       rounds: bracket.rounds,
       currentRound: 1,
@@ -237,7 +236,7 @@ export class MatchGenerationOrchestrator {
         // Only create match if both participants are known (not BYE)
         if (bracketMatch.participant1 && bracketMatch.participant2) {
           const match = await this.matchRepo.createIndividualMatch({
-            tournament: tournament._id.toString(),
+            tournament: String(tournament._id),
             matchType: individualTournament.matchType,
             numberOfSets: tournament.rules.setsPerMatch,
             participants: [bracketMatch.participant1, bracketMatch.participant2],
@@ -248,10 +247,10 @@ export class MatchGenerationOrchestrator {
             venue: tournament.venue
           }, session);
 
-          matchIds.push(match._id.toString());
+          matchIds.push(String(match._id));
 
           // Update bracket with matchId
-          bracketMatch.matchId = match._id.toString();
+          bracketMatch.matchId = String(match._id);
         }
       }
     } else {
@@ -260,7 +259,7 @@ export class MatchGenerationOrchestrator {
       for (const bracketMatch of round1.matches) {
         if (bracketMatch.participant1 && bracketMatch.participant2) {
           const match = await this.matchRepo.createTeamMatch({
-            tournament: tournament._id.toString(),
+            tournament: String(tournament._id),
             matchFormat: teamTournament.teamConfig.matchFormat,
             numberOfSetsPerSubMatch: teamTournament.teamConfig.setsPerSubMatch,
             team1: { /* team1 data */ } as any,
@@ -273,8 +272,8 @@ export class MatchGenerationOrchestrator {
             venue: tournament.venue
           }, session);
 
-          matchIds.push(match._id.toString());
-          bracketMatch.matchId = match._id.toString();
+          matchIds.push(String(match._id));
+          bracketMatch.matchId = String(match._id);
         }
       }
     }
@@ -323,7 +322,7 @@ export class MatchGenerationOrchestrator {
     // If odd number, add a "bye"
     const hasbye = n % 2 !== 0;
     const players = [...participants];
-    if (hasBye) {
+    if (hasbye) {
       players.push('BYE');
     }
 

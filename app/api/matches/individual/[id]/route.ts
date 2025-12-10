@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { populateIndividualMatch, populateIndividualMatchBasic } from "@/services/match/populationService";
+
+// CRITICAL: Import models in correct order to ensure discriminators are registered
+import Match from "@/models/MatchBase";
+import IndividualMatch from "@/models/IndividualMatch";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
