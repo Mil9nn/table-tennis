@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { useState, useCallback, useEffect } from "react";
 import UserSearchInput from "@/app/match/componets/UserSearchInput";
 import Image from "next/image";
-import { ChevronLeft, Info, Upload, X } from "lucide-react";
+import { ChevronLeft, Info, Upload, X, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { useAuthStore } from "@/hooks/useAuthStore";
 
@@ -315,9 +315,17 @@ export default function CreateTeamPage() {
             {/* SUBMIT BUTTON */}
             <Button
               type="submit"
-              className="w-full py-3 rounded-xl bg-[#667eea] hover:bg-[#5a6fe0] text-white text-sm font-medium shadow-md"
+              disabled={form.formState.isSubmitting}
+              className="w-full py-3 rounded-xl bg-[#667eea] hover:bg-[#5a6fe0] text-white text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Team
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Team...
+                </>
+              ) : (
+                "Create Team"
+              )}
             </Button>
           </form>
         </Form>
