@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Shot } from "@/types/shot.type";
-import { ChevronDown, ChevronUp, Target, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, Target } from "lucide-react";
 import { generateFullCommentary, generateShortCommentary } from "@/lib/shot-commentary-utils";
 
 import { Participant } from "@/types/match.type";
@@ -177,41 +177,55 @@ export default function ShotFeed({
                     return (
                       <li
                         key={shot._id ?? i}
-                        className="flex flex-col gap-1.5 text-xs sm:text-sm py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg px-2"
+                        className="flex gap-3 text-xs sm:text-sm py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg px-2"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400 dark:text-zinc-500 font-mono text-xs">
-                            {i + 1}.
-                          </span>
-                          <span className="flex-1">
-                            <strong className="text-gray-900 dark:text-zinc-100">
-                              {playerName}
-                            </strong>{" "}
-                            <span className="text-gray-500 dark:text-zinc-400 text-xs">
-                              ({shot.side})
-                            </span>{" "}
-                            →{" "}
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                              {shotType}
-                            </span>
-                          </span>
-                        </div>
+                        {/* Shot number */}
+                        <span className="text-gray-400 dark:text-zinc-500 font-mono text-xs pt-0.5">
+                          {i + 1}.
+                        </span>
 
-                        {/* Advanced Commentary */}
-                        {commentary && (
-                          <div className="flex items-start gap-2 ml-8 text-xs">
-                            <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                            <span 
-                              className="text-gray-600 dark:text-zinc-400 italic leading-relaxed"
-                              dangerouslySetInnerHTML={{ 
-                                __html: commentary.replace(
-                                  /<strong>(.*?)<\/strong>/g, 
-                                  '<strong class="font-bold text-gray-900 dark:text-zinc-100 not-italic">$1</strong>'
-                                )
-                              }}
-                            />
+                        {/* Shot commentary with color accent */}
+                        <div className="flex-1 flex gap-2.5">
+                          {/* Color accent bar */}
+                          <div className={`w-1 rounded-full flex-shrink-0 ${
+                            shot.side === "side1"
+                              ? "bg-gradient-to-b from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500"
+                              : "bg-gradient-to-b from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500"
+                          }`} />
+
+                          {/* Commentary content */}
+                          <div className="flex-1 space-y-1">
+                            {commentary ? (
+                              <div
+                                className="text-gray-700 dark:text-zinc-300 leading-relaxed"
+                                dangerouslySetInnerHTML={{
+                                  __html: commentary.replace(
+                                    /<strong>(.*?)<\/strong>/g,
+                                    '<strong class="font-semibold text-gray-900 dark:text-zinc-100">$1</strong>'
+                                  )
+                                }}
+                              />
+                            ) : (
+                              // Fallback if no commentary available
+                              <div className="text-gray-700 dark:text-zinc-300">
+                                <strong className="font-semibold text-gray-900 dark:text-zinc-100">
+                                  {playerName}
+                                </strong>{" "}
+                                <span className="text-gray-500 dark:text-zinc-400 text-xs">
+                                  ({shot.side})
+                                </span>{" "}
+                                →{" "}
+                                <span className={`font-medium ${
+                                  shot.side === "side1"
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-amber-600 dark:text-amber-400"
+                                }`}>
+                                  {shotType}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </li>
                     );
                   })

@@ -27,14 +27,14 @@ export default function TableCourt({
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    // Map click position to extended coordinate system (-50 to 150)
-    // The clickable area represents: 25% margin + 50% table + 25% margin
+    // Map click position to extended coordinate system (-100 to 200)
+    // The clickable area represents: 33.33% margin + 33.33% table + 33.33% margin
     const relativeX = (e.clientX - rect.left) / rect.width;
     const relativeY = (e.clientY - rect.top) / rect.height;
 
-    // Convert to -50 to 150 range
-    const x = relativeX * 200 - 50;
-    const y = relativeY * 200 - 50;
+    // Convert to -100 to 200 range
+    const x = relativeX * 300 - 100;
+    const y = relativeY * 300 - 100;
 
     // Landing must be on-table (point scored), origin can be anywhere (player position)
     if (mode === "landing" && (x < 0 || x > 100 || y < 0 || y > 100)) {
@@ -56,8 +56,8 @@ export default function TableCourt({
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeX = (e.clientX - rect.left) / rect.width;
     const relativeY = (e.clientY - rect.top) / rect.height;
-    const x = relativeX * 200 - 50;
-    const y = relativeY * 200 - 50;
+    const x = relativeX * 300 - 100;
+    const y = relativeY * 300 - 100;
 
     // Determine zone for tooltip
     const isOnTable = x >= 0 && x <= 100 && y >= 0 && y <= 100;
@@ -82,9 +82,9 @@ export default function TableCourt({
     }
   };
 
-  // Convert coordinate from -50 to 150 range to percentage for display
+  // Convert coordinate from -100 to 200 range to percentage for display
   const coordToPercent = (coord: number) => {
-    return ((coord + 50) / 200) * 100;
+    return ((coord + 100) / 300) * 100;
   };
 
   return (
@@ -92,7 +92,7 @@ export default function TableCourt({
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-gray-800">{label}</p>
         {hoveredZone && (
-          <span className="text-xs font-medium px-2 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+          <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white">
             {hoveredZone}
           </span>
         )}
@@ -104,19 +104,19 @@ export default function TableCourt({
           setHoveredZone(null);
           setHoverPosition(null);
         }}
-        className="relative w-full max-w-full lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto aspect-[2.74/1.525] bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 rounded-xl shadow-2xl cursor-crosshair hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300"
+        className="relative w-full max-w-full lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto aspect-[2.74/1.525] bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 shadow-2xl cursor-crosshair hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300"
       >
         {/* Floor/Off-table area with modern gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-200/50 via-gray-300/30 to-gray-400/20" />
 
         {/* Table surface - centered with padding for off-table area */}
         <div
-          className="absolute bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg shadow-[0_8px_30px_rgb(37,99,235,0.3)]"
+          className="absolute bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-[0_8px_30px_rgb(37,99,235,0.3)]"
           style={{
-            left: "25%",
-            top: "25%",
-            width: "50%",
-            height: "50%",
+            left: "33.33%",
+            top: "33.33%",
+            width: "33.33%",
+            height: "33.33%",
           }}
         >
           {/* Table texture overlay */}
@@ -131,7 +131,7 @@ export default function TableCourt({
           <div className="absolute left-1/2 bottom-0 w-3 h-3 bg-gray-800 rounded-full -translate-x-1/2 translate-y-1/2 shadow-lg border border-gray-600" />
 
           {/* Table edge highlight */}
-          <div className="absolute inset-0 rounded-lg border-2 border-white/20" />
+          <div className="absolute inset-0 border-2 border-white/20" />
 
           {/* Court zones for doubles */}
           <div className="absolute inset-0 grid grid-cols-2 gap-px opacity-15 pointer-events-none">
@@ -152,77 +152,111 @@ export default function TableCourt({
           <div className="absolute top-0 bottom-0 left-[83.33%] w-[1px] bg-white/40 pointer-events-none" />
         </div>
 
-        {/* Sector labels in margins (vertical) - positioned to the left of table */}
-        <div className="absolute left-[12%] top-[25%] h-[50%] flex flex-col pointer-events-none z-10">
-          <div className="flex-1 flex items-start justify-center pt-1">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Backhand
-            </div>
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Crossover
-            </div>
-          </div>
-          <div className="flex-1 flex items-end justify-center pb-1">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Forehand
-            </div>
+        {/* Distance zone grid lines */}
+        {/* 70cm boundary - left side (vertical) */}
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-yellow-400/60 pointer-events-none z-20"
+          style={{ left: `${((0 - 26 + 100) / 300) * 100}%` }}
+        >
+          <div className="absolute top-[10%] -left-12 text-[8px] font-normal text-gray-600/35 px-1 whitespace-nowrap">
+            70cm
           </div>
         </div>
 
-        {/* Sector labels in margins (vertical) - positioned to the right of table */}
-        <div className="absolute right-[12%] top-[25%] h-[50%] flex flex-col pointer-events-none z-10">
-          <div className="flex-1 flex items-start justify-center pt-1">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Forehand
-            </div>
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Crossover
-            </div>
-          </div>
-          <div className="flex-1 flex items-end justify-center pb-1">
-            <div className="text-[8px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50 -rotate-90 origin-center whitespace-nowrap">
-              Backhand
-            </div>
+        {/* 2m boundary - left side (vertical) */}
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-orange-400/60 pointer-events-none z-20"
+          style={{ left: `${((0 - 73 + 100) / 300) * 100}%` }}
+        >
+          <div className="absolute top-[10%] -left-10 text-[8px] font-normal text-gray-600/35 px-1 whitespace-nowrap">
+            2m
           </div>
         </div>
 
-        {/* Zone labels in margins (horizontal) - positioned below table */}
-        <div className="absolute top-[77%] left-[25%] w-[50%] flex pointer-events-none z-10">
+        {/* 70cm boundary - right side (vertical) */}
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-yellow-400/60 pointer-events-none z-20"
+          style={{ left: `${((100 + 26 + 100) / 300) * 100}%` }}
+        >
+          <div className="absolute top-[10%] -right-12 text-[8px] font-normal text-gray-600/35 px-1 whitespace-nowrap">
+            70cm
+          </div>
+        </div>
+
+        {/* 2m boundary - right side (vertical) */}
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-orange-400/60 pointer-events-none z-20"
+          style={{ left: `${((100 + 73 + 100) / 300) * 100}%` }}
+        >
+          <div className="absolute top-[10%] -right-10 text-[8px] font-normal text-gray-600/35 px-1 whitespace-nowrap">
+            2m
+          </div>
+        </div>
+
+        {/* 70cm boundary - top (horizontal) */}
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-yellow-400/60 pointer-events-none z-20"
+          style={{ top: `${((0 - 26 + 100) / 300) * 100}%` }}
+        />
+
+        {/* 2m boundary - top (horizontal) */}
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-orange-400/60 pointer-events-none z-20"
+          style={{ top: `${((0 - 73 + 100) / 300) * 100}%` }}
+        />
+
+        {/* 70cm boundary - bottom (horizontal) */}
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-yellow-400/60 pointer-events-none z-20"
+          style={{ top: `${((100 + 26 + 100) / 300) * 100}%` }}
+        />
+
+        {/* 2m boundary - bottom (horizontal) */}
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-orange-400/60 pointer-events-none z-20"
+          style={{ top: `${((100 + 73 + 100) / 300) * 100}%` }}
+        />
+
+        {/* Sector labels on table - positioned directly on the zones */}
+        <div className="absolute left-[33.33%] top-[33.33%] w-[33.33%] h-[33.33%] pointer-events-none z-30">
+          {/* Backhand zone label */}
+          <div className="absolute left-2 top-[16.67%] text-[8px] font-light text-white/25">
+            Backhand
+          </div>
+
+          {/* Crossover zone label */}
+          <div className="absolute left-2 top-[50%] text-[8px] font-light text-white/25">
+            Crossover
+          </div>
+
+          {/* Forehand zone label */}
+          <div className="absolute left-2 top-[83.33%] text-[8px] font-light text-white/25">
+            Forehand
+          </div>
+        </div>
+
+        {/* Zone labels on table - positioned directly on the zones */}
+        <div className="absolute left-[33.33%] top-[33.33%] w-[33.33%] h-[33.33%] pointer-events-none z-30">
           {/* Left side zones */}
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Deep
-            </div>
+          <div className="absolute left-[8.33%] top-1 text-[7px] font-light text-white/25">
+            Deep
           </div>
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Mid
-            </div>
+          <div className="absolute left-[25%] top-1 text-[7px] font-light text-white/25">
+            Mid
           </div>
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Short
-            </div>
+          <div className="absolute left-[41.67%] top-1 text-[7px] font-light text-white/25">
+            Short
           </div>
+
           {/* Right side zones */}
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Short
-            </div>
+          <div className="absolute left-[58.33%] top-1 text-[7px] font-light text-white/25">
+            Short
           </div>
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Mid
-            </div>
+          <div className="absolute left-[75%] top-1 text-[7px] font-light text-white/25">
+            Mid
           </div>
-          <div className="flex-1 flex justify-center">
-            <div className="text-[10px] font-semibold text-gray-700 bg-white/90 px-2 py-1 rounded shadow-sm border border-gray-300/50">
-              Deep
-            </div>
+          <div className="absolute left-[91.67%] top-1 text-[7px] font-light text-white/25">
+            Deep
           </div>
         </div>
 
@@ -231,14 +265,8 @@ export default function TableCourt({
           <>
             {/* Gray out non-clickable side */}
             <div
-              className={`absolute top-0 bottom-0 bg-black/40 pointer-events-none backdrop-blur-[1px] ${
+              className={`absolute top-0 bottom-0 bg-black/10 pointer-events-none backdrop-blur-[1px] ${
                 restrictToSide === "left" ? "right-0 w-1/2" : "left-0 w-1/2"
-              }`}
-            />
-            {/* Highlight clickable side with animated border */}
-            <div
-              className={`absolute top-0 bottom-0 border-2 border-emerald-400 pointer-events-none animate-pulse ${
-                restrictToSide === "left" ? "left-0 w-1/2" : "right-0 w-1/2"
               }`}
             />
           </>
@@ -500,16 +528,16 @@ export default function TableCourt({
 
         {/* Corner labels for orientation */}
         <div className="absolute top-1 left-1 text-[8px] text-gray-500 font-mono opacity-50">
-          (-50,-50)
+          (-100,-100)
         </div>
         <div className="absolute top-1 right-1 text-[8px] text-gray-500 font-mono opacity-50">
-          (150,-50)
+          (200,-100)
         </div>
         <div className="absolute bottom-1 left-1 text-[8px] text-gray-500 font-mono opacity-50">
-          (-50,150)
+          (-100,200)
         </div>
         <div className="absolute bottom-1 right-1 text-[8px] text-gray-500 font-mono opacity-50">
-          (150,150)
+          (200,200)
         </div>
       </div>
     </div>

@@ -89,7 +89,7 @@ export function JoinCodeDialog({
       try {
         await navigator.share(shareData);
       } catch (err) {
-        console.log("Share cancelled");
+        console.error("Error sharing join code:", err);
       }
     } else {
       copyJoinUrl();

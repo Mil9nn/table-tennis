@@ -71,18 +71,6 @@ export default function MatchDetailsPage() {
   // Also check if user is the tournament organizer (fallback for matches without scorer)
   const isScorer = !!(scorerId && userId && scorerId === userId);
   
-  // Debug logging (remove after fixing)
-  if (process.env.NODE_ENV === "development") {
-    console.log("Match scorer check:", {
-      scorerId,
-      userId,
-      scorerRaw: match.scorer,
-      isScorer,
-      matchStatus: match.status,
-      scorerType: typeof match.scorer,
-      matchScorer: match.scorer,
-    });
-  }
   const isSingles = isIndividualMatch(match) && match.matchType === "singles";
 
   const router = useRouter();

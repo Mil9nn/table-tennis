@@ -148,7 +148,7 @@ export function generateFirstRound(
     const participantsPlaying = participants.length - byesNeeded;
     const actualFirstRoundMatches = Math.max(1, participantsPlaying / 2);
 
-    console.log(`[Custom Matching] Participants: ${participants.length}, Bracket Size: ${bracketSize}, Byes: ${byesNeeded}, Round 1 Matches: ${actualFirstRoundMatches}`);
+    
 
     for (let i = 0; i < actualFirstRoundMatches; i++) {
       matches.push({

@@ -36,7 +36,11 @@ export async function POST(
 ) {
   // Rate limiting
   const { id } = await context.params;
-  const rateLimitResponse = await rateLimit(req, "POST", `/api/tournaments/${id}/reprocess-bracket`);
+  const rateLimitResponse = await rateLimit(
+    req,
+    "POST",
+    `/api/tournaments/${id}/reprocess-bracket`
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
@@ -88,8 +92,6 @@ export async function POST(
       );
     }
 
-    console.log(`[reprocess-bracket] Starting reprocessing for tournament ${id}`);
-
     // Collect all match IDs from the bracket
     const allMatchIds: string[] = [];
     tournament.bracket.rounds.forEach((round: any) => {
@@ -111,28 +113,35 @@ export async function POST(
       .populate("participants", "_id username fullName")
       .sort({ createdAt: 1 }); // Process in order of creation
 
-    console.log(`[reprocess-bracket] Found ${matches.length} matches`);
-
     // Find completed matches that need processing
     const completedMatches = matches.filter(
       (m: any) => m.status === "completed" && m.winnerSide
     );
 
-    console.log(`[reprocess-bracket] Found ${completedMatches.length} completed matches`);
-
     let advancedCount = 0;
     let newMatchesCreated = 0;
 
     // First, advance bye winners (completed matches in bracket with no matchId)
-    for (let roundIndex = 0; roundIndex < tournament.bracket.rounds.length - 1; roundIndex++) {
+    for (
+      let roundIndex = 0;
+      roundIndex < tournament.bracket.rounds.length - 1;
+      roundIndex++
+    ) {
       const currentRound = tournament.bracket.rounds[roundIndex];
       const nextRound = tournament.bracket.rounds[roundIndex + 1];
 
       for (const match of currentRound.matches) {
         // Check if this is a completed bye match (no matchId but has winner)
-        if (match.completed && match.winner && !match.matchId && match.bracketPosition.nextMatchNumber) {
+        if (
+          match.completed &&
+          match.winner &&
+          !match.matchId &&
+          match.bracketPosition.nextMatchNumber
+        ) {
           const nextMatch = nextRound.matches.find(
-            (m: any) => m.bracketPosition.matchNumber === match.bracketPosition.nextMatchNumber
+            (m: any) =>
+              m.bracketPosition.matchNumber ===
+              match.bracketPosition.nextMatchNumber
           );
 
           if (nextMatch) {
@@ -143,7 +152,6 @@ export async function POST(
               nextMatch.participant2 = match.winner;
             }
             advancedCount++;
-            console.log(`[reprocess-bracket] Advanced bye winner ${match.winner} from round ${roundIndex + 1} to round ${roundIndex + 2}`);
           }
         }
       }
@@ -151,28 +159,27 @@ export async function POST(
 
     // Mark bracket as modified after bye winner advancement
     if (advancedCount > 0) {
-      tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+      tournament.markModified("bracket"); // CRITICAL: bracket is Schema.Types.Mixed
     }
 
     // Process each completed match document in order
     for (const match of completedMatches) {
       try {
         // Get winner ID
-        const winnerId = match.winnerSide === "side1"
-          ? match.participants[0]._id.toString()
-          : match.participants[1]._id.toString();
-
-        console.log(
-          `[reprocess-bracket] Processing match ${match._id}, winner: ${winnerId}`
-        );
+        const winnerId =
+          match.winnerSide === "side1"
+            ? match.participants[0]._id.toString()
+            : match.participants[1]._id.toString();
 
         // Check if this match is already processed in the bracket
         const bracketMatch = tournament.bracket.rounds
           .flatMap((r: any) => r.matches)
-          .find((bm: any) => bm.matchId?.toString() === (match._id as any).toString());
+          .find(
+            (bm: any) =>
+              bm.matchId?.toString() === (match._id as any).toString()
+          );
 
         if (bracketMatch?.completed && bracketMatch?.winner === winnerId) {
-          console.log(`[reprocess-bracket] Match ${(match._id as any)} already processed, skipping`);
           continue;
         }
 
@@ -183,12 +190,13 @@ export async function POST(
             (match._id as any).toString(),
             winnerId
           );
-          tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+          tournament.markModified("bracket"); // CRITICAL: bracket is Schema.Types.Mixed
           advancedCount++;
-          console.log(`[reprocess-bracket] Advanced winner ${winnerId} from match ${(match._id as any)}`);
         } catch (advanceError: any) {
           console.error(
-            `[reprocess-bracket] Error advancing winner for match ${(match._id as any)}:`,
+            `[reprocess-bracket] Error advancing winner for match ${
+              match._id as any
+            }:`,
             advanceError.message
           );
           // Continue with other matches
@@ -204,13 +212,13 @@ export async function POST(
 
     // Now create new match documents for matches that need them
     const matchesNeedingDocs = getMatchesNeedingDocuments(tournament.bracket);
-    const failedMatches: Array<{ round: number; matchNumber: number; error: string }> = [];
+    const failedMatches: Array<{
+      round: number;
+      matchNumber: number;
+      error: string;
+    }> = [];
 
     if (matchesNeedingDocs.length > 0) {
-      console.log(
-        `[reprocess-bracket] Creating ${matchesNeedingDocs.length} new match documents`
-      );
-
       for (const bracketMatch of matchesNeedingDocs) {
         try {
           const newMatchDoc = await createBracketMatch(
@@ -222,9 +230,6 @@ export async function POST(
           if (newMatchDoc) {
             bracketMatch.matchId = newMatchDoc._id.toString();
             newMatchesCreated++;
-            console.log(
-              `[reprocess-bracket] Created match ${newMatchDoc._id} for round ${bracketMatch.bracketPosition.round}`
-            );
           }
         } catch (createError: any) {
           console.error(
@@ -234,7 +239,7 @@ export async function POST(
           failedMatches.push({
             round: bracketMatch.bracketPosition.round,
             matchNumber: bracketMatch.bracketPosition.matchNumber,
-            error: createError.message || "Unknown error"
+            error: createError.message || "Unknown error",
           });
         }
       }
@@ -243,16 +248,15 @@ export async function POST(
     // Update tournament status
     if (tournament.bracket.completed) {
       tournament.status = "completed";
-    } else if (tournament.status === "draft" || tournament.status === "upcoming") {
+    } else if (
+      tournament.status === "draft" ||
+      tournament.status === "upcoming"
+    ) {
       tournament.status = "in_progress";
     }
 
     // Save tournament
     await tournament.save();
-
-    console.log(`[reprocess-bracket] Reprocessing complete for tournament ${id}`);
-    console.log(`[reprocess-bracket] Winners advanced: ${advancedCount}`);
-    console.log(`[reprocess-bracket] New matches created: ${newMatchesCreated}`);
 
     // Populate for response
     const populatedTournament = await Tournament.findById(id)
@@ -269,15 +273,17 @@ export async function POST(
       },
       ...(failedMatches.length > 0 && {
         warning: `${failedMatches.length} match(es) failed to create`,
-        failedMatches
-      })
+        failedMatches,
+      }),
     });
   } catch (error: any) {
     console.error("[tournaments/[id]/reprocess-bracket] Error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to reprocess bracket",
-        ...(process.env.NODE_ENV === "development" && { details: error.message })
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       },
       { status: 500 }
     );

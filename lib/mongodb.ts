@@ -34,8 +34,7 @@ async function ensureModelsRegistered() {
         await import('@/models/BracketState');
 
         cached.modelsRegistered = true;
-        console.log('[MongoDB] ✓ Models registered:', Object.keys(mongoose.models));
-        console.log('[MongoDB] ✓ Match discriminators:', Object.keys(mongoose.models.Match?.discriminators || {}));
+        
     } catch (error) {
         console.error('[MongoDB] ✗ Error registering models:', error);
         throw error;
@@ -53,8 +52,7 @@ export const connectDB = async () => {
     // 2. Create a new connection if it doesn't exist
     if (!cached.promise) {
         cached.promise = mongoose.connect(process.env.MONGODB_URI!).then(async (mongooseInstance) => {
-            console.log("Connected to MongoDB:", mongooseInstance.connection.host);
-
+            
             // Ensure models are registered after successful connection
             await ensureModelsRegistered();
 

@@ -5,7 +5,7 @@ export interface ShotCommentary {
   // New enhanced fields
   zone: "short" | "mid" | "deep" | null;
   sector: "backhand" | "crossover" | "forehand" | null;
-  line: "down the line" | "cross court" | "middle line" | null;
+  line: "down the line" | "diagonal" | "cross court" | "middle line" | null;
   originZone: "close-to-table" | "mid-distance" | "far-distance" | null;
   // Legacy fields (for backward compatibility)
   direction: "down the line" | "across the table" | null;
@@ -41,6 +41,95 @@ function getShotDirection(originX: number, landingX: number): "down the line" | 
 /* ---------------------------------------------------------
    Enhanced Analysis Functions
 --------------------------------------------------------- */
+
+/**
+ * Calculate where the trajectory from origin to landing intersects the table boundary
+ * Used when origin is off-table to determine effective origin sector/zone
+ *
+ * @param originX - Origin X coordinate (may be off-table: -50 to 150)
+ * @param originY - Origin Y coordinate (may be off-table: -50 to 150)
+ * @param landingX - Landing X coordinate (on-table: 0 to 100)
+ * @param landingY - Landing Y coordinate (on-table: 0 to 100)
+ * @returns Intersection point {x, y} on table boundary, or null if origin is on-table
+ */
+function calculateTableIntersection(
+  originX: number,
+  originY: number,
+  landingX: number,
+  landingY: number
+): { x: number; y: number } | null {
+  // Check if origin is already on table
+  if (originX >= 0 && originX <= 100 && originY >= 0 && originY <= 100) {
+    return null; // Origin is on-table, no intersection needed
+  }
+
+  // Line parametric equation: P(t) = origin + t * (landing - origin), t ∈ [0, 1]
+  const dx = landingX - originX;
+  const dy = landingY - originY;
+
+  let minT = Infinity;
+  let intersectionX = originX;
+  let intersectionY = originY;
+
+  // Check intersection with left edge (X = 0)
+  if (originX < 0) {
+    const t = (0 - originX) / dx;
+    if (t >= 0 && t <= 1) {
+      const y = originY + t * dy;
+      if (y >= 0 && y <= 100 && t < minT) {
+        minT = t;
+        intersectionX = 0;
+        intersectionY = y;
+      }
+    }
+  }
+
+  // Check intersection with right edge (X = 100)
+  if (originX > 100) {
+    const t = (100 - originX) / dx;
+    if (t >= 0 && t <= 1) {
+      const y = originY + t * dy;
+      if (y >= 0 && y <= 100 && t < minT) {
+        minT = t;
+        intersectionX = 100;
+        intersectionY = y;
+      }
+    }
+  }
+
+  // Check intersection with top edge (Y = 0)
+  if (originY < 0) {
+    const t = (0 - originY) / dy;
+    if (t >= 0 && t <= 1) {
+      const x = originX + t * dx;
+      if (x >= 0 && x <= 100 && t < minT) {
+        minT = t;
+        intersectionX = x;
+        intersectionY = 0;
+      }
+    }
+  }
+
+  // Check intersection with bottom edge (Y = 100)
+  if (originY > 100) {
+    const t = (100 - originY) / dy;
+    if (t >= 0 && t <= 1) {
+      const x = originX + t * dx;
+      if (x >= 0 && x <= 100 && t < minT) {
+        minT = t;
+        intersectionX = x;
+        intersectionY = 100;
+      }
+    }
+  }
+
+  // If no valid intersection found (shouldn't happen if landing is on-table), return origin
+  if (minT === Infinity) {
+    return { x: originX, y: originY };
+  }
+
+  return { x: intersectionX, y: intersectionY };
+}
 
 /**
  * Determine zone based on landing X coordinate (horizontal)
@@ -125,43 +214,69 @@ function getSector(
 }
 
 /**
- * Determine line of play based on shot trajectory
- * Lines: Down the line (parallel to long sides), Cross court (diagonal), Middle line (between)
+ * Determine line of play based on sector transitions from hitter to receiver
+ *
+ * Classification Rules (from receiver's perspective):
+ * - Down the line: FH→BH, CrossOver→CrossOver, BH→FH (straight shots)
+ * - Diagonal: (FH→FH OR BH→BH) AND both zones are deep (deep cross-court)
+ * - Cross court: (FH→FH OR BH→BH) AND at least one zone is NOT deep
+ * - Middle line: FH→CrossOver, BH→CrossOver (shots toward middle)
+ *
+ * Note: Sectors are automatically mirrored based on side (side1 vs side2)
+ * Note: For off-table origins, intersection point is used for origin sector/zone
+ *
+ * @param originY - Y coordinate of origin (or intersection point if off-table)
+ * @param landingY - Y coordinate where ball landed (0-100)
+ * @param originSide - Which side the hitter is on ("side1" or "side2")
+ * @param receivingSide - Which side the receiver is on ("side1" or "side2")
+ * @param originZone - Zone at origin/intersection point ("short" | "mid" | "deep")
+ * @param landingZone - Zone where ball landed ("short" | "mid" | "deep")
+ * @param isLeftHanded - Whether players are left-handed (default: false)
+ * @returns Line classification or null if coordinates are invalid
  */
-function getLine(originX: number, originY: number, landingX: number, landingY: number): "down the line" | "cross court" | "middle line" | null {
-  // Determine which side of table origin and landing are on
-  const originSide = originX <= 50 ? "left" : "right";
-  const landingSide = landingX <= 50 ? "left" : "right";
-  
-  // Calculate horizontal and vertical distances
-  const deltaX = Math.abs(landingX - originX);
-  const deltaY = Math.abs(landingY - originY);
-  
-  // Calculate the angle of the shot trajectory
-  // Angle in degrees: 0 = horizontal, 90 = vertical
-  const angle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
-  
-  // Down the line: ball travels parallel to long sides (same X side, mostly vertical movement)
-  if (originSide === landingSide) {
-    // If same side and angle is close to vertical (mostly Y movement, little X movement)
-    if (angle > 60 || deltaX < 15) {
-      return "down the line";
-    }
-    // Same side but more horizontal movement = middle line
-    return "middle line";
+function getLine(
+  originY: number,
+  landingY: number,
+  originSide: "side1" | "side2",
+  receivingSide: "side1" | "side2",
+  originZone: "short" | "mid" | "deep" | null,
+  landingZone: "short" | "mid" | "deep" | null,
+  isLeftHanded: boolean = false
+): "down the line" | "diagonal" | "cross court" | "middle line" | null {
+  // Get origin sector (hitter's perspective)
+  const originSector = getSector(originY, originSide, isLeftHanded);
+
+  // Get landing sector (receiver's perspective)
+  const landingSector = getSector(landingY, receivingSide, isLeftHanded);
+
+  // Return null if either sector is invalid
+  if (!originSector || !landingSector) {
+    return null;
   }
-  
-  // Cross court: ball travels diagonally (opposite X sides, diagonal angle)
-  if (originSide !== landingSide) {
-    // Diagonal shot: angle between 30-60 degrees indicates cross court
-    if (angle > 25 && angle < 65) {
-      return "cross court";
-    }
-    // If crossing sides but angle is too steep or too shallow, it's middle line
-    return "middle line";
+
+  // Down the line: FH→BH, CrossOver→CrossOver, BH→FH
+  if (
+    (originSector === "forehand" && landingSector === "backhand") ||
+    (originSector === "crossover" && landingSector === "crossover") ||
+    (originSector === "backhand" && landingSector === "forehand")
+  ) {
+    return "down the line";
   }
-  
-  // Default to middle line for ambiguous cases
+
+  // Diagonal or Cross court: FH→FH, BH→BH (depends on zones)
+  if (
+    (originSector === "forehand" && landingSector === "forehand") ||
+    (originSector === "backhand" && landingSector === "backhand")
+  ) {
+    // Check if both zones are "deep" for diagonal classification
+    if (originZone === "deep" && landingZone === "deep") {
+      return "diagonal";
+    }
+    // Otherwise it's regular cross court
+    return "cross court";
+  }
+
+  // Middle line: FH→CrossOver, BH→CrossOver, or CrossOver→FH/BH
   return "middle line";
 }
 
@@ -212,7 +327,7 @@ const THRESHOLDS = {
   SHORT_BALL: 25,              // Y < 25 = short ball
   DEEP_BALL: 75,               // Y > 75 = deep ball
   CLOSE_TO_NET_Y: 50,          // Y < 50 = front half, considered "close to net" area
-  ORIGIN_CLOSE_TO_TABLE: 20,   // Distance from table edge for "close to table"
+  ORIGIN_CLOSE_TO_TABLE: 26,   // Distance from table edge for "close to table" (70cm)
   // Zone thresholds (horizontal/X-based): Deep | Mid | Short on each side
   ZONE_DEEP_LEFT: 16.67,       // Left side: Deep zone (0-16.67)
   ZONE_MID_LEFT: 33.33,        // Left side: Mid zone (16.67-33.33)
@@ -226,8 +341,8 @@ const THRESHOLDS = {
   SECTOR_FOREHAND: 66.67,      // Y > 66.67% = Forehand (for left side player)
   ORIGIN_CLOSE_Y: 33.33,       // originY < 33.33% = Close-to-Table
   ORIGIN_FAR_Y: 66.67,         // originY > 66.67% = Far-distance
-  ORIGIN_DISTANCE_CLOSE: 20,   // Distance from table < 20 = Close-to-Table
-  ORIGIN_DISTANCE_MID: 40,     // Distance from table 20-40 = Mid-distance
+  ORIGIN_DISTANCE_CLOSE: 26,   // Distance from table < 70cm (26 * 2.74 = 71.24cm)
+  ORIGIN_DISTANCE_MID: 73,     // Distance from table 70cm-2m (73 * 2.74 = 200.02cm)
   LINE_ANGLE_THRESHOLD: 15,    // Angle threshold for middle line (degrees)
 } as const;
 
@@ -292,8 +407,30 @@ export function analyzeShotPlacement(shot: Shot, receivingSide?: "side1" | "side
   // Sector (landing position - vertical/Y-based, relative to receiving player, default right-handed)
   commentary.sector = getSector(landingY, shotReceivingSide, false);
   
-  // Line (shot trajectory)
-  commentary.line = getLine(originX, originY, landingX, landingY);
+  // Line (shot trajectory based on sectors and zones)
+  // Determine origin side (where the hitter is)
+  const originSide = side;
+
+  // Calculate intersection point if origin is off-table
+  const intersection = calculateTableIntersection(originX, originY, landingX, landingY);
+
+  // Use intersection point for origin sector/zone if off-table, otherwise use actual origin
+  const effectiveOriginX = intersection ? intersection.x : originX;
+  const effectiveOriginY = intersection ? intersection.y : originY;
+
+  // Calculate origin zone using intersection point (if off-table) or actual origin
+  const originZone = getZone(effectiveOriginX, originSide);
+
+  // Get line classification
+  commentary.line = getLine(
+    effectiveOriginY,
+    landingY,
+    originSide,
+    shotReceivingSide,
+    originZone,
+    commentary.zone, // Landing zone already calculated above
+    false
+  );
   
   // Origin Zone (where shot was played from)
   commentary.originZone = getOriginZone(originX, originY);
@@ -444,7 +581,8 @@ export function generateShortCommentary(shot: Shot): string {
   const strokeName = formatStrokeName(shot.stroke);
 
   // Build natural sentence for short commentary
-  // Format: [Shot type] played [origin distance], [line], hitting [sector] sector in [zone] zone
+  // Format: [Shot type] played [origin distance], [line], into [zone] zone
+  // Note: Sectors are omitted - they're for analytics, not commentary
   const parts: string[] = [];
 
   // Start with stroke
@@ -469,19 +607,9 @@ export function generateShortCommentary(shot: Shot): string {
     parts.push(commentary.line);
   }
 
-  // Add landing details: hitting [sector] sector in [zone] zone
-  const landingParts: string[] = [];
-  if (commentary.sector) {
-    // Convert "crossover" to "central" for better readability
-    const sectorName = commentary.sector === "crossover" ? "central" : commentary.sector;
-    landingParts.push(`${sectorName} sector`);
-  }
+  // Add landing zone (sectors omitted - they're for analytics, not commentary)
   if (commentary.zone) {
-    landingParts.push(`${commentary.zone} zone`);
-  }
-  
-  if (landingParts.length > 0) {
-    parts.push(`hitting ${landingParts.join(" in ")}`);
+    parts.push(`into ${commentary.zone} zone`);
   }
 
   // Join with commas and add period at the end
@@ -653,21 +781,12 @@ export function generateFullCommentary(
   }
   
   // Build shot description in natural language
-  // Format: [sector lowercase] [shot type lowercase] from [distance], played [line] into [zone]
+  // Format: [shot type lowercase] from [distance], played [line] into [zone]
+  // Note: Sectors are omitted from commentary as they're primarily for analytics
   const shotParts: string[] = [];
-  
-  // Add sector first (lowercase), then shot type (lowercase)
-  // Only add sector if it's not redundant with the stroke name
-  const sectorName = formatSectorName(commentary.sector);
+
+  // Add shot type (lowercase)
   const strokeLower = strokeName.toLowerCase();
-  
-  // Check if stroke already contains the sector (e.g., "forehand topspin" already has "forehand")
-  const strokeHasSector = sectorName && strokeLower.includes(sectorName.toLowerCase());
-  
-  if (sectorName && !strokeHasSector) {
-    shotParts.push(sectorName.toLowerCase());
-  }
-  
   shotParts.push(strokeLower);
   
   // Add distance descriptor if available (where shot was played from)

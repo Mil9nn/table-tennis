@@ -27,7 +27,7 @@ const MyTeamsPage = () => {
       try {
         const response = await axiosInstance.get(`/profile/detailed-stats`);
         const teamsData = response.data.stats.teams || [];
-        console.log("Teams data:", teamsData); // Debug: check if logo is present
+
         setTeams(teamsData);
       } catch (error) {
         console.error("Failed to fetch teams:", error);
@@ -69,7 +69,10 @@ const MyTeamsPage = () => {
           </div>
         ) : teams.length === 0 ? (
           <div className="bg-white rounded-lg sm:rounded-xl px-4 sm:px-6 py-8 sm:py-12 text-center border border-gray-100">
-            <GroupWorkIcon className="text-gray-300 mx-auto mb-2" fontSize="large" />
+            <GroupWorkIcon
+              className="text-gray-300 mx-auto mb-2"
+              fontSize="large"
+            />
             <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1.5 sm:mb-2">
               No Teams Yet
             </h3>
@@ -153,7 +156,14 @@ const MyTeamsPage = () => {
                               className="object-cover w-full h-full"
                             />
                           ) : (
-                            <GroupWorkIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ fontSize: 'inherit', width: 'inherit', height: 'inherit' }} />
+                            <GroupWorkIcon
+                              className="w-4 h-4 sm:w-5 sm:h-5"
+                              style={{
+                                fontSize: "inherit",
+                                width: "inherit",
+                                height: "inherit",
+                              }}
+                            />
                           )}
                         </div>
 

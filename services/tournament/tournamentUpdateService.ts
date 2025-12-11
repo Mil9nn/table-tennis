@@ -7,29 +7,36 @@ import {
   updateBracketAfterMatch,
   getMatchesNeedingDocuments,
 } from "./core/bracketProgressionService";
-import { createBracketMatch, createBracketTeamMatch } from "./core/matchGenerationService";
+import {
+  createBracketMatch,
+  createBracketTeamMatch,
+} from "./core/matchGenerationService";
 
 /**
  * Fetch matches by IDs (handles both IndividualMatch and TeamMatch)
  */
 export async function fetchMatches(matchIds: any[], lean = false) {
   // Try to fetch as IndividualMatch first
-  const individualMatches = await IndividualMatch.find({ _id: { $in: matchIds } });
-  const individualMatchIds = individualMatches.map(m => String(m._id));
-  const remainingIds = matchIds.filter(id => !individualMatchIds.includes(id.toString()));
+  const individualMatches = await IndividualMatch.find({
+    _id: { $in: matchIds },
+  });
+  const individualMatchIds = individualMatches.map((m) => String(m._id));
+  const remainingIds = matchIds.filter(
+    (id) => !individualMatchIds.includes(id.toString())
+  );
 
   // Fetch remaining as TeamMatch
   let teamMatches: any[] = [];
   if (remainingIds.length > 0) {
     teamMatches = await TeamMatch.find({ _id: { $in: remainingIds } });
   }
-  
+
   // Combine results
   const allMatches = [...individualMatches, ...teamMatches];
 
   // Sort to match original order
-  const matchMap = new Map(allMatches.map(m => [String(m._id), m]));
-  return matchIds.map(id => matchMap.get(id.toString())).filter(Boolean);
+  const matchMap = new Map(allMatches.map((m) => [String(m._id), m]));
+  return matchIds.map((id) => matchMap.get(id.toString())).filter(Boolean);
 }
 
 /**
@@ -37,49 +44,71 @@ export async function fetchMatches(matchIds: any[], lean = false) {
  */
 export function getAllMatchIds(tournament: any): any[] {
   // Check if tournament uses groups (for round-robin or hybrid round-robin phase)
-  const usesGroups = tournament.useGroups || 
-    (tournament.format === "hybrid" && tournament.hybridConfig?.roundRobinUseGroups);
-  
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
+
   if (usesGroups && tournament.groups && tournament.groups.length > 0) {
     return tournament.groups.flatMap((g: any) =>
       g.rounds.flatMap((r: any) => r.matches)
     );
   }
-  
+
   // For knockout tournaments, get matches from bracket
   if (tournament.format === "knockout" && tournament.bracket) {
     const matchIds: string[] = [];
     tournament.bracket.rounds.forEach((round: any) => {
       round.matches.forEach((match: any) => {
         if (match.matchId) {
-          matchIds.push(typeof match.matchId === "string" ? match.matchId : match.matchId.toString());
+          matchIds.push(
+            typeof match.matchId === "string"
+              ? match.matchId
+              : match.matchId.toString()
+          );
         }
       });
     });
     if (tournament.bracket.thirdPlaceMatch?.matchId) {
       const thirdPlaceId = tournament.bracket.thirdPlaceMatch.matchId;
-      matchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : thirdPlaceId.toString());
+      matchIds.push(
+        typeof thirdPlaceId === "string"
+          ? thirdPlaceId
+          : thirdPlaceId.toString()
+      );
     }
     return matchIds;
   }
-  
+
   // For hybrid knockout phase, also get bracket matches
-  if (tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.bracket) {
+  if (
+    tournament.format === "hybrid" &&
+    tournament.currentPhase === "knockout" &&
+    tournament.bracket
+  ) {
     const matchIds: string[] = [];
     tournament.bracket.rounds.forEach((round: any) => {
       round.matches.forEach((match: any) => {
         if (match.matchId) {
-          matchIds.push(typeof match.matchId === "string" ? match.matchId : match.matchId.toString());
+          matchIds.push(
+            typeof match.matchId === "string"
+              ? match.matchId
+              : match.matchId.toString()
+          );
         }
       });
     });
     if (tournament.bracket.thirdPlaceMatch?.matchId) {
       const thirdPlaceId = tournament.bracket.thirdPlaceMatch.matchId;
-      matchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : thirdPlaceId.toString());
+      matchIds.push(
+        typeof thirdPlaceId === "string"
+          ? thirdPlaceId
+          : thirdPlaceId.toString()
+      );
     }
     return matchIds;
   }
-  
+
   // Default: round-robin matches
   return tournament.rounds?.flatMap((r: any) => r.matches) || [];
 }
@@ -93,7 +122,9 @@ export function getTournamentStatus(matches: any[]) {
   }
 
   const allCompleted = matches.every((m: any) => m && m.status === "completed");
-  const anyInProgress = matches.some((m: any) => m && m.status === "in_progress");
+  const anyInProgress = matches.some(
+    (m: any) => m && m.status === "in_progress"
+  );
 
   if (allCompleted) return "completed";
   if (anyInProgress) return "in_progress";
@@ -105,7 +136,7 @@ export function getTournamentStatus(matches: any[]) {
  */
 export function isTournamentFullyCompleted(tournament: any): boolean {
   const allMatchIds = getAllMatchIds(tournament);
-  
+
   if (allMatchIds.length === 0) {
     return false; // no matches generated yet
   }
@@ -113,7 +144,7 @@ export function isTournamentFullyCompleted(tournament: any): boolean {
   // For hybrid tournaments, need to check current phase
   if (tournament.format === "hybrid") {
     const currentPhase = tournament.currentPhase || "round_robin";
-    
+
     if (currentPhase === "round_robin") {
       // Check if round-robin phase is complete
       // This will be handled in updateRoundRobinStandings
@@ -129,13 +160,21 @@ export function isTournamentFullyCompleted(tournament: any): boolean {
         tournament.bracket.rounds.forEach((round: any) => {
           round.matches.forEach((match: any) => {
             if (match.matchId) {
-              knockoutMatchIds.push(typeof match.matchId === "string" ? match.matchId : match.matchId.toString());
+              knockoutMatchIds.push(
+                typeof match.matchId === "string"
+                  ? match.matchId
+                  : match.matchId.toString()
+              );
             }
           });
         });
         if (tournament.bracket.thirdPlaceMatch?.matchId) {
           const thirdPlaceId = tournament.bracket.thirdPlaceMatch.matchId;
-          knockoutMatchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : thirdPlaceId.toString());
+          knockoutMatchIds.push(
+            typeof thirdPlaceId === "string"
+              ? thirdPlaceId
+              : thirdPlaceId.toString()
+          );
         }
       }
       // Will check completion in updateKnockoutBracket
@@ -151,10 +190,13 @@ export function isTournamentFullyCompleted(tournament: any): boolean {
     }
     // Also verify all matches are completed
     const allMatches = getAllMatchIds(tournament);
-    return allMatches.length > 0 && allMatches.every(() => {
-      // This will be properly checked in updateKnockoutBracket
-      return tournament.bracket.completed;
-    });
+    return (
+      allMatches.length > 0 &&
+      allMatches.every(() => {
+        // This will be properly checked in updateKnockoutBracket
+        return tournament.bracket.completed;
+      })
+    );
   }
 
   // For round-robin, check if all matches are completed
@@ -169,13 +211,19 @@ export async function updateTournamentAfterMatch(match: any) {
   // Always reload tournament to get latest bracket state
   const tournament = await Tournament.findById(match.tournament);
   if (!tournament) {
-    console.error("[updateTournamentAfterMatch] Tournament not found for match", match._id);
+    console.error(
+      "[updateTournamentAfterMatch] Tournament not found for match",
+      match._id
+    );
     return;
   }
 
   // Ensure match has participants (they might be ObjectIds or populated objects)
   if (!match.participants || match.participants.length === 0) {
-    console.error("[updateTournamentAfterMatch] Match has no participants", match._id);
+    console.error(
+      "[updateTournamentAfterMatch] Match has no participants",
+      match._id
+    );
     return;
   }
 
@@ -188,11 +236,12 @@ export async function updateTournamentAfterMatch(match: any) {
 
   // Ensure we have valid participant IDs
   if (participantIds.length < 2 || participantIds.some((id: any) => !id)) {
-    console.error("[updateTournamentAfterMatch] Invalid participant IDs", { matchId: match._id, participantIds });
+    console.error("[updateTournamentAfterMatch] Invalid participant IDs", {
+      matchId: match._id,
+      participantIds,
+    });
     return;
   }
-
-  console.log(`[updateTournamentAfterMatch] Match ${match._id}, tournament format: ${tournament.format}, currentPhase: ${tournament.currentPhase}`);
 
   // Handle knockout tournaments
   if (tournament.format === "knockout") {
@@ -203,7 +252,7 @@ export async function updateTournamentAfterMatch(match: any) {
   // Handle hybrid tournaments - route based on current phase
   if (tournament.format === "hybrid") {
     const currentPhase = tournament.currentPhase || "round_robin";
-    
+
     if (currentPhase === "knockout") {
       // Hybrid tournament in knockout phase
       await updateKnockoutBracket(tournament, match);
@@ -231,10 +280,10 @@ async function updateKnockoutBracket(tournament: any, match: any) {
 
   // Check if this is a team match
   const isTeamMatch = match.matchCategory === "team";
-  
+
   // Get the winner from the match
   let winnerId: string;
-  
+
   if (isTeamMatch) {
     // For team matches, winner is determined by winnerTeam field
     if (!match.winnerTeam) {
@@ -244,36 +293,53 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       });
       return;
     }
-    
+
     // Find the bracket match to get participant IDs (team IDs)
     let bracketMatch: any = null;
     for (const round of tournament.bracket.rounds || []) {
-      const found = round.matches.find((m: any) => m.matchId?.toString() === match._id.toString());
+      const found = round.matches.find(
+        (m: any) => m.matchId?.toString() === match._id.toString()
+      );
       if (found) {
         bracketMatch = found;
         break;
       }
     }
-    
-    if (!bracketMatch || !bracketMatch.participant1 || !bracketMatch.participant2) {
-      console.error("[updateKnockoutBracket] Could not find bracket match for team match", {
-        matchId: match._id,
-      });
+
+    if (
+      !bracketMatch ||
+      !bracketMatch.participant1 ||
+      !bracketMatch.participant2
+    ) {
+      console.error(
+        "[updateKnockoutBracket] Could not find bracket match for team match",
+        {
+          matchId: match._id,
+        }
+      );
       return;
     }
-    
+
     // Use the participant ID (team ID) from the bracket based on winnerTeam
-    winnerId = match.winnerTeam === "team1"
-      ? bracketMatch.participant1.toString()
-      : bracketMatch.participant2.toString();
+    winnerId =
+      match.winnerTeam === "team1"
+        ? bracketMatch.participant1.toString()
+        : bracketMatch.participant2.toString();
   } else {
     // For individual matches, use winnerSide
-    if (!match.winnerSide || !match.participants || match.participants.length < 2) {
-      console.error("[updateKnockoutBracket] Match missing winner or participants", {
-        matchId: match._id,
-        winnerSide: match.winnerSide,
-        participantCount: match.participants?.length,
-      });
+    if (
+      !match.winnerSide ||
+      !match.participants ||
+      match.participants.length < 2
+    ) {
+      console.error(
+        "[updateKnockoutBracket] Match missing winner or participants",
+        {
+          matchId: match._id,
+          winnerSide: match.winnerSide,
+          participantCount: match.participants?.length,
+        }
+      );
       return;
     }
 
@@ -289,18 +355,18 @@ async function updateKnockoutBracket(tournament: any, match: any) {
     // But we need to use the first player of the winning side as the identifier
     if (match.participants.length === 4) {
       // Doubles match - use first player of winning side
-      winnerId = match.winnerSide === "side1"
-        ? getParticipantId(match.participants[0])
-        : getParticipantId(match.participants[2]);
+      winnerId =
+        match.winnerSide === "side1"
+          ? getParticipantId(match.participants[0])
+          : getParticipantId(match.participants[2]);
     } else {
       // Singles match
-      winnerId = match.winnerSide === "side1"
-        ? getParticipantId(match.participants[0])
-        : getParticipantId(match.participants[1]);
+      winnerId =
+        match.winnerSide === "side1"
+          ? getParticipantId(match.participants[0])
+          : getParticipantId(match.participants[1]);
     }
   }
-
-  console.log(`[updateKnockoutBracket] Advancing winner ${winnerId} from match ${match._id}`);
 
   // Race condition protection: Retry logic with version checking
   const maxRetries = 3;
@@ -311,7 +377,9 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       // Reload tournament to get latest bracket state (prevents race conditions)
       const freshTournament = await Tournament.findById(tournament._id);
       if (!freshTournament) {
-        console.error("[updateKnockoutBracket] Tournament not found during update");
+        console.error(
+          "[updateKnockoutBracket] Tournament not found during update"
+        );
         return;
       }
 
@@ -319,7 +387,10 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       let matchAlreadyProcessed = false;
       for (const round of freshTournament.bracket?.rounds || []) {
         for (const bracketMatch of round.matches || []) {
-          if (bracketMatch.matchId?.toString() === match._id.toString() && bracketMatch.completed) {
+          if (
+            bracketMatch.matchId?.toString() === match._id.toString() &&
+            bracketMatch.completed
+          ) {
             matchAlreadyProcessed = true;
             break;
           }
@@ -328,7 +399,6 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       }
 
       if (matchAlreadyProcessed) {
-        console.log(`[updateKnockoutBracket] Match ${match._id} already processed, skipping`);
         return;
       }
 
@@ -340,14 +410,12 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       );
 
       freshTournament.bracket = updatedBracket;
-      freshTournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+      freshTournament.markModified("bracket"); // CRITICAL: bracket is Schema.Types.Mixed
 
       // Auto-create new match documents for newly determined matchups
       const matchesNeedingDocs = getMatchesNeedingDocuments(updatedBracket);
 
       if (matchesNeedingDocs.length > 0) {
-        console.log(`[updateKnockoutBracket] Creating ${matchesNeedingDocs.length} new match documents`);
-
         for (const bracketMatch of matchesNeedingDocs) {
           try {
             const isTeamCategory = (freshTournament as any).category === "team";
@@ -355,20 +423,24 @@ async function updateKnockoutBracket(tournament: any, match: any) {
               ? await createBracketTeamMatch(
                   bracketMatch,
                   freshTournament,
-                  match.scorer?.toString() || freshTournament.organizer.toString()
+                  match.scorer?.toString() ||
+                    freshTournament.organizer.toString()
                 )
               : await createBracketMatch(
                   bracketMatch,
                   freshTournament,
-                  match.scorer?.toString() || freshTournament.organizer.toString()
+                  match.scorer?.toString() ||
+                    freshTournament.organizer.toString()
                 );
 
             if (newMatchDoc) {
               bracketMatch.matchId = newMatchDoc._id.toString();
-              console.log(`[updateKnockoutBracket] Created ${isTeamCategory ? 'team ' : ''}match ${newMatchDoc._id} for round ${bracketMatch.bracketPosition.round}`);
             }
           } catch (matchError: any) {
-            console.error("[updateKnockoutBracket] Error creating match document:", matchError);
+            console.error(
+              "[updateKnockoutBracket] Error creating match document:",
+              matchError
+            );
             // Continue with other matches even if one fails
           }
         }
@@ -379,28 +451,39 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       updatedBracket.rounds.forEach((round: any) => {
         round.matches.forEach((match: any) => {
           if (match.matchId) {
-            allBracketMatchIds.push(typeof match.matchId === "string" ? match.matchId : match.matchId.toString());
+            allBracketMatchIds.push(
+              typeof match.matchId === "string"
+                ? match.matchId
+                : match.matchId.toString()
+            );
           }
         });
       });
       if (updatedBracket.thirdPlaceMatch?.matchId) {
         const thirdPlaceId = updatedBracket.thirdPlaceMatch.matchId;
         if (thirdPlaceId) {
-          allBracketMatchIds.push(typeof thirdPlaceId === "string" ? thirdPlaceId : String(thirdPlaceId));
+          allBracketMatchIds.push(
+            typeof thirdPlaceId === "string"
+              ? thirdPlaceId
+              : String(thirdPlaceId)
+          );
         }
       }
 
       // Fetch all bracket matches to verify completion
       const allBracketMatches = await fetchMatches(allBracketMatchIds, true);
-      const allBracketMatchesCompleted = allBracketMatchIds.length > 0 && 
+      const allBracketMatchesCompleted =
+        allBracketMatchIds.length > 0 &&
         allBracketMatches.every((m: any) => m && m.status === "completed");
 
       // Update tournament status
       if (updatedBracket.completed && allBracketMatchesCompleted) {
         freshTournament.status = "completed";
         freshTournament.endDate = freshTournament.endDate || new Date();
-        console.log(`[updateKnockoutBracket] Tournament ${freshTournament._id} completed!`);
-      } else if (freshTournament.status === "draft" || freshTournament.status === "upcoming") {
+      } else if (
+        freshTournament.status === "draft" ||
+        freshTournament.status === "upcoming"
+      ) {
         freshTournament.status = "in_progress";
         if (!freshTournament.startDate) {
           freshTournament.startDate = new Date();
@@ -409,21 +492,19 @@ async function updateKnockoutBracket(tournament: any, match: any) {
 
       // Save with optimistic locking protection
       await freshTournament.save();
-      console.log(`[updateKnockoutBracket] Bracket updated successfully for tournament ${freshTournament._id}`);
-      return; // Success, exit retry loop
 
+      return; // Success, exit retry loop
     } catch (error: any) {
       retryCount++;
-      
+
       // Check if error is due to version conflict (Mongoose version key)
       if (error.name === "VersionError" || error.code === 11000) {
         if (retryCount < maxRetries) {
-          console.log(`[updateKnockoutBracket] Version conflict, retrying (attempt ${retryCount + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, 100 * retryCount)); // Exponential backoff
           continue;
         }
       }
-      
+
       console.error("[updateKnockoutBracket] Error updating bracket:", error);
       throw error;
     }
@@ -438,8 +519,10 @@ export async function updateRoundRobinStandings(tournament: any) {
 
   // Determine if tournament uses groups
   // Check both regular useGroups and hybrid config
-  const usesGroups = tournament.useGroups || 
-    (tournament.format === "hybrid" && tournament.hybridConfig?.roundRobinUseGroups);
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
 
   // CRITICAL: Groups should not be used for pure round-robin format
   // This is a safeguard in case of existing invalid data
@@ -451,14 +534,22 @@ export async function updateRoundRobinStandings(tournament: any) {
   }
 
   // CASE 1: Tournament with Groups (only valid for hybrid format)
-  if (usesGroups && tournament.groups && tournament.groups.length > 0 && tournament.format !== "round_robin") {
+  if (
+    usesGroups &&
+    tournament.groups &&
+    tournament.groups.length > 0 &&
+    tournament.format !== "round_robin"
+  ) {
     for (const group of tournament.groups) {
       // Fetch all matches for this group
       const groupMatchIds = group.rounds.flatMap((r: any) => r.matches);
       const matches = await fetchMatches(groupMatchIds, true);
 
       // Convert team matches to MatchResult format if needed
-      const convertedMatches = await convertMatchesToStandingsFormat(matches, tournament);
+      const convertedMatches = await convertMatchesToStandingsFormat(
+        matches,
+        tournament
+      );
 
       // Calculate standings using ITTF rules
       const standingsData = calculateStandings(
@@ -490,18 +581,23 @@ export async function updateRoundRobinStandings(tournament: any) {
     // Generate overall standings from group winners
     // For hybrid tournaments, use qualifyingPerGroup from hybridConfig
     // For regular round-robin, use advancePerGroup
-    const advancePerGroup = tournament.format === "hybrid" 
-      ? tournament.hybridConfig?.qualifyingPerGroup || tournament.advancePerGroup || 2
-      : tournament.advancePerGroup || 2;
-    
+    const advancePerGroup =
+      tournament.format === "hybrid"
+        ? tournament.hybridConfig?.qualifyingPerGroup ||
+          tournament.advancePerGroup ||
+          2
+        : tournament.advancePerGroup || 2;
+
     const qualifiers: any[] = [];
 
     tournament.groups.forEach((group: any) => {
       const topN = group.standings.slice(0, advancePerGroup);
-      qualifiers.push(...topN.map((q: any) => ({
-        ...q,
-        headToHead: q.headToHead || {},
-      })));
+      qualifiers.push(
+        ...topN.map((q: any) => ({
+          ...q,
+          headToHead: q.headToHead || {},
+        }))
+      );
     });
 
     tournament.standings = qualifiers.map((q: any, idx: number) => ({
@@ -515,7 +611,10 @@ export async function updateRoundRobinStandings(tournament: any) {
     const matches = await fetchMatches(roundMatchIds, true);
 
     // Convert team matches to MatchResult format if needed
-    const convertedMatches = await convertMatchesToStandingsFormat(matches, tournament);
+    const convertedMatches = await convertMatchesToStandingsFormat(
+      matches,
+      tournament
+    );
 
     const standingsData = calculateStandings(
       participantIds,
@@ -551,8 +650,12 @@ export async function updateRoundRobinStandings(tournament: any) {
   if (usesGroups && tournament.groups) {
     for (const group of tournament.groups) {
       for (const round of group.rounds || []) {
-        const roundMatches = round.matches.map((m: any) => matchMap.get(m.toString()));
-        round.completed = roundMatches.every((m: any) => m && m.status === "completed");
+        const roundMatches = round.matches.map((m: any) =>
+          matchMap.get(m.toString())
+        );
+        round.completed = roundMatches.every(
+          (m: any) => m && m.status === "completed"
+        );
       }
     }
   }
@@ -560,8 +663,12 @@ export async function updateRoundRobinStandings(tournament: any) {
   // Update round completion for single round-robin
   if (tournament.rounds && !usesGroups) {
     for (const round of tournament.rounds) {
-      const roundMatches = round.matches.map((m: any) => matchMap.get(m.toString()));
-      round.completed = roundMatches.every((m: any) => m && m.status === "completed");
+      const roundMatches = round.matches.map((m: any) =>
+        matchMap.get(m.toString())
+      );
+      round.completed = roundMatches.every(
+        (m: any) => m && m.status === "completed"
+      );
     }
   }
 
@@ -573,18 +680,22 @@ export async function updateRoundRobinStandings(tournament: any) {
       // Tournament is fully completed
       tournament.status = "completed";
       tournament.endDate = tournament.endDate || new Date();
-      
+
       // For hybrid tournaments still in round-robin phase, don't mark as completed
       // They need to transition to knockout first
-      if (tournament.format === "hybrid" && tournament.currentPhase === "round_robin") {
+      if (
+        tournament.format === "hybrid" &&
+        tournament.currentPhase === "round_robin"
+      ) {
         // Don't mark as completed - still need knockout phase
         // Status should remain "in_progress" until knockout is complete
         tournament.status = "in_progress";
-        console.log(`[updateRoundRobinStandings] Round-robin phase complete for hybrid tournament ${tournament._id}, ready for knockout transition`);
       } else {
-        console.log(`[updateRoundRobinStandings] Tournament ${tournament._id} completed!`);
       }
-    } else if (newStatus === "in_progress" && tournament.status !== "in_progress") {
+    } else if (
+      newStatus === "in_progress" &&
+      tournament.status !== "in_progress"
+    ) {
       tournament.status = "in_progress";
       if (!tournament.startDate) {
         tournament.startDate = new Date();
@@ -598,132 +709,151 @@ export async function updateRoundRobinStandings(tournament: any) {
 /**
  * Convert matches (IndividualMatch or TeamMatch) to MatchResult format for standings calculation
  */
-async function convertMatchesToStandingsFormat(matches: any[], tournament: any): Promise<any[]> {
-  return Promise.all(matches.map(async (match) => {
-    // If it's already in the right format (IndividualMatch), return as-is
-    if (match.matchCategory === "individual") {
-      return {
-        _id: match._id.toString(),
-        participants: match.participants.map((p: any) => 
-          typeof p === "string" ? p : (p._id ? p._id.toString() : p.toString())
-        ),
-        winnerSide: match.winnerSide,
-        finalScore: {
-          side1Sets: match.finalScore?.side1Sets || 0,
-          side2Sets: match.finalScore?.side2Sets || 0,
-        },
-        games: match.games || [],
-        status: match.status,
-      };
-    }
+async function convertMatchesToStandingsFormat(
+  matches: any[],
+  tournament: any
+): Promise<any[]> {
+  return Promise.all(
+    matches.map(async (match) => {
+      // If it's already in the right format (IndividualMatch), return as-is
+      if (match.matchCategory === "individual") {
+        return {
+          _id: match._id.toString(),
+          participants: match.participants.map((p: any) =>
+            typeof p === "string" ? p : p._id ? p._id.toString() : p.toString()
+          ),
+          winnerSide: match.winnerSide,
+          finalScore: {
+            side1Sets: match.finalScore?.side1Sets || 0,
+            side2Sets: match.finalScore?.side2Sets || 0,
+          },
+          games: match.games || [],
+          status: match.status,
+        };
+      }
 
-    // If it's a team match, convert to MatchResult format
-    if (match.matchCategory === "team") {
-      // For team matches, we need to get team IDs
-      // Try to get from bracket first (for knockout matches), then from match structure
-      let team1Id: string = "";
-      let team2Id: string = "";
-      
-      // For knockout matches, get team IDs from bracket
-      if (tournament.bracket && match.bracketPosition) {
-        const round = tournament.bracket.rounds?.find(
-          (r: any) => r.roundNumber === match.bracketPosition.round
-        );
-        if (round) {
-          const bracketMatch = round.matches?.find(
-            (m: any) => m.matchId?.toString() === match._id.toString()
+      // If it's a team match, convert to MatchResult format
+      if (match.matchCategory === "team") {
+        // For team matches, we need to get team IDs
+        // Try to get from bracket first (for knockout matches), then from match structure
+        let team1Id: string = "";
+        let team2Id: string = "";
+
+        // For knockout matches, get team IDs from bracket
+        if (tournament.bracket && match.bracketPosition) {
+          const round = tournament.bracket.rounds?.find(
+            (r: any) => r.roundNumber === match.bracketPosition.round
           );
-          if (bracketMatch) {
-            team1Id = bracketMatch.participant1?.toString() || "";
-            team2Id = bracketMatch.participant2?.toString() || "";
+          if (round) {
+            const bracketMatch = round.matches?.find(
+              (m: any) => m.matchId?.toString() === match._id.toString()
+            );
+            if (bracketMatch) {
+              team1Id = bracketMatch.participant1?.toString() || "";
+              team2Id = bracketMatch.participant2?.toString() || "";
+            }
           }
         }
-      }
-      
-      // If not found in bracket, try to get from match participants or team structure
-      // For round-robin, we need to match team names to team IDs from tournament participants
-      if (!team1Id || !team2Id) {
-        const team1Name = match.team1?.name;
-        const team2Name = match.team2?.name;
-        
-        // For team tournaments, participants should be team IDs (ObjectIds)
-        // We need to fetch Team documents to match names to IDs
-        if (team1Name && team2Name && tournament.participants && tournament.participants.length > 0) {
-          try {
-            const { default: Team } = await import("@/models/Team");
-            // Fetch all teams that are tournament participants
-            const participantTeams = await Team.find({
-              _id: { $in: tournament.participants }
-            }).lean();
-            
-            // Match team names to IDs
-            const team1Doc = participantTeams.find((t: any) => t.name === team1Name);
-            const team2Doc = participantTeams.find((t: any) => t.name === team2Name);
-            
-            if (team1Doc && team1Doc._id) team1Id = String(team1Doc._id);
-            if (team2Doc && team2Doc._id) team2Id = String(team2Doc._id);
-          } catch (error) {
-            console.warn(`[convertMatchesToStandingsFormat] Error fetching teams for match ${match._id}:`, error);
-            // Fallback to team names if lookup fails
+
+        // If not found in bracket, try to get from match participants or team structure
+        // For round-robin, we need to match team names to team IDs from tournament participants
+        if (!team1Id || !team2Id) {
+          const team1Name = match.team1?.name;
+          const team2Name = match.team2?.name;
+
+          // For team tournaments, participants should be team IDs (ObjectIds)
+          // We need to fetch Team documents to match names to IDs
+          if (
+            team1Name &&
+            team2Name &&
+            tournament.participants &&
+            tournament.participants.length > 0
+          ) {
+            try {
+              const { default: Team } = await import("@/models/Team");
+              // Fetch all teams that are tournament participants
+              const participantTeams = await Team.find({
+                _id: { $in: tournament.participants },
+              }).lean();
+
+              // Match team names to IDs
+              const team1Doc = participantTeams.find(
+                (t: any) => t.name === team1Name
+              );
+              const team2Doc = participantTeams.find(
+                (t: any) => t.name === team2Name
+              );
+
+              if (team1Doc && team1Doc._id) team1Id = String(team1Doc._id);
+              if (team2Doc && team2Doc._id) team2Id = String(team2Doc._id);
+            } catch (error) {
+              console.warn(
+                `[convertMatchesToStandingsFormat] Error fetching teams for match ${match._id}:`,
+                error
+              );
+              // Fallback to team names if lookup fails
+              team1Id = team1Name || "";
+              team2Id = team2Name || "";
+            }
+          } else {
+            // Fallback to team names if we can't do the lookup
             team1Id = team1Name || "";
             team2Id = team2Name || "";
           }
-        } else {
-          // Fallback to team names if we can't do the lookup
-          team1Id = team1Name || "";
-          team2Id = team2Name || "";
         }
-      }
-      
-      if (!team1Id || !team2Id) {
-        console.warn(`[convertMatchesToStandingsFormat] Could not determine team IDs for team match ${match._id}`);
-        // Skip this match if we can't determine team IDs
-        return null;
-      }
-      
-      // Convert team match result to individual match format
-      // team1Matches/team2Matches represent "sets" won (submatches won)
-      const team1Sets = match.finalScore?.team1Matches || 0;
-      const team2Sets = match.finalScore?.team2Matches || 0;
-      
-      // Calculate points from all submatches
-      const games: Array<{ side1Score: number; side2Score: number }> = [];
-      if (match.subMatches && Array.isArray(match.subMatches)) {
-        match.subMatches.forEach((subMatch: any) => {
-          if (subMatch.games && Array.isArray(subMatch.games)) {
-            subMatch.games.forEach((game: any) => {
-              // Team matches use team1Score/team2Score, convert to side1Score/side2Score
-              games.push({
-                side1Score: game.team1Score || 0,
-                side2Score: game.team2Score || 0,
-              });
-            });
-          }
-        });
-      }
-      
-      // Determine winnerSide from winnerTeam
-      let winnerSide: "side1" | "side2" | null = null;
-      if (match.winnerTeam === "team1") {
-        winnerSide = "side1";
-      } else if (match.winnerTeam === "team2") {
-        winnerSide = "side2";
-      }
-      
-      return {
-        _id: match._id.toString(),
-        participants: [team1Id, team2Id],
-        winnerSide,
-        finalScore: {
-          side1Sets: team1Sets,
-          side2Sets: team2Sets,
-        },
-        games,
-        status: match.status,
-      };
-    }
 
-    // Unknown match type, return as-is (might cause issues but at least won't crash)
-    return match;
-  })).then(results => results.filter((m) => m !== null)); // Filter out null matches
+        if (!team1Id || !team2Id) {
+          console.warn(
+            `[convertMatchesToStandingsFormat] Could not determine team IDs for team match ${match._id}`
+          );
+          // Skip this match if we can't determine team IDs
+          return null;
+        }
+
+        // Convert team match result to individual match format
+        // team1Matches/team2Matches represent "sets" won (submatches won)
+        const team1Sets = match.finalScore?.team1Matches || 0;
+        const team2Sets = match.finalScore?.team2Matches || 0;
+
+        // Calculate points from all submatches
+        const games: Array<{ side1Score: number; side2Score: number }> = [];
+        if (match.subMatches && Array.isArray(match.subMatches)) {
+          match.subMatches.forEach((subMatch: any) => {
+            if (subMatch.games && Array.isArray(subMatch.games)) {
+              subMatch.games.forEach((game: any) => {
+                // Team matches use team1Score/team2Score, convert to side1Score/side2Score
+                games.push({
+                  side1Score: game.team1Score || 0,
+                  side2Score: game.team2Score || 0,
+                });
+              });
+            }
+          });
+        }
+
+        // Determine winnerSide from winnerTeam
+        let winnerSide: "side1" | "side2" | null = null;
+        if (match.winnerTeam === "team1") {
+          winnerSide = "side1";
+        } else if (match.winnerTeam === "team2") {
+          winnerSide = "side2";
+        }
+
+        return {
+          _id: match._id.toString(),
+          participants: [team1Id, team2Id],
+          winnerSide,
+          finalScore: {
+            side1Sets: team1Sets,
+            side2Sets: team2Sets,
+          },
+          games,
+          status: match.status,
+        };
+      }
+
+      // Unknown match type, return as-is (might cause issues but at least won't crash)
+      return match;
+    })
+  ).then((results) => results.filter((m) => m !== null)); // Filter out null matches
 }

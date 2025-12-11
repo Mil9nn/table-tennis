@@ -2,10 +2,10 @@
 
 /**
  * Match Generation Orchestrator
- * 
+ *
  * Coordinates match generation across repositories and services.
  * Implements the orchestrator pattern for clean separation of concerns.
- * 
+ *
  * Responsibilities:
  * - Coordinate between repositories and services
  * - Manage transactions for atomicity
@@ -15,7 +15,10 @@
 
 import { ClientSession } from "mongoose";
 import { TransactionManager } from "@/services/database/TransactionManager";
-import { tournamentRepository, Tournament } from "../repositories/TournamentRepository";
+import {
+  tournamentRepository,
+  Tournament,
+} from "../repositories/TournamentRepository";
 import { matchRepository } from "../repositories/MatchRepository";
 import {
   generateKnockoutBracket,
@@ -27,7 +30,10 @@ import {
 } from "./schedulingService";
 import { allocateGroups } from "../utils/groupAllocator";
 import { prepareSeeding } from "./matchGenerationService";
-import { createBracketMatch, createBracketTeamMatch } from "./matchGenerationService";
+import {
+  createBracketMatch,
+  createBracketTeamMatch,
+} from "./matchGenerationService";
 import { KnockoutBracket } from "@/types/tournamentDraw";
 
 export interface MatchGenerationOptions {
@@ -68,7 +74,9 @@ export class MatchGenerationOrchestrator {
       }
 
       // Prepare seeding
-      const participantIds = tournament.participants.map((p: any) => p.toString());
+      const participantIds = tournament.participants.map((p: any) =>
+        p.toString()
+      );
       const seeding = prepareSeeding(tournament, participantIds);
 
       // Update tournament seeding
@@ -79,7 +87,9 @@ export class MatchGenerationOrchestrator {
 
       if (tournament.format === "hybrid") {
         // For hybrid, only generate round-robin phase initially
-        const { generateHybridRoundRobinPhase } = await import("./hybridMatchGenerationService");
+        const { generateHybridRoundRobinPhase } = await import(
+          "./hybridMatchGenerationService"
+        );
         await generateHybridRoundRobinPhase(tournament, {
           scorerId: new (await import("mongoose")).Types.ObjectId(scorerId),
           ...options,
@@ -108,13 +118,19 @@ export class MatchGenerationOrchestrator {
       }
 
       // Mark draw as generated
-      await this.tournamentRepo.markDrawGenerated(tournamentId, scorerId, session);
+      await this.tournamentRepo.markDrawGenerated(
+        tournamentId,
+        scorerId,
+        session
+      );
       await this.tournamentRepo.updateStatus(tournamentId, "upcoming", session);
 
       // Calculate stats from the generated bracket/matches
       // We need to do this before the transaction completes since bracket virtual won't be populated yet
-      const stats = this.calculateStatsFromGeneration(tournament, generatedBracket);
-      console.log("[generateTournamentDraw] Stats calculated from generation:", stats);
+      const stats = this.calculateStatsFromGeneration(
+        tournament,
+        generatedBracket
+      );
 
       return {
         tournament,
@@ -127,7 +143,10 @@ export class MatchGenerationOrchestrator {
    * Calculate stats from the generated data (before bracket virtual is populated)
    * This is used inside transactions where the bracket virtual can't be accessed yet
    */
-  private calculateStatsFromGeneration(tournament: Tournament, bracket?: any): {
+  private calculateStatsFromGeneration(
+    tournament: Tournament,
+    bracket?: any
+  ): {
     totalMatches: number;
     totalRounds: number;
     groups?: number;
@@ -135,27 +154,20 @@ export class MatchGenerationOrchestrator {
   } {
     if (tournament.format === "knockout" && bracket) {
       // Use the bracket object that was created during generation
-      console.log("[calculateStatsFromGeneration] Using generated bracket for stats");
-      console.log("[calculateStatsFromGeneration] Bracket rounds:", bracket.rounds?.length || 0);
 
       let totalMatches = 0;
       if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        totalMatches = bracket.rounds.reduce(
-          (sum: number, round: any) => {
-            const matchCount = round.matches?.length || 0;
-            console.log(`[calculateStatsFromGeneration] Round ${round.roundNumber}: ${matchCount} matches`);
-            return sum + matchCount;
-          },
-          0
-        );
+        totalMatches = bracket.rounds.reduce((sum: number, round: any) => {
+          const matchCount = round.matches?.length || 0;
+
+          return sum + matchCount;
+        }, 0);
       }
 
       // Add third place match if it exists
       if (bracket.thirdPlaceMatch) {
         totalMatches += 1;
       }
-
-      console.log("[calculateStatsFromGeneration] Total matches:", totalMatches);
 
       return {
         totalMatches,
@@ -166,7 +178,9 @@ export class MatchGenerationOrchestrator {
 
     if (tournament.format === "knockout") {
       // Fallback if bracket wasn't provided
-      console.warn("[calculateStatsFromGeneration] No bracket provided for knockout tournament");
+      console.warn(
+        "[calculateStatsFromGeneration] No bracket provided for knockout tournament"
+      );
       return {
         totalMatches: 0,
         totalRounds: 0,
@@ -254,7 +268,9 @@ export class MatchGenerationOrchestrator {
       for (const pairing of round.matches) {
         if ((tournament as any).category === "team") {
           // TODO: Implement team match creation via repository
-          throw new Error("Team match generation via orchestrator not yet implemented");
+          throw new Error(
+            "Team match generation via orchestrator not yet implemented"
+          );
         } else {
           // Get match participants
           const matchParticipants = isDoubles
@@ -311,7 +327,9 @@ export class MatchGenerationOrchestrator {
   ): Promise<void> {
     // Implementation similar to generateSingleRoundRobin but with groups
     // This is a simplified version - full implementation would handle groups
-    throw new Error("Group match generation via orchestrator not yet fully implemented");
+    throw new Error(
+      "Group match generation via orchestrator not yet fully implemented"
+    );
   }
 
   /**
@@ -325,9 +343,8 @@ export class MatchGenerationOrchestrator {
     options: MatchGenerationOptions,
     session: ClientSession
   ): Promise<KnockoutBracket> {
-    const allowCustomMatching = (tournament as any).knockoutConfig?.allowCustomMatching === true;
-
-    console.log(`[generateKnockoutMatches] Custom matching: ${allowCustomMatching}, Participants: ${participantIds.length}`);
+    const allowCustomMatching =
+      (tournament as any).knockoutConfig?.allowCustomMatching === true;
 
     // Generate bracket structure
     const bracket = generateKnockoutBracket(
@@ -337,25 +354,26 @@ export class MatchGenerationOrchestrator {
         seedNumber: s.seedNumber,
       })),
       {
-        thirdPlaceMatch: (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+        thirdPlaceMatch:
+          (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
         scheduledDate: tournament.startDate,
         skipByeAdvancement: allowCustomMatching,
       }
     );
 
-    console.log(`[generateKnockoutMatches] Bracket created - Size: ${bracket.size}, Rounds: ${bracket.rounds.length}`);
-    bracket.rounds.forEach((round, idx) => {
-      console.log(`[generateKnockoutMatches] Round ${idx + 1} (${round.roundName}): ${round.matches.length} matches`);
-    });
+    bracket.rounds.forEach((round, idx) => {});
 
     // Create or update BracketState
-    const bracketState = await createOrUpdateBracketState(String(tournament._id), bracket, session);
-    console.log(`[generateKnockoutMatches] BracketState saved with ID: ${bracketState._id}`);
+    const bracketState = await createOrUpdateBracketState(
+      String(tournament._id),
+      bracket,
+      session
+    );
 
     // Also store bracket directly in tournament for easier access
     // Update the tournament object directly and save it
     (tournament as any).bracket = bracket;
-    (tournament as any).markModified('bracket');
+    (tournament as any).markModified("bracket");
     if (session) {
       await tournament.save({ session });
     } else {
@@ -390,7 +408,10 @@ export class MatchGenerationOrchestrator {
                   tournament: String(tournament._id),
                   matchType: (tournament as any).matchType,
                   numberOfSets: tournament.rules.setsPerMatch,
-                  participants: [bracketMatch.participant1, bracketMatch.participant2],
+                  participants: [
+                    bracketMatch.participant1,
+                    bracketMatch.participant2,
+                  ],
                   scorer: scorerId, // Set scorer so organizer can start matches
                   bracketPosition: bracketMatch.bracketPosition,
                   roundName: bracketMatch.roundName,
@@ -407,11 +428,15 @@ export class MatchGenerationOrchestrator {
       }
 
       // Update bracket state with match IDs
-      await createOrUpdateBracketState(String(tournament._id), bracket, session);
-      
+      await createOrUpdateBracketState(
+        String(tournament._id),
+        bracket,
+        session
+      );
+
       // Update tournament bracket with match IDs
       (tournament as any).bracket = bracket;
-      (tournament as any).markModified('bracket');
+      (tournament as any).markModified("bracket");
       if (session) {
         await tournament.save({ session });
       } else {
@@ -425,9 +450,16 @@ export class MatchGenerationOrchestrator {
   /**
    * Get doubles participants
    */
-  private getDoublesParticipants(pairing: any, participantIds: string[]): any[] {
-    const team1Idx = participantIds.findIndex((id: any) => id === pairing.player1.toString());
-    const team2Idx = participantIds.findIndex((id: any) => id === pairing.player2.toString());
+  private getDoublesParticipants(
+    pairing: any,
+    participantIds: string[]
+  ): any[] {
+    const team1Idx = participantIds.findIndex(
+      (id: any) => id === pairing.player1.toString()
+    );
+    const team2Idx = participantIds.findIndex(
+      (id: any) => id === pairing.player2.toString()
+    );
 
     return [
       participantIds[team1Idx],
@@ -472,11 +504,8 @@ export class MatchGenerationOrchestrator {
     if (tournament.format === "knockout") {
       // For knockout, stats come from bracket
       const bracket = (tournament as any).bracket;
-      console.log("[calculateStats] Bracket exists:", !!bracket);
-      console.log("[calculateStats] Bracket rounds:", bracket?.rounds?.length || 0);
 
       if (!bracket) {
-        console.log("[calculateStats] No bracket found, returning 0 matches");
         return {
           totalMatches: 0,
           totalRounds: 0,
@@ -487,22 +516,17 @@ export class MatchGenerationOrchestrator {
       // Count matches from all rounds in the bracket
       let totalMatches = 0;
       if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        totalMatches = bracket.rounds.reduce(
-          (sum: number, round: any) => {
-            const matchCount = round.matches?.length || 0;
-            console.log(`[calculateStats] Round ${round.roundNumber}: ${matchCount} matches`);
-            return sum + matchCount;
-          },
-          0
-        );
+        totalMatches = bracket.rounds.reduce((sum: number, round: any) => {
+          const matchCount = round.matches?.length || 0;
+
+          return sum + matchCount;
+        }, 0);
       }
 
       // Add third place match if it exists
       if (bracket.thirdPlaceMatch) {
         totalMatches += 1;
       }
-
-      console.log("[calculateStats] Total matches calculated:", totalMatches);
 
       return {
         totalMatches,
@@ -517,10 +541,14 @@ export class MatchGenerationOrchestrator {
       let totalRounds = 0;
 
       // Count round-robin phase matches
-      if ((tournament as any).hybridConfig?.roundRobinUseGroups && tournament.groups) {
+      if (
+        (tournament as any).hybridConfig?.roundRobinUseGroups &&
+        tournament.groups
+      ) {
         totalMatches += tournament.groups.reduce(
           (sum: number, g: any) =>
-            sum + g.rounds.reduce((s: number, r: any) => s + r.matches.length, 0),
+            sum +
+            g.rounds.reduce((s: number, r: any) => s + r.matches.length, 0),
           0
         );
         totalRounds += tournament.groups[0]?.rounds.length || 0;
@@ -583,4 +611,3 @@ export class MatchGenerationOrchestrator {
 
 // Singleton instance
 export const matchGenerationOrchestrator = new MatchGenerationOrchestrator();
-

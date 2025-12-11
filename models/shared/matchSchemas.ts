@@ -38,11 +38,13 @@ export function createShotSchema(sideEnum: string[]) {
     server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     // Shot coordinate system:
-    // Origin: -50 to 150 (player can hit from anywhere, including off-table)
+    // Origin: -100 to 200 (player can hit from anywhere, including off-table up to 2m+)
     // Landing: 0 to 100 (point scored = ball landed on table)
-    // Extended coordinate system: -50 to 0 (left/top margin), 0 to 100 (table), 100 to 150 (right/bottom margin)
-    originX: { type: Number, min: -50, max: 150 },
-    originY: { type: Number, min: -50, max: 150 },
+    // Extended coordinate system: -100 to 0 (left/top margin), 0 to 100 (table), 100 to 200 (right/bottom margin)
+    // Distance zones: <70cm (26 units), 70cm-2m (26-73 units), >2m (73+ units)
+    // 1 unit = 2.74cm (table is 274cm long)
+    originX: { type: Number, min: -100, max: 200 },
+    originY: { type: Number, min: -100, max: 200 },
     landingX: { type: Number, min: 0, max: 100 },
     landingY: { type: Number, min: 0, max: 100 },
 

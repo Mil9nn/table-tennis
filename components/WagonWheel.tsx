@@ -139,12 +139,11 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
 
           {/* Table surface - all landing points are here, origin can be anywhere */}
           <rect
-            x="137"
-            y="76.25"
-            width="274"
-            height="152.5"
+            x="182.67"
+            y="101.67"
+            width="182.67"
+            height="101.67"
             fill="url(#tableGradient)"
-            rx="4"
             stroke="#1E3A8A"
             strokeWidth="2"
             opacity="0.95"
@@ -152,21 +151,20 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
 
           {/* Table texture overlay */}
           <rect
-            x="137"
-            y="76.25"
-            width="274"
-            height="152.5"
+            x="182.67"
+            y="101.67"
+            width="182.67"
+            height="101.67"
             fill="url(#tablePattern)"
-            rx="4"
             opacity="0.1"
           />
 
           {/* Center line on table */}
           <line
             x1="274"
-            y1="76.25"
+            y1="101.67"
             x2="274"
-            y2="228.75"
+            y2="203.34"
             stroke="white"
             strokeWidth="1.5"
             strokeDasharray="4,4"
@@ -176,9 +174,9 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
           {/* Net */}
           <line
             x1="274"
-            y1="76.25"
+            y1="101.67"
             x2="274"
-            y2="228.75"
+            y2="203.34"
             stroke="#fff"
             strokeWidth="4"
             opacity="0.7"
@@ -242,12 +240,12 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
           </g>
 
           {displayShots.map((shot, idx) => {
-            // Origin: -50 to 150 range maps to full viewBox (0-548 x, 0-305 y)
-            // Landing: 0 to 100 range maps to table area (137-411 x, 76.25-228.75 y)
-            const x1 = ((shot.originX! + 50) / 200) * 548;
-            const y1 = ((shot.originY! + 50) / 200) * 305;
-            const x2 = 137 + (shot.landingX! / 100) * 274;
-            const y2 = 76.25 + (shot.landingY! / 100) * 152.5;
+            // Origin: -100 to 200 range maps to full viewBox (0-548 x, 0-305 y)
+            // Landing: 0 to 100 range maps to table area (182.67-365.34 x, 101.67-203.34 y)
+            const x1 = ((shot.originX! + 100) / 300) * 548;
+            const y1 = ((shot.originY! + 100) / 300) * 305;
+            const x2 = 182.67 + (shot.landingX! / 100) * 182.67;
+            const y2 = 101.67 + (shot.landingY! / 100) * 101.67;
 
             const isHovered = hoveredShot === idx;
             const shotColor = getShotColor(shot.stroke!);
@@ -336,22 +334,22 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
         </svg>
 
         {hoveredShot !== null && (
-          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-xl shadow-2xl border-2 border-gray-300 max-w-xs">
-            <p className="text-xs font-bold text-gray-800 mb-1">
+          <div className="absolute top-4 right-4 bg-white/85 backdrop-blur px-4 py-3 rounded-xl shadow-lg border border-gray-300 max-w-xs">
+            <p className="text-[10px] font-bold text-gray-800 mb-1">
               Point #{hoveredShot + 1}
             </p>
-            <p className="text-xs font-medium text-blue-600 mb-2">
+            <p className="text-[10px] font-medium text-blue-600 mb-2">
               {formatStrokeName(displayShots[hoveredShot].stroke || "Unknown")}
             </p>
 
             {/* Advanced Commentary */}
             <div className="mb-2 pb-2 border-b border-gray-200">
-              <p className="text-[10px] text-gray-700 italic leading-relaxed">
+              <p className="text-[9px] text-gray-700 italic leading-relaxed">
                 {generateShortCommentary(displayShots[hoveredShot])}
               </p>
             </div>
 
-            <div className="space-y-1 text-[10px] text-gray-600">
+            <div className="space-y-1 text-[9px] text-gray-600">
               <p>
                 Origin: ({displayShots[hoveredShot].originX?.toFixed(0)},{" "}
                 {displayShots[hoveredShot].originY?.toFixed(0)})
@@ -365,14 +363,14 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 ">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600/70 ">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-[#FFD700] border border-white"></div>
-          <span className="font-medium">Landing</span>
+          <span className="font-normal">Landing</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500"></div>
-          <span className="font-medium">Shot trajectory</span>
+          <span className="font-normal">Shot trajectory</span>
         </div>
       </div>
     </div>

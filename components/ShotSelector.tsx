@@ -18,6 +18,7 @@ import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
 import TableCourt from "./TableCourt";
 import { Button } from "./ui/button";
 import { ArrowLeft, MapPin } from "lucide-react";
+import { formatStrokeName } from "@/lib/utils";
 
 type SelectionStep = "player" | "shot" | "origin" | "landing";
 
@@ -192,7 +193,7 @@ const ShotSelector = () => {
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="rounded-none sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {(currentStep === "origin" ||
@@ -203,13 +204,8 @@ const ShotSelector = () => {
               </Button>
             )}
             <div>
-              <DialogTitle>
-                {currentStep === "player" && "Who scored the point?"}
-                {currentStep === "shot" && "Select Shot Type"}
-                {currentStep === "origin" && "Where was the shot from?"}
-                {currentStep === "landing" && "Where did it land?"}
-              </DialogTitle>
-              <DialogDescription>
+              
+              <DialogDescription className="text-xs text-gray-600/80">
                 {currentStep === "player" && "Select the player who scored"}
                 {currentStep === "shot" && "Choose the type of shot played"}
                 {currentStep === "origin" &&
@@ -245,7 +241,7 @@ const ShotSelector = () => {
         {/* Step 2: Shot Type Selection */}
         {currentStep === "shot" && (
           <ScrollArea className="h-96">
-            <div className="space-y-4 pr-4">
+            <div className="space-y-4 p-1 sm:grid sm:grid-cols-2 sm:gap-4">
               {Object.entries(shotCategories).map(([category, shots]) => (
                 <div key={category}>
                   <h3 className="font-medium capitalize mb-2 text-sm text-gray-700">
@@ -256,9 +252,9 @@ const ShotSelector = () => {
                       <button
                         key={shot.value}
                         onClick={() => handleShotSelect(shot.value)}
-                        className="border-2 rounded-xl p-3 text-sm hover:scale-[1.02] active:scale-[0.97] transition ease-in-out hover:bg-blue-50 hover:border-blue-400"
+                        className="border-2 rounded-xl p-2 text-sm hover:scale-[1.02] active:scale-[0.97] transition ease-in-out hover:bg-blue-50 hover:border-blue-400"
                       >
-                        {shot.label}
+                        {formatStrokeName(shot.value)}
                       </button>
                     ))}
                   </div>

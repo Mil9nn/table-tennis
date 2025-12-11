@@ -26,7 +26,6 @@ export function initializeSocketHandlers(
 ): void {
   io.on("connection", (socket: SocketType) => {
     const socketId = socket.id;
-    console.log(`[Socket.IO] Client connected: ${socketId}`);
 
     // Initialize metadata for this socket
     socketMetadata.set(socketId, { joinedAt: new Date() });
@@ -48,7 +47,6 @@ export function initializeSocketHandlers(
         if (metadata?.matchId) {
           const oldRoom = `match:${metadata.matchId}`;
           await socket.leave(oldRoom);
-          console.log(`[Socket.IO] Client ${socketId} left room ${oldRoom}`);
         }
 
         // Join new room
@@ -61,10 +59,6 @@ export function initializeSocketHandlers(
           role,
           joinedAt: new Date(),
         });
-
-        console.log(
-          `[Socket.IO] Client ${socketId} (${role}) joined room ${roomName}`
-        );
 
         // Get updated viewer count
         const sockets = await io.in(roomName).fetchSockets();

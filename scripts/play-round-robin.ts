@@ -1,13 +1,13 @@
 /**
  * Script to play round-robin tournaments and update standings
- * 
+ *
  * This script:
  * 1. Fetches players from the database
  * 2. Creates two tournaments (one with groups, one without)
  * 3. Generates round-robin matches
  * 4. Plays matches by updating scores
  * 5. Updates standings automatically
- * 
+ *
  * Usage: npm run play:round-robin
  */
 
@@ -59,18 +59,21 @@ function generateMatchScore(setsPerMatch: number = 3): MatchScore {
   while (side1Sets < setsNeeded && side2Sets < setsNeeded) {
     // Random winner for this set
     const setWinner = Math.random() > 0.5 ? "side1" : "side2";
-    
+
     // Generate game scores for this set (first to 11, win by 2)
     let side1Score = 0;
     let side2Score = 0;
-    
-    while ((side1Score < 11 && side2Score < 11) || Math.abs(side1Score - side2Score) < 2) {
+
+    while (
+      (side1Score < 11 && side2Score < 11) ||
+      Math.abs(side1Score - side2Score) < 2
+    ) {
       if (Math.random() > 0.5) {
         side1Score++;
       } else {
         side2Score++;
       }
-      
+
       // Prevent infinite loops
       if (side1Score > 20 || side2Score > 20) {
         if (setWinner === "side1") {
@@ -116,7 +119,6 @@ async function playMatch(matchId: string, scorerId: string): Promise<void> {
   }
 
   if (match.status === "completed") {
-    console.log(`  ⏭️  Match ${matchId} already completed, skipping...`);
     return;
   }
 
@@ -146,7 +148,6 @@ async function playMatch(matchId: string, scorerId: string): Promise<void> {
   match.matchDuration = Date.now() - (match.createdAt?.getTime() || Date.now());
 
   await match.save();
-  console.log(`  ✅ Match ${matchId} completed: ${score.side1Sets}-${score.side2Sets}`);
 }
 
 /**
@@ -186,22 +187,27 @@ async function createTournament(
   });
 
   await tournament.save();
-  console.log(`✅ Created tournament: ${name} (ID: ${tournament._id})`);
+
   return tournament._id.toString();
 }
 
 /**
  * Generate matches for a tournament
  */
-async function generateMatches(tournamentId: string, organizerId: string): Promise<void> {
+async function generateMatches(
+  tournamentId: string,
+  organizerId: string
+): Promise<void> {
   const tournament = await Tournament.findById(tournamentId);
   if (!tournament) {
     throw new Error(`Tournament ${tournamentId} not found`);
   }
 
   // Import the generate matches logic
-  const { generateRoundRobinSchedule, allocateGroups } = await import("../services/tournamentService");
-  
+  const { generateRoundRobinSchedule, allocateGroups } = await import(
+    "../services/tournamentService"
+  );
+
   const participantIds = tournament.participants.map((p: any) => p.toString());
 
   if (tournament.useGroups && tournament.numberOfGroups) {
@@ -288,8 +294,6 @@ async function generateMatches(tournamentId: string, organizerId: string): Promi
     tournament.standings = [];
     tournament.drawGenerated = true;
     await tournament.save();
-
-    console.log(`✅ Generated matches for ${tournament.numberOfGroups} groups`);
   } else {
     // Single round-robin (no groups)
     const schedule = generateRoundRobinSchedule(
@@ -354,16 +358,19 @@ async function generateMatches(tournamentId: string, organizerId: string): Promi
     tournament.standings = standings;
     tournament.drawGenerated = true;
     await tournament.save();
-
-    console.log(`✅ Generated matches for single round-robin`);
   }
 }
 
 /**
  * Play all matches in a tournament
  */
-async function playAllMatches(tournamentId: string, organizerId: string): Promise<void> {
-  const tournament = await Tournament.findById(tournamentId).populate("participants");
+async function playAllMatches(
+  tournamentId: string,
+  organizerId: string
+): Promise<void> {
+  const tournament = await Tournament.findById(tournamentId).populate(
+    "participants"
+  );
   if (!tournament) {
     throw new Error(`Tournament ${tournamentId} not found`);
   }
@@ -382,28 +389,22 @@ async function playAllMatches(tournamentId: string, organizerId: string): Promis
     }
   }
 
-  console.log(`\n🎮 Playing ${allMatchIds.length} matches...`);
-
   for (const matchId of allMatchIds) {
     try {
       await playMatch(matchId, organizerId);
-      
+
       // Reload tournament to get latest state
       const updatedTournament = await Tournament.findById(tournamentId);
       if (!updatedTournament) {
         throw new Error(`Tournament ${tournamentId} not found after match`);
       }
-      
+
       // Update standings after each match (this function saves the tournament)
       await updateRoundRobinStandings(updatedTournament);
-      
-      console.log(`  📊 Standings updated after match ${matchId}`);
     } catch (error: any) {
       console.error(`  ❌ Error playing match ${matchId}:`, error.message);
     }
   }
-
-  console.log(`\n✅ All matches completed!`);
 }
 
 /**
@@ -418,38 +419,19 @@ async function displayStandings(tournamentId: string): Promise<void> {
     throw new Error(`Tournament ${tournamentId} not found`);
   }
 
-  console.log(`\n📊 Standings for ${tournament.name}:`);
-  console.log("=" .repeat(80));
-
   if (tournament.useGroups && tournament.groups) {
     for (const group of tournament.groups) {
-      console.log(`\n${group.groupName}:`);
-      console.log("Rank | Player | MP | W | L | D | Pts");
-      console.log("-".repeat(50));
-      
       for (const standing of group.standings) {
         const participant = tournament.participants.find(
           (p: any) => p._id.toString() === standing.participant.toString()
         ) as any;
-        
-        console.log(
-          `${standing.rank.toString().padStart(4)} | ${(participant?.fullName || participant?.username || "Unknown").padEnd(20)} | ${standing.played.toString().padStart(2)} | ${standing.won.toString().padStart(2)} | ${standing.lost.toString().padStart(2)} | ${standing.drawn.toString().padStart(2)} | ${standing.points.toString().padStart(3)}`
-        );
       }
     }
   } else {
-    console.log("\nOverall Standings:");
-    console.log("Rank | Player | MP | W | L | D | Pts");
-    console.log("-".repeat(50));
-    
     for (const standing of tournament.standings) {
       const participant = tournament.participants.find(
         (p: any) => p._id.toString() === standing.participant.toString()
       ) as any;
-      
-      console.log(
-        `${standing.rank.toString().padStart(4)} | ${(participant?.fullName || participant?.username || "Unknown").padEnd(20)} | ${standing.played.toString().padStart(2)} | ${standing.won.toString().padStart(2)} | ${standing.lost.toString().padStart(2)} | ${standing.drawn.toString().padStart(2)} | ${standing.points.toString().padStart(3)}`
-      );
     }
   }
 }
@@ -459,20 +441,19 @@ async function displayStandings(tournamentId: string): Promise<void> {
  */
 async function main() {
   try {
-    console.log("🚀 Starting round-robin tournament script...\n");
-
     // Connect to database
     await connectDB();
-    console.log("✅ Connected to database");
 
     // Fetch users from database
-    const users = await User.find().select("_id username fullName").limit(Math.max(PLAYERS_WITH_GROUPS, PLAYERS_WITHOUT_GROUPS));
-    
-    if (users.length < MIN_PLAYERS) {
-      throw new Error(`Need at least ${MIN_PLAYERS} players in database. Found ${users.length}`);
-    }
+    const users = await User.find()
+      .select("_id username fullName")
+      .limit(Math.max(PLAYERS_WITH_GROUPS, PLAYERS_WITHOUT_GROUPS));
 
-    console.log(`✅ Found ${users.length} players in database`);
+    if (users.length < MIN_PLAYERS) {
+      throw new Error(
+        `Need at least ${MIN_PLAYERS} players in database. Found ${users.length}`
+      );
+    }
 
     // Use first user as organizer
     const organizer = users[0];
@@ -481,11 +462,10 @@ async function main() {
     // ============================================
     // TOURNAMENT 1: WITH GROUPS
     // ============================================
-    console.log("\n" + "=".repeat(80));
-    console.log("TOURNAMENT 1: Round-Robin WITH GROUPS");
-    console.log("=".repeat(80));
 
-    const playersWithGroups = users.slice(0, PLAYERS_WITH_GROUPS).map((u) => u._id.toString());
+    const playersWithGroups = users
+      .slice(0, PLAYERS_WITH_GROUPS)
+      .map((u) => u._id.toString());
     const tournament1Id = await createTournament(
       "Script Tournament - With Groups",
       organizerId,
@@ -495,23 +475,22 @@ async function main() {
 
     await generateMatches(tournament1Id, organizerId);
     await playAllMatches(tournament1Id, organizerId);
-    
+
     // Final standings update to ensure everything is correct
     const finalTournament1 = await Tournament.findById(tournament1Id);
     if (finalTournament1) {
       await updateRoundRobinStandings(finalTournament1);
     }
-    
+
     await displayStandings(tournament1Id);
 
     // ============================================
     // TOURNAMENT 2: WITHOUT GROUPS
     // ============================================
-    console.log("\n" + "=".repeat(80));
-    console.log("TOURNAMENT 2: Round-Robin WITHOUT GROUPS");
-    console.log("=".repeat(80));
 
-    const playersWithoutGroups = users.slice(0, PLAYERS_WITHOUT_GROUPS).map((u) => u._id.toString());
+    const playersWithoutGroups = users
+      .slice(0, PLAYERS_WITHOUT_GROUPS)
+      .map((u) => u._id.toString());
     const tournament2Id = await createTournament(
       "Script Tournament - Without Groups",
       organizerId,
@@ -521,28 +500,20 @@ async function main() {
 
     await generateMatches(tournament2Id, organizerId);
     await playAllMatches(tournament2Id, organizerId);
-    
+
     // Final standings update to ensure everything is correct
     const finalTournament2 = await Tournament.findById(tournament2Id);
     if (finalTournament2) {
       await updateRoundRobinStandings(finalTournament2);
     }
-    
+
     await displayStandings(tournament2Id);
-
-    console.log("\n" + "=".repeat(80));
-    console.log("✅ Script completed successfully!");
-    console.log(`Tournament 1 (with groups): ${tournament1Id}`);
-    console.log(`Tournament 2 (without groups): ${tournament2Id}`);
-    console.log("=".repeat(80));
-
   } catch (error: any) {
     console.error("\n❌ Error:", error.message);
     console.error(error.stack);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log("\n👋 Database connection closed");
   }
 }
 
@@ -552,4 +523,3 @@ if (require.main === module) {
 }
 
 export { main };
-

@@ -365,7 +365,7 @@ export default function CreateTournamentPage() {
         };
       }
 
-      console.log("Tournament payload:", JSON.stringify(payload, null, 2));
+      
 
       const response = await axiosInstance.post("/tournaments", payload);
       toast.success("Tournament created successfully!");

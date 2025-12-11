@@ -106,7 +106,8 @@ export async function createScheduledTeamMatch(
   }
 
   // Prepare submatches according to teamConfig (optional: if assignments exist)
-  const matchFormat = (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const matchFormat =
+    (tournament as any).teamConfig?.matchFormat || "five_singles";
   const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
 
   const subMatches: any[] = [];
@@ -190,7 +191,8 @@ export async function createScheduledTeamMatch(
     matchCategory: "team",
     matchFormat: matchFormat,
     numberOfSetsPerSubMatch: setsPerSubMatch,
-    numberOfSubMatches: subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    numberOfSubMatches:
+      subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
     city: tournament.city,
     venue: tournament.venue,
     scorer: scorerId,
@@ -238,7 +240,8 @@ export async function createBracketTeamMatch(
   }
 
   // Prepare submatches according to teamConfig (optional: if assignments exist)
-  const matchFormat = (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const matchFormat =
+    (tournament as any).teamConfig?.matchFormat || "five_singles";
   const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
 
   const subMatches: any[] = [];
@@ -322,7 +325,8 @@ export async function createBracketTeamMatch(
     matchCategory: "team",
     matchFormat: matchFormat,
     numberOfSetsPerSubMatch: setsPerSubMatch,
-    numberOfSubMatches: subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    numberOfSubMatches:
+      subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
     city: tournament.city,
     venue: tournament.venue,
     scorer: scorerId,
@@ -373,24 +377,26 @@ export async function createBracketMatch(
 
   // Get match participants - for doubles, we need 4 participants
   let matchParticipants: mongoose.Types.ObjectId[];
-  
+
   if (isDoubles) {
     // For doubles, we need to get the pairs
     // The bracket stores participant IDs (first player of each pair)
     // We need to find their partners using the same logic as getMatchParticipants
-    
+
     // Always use the original tournament participants list to find partners
     // because pairs are stored there. For hybrid knockout phase, qualifiedParticipants
     // only contains the first player of each qualifying pair, but we need the full
     // participants list to find partners.
-    const participantIds = tournament.participants.map((p: any) => p.toString());
-    
+    const participantIds = tournament.participants.map((p: any) =>
+      p.toString()
+    );
+
     // Create a pairing object similar to what's used in round-robin
     const pairing = {
       player1: bracketMatch.participant1,
       player2: bracketMatch.participant2,
     };
-    
+
     // Use the same logic as getMatchParticipants to get all 4 participants
     matchParticipants = getMatchParticipants(pairing, true, participantIds);
   } else {
@@ -557,7 +563,10 @@ export async function generateGroupMatches(
       groupRounds.push({
         roundNumber: round.roundNumber,
         matches: roundMatches,
-        matchModel: (tournament as any).category === "team" ? "TeamMatch" : "IndividualMatch",
+        matchModel:
+          (tournament as any).category === "team"
+            ? "TeamMatch"
+            : "IndividualMatch",
         completed: false,
         scheduledDate: round.scheduledDate,
       });
@@ -653,7 +662,10 @@ export async function generateSingleRoundRobinMatches(
     rounds.push({
       roundNumber: round.roundNumber,
       matches: roundMatches,
-      matchModel: (tournament as any).category === "team" ? "TeamMatch" : "IndividualMatch",
+      matchModel:
+        (tournament as any).category === "team"
+          ? "TeamMatch"
+          : "IndividualMatch",
       completed: false,
       scheduledDate: round.scheduledDate,
     });
@@ -683,7 +695,8 @@ export async function generateKnockoutMatches(
   options: MatchGenerationOptions
 ): Promise<KnockoutBracket> {
   // Check if custom matching is enabled
-  const allowCustomMatching = (tournament as any).knockoutConfig?.allowCustomMatching === true;
+  const allowCustomMatching =
+    (tournament as any).knockoutConfig?.allowCustomMatching === true;
 
   // Generate the knockout bracket
   const bracket = generateKnockoutBracket(
@@ -693,7 +706,8 @@ export async function generateKnockoutMatches(
       seedNumber: s.seedNumber,
     })),
     {
-      thirdPlaceMatch: (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+      thirdPlaceMatch:
+        (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
       scheduledDate: tournament.startDate,
       skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
     }
@@ -714,7 +728,7 @@ export async function generateKnockoutMatches(
     // This includes first round real matches AND matches in later rounds where
     // both participants have been determined via byes
     const isTeamCategory = (tournament as any).category === "team";
-    
+
     for (const round of bracket.rounds) {
       for (const bracketMatch of round.matches) {
         // Only create matches for non-bye matches (both participants present and not completed)
@@ -724,16 +738,8 @@ export async function generateKnockoutMatches(
           !bracketMatch.completed
         ) {
           const match = isTeamCategory
-            ? await createBracketTeamMatch(
-                bracketMatch,
-                tournament,
-                scorerId
-              )
-            : await createBracketMatch(
-                bracketMatch,
-                tournament,
-                scorerId
-              );
+            ? await createBracketTeamMatch(bracketMatch, tournament, scorerId)
+            : await createBracketMatch(bracketMatch, tournament, scorerId);
           if (match) {
             bracketMatch.matchId = match._id.toString();
           }
@@ -743,7 +749,6 @@ export async function generateKnockoutMatches(
   } else {
     // Custom matching mode: Create EMPTY bracket structure only
     // Organizer will manually configure ALL matches (including Round 1) via custom matcher
-    console.log("[Custom Matching Mode] Empty bracket structure created. Organizer will configure all matchups manually from Round 1.");
   }
 
   // Store bracket structure in tournament
@@ -752,7 +757,7 @@ export async function generateKnockoutMatches(
 
   // CRITICAL: Mark bracket as modified since it's Schema.Types.Mixed
   // Without this, Mongoose won't save the bracket changes to database
-  tournament.markModified('bracket');
+  tournament.markModified("bracket");
 
   return bracket;
 }
@@ -770,7 +775,8 @@ function calculateTournamentStats(tournament: Tournament): {
   if (tournament.format === "knockout" && (tournament as any).bracket) {
     const bracket = (tournament as any).bracket as KnockoutBracket;
     const totalMatches = bracket.rounds.reduce(
-      (sum, r) => sum + r.matches.filter((m) => m.participant1 && m.participant2).length,
+      (sum, r) =>
+        sum + r.matches.filter((m) => m.participant1 && m.participant2).length,
       0
     );
     return {
@@ -823,7 +829,9 @@ export async function generateTournamentDraw(
   if (tournament.format === "hybrid") {
     // For hybrid tournaments, only generate round-robin phase initially
     // Import hybrid service dynamically to avoid circular dependencies
-    const { generateHybridRoundRobinPhase } = await import("./hybridMatchGenerationService");
+    const { generateHybridRoundRobinPhase } = await import(
+      "./hybridMatchGenerationService"
+    );
     await generateHybridRoundRobinPhase(tournament, {
       scorerId: new mongoose.Types.ObjectId(scorerId),
       ...options,
@@ -876,7 +884,7 @@ export async function generateTournamentDraw(
 
   // Populate tournament data based on category
   const isTeamTournament = (tournament as any).category === "team";
-  
+
   if (isTeamTournament) {
     // Team tournament population
     await (tournament as any).populate([
@@ -893,8 +901,8 @@ export async function generateTournamentDraw(
           { path: "players.user", select: "username fullName profileImage" },
         ],
       },
-      { 
-        path: "seeding.participant", 
+      {
+        path: "seeding.participant",
         model: Team,
         select: "name logo city captain",
       },
@@ -918,7 +926,7 @@ export async function generateTournamentDraw(
         ],
       },
     ]);
-    
+
     // For team tournaments, rounds.matches are TeamMatch documents
     // They don't have a "participants" field, they have team1/team2
     // So we don't populate via the same mechanism

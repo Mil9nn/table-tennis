@@ -105,7 +105,11 @@ export async function POST(
 ) {
   // Rate limiting
   const { id } = await context.params;
-  const rateLimitResponse = await rateLimit(req, "POST", `/api/tournaments/${id}/custom-bracket`);
+  const rateLimitResponse = await rateLimit(
+    req,
+    "POST",
+    `/api/tournaments/${id}/custom-bracket`
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
@@ -116,31 +120,41 @@ export async function POST(
     const MatchModel = Match;
     const TournamentModel = Tournament;
     const BracketStateModel = BracketState;
-    
+
     // Force model registration by accessing the model
     // This ensures discriminators are registered in Next.js hot reload scenarios
-    if (!MatchModel || !IndividualMatch || !TournamentModel || !BracketStateModel) {
+    if (
+      !MatchModel ||
+      !IndividualMatch ||
+      !TournamentModel ||
+      !BracketStateModel
+    ) {
       throw new Error("Required models not loaded");
     }
-    
+
     // Explicitly ensure IndividualMatch discriminator is registered
     // Access the model to trigger registration if needed
-    if (!Match.discriminators || !Match.discriminators['individual']) {
+    if (!Match.discriminators || !Match.discriminators["individual"]) {
       // Force re-import to ensure registration
       const IndividualMatchModule = await import("@/models/IndividualMatch");
       const _ = IndividualMatchModule.default;
       // Verify it's now registered
-      if (!Match.discriminators || !Match.discriminators['individual']) {
-        console.error("[Custom Bracket] IndividualMatch discriminator still not registered after import");
+      if (!Match.discriminators || !Match.discriminators["individual"]) {
+        console.error(
+          "[Custom Bracket] IndividualMatch discriminator still not registered after import"
+        );
         // Try accessing through mongoose.models as fallback
-        if (!mongoose.models['Match']?.discriminators?.['individual']) {
-          throw new Error("IndividualMatch discriminator not registered. Please restart the server.");
+        if (!mongoose.models["Match"]?.discriminators?.["individual"]) {
+          throw new Error(
+            "IndividualMatch discriminator not registered. Please restart the server."
+          );
         }
       }
     }
-    
+
     // Get the IndividualMatch model (discriminator or direct import)
-    const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+    const IndividualMatchModel =
+      Match.discriminators?.["individual"] || IndividualMatch;
     if (!IndividualMatchModel) {
       throw new Error("IndividualMatch model not accessible");
     }
@@ -177,7 +191,8 @@ export async function POST(
       ) {
         return NextResponse.json(
           {
-            error: "Each match must have matchNumber, participant1, and participant2"
+            error:
+              "Each match must have matchNumber, participant1, and participant2",
           },
           { status: 400 }
         );
@@ -283,13 +298,17 @@ export async function POST(
     for (const match of matches) {
       if (!tournamentParticipantIds.includes(match.participant1)) {
         return NextResponse.json(
-          { error: `Participant ${match.participant1} not found in tournament` },
+          {
+            error: `Participant ${match.participant1} not found in tournament`,
+          },
           { status: 400 }
         );
       }
       if (!tournamentParticipantIds.includes(match.participant2)) {
         return NextResponse.json(
-          { error: `Participant ${match.participant2} not found in tournament` },
+          {
+            error: `Participant ${match.participant2} not found in tournament`,
+          },
           { status: 400 }
         );
       }
@@ -300,13 +319,17 @@ export async function POST(
     for (const match of matches) {
       if (participantsInRound.has(match.participant1)) {
         return NextResponse.json(
-          { error: `Participant ${match.participant1} appears in multiple matches in round ${roundNumber}` },
+          {
+            error: `Participant ${match.participant1} appears in multiple matches in round ${roundNumber}`,
+          },
           { status: 400 }
         );
       }
       if (participantsInRound.has(match.participant2)) {
         return NextResponse.json(
-          { error: `Participant ${match.participant2} appears in multiple matches in round ${roundNumber}` },
+          {
+            error: `Participant ${match.participant2} appears in multiple matches in round ${roundNumber}`,
+          },
           { status: 400 }
         );
       }
@@ -325,7 +348,7 @@ export async function POST(
       if (!eligibleParticipants.has(match.participant1)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant1} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`
+            error: `Participant ${match.participant1} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
           },
           { status: 400 }
         );
@@ -333,7 +356,7 @@ export async function POST(
       if (!eligibleParticipants.has(match.participant2)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant2} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`
+            error: `Participant ${match.participant2} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
           },
           { status: 400 }
         );
@@ -347,7 +370,9 @@ export async function POST(
       );
       if (!bracketMatch) {
         return NextResponse.json(
-          { error: `Match number ${match.matchNumber} not found in round ${roundNumber}` },
+          {
+            error: `Match number ${match.matchNumber} not found in round ${roundNumber}`,
+          },
           { status: 400 }
         );
       }
@@ -370,7 +395,8 @@ export async function POST(
       if (hasStartedMatches) {
         return NextResponse.json(
           {
-            error: "Cannot customize matches that have already started or completed"
+            error:
+              "Cannot customize matches that have already started or completed",
           },
           { status: 400 }
         );
@@ -412,7 +438,8 @@ export async function POST(
     round.scheduledDate = scheduledRound.scheduledDate;
     for (let i = 0; i < round.matches.length; i++) {
       if (scheduledRound.matches[i].scheduledDate) {
-        round.matches[i].scheduledDate = scheduledRound.matches[i].scheduledDate;
+        round.matches[i].scheduledDate =
+          scheduledRound.matches[i].scheduledDate;
       }
       if (scheduledRound.matches[i].courtNumber) {
         round.matches[i].courtNumber = scheduledRound.matches[i].courtNumber;
@@ -430,7 +457,8 @@ export async function POST(
       if (!bracketMatch) continue;
 
       // Create IndividualMatch document - use model directly to ensure it's registered
-      const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+      const IndividualMatchModel =
+        Match.discriminators?.["individual"] || IndividualMatch;
       const newMatch = new IndividualMatchModel({
         tournament: new mongoose.Types.ObjectId(id),
         matchCategory: "individual",
@@ -438,7 +466,7 @@ export async function POST(
         numberOfSets: tournament.rules.setsPerMatch || 3,
         participants: [
           new mongoose.Types.ObjectId(customMatch.participant1),
-          new mongoose.Types.ObjectId(customMatch.participant2)
+          new mongoose.Types.ObjectId(customMatch.participant2),
         ],
         scorer: new mongoose.Types.ObjectId(decoded.userId),
         status: "scheduled",
@@ -465,10 +493,10 @@ export async function POST(
     // When Round 1 is configured in custom matching, identify participants who didn't play
     // and automatically advance them to Round 2 as bye winners
     if (roundNumber === 1) {
-      console.log("[Custom Matching R1] Handling bye advancement...");
-
       // Get all tournament participants
-      const allParticipantIds = tournament.participants.map((p: any) => p.toString());
+      const allParticipantIds = tournament.participants.map((p: any) =>
+        p.toString()
+      );
 
       // Get participants used in Round 1 matches
       const usedInRound1 = new Set<string>();
@@ -478,9 +506,9 @@ export async function POST(
       });
 
       // Calculate bye recipients (participants NOT in Round 1)
-      const byeWinners = allParticipantIds.filter((p: any) => !usedInRound1.has(p));
-
-      console.log(`[Custom Matching R1] Total participants: ${allParticipantIds.length}, Used in R1: ${usedInRound1.size}, Bye winners: ${byeWinners.length}`);
+      const byeWinners = allParticipantIds.filter(
+        (p: any) => !usedInRound1.has(p)
+      );
 
       // Find Round 2 to populate with bye winners
       const round2 = bracket.rounds.find((r) => r.roundNumber === 2);
@@ -495,14 +523,18 @@ export async function POST(
         for (const r2match of round2.matches) {
           // Check if this R2 match receives a winner from R1
           const receivesFromR1 = round.matches.some(
-            (r1m) => r1m.bracketPosition.nextMatchNumber === r2match.bracketPosition.matchNumber
+            (r1m) =>
+              r1m.bracketPosition.nextMatchNumber ===
+              r2match.bracketPosition.matchNumber
           );
 
           if (receivesFromR1) {
             // One slot is for R1 winner (leave as null), other slot for bye winner
             // Determine which slot based on odd/even match number pattern
             const r1MatchNumber = round.matches.find(
-              (r1m) => r1m.bracketPosition.nextMatchNumber === r2match.bracketPosition.matchNumber
+              (r1m) =>
+                r1m.bracketPosition.nextMatchNumber ===
+                r2match.bracketPosition.matchNumber
             )?.bracketPosition.matchNumber;
 
             if (r1MatchNumber !== undefined) {
@@ -532,8 +564,6 @@ export async function POST(
             }
           }
         }
-
-        console.log(`[Custom Matching R1] Advanced ${byeIndex} bye winners to Round 2`);
       }
     }
 
@@ -547,22 +577,26 @@ export async function POST(
         if (bracketMatch.matchId) continue;
 
         // Check if both participants are now known
-        if (bracketMatch.participant1 && bracketMatch.participant2 && !bracketMatch.completed) {
+        if (
+          bracketMatch.participant1 &&
+          bracketMatch.participant2 &&
+          !bracketMatch.completed
+        ) {
           newlyReadyMatches.push(bracketMatch);
         }
       }
     }
 
     if (newlyReadyMatches.length > 0) {
-      console.log(`[Custom Bracket] Creating ${newlyReadyMatches.length} match documents for newly-ready matches`);
-
       for (const bracketMatch of newlyReadyMatches) {
         try {
           const isTeamCategory = tournament.category === "team";
 
           if (isTeamCategory) {
             // Import team match creation helper
-            const { createBracketTeamMatch } = await import("@/services/tournament/core/matchGenerationService");
+            const { createBracketTeamMatch } = await import(
+              "@/services/tournament/core/matchGenerationService"
+            );
             const match = await createBracketTeamMatch(
               bracketMatch,
               tournament,
@@ -571,11 +605,11 @@ export async function POST(
 
             if (match) {
               bracketMatch.matchId = (match._id as any).toString();
-              console.log(`[Custom Bracket] Created team match ${match._id} for round ${bracketMatch.bracketPosition.round}`);
             }
           } else {
             // Use model directly to ensure it's registered
-            const IndividualMatchModel = Match.discriminators?.['individual'] || IndividualMatch;
+            const IndividualMatchModel =
+              Match.discriminators?.["individual"] || IndividualMatch;
             const newMatch = new IndividualMatchModel({
               tournament: new mongoose.Types.ObjectId(id),
               matchCategory: "individual",
@@ -583,7 +617,7 @@ export async function POST(
               numberOfSets: tournament.rules.setsPerMatch || 3,
               participants: [
                 new mongoose.Types.ObjectId(bracketMatch.participant1),
-                new mongoose.Types.ObjectId(bracketMatch.participant2)
+                new mongoose.Types.ObjectId(bracketMatch.participant2),
               ],
               scorer: new mongoose.Types.ObjectId(decoded.userId),
               status: "scheduled",
@@ -595,7 +629,6 @@ export async function POST(
             await newMatch.save();
 
             bracketMatch.matchId = (newMatch._id as any).toString();
-            console.log(`[Custom Bracket] Created match ${newMatch._id} for round ${bracketMatch.bracketPosition.round}`);
           }
         } catch (err) {
           console.error(`[Custom Bracket] Error creating match document:`, err);
@@ -606,12 +639,14 @@ export async function POST(
 
     // Save updated bracket with new matchIds
     tournament.bracket = bracket;
-    tournament.markModified('bracket'); // CRITICAL: bracket is Schema.Types.Mixed
+    tournament.markModified("bracket"); // CRITICAL: bracket is Schema.Types.Mixed
 
     // Also update BracketState model for consistency
     try {
       const BracketState = (await import("@/models/BracketState")).default;
-      const existingBracketState = await BracketState.findOne({ tournament: id });
+      const existingBracketState = await BracketState.findOne({
+        tournament: id,
+      });
 
       if (existingBracketState) {
         existingBracketState.rounds = bracket.rounds;
@@ -619,16 +654,18 @@ export async function POST(
         existingBracketState.currentRound = bracket.currentRound;
         existingBracketState.completed = bracket.completed;
         await existingBracketState.save();
-        console.log(`[Custom Bracket] Updated BracketState for consistency`);
       }
     } catch (bracketStateErr) {
-      console.error(`[Custom Bracket] Warning: Failed to update BracketState:`, bracketStateErr);
+      console.error(
+        `[Custom Bracket] Warning: Failed to update BracketState:`,
+        bracketStateErr
+      );
       // Continue - not critical since Tournament.bracket is the source of truth for now
     }
 
     // Update tournament bracket field
     (tournament as any).bracket = bracket;
-    (tournament as any).markModified('bracket');
+    (tournament as any).markModified("bracket");
 
     // Update tournament status if needed
     if (tournament.status === "draft" || tournament.status === "upcoming") {
@@ -664,9 +701,11 @@ export async function POST(
   } catch (error: any) {
     console.error("[tournaments/[id]/custom-bracket] Error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to create custom bracket",
-        ...(process.env.NODE_ENV === "development" && { details: error.message })
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       },
       { status: 500 }
     );
