@@ -137,7 +137,7 @@ function calculateTableIntersection(
  * Left side: Deep (0-16.67) | Mid (16.67-33.33) | Short (33.33-50)
  * Right side: Short (50-66.67) | Mid (66.67-83.33) | Deep (83.33-100)
  */
-function getZone(landingX: number, receivingSide?: "side1" | "side2"): "short" | "mid" | "deep" | null {
+export function getZone(landingX: number, receivingSide?: "side1" | "side2"): "short" | "mid" | "deep" | null {
   // Determine which side of the table the ball landed on
   const isLeftSide = landingX <= 50;
   
@@ -175,8 +175,8 @@ function getZone(landingX: number, receivingSide?: "side1" | "side2"): "short" |
  * @param receivingSide - Which side the receiving player is on ("side1" or "side2")
  * @param isLeftHanded - Whether receiving player is left-handed (default: false)
  */
-function getSector(
-  landingY: number, 
+export function getSector(
+  landingY: number,
   receivingSide?: "side1" | "side2",
   isLeftHanded: boolean = false
 ): "backhand" | "crossover" | "forehand" | null {

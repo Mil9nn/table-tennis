@@ -58,6 +58,17 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
     }
   }, [match, currentSubMatchIndex, setInitialTeamMatch]);
 
+  // Auto-open server dialog if no server config exists for current submatch
+  useEffect(() => {
+    if (
+      currentSubMatch &&
+      currentSubMatch.status !== "completed" &&
+      !currentSubMatch.serverConfig?.firstServer
+    ) {
+      setServerDialogOpen(true);
+    }
+  }, [currentSubMatch, setServerDialogOpen]);
+
   if (!match || !currentSubMatch) {
     return (
       <div className="p-8 text-center">
@@ -257,22 +268,17 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                 side2Sets={team2Sets}
                 status={currentSubMatch.status}
                 onAddPoint={({ side, playerId }) => {
+                  if (currentSubMatch.status === "completed") {
+                    toast.error("Submatch is completed!");
+                    return;
+                  }
                   // Allow shot dialog to open - auto-start will happen in updateSubMatchScore
                   setPendingPlayer({ side, playerId });
                   setShotDialogOpen(true);
                 }}
                 onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}
-                onToggleMatch={() => {
-                  if (
-                    !isSubMatchActive &&
-                    !currentSubMatch.serverConfig?.firstServer
-                  ) {
-                    setServerDialogOpen(true);
-                  } else {
-                    toggleSubMatch();
-                  }
-                }}
+                onToggleMatch={toggleSubMatch}
                 onSwap={swapSides}
                 teamMatchPlayers={{
                   side1: Array.isArray(teamMatchPlayers.side1)

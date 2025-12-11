@@ -14,6 +14,7 @@ import { GameProgressionChart } from "@/components/match-stats/GameProgressionCh
 import { GameByGameBreakdown } from "@/components/match-stats/GameByGameBreakdown";
 import { PlayerShotAnalysis } from "@/components/match-stats/PlayerShotAnalysis";
 import { WagonWheelSection } from "@/components/match-stats/WagonWheelSection";
+import { MatchWeaknessesSection } from "@/components/weaknesses-analysis/MatchWeaknessesSection";
 import {
   computeStats,
   computePlayerStats,
@@ -145,6 +146,13 @@ export default function MatchStatsPage() {
             >
               Shot Maps
             </TabsTrigger>
+
+            <TabsTrigger
+              value="weaknesses"
+              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+            >
+              Weaknesses
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overall" className="space-y-6 mt-6">
@@ -189,6 +197,13 @@ export default function MatchStatsPage() {
               allShots={shots}
               games={allGames}
               hideByGame={allGames.length <= 1}
+            />
+          </TabsContent>
+
+          <TabsContent value="weaknesses" className="space-y-6 mt-6 p-6">
+            <MatchWeaknessesSection
+              matchId={matchId}
+              category="individual"
             />
           </TabsContent>
         </Tabs>
@@ -283,6 +298,13 @@ export default function MatchStatsPage() {
             >
               Shot Maps
             </TabsTrigger>
+
+            <TabsTrigger
+              value="weaknesses"
+              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
+            >
+              Weaknesses
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overall" className="space-y-6 mt-6">
@@ -366,6 +388,13 @@ export default function MatchStatsPage() {
               allShots={allShots}
               games={allSubMatchGames}
               hideByGame={allSubMatchGames.length <= 1}
+            />
+          </TabsContent>
+
+          <TabsContent value="weaknesses" className="space-y-6 mt-6 p-6">
+            <MatchWeaknessesSection
+              matchId={matchId}
+              category="team"
             />
           </TabsContent>
         </Tabs>

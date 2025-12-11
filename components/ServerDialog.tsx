@@ -102,13 +102,6 @@ export default function InitialServerDialog({
 
         toast.success("Server configuration saved!");
         setOpen(false);
-
-        // ✅ FIX #1: Auto-start the match after server selection for team matches
-        if (isTeamMatch) {
-          setTimeout(() => {
-            useTeamMatch.getState().toggleSubMatch();
-          }, 300);
-        }
       }
     } catch (err) {
       console.error("Failed to save server config:", err);

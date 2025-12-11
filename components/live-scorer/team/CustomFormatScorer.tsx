@@ -71,6 +71,17 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     }
   }, [match, currentSubMatchIndex, setInitialTeamMatch]);
 
+  // Auto-open server dialog if no server config exists for current submatch
+  useEffect(() => {
+    if (
+      currentSubMatch &&
+      currentSubMatch.status !== "completed" &&
+      !currentSubMatch.serverConfig?.firstServer
+    ) {
+      setServerDialogOpen(true);
+    }
+  }, [currentSubMatch, setServerDialogOpen]);
+
   if (!match || !currentSubMatch) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -169,6 +180,8 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     });
   };
 
+  const isCompleted = status === "completed";
+
   const handleUndo = async () => {
     if (team1Score === 0 && team2Score === 0) {
       toast.error("No points to undo");
@@ -198,51 +211,32 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     <div className="max-w-7xl mx-auto space-y-4 bg-blue-100">
       <Accordion type="single" collapsible defaultValue="">
         <AccordionItem value="custom-format">
-          {/* Accordion Header */}
-          <AccordionTrigger className="border-none rounded-none bg-gradient-to-br from-slate-50 to-white px-4 py-3">
-            <div className="flex items-center justify-between w-full">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Custom Format Match
-              </h3>
-              <Badge variant="outline" className="text-sm px-3 py-1">
-                {match.subMatches.length} Matches
-              </Badge>
-            </div>
-          </AccordionTrigger>
-
           {/* Accordion Expanded Content */}
           <AccordionContent>
             {/* --- MATCH SUMMARY CARD --- */}
             <Card className="border-none rounded-none">
               <CardContent>
-                <div className="grid grid-cols-3 gap-8 items-center">
-                  {/* Team 1 */}
-                  <div className="text-center space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      {match.team1.name}
-                    </p>
-                    <p className="text-5xl font-bold text-emerald-600">
-                      {match.finalScore.team1Matches}
-                    </p>
-                  </div>
+                <div className="rounded-2xl border bg-white shadow-sm p-4">
+                  <div className="">
+                    {/* Team 1 */}
+                    <div className="flex items-center gap-4">
+                      <p className="text-xs font-medium text-gray-500 tracking-wide">
+                        {match.team1.name}
+                      </p>
+                      <p className="text-xl font-extrabold bg-gradient-to-br from-emerald-500 to-emerald-700 text-transparent bg-clip-text">
+                        {match.finalScore.team1Matches}
+                      </p>
+                    </div>
 
-                  {/* VS Divider */}
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-full border-t-2 border-dashed border-gray-300"></div>
-                    <span className="text-sm font-semibold text-gray-400 bg-white px-3 py-1 rounded-full border">
-                      VS
-                    </span>
-                    <div className="w-full border-t-2 border-dashed border-gray-300"></div>
-                  </div>
-
-                  {/* Team 2 */}
-                  <div className="text-center space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      {match.team2.name}
-                    </p>
-                    <p className="text-5xl font-bold text-rose-600">
-                      {match.finalScore.team2Matches}
-                    </p>
+                    {/* Team 2 */}
+                    <div className="flex items-center gap-4">
+                      <p className="text-xs font-medium text-gray-500 tracking-wide">
+                        {match.team2.name}
+                      </p>
+                      <p className="text-xl font-extrabold bg-gradient-to-br from-rose-500 to-rose-700 text-transparent bg-clip-text">
+                        {match.finalScore.team2Matches}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -292,7 +286,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               </CardHeader>
 
               <CardContent>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {/* Previous Button */}
                   <Button
                     variant="outline"
@@ -426,22 +420,17 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                 side2Sets={team2Sets}
                 status={currentSubMatch.status as MatchStatus}
                 onAddPoint={({ side, playerId }) => {
+                  if (currentSubMatch.status === "completed") {
+                    toast.error("Submatch is completed!");
+                    return;
+                  }
                   // Allow shot dialog to open - auto-start will happen in updateSubMatchScore
                   setPendingPlayer({ side, playerId });
                   setShotDialogOpen(true);
                 }}
                 onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}
-                onToggleMatch={() => {
-                  if (
-                    !isSubMatchActive &&
-                    !currentSubMatch.serverConfig?.firstServer
-                  ) {
-                    setServerDialogOpen(true);
-                  } else {
-                    toggleSubMatch();
-                  }
-                }}
+                onToggleMatch={toggleSubMatch}
                 onSwap={swapSides}
                 teamMatchPlayers={teamMatchPlayers}
               />
@@ -464,9 +453,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
         </CardContent>
       </Card>
 
-      {match.status === "completed" ? (
-        <TeamMatchCompletedCard match={match} />
-      ) : (
+      {isCompleted && <TeamMatchCompletedCard match={match} />}
+
+      {!isCompleted && (
         <>
           <ShotSelector />
           <InitialServerDialog

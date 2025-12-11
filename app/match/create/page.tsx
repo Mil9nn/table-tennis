@@ -35,7 +35,8 @@ export default function CreateMatchPage() {
       </header>
 
       {/* Match Category Toggle */}
-      <div className="mt-6 py-6 max-w-2xl mx-auto bg-white">
+      <div className="mt-6 p-4 max-w-2xl mx-auto bg-white">
+        <h2 className="text-md px-5 font-semibold mb-4">Match Category</h2>
         <div className="flex items-center justify-center flex-wrap gap-4">
           {[
             {
@@ -56,9 +57,9 @@ export default function CreateMatchPage() {
                 onClick={() => setMatchCategory(option.type as any)}
                 className={`${
                   isActive ? "bg-[#6C6FD5] text-white" : ""
-                } rounded-xl shadow-sm cursor-pointer p-2 flex flex-col items-center justify-center gap-2 transition-all`}
+                } rounded-xl shadow-sm cursor-pointer p-4 flex flex-col items-center justify-center gap-2 transition-all`}
               >
-                <h3 className={`p-2 rounded-xl font-semibold text-sm `}>
+                <h3 className={`rounded-xl font-semibold text-sm `}>
                   {option.title}
                 </h3>
               </motion.div>

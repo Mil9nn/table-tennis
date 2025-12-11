@@ -20,11 +20,26 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { WeaknessInsightsPanel } from "@/components/weaknesses-analysis/WeaknessInsightsPanel";
+import { ShotWeaknessChart } from "@/components/weaknesses-analysis/ShotWeaknessChart";
+import { ZoneHeatmap } from "@/components/weaknesses-analysis/ZoneHeatmap";
+import { ServeReceiveWeaknessCard } from "@/components/weaknesses-analysis/ServeReceiveWeaknessCard";
+import { OpponentPatternAnalysis } from "@/components/weaknesses-analysis/OpponentPatternAnalysis";
+import { ZoneSectorWeaknessTable } from "@/components/weaknesses-analysis/ZoneSectorWeaknessTable";
+import { LineWeaknessChart } from "@/components/weaknesses-analysis/LineWeaknessChart";
+import { OriginDistanceAnalysis } from "@/components/weaknesses-analysis/OriginDistanceAnalysis";
+import {
+  hasZoneSectorData,
+  hasLineData,
+  hasOriginDistanceData,
+} from "@/lib/weaknesses-analysis-utils";
 
 const PerformanceInsightsPage = () => {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
+  const [weaknessData, setWeaknessData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [weaknessLoading, setWeaknessLoading] = useState(false);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -39,7 +54,22 @@ const PerformanceInsightsPage = () => {
       }
     };
 
+    const fetchWeaknesses = async () => {
+      setWeaknessLoading(true);
+      try {
+        const response = await axiosInstance.get(`/profile/weaknesses-analysis?matchLimit=20`);
+        if (response.data.success && response.data.data) {
+          setWeaknessData(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch weaknesses:", error);
+      } finally {
+        setWeaknessLoading(false);
+      }
+    };
+
     fetchInsights();
+    fetchWeaknesses();
   }, []);
 
   const stats = data?.stats || {};
@@ -226,6 +256,95 @@ const PerformanceInsightsPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Weaknesses Analysis Section */}
+            <div className="mt-8 space-y-6">
+              <div className="border-t-2 border-gray-200 pt-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  Weaknesses Analysis
+                </h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  Identify areas for improvement based on your last 20 matches
+                </p>
+
+                {weaknessLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
+                      <span className="text-gray-600">Analyzing weaknesses...</span>
+                    </div>
+                  </div>
+                ) : !weaknessData ? (
+                  <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
+                    <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                      No Analysis Available
+                    </h3>
+                    <p className="text-gray-600">
+                      Play more matches to generate weakness analysis!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <WeaknessInsightsPanel insights={weaknessData.overallInsights} />
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <ShotWeaknessChart
+                        shotWeaknesses={weaknessData.shotWeaknesses.byStrokeType}
+                        variant="weaknesses"
+                        showTop={10}
+                      />
+                      <ZoneHeatmap
+                        zoneData={weaknessData.zoneWeaknesses}
+                        viewMode="winRate"
+                      />
+                    </div>
+
+                    <ServeReceiveWeaknessCard
+                      serveStats={weaknessData.serveReceiveWeaknesses.serve}
+                      receiveStats={weaknessData.serveReceiveWeaknesses.receive}
+                    />
+
+                    <OpponentPatternAnalysis
+                      patterns={weaknessData.opponentPatternAnalysis.successfulStrokes}
+                      maxDisplay={5}
+                    />
+
+                    {/* Semantic Zone Analysis Section */}
+                    {weaknessData.semanticZoneAnalysis && (
+                      <div className="space-y-4 mt-6">
+                        {/* Only show header if at least one sub-section has data */}
+                        {(hasZoneSectorData(weaknessData.semanticZoneAnalysis.zoneSectorWeaknesses) ||
+                          hasLineData(weaknessData.semanticZoneAnalysis.lineWeaknesses) ||
+                          hasOriginDistanceData(weaknessData.semanticZoneAnalysis.originDistanceWeaknesses)) && (
+                          <div>
+                            <h3 className="text-xl font-semibold">Semantic Zone Analysis</h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              Advanced analysis using table zones, sectors, and shot trajectories
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Each component returns null if no data */}
+                        <ZoneSectorWeaknessTable
+                          weaknesses={weaknessData.semanticZoneAnalysis.zoneSectorWeaknesses}
+                          showAll={false}
+                        />
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <LineWeaknessChart
+                            lineWeaknesses={weaknessData.semanticZoneAnalysis.lineWeaknesses}
+                          />
+                          <OriginDistanceAnalysis
+                            distanceWeaknesses={weaknessData.semanticZoneAnalysis.originDistanceWeaknesses}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
