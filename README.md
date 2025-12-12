@@ -17,7 +17,7 @@ A professional match scoring, shot tracking, and performance analytics system fo
 - **Framework:** Next.js 15 (App Router)
 - **Language:** TypeScript
 - **Database:** MongoDB with Mongoose
-- **Authentication:** NextAuth.js
+- **Authentication:** Custom JWT-based authentication
 - **Styling:** Tailwind CSS
 - **State Management:** Zustand
 - **Charts:** ECharts, Recharts, Plotly
@@ -40,13 +40,34 @@ npm install
 
 Create a `.env.local` file:
 
+**Required:**
 ```env
 MONGODB_URI=your_mongodb_connection_string
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_secret_key
+JWT_SECRET=your_jwt_secret_key_min_32_chars
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+```
+
+**Optional:**
+```env
+# Rate Limiting (requires Upstash Redis)
+UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_BYPASS_KEY=your_bypass_key
+
+# Socket.IO (currently disabled, for future use)
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+
+# Error Monitoring (GlitchTip/Sentry)
+NEXT_PUBLIC_GLITCHTIP_DSN=your_glitchtip_dsn
+GLITCHTIP_ENABLED=false
+GLITCHTIP_ENVIRONMENT=development
+
+# Server Configuration
+HOSTNAME=localhost
+PORT=3000
 ```
 
 ### Development

@@ -22,17 +22,6 @@ const envSchema = z.object({
     .min(32, "JWT_SECRET must be at least 32 characters long")
     .describe("Secret key for signing JWT tokens"),
 
-  // NextAuth (if used)
-  NEXTAUTH_URL: z
-    .string()
-    .url("NEXTAUTH_URL must be a valid URL")
-    .optional()
-    .default("http://localhost:3000"),
-  NEXTAUTH_SECRET: z
-    .string()
-    .min(32, "NEXTAUTH_SECRET must be at least 32 characters long (or remove it if not using NextAuth)")
-    .optional(),
-
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: z
     .string()
@@ -132,11 +121,8 @@ export const env = (() => {
           console.error(`    ${message}`);
           
           // Provide helpful hints for common issues
-          if (name === "JWT_SECRET" || name === "NEXTAUTH_SECRET") {
+          if (name === "JWT_SECRET") {
             console.error(`    💡 Tip: Generate a secure secret with: openssl rand -base64 32`);
-            if (name === "NEXTAUTH_SECRET") {
-              console.error(`    💡 Tip: NEXTAUTH_SECRET is optional - you can remove it if not using NextAuth`);
-            }
           }
         });
         console.error("");
