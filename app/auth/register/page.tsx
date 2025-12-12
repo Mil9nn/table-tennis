@@ -2,40 +2,28 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { registerSchema } from "@/lib/validations/auth";
+import type { RegisterInput } from "@/lib/validations/auth";
 
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-
-const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-  fullName: z.string().min(2, {
-    message: "Full name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-});
+import { useState } from "react";
 
 const Page = () => {
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const register = useAuthStore((state) => state.register);
   const authLoading = useAuthStore((state) => state.authLoading);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       fullName: "",
@@ -44,7 +32,28 @@ const Page = () => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const password = form.watch("password");
+  
+  // Password strength checker
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { strength: 0, label: "", color: "" };
+    
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (/[A-Z]/.test(pwd)) strength++;
+    if (/[a-z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pwd)) strength++;
+    
+    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" };
+    if (strength <= 3) return { strength, label: "Fair", color: "bg-yellow-500" };
+    if (strength <= 4) return { strength, label: "Good", color: "bg-blue-500" };
+    return { strength, label: "Strong", color: "bg-green-500" };
+  };
+
+  const passwordStrength = getPasswordStrength(password || "");
+
+  async function onSubmit(values: RegisterInput) {
     await register(values);
     // After registration, always redirect to complete profile
     router.push("/complete-profile");
@@ -74,22 +83,26 @@ const Page = () => {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Username"
+                        placeholder="Username (3-30 characters, alphanumeric, _, -)"
                         className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {/* Full Name */}
               <FormField
                 control={form.control}
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Full Name</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Full name"
@@ -97,6 +110,7 @@ const Page = () => {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -107,6 +121,7 @@ const Page = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Email address"
@@ -115,6 +130,7 @@ const Page = () => {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -125,14 +141,64 @@ const Page = () => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Password"
-                        type="password"
-                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Password (min 8 chars with uppercase, lowercase, number, special char)"
+                          type={showPassword ? "text" : "password"}
+                          className="border-gray-200 focus:ring-2 focus:ring-indigo-500 pr-10"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm"
+                        >
+                          {showPassword ? "Hide" : "Show"}
+                        </button>
+                      </div>
                     </FormControl>
+                    {password && (
+                      <div className="space-y-1">
+                        <div className="flex gap-1 h-1.5">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <div
+                              key={level}
+                              className={`flex-1 rounded-full ${
+                                level <= passwordStrength.strength
+                                  ? passwordStrength.color
+                                  : "bg-gray-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          Strength: <span className="font-medium">{passwordStrength.label}</span>
+                        </p>
+                      </div>
+                    )}
+                    <FormMessage />
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                      <p>Password must contain:</p>
+                      <ul className="list-disc list-inside space-y-0.5 ml-2">
+                        <li className={password && password.length >= 8 ? "text-green-600" : ""}>
+                          At least 8 characters
+                        </li>
+                        <li className={password && /[A-Z]/.test(password) ? "text-green-600" : ""}>
+                          One uppercase letter
+                        </li>
+                        <li className={password && /[a-z]/.test(password) ? "text-green-600" : ""}>
+                          One lowercase letter
+                        </li>
+                        <li className={password && /[0-9]/.test(password) ? "text-green-600" : ""}>
+                          One number
+                        </li>
+                        <li className={password && /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? "text-green-600" : ""}>
+                          One special character (!@#$%^&*...)
+                        </li>
+                      </ul>
+                    </div>
                   </FormItem>
                 )}
               />

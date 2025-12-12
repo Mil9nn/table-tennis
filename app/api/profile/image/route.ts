@@ -4,8 +4,10 @@ import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { logError } from "@/lib/error-logger";
 
 export async function POST(request: NextRequest) {
+  let decoded: { userId?: string } | null = null;
   try {
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "POST", "/api/profile/image");
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
+    decoded = verifyToken(token);
     if (!decoded?.userId) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
@@ -31,11 +33,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
+    // ✅ Enhanced validation
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { success: false, message: "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed." },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { success: false, message: "File size must not exceed 5MB" },
         { status: 400 }
       );
     }
@@ -58,10 +69,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, url: uploadResult.secure_url });
   } catch (error: any) {
-    console.error("[profile/image] Error:", error);
+    logError(error, {
+      tags: { feature: "profile", action: "image-upload", endpoint: "POST /api/profile/image" },
+      user: { id: decoded?.userId || "unknown" },
+    });
+
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         message: "Failed to upload profile image",
         ...(process.env.NODE_ENV === "development" && { details: error.message })
       },

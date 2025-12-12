@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { generateToken, setAuthCookie } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { loginSchema } from "@/lib/validations/auth";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -13,14 +14,27 @@ export async function POST(request: NextRequest) {
 
   try {
     await connectDB();
-    const { email, password } = await request.json();
+    const body = await request.json();
 
-    if (!email || !password) {
-      return new Response(
-        JSON.stringify({ message: "Email and password are required." }),
+    // Validate input using Zod schema
+    const validationResult = loginSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
+      return NextResponse.json(
+        {
+          message: "Validation failed",
+          errors,
+        },
         { status: 400 }
       );
     }
+
+    const { email, password } = validationResult.data;
 
     const user = await User.findOne({ email });
     if (!user) {

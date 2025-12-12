@@ -25,6 +25,8 @@ import {
   Line,
 } from "recharts";
 
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+
 // Helper function to format tournament type for display
 const formatTournamentType = (type: string | null | undefined): string => {
   if (!type) return "Non-Tournament";
@@ -74,6 +76,38 @@ const PlayerStatsPage = () => {
 
   const singlesStats = singlesDoubles.singles;
   const doublesStats = singlesDoubles.doubles;
+
+  // Calculate win rates
+  const singlesTotalMatches = (singlesStats.wins || 0) + (singlesStats.losses || 0);
+  const doublesTotalMatches = (doublesStats.wins || 0) + (doublesStats.losses || 0);
+  const singlesWinRate = singlesTotalMatches > 0 
+    ? ((singlesStats.wins || 0) / singlesTotalMatches * 100).toFixed(1)
+    : "0.0";
+  const doublesWinRate = doublesTotalMatches > 0
+    ? ((doublesStats.wins || 0) / doublesTotalMatches * 100).toFixed(1)
+    : "0.0";
+
+  // Calculate avg points per match
+  const totalMatches = singlesTotalMatches + doublesTotalMatches;
+  const avgPointsPerMatch = totalMatches > 0 
+    ? ((scoring.totalPointsScored || 0) / totalMatches).toFixed(1)
+    : "0.0";
+
+  // Calculate best win streak from match performance
+  // Note: matches are sorted newest first, so we reverse to calculate chronologically
+  let bestWinStreak = 0;
+  let currentStreak = 0;
+  if (tables.matchPerformance && tables.matchPerformance.length > 0) {
+    const matchesChronological = [...tables.matchPerformance].reverse();
+    matchesChronological.forEach((match: any) => {
+      if (match.result === "Win") {
+        currentStreak++;
+        bestWinStreak = Math.max(bestWinStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    });
+  }
 
   // Prepare data for charts
   const matchTypeData = [
@@ -130,6 +164,28 @@ const PlayerStatsPage = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Performance Highlights */}
+            <div className="p-4">
+              <h2 className="text-xl font-semibold text-zinc-800 mb-4">
+                Performance Highlights
+              </h2>
+              <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-600 mb-1">
+                      Best Win Streak
+                    </h3>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {bestWinStreak}
+                    </p>
+                  </div>
+                  <div className="text-4xl">
+                    <WhatshotIcon fontSize="large" className="text-blue-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* A. Singles and Doubles Stats */}
             <div className="p-4">
               <h2 className="text-xl font-semibold text-zinc-800 mb-6">
@@ -158,6 +214,20 @@ const PlayerStatsPage = () => {
                       Sets Lost: {singlesStats.setsLost || 0}
                     </div>
                   </div>
+
+                  {/* Win Rate Card */}
+                  {singlesTotalMatches > 0 && (
+                    <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-4 shadow-sm">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="text-xs font-semibold text-blue-500 tracking-wide">
+                           Win Rate
+                        </h4>
+                      </div>
+                      <p className="text-xl font-bold text-gray-700">
+                        {singlesWinRate}%
+                      </p>
+                    </div>
+                  )}
 
                   {/* Tournament breakdown */}
                   {singlesStats?.matchesByTournamentType &&
@@ -211,6 +281,20 @@ const PlayerStatsPage = () => {
                     </div>
                   </div>
 
+                  {/* Win Rate Card */}
+                  {doublesTotalMatches > 0 && (
+                    <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-4 shadow-sm">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="text-xs font-semibold text-blue-500 tracking-wide">
+                          Doubles Win Rate
+                        </h4>
+                      </div>
+                      <p className="text-xl font-bold text-gray-700">
+                        {doublesWinRate}%
+                      </p>
+                    </div>
+                  )}
+
                   {doublesStats?.matchesByTournamentType &&
                     Object.keys(doublesStats.matchesByTournamentType).length >
                       0 && (
@@ -247,7 +331,7 @@ const PlayerStatsPage = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 Scoring Statistics
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
                 <div className="bg-gradient-to-br from-green-50 to-green-100 shadow-sm rounded-lg p-4">
                   <p className="text-sm text-green-900 font-semibold mb-1">
                     Total Points Scored
@@ -270,6 +354,14 @@ const PlayerStatsPage = () => {
                   </p>
                   <p className="text-3xl font-bold text-blue-700">
                     {scoring.avgPointsPerSet || 0}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 shadow-sm rounded-lg p-4">
+                  <p className="text-sm text-orange-900 font-semibold mb-1">
+                    Avg Points/Match
+                  </p>
+                  <p className="text-3xl font-bold text-orange-700">
+                    {avgPointsPerMatch}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 shadow-sm rounded-lg p-4">

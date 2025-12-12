@@ -211,6 +211,10 @@ export function calculateShotWeaknesses(
 
 /**
  * Calculate zone-based weaknesses (10x10 grid)
+ * 
+ * Since only winning shots are recorded:
+ * - If shot.player === userId: user won the point (win)
+ * - If shot.player !== userId: opponent won the point (loss for user)
  */
 export function calculateZoneWeaknesses(
   allGames: any[],
@@ -231,14 +235,16 @@ export function calculateZoneWeaknesses(
 
   // Process all games
   allGames.forEach((game) => {
-    const outcomes = determinePointOutcomes(game);
+    const shots = game.shots || [];
+    
+    shots.forEach((shot: any) => {
+      // Only winning shots are recorded, so check if this shot belongs to the user
+      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+      if (!shotPlayerId) return;
+      if (shot.landingX == null || shot.landingY == null) return;
 
-    outcomes.forEach((outcome) => {
-      if (outcome.playerId !== userId) return;
-      if (outcome.landingX == null || outcome.landingY == null) return;
-
-      const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
-      const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
+      const zoneX = Math.min(9, Math.floor(shot.landingX / 10));
+      const zoneY = Math.min(9, Math.floor(shot.landingY / 10));
       const zoneKey = `${zoneX},${zoneY}`;
 
       if (!grid[zoneKey]) {
@@ -255,14 +261,15 @@ export function calculateZoneWeaknesses(
       const zone = grid[zoneKey];
       zone.totalShots++;
 
-      if (outcome.won) {
+      // If shot is from user, they won the point. If from opponent, user lost the point.
+      if (shotPlayerId === userId) {
         zone.wins++;
       } else {
         zone.losses++;
       }
 
-      if (outcome.stroke) {
-        zone.strokes[outcome.stroke] = (zone.strokes[outcome.stroke] || 0) + 1;
+      if (shot.stroke) {
+        zone.strokes[shot.stroke] = (zone.strokes[shot.stroke] || 0) + 1;
       }
     });
   });
@@ -636,16 +643,20 @@ export function calculateZoneSectorWeaknesses(
   });
 
   // Process all games
+  // Since only winning shots are recorded:
+  // - If shot.player === userId: user won the point (win)
+  // - If shot.player !== userId: opponent won the point (loss for user)
   allGames.forEach((game) => {
-    const outcomes = determinePointOutcomes(game);
-
-    outcomes.forEach((outcome) => {
-      if (outcome.playerId !== userId) return;
-      if (outcome.landingX == null || outcome.landingY == null) return;
+    const shots = game.shots || [];
+    
+    shots.forEach((shot: any) => {
+      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+      if (!shotPlayerId) return;
+      if (shot.landingX == null || shot.landingY == null) return;
 
       // Use getZone and getSector directly (they only need landing coordinates)
-      const zone = getZone(outcome.landingX);
-      const sector = getSector(outcome.landingY);
+      const zone = getZone(shot.landingX);
+      const sector = getSector(shot.landingY);
 
       if (!zone || !sector) return; // Skip if null
 
@@ -653,14 +664,16 @@ export function calculateZoneSectorWeaknesses(
       const stats = zoneSectorStats[key];
 
       stats.totalShots++;
-      if (outcome.won) {
+      
+      // If shot is from user, they won the point. If from opponent, user lost the point.
+      if (shotPlayerId === userId) {
         stats.wins++;
       } else {
         stats.losses++;
       }
 
-      if (outcome.stroke) {
-        stats.strokes[outcome.stroke] = (stats.strokes[outcome.stroke] || 0) + 1;
+      if (shot.stroke) {
+        stats.strokes[shot.stroke] = (stats.strokes[shot.stroke] || 0) + 1;
       }
     });
   });
@@ -855,33 +868,48 @@ export function calculateOriginDistanceWeaknesses(
   };
 
   // Process all games
+  // Since only winning shots are recorded:
+  // - If shot.player === userId: user won the point (win)
+  // - If shot.player !== userId: opponent won the point (loss for user)
   allGames.forEach((game) => {
-    const outcomes = determinePointOutcomes(game);
+    const shots = game.shots || [];
+    
+    shots.forEach((shot: any) => {
+      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+      if (!shotPlayerId) return;
+      
+      // Need origin coordinates to determine distance from table
+      if (shot.originX == null || shot.originY == null || shot.landingX == null || shot.landingY == null) {
+        return; // Skip if missing coordinate data
+      }
 
-    outcomes.forEach((outcome) => {
-      if (outcome.playerId !== userId) return;
-
-      const shot: any = {
-        landingX: outcome.landingX || 50,
-        landingY: outcome.landingY || 50,
-        originX: null, // Would need from shot data
-        originY: null,
-        side: null,
+      const shotForAnalysis: any = {
+        landingX: shot.landingX,
+        landingY: shot.landingY,
+        originX: shot.originX,
+        originY: shot.originY,
+        side: shot.side,
       };
 
-      const receivingSide: "side2" | "side1" = "side2";
-      const placement = analyzeShotPlacement(shot, receivingSide);
+      // Determine receiving side based on shot side
+      const receivingSide: "side2" | "side1" = shot.side === "side1" ? "side2" : "side1";
+      const placement = analyzeShotPlacement(shotForAnalysis, receivingSide);
 
       // If originZone is null, categorize as "on-table"
       const originZone = placement.originZone || "on-table";
       const stats = distanceStats[originZone];
 
       stats.totalShots++;
-      if (outcome.won) stats.wins++;
-      else stats.losses++;
+      
+      // If shot is from user, they won the point. If from opponent, user lost the point.
+      if (shotPlayerId === userId) {
+        stats.wins++;
+      } else {
+        stats.losses++;
+      }
 
-      if (outcome.stroke) {
-        stats.strokes[outcome.stroke] = (stats.strokes[outcome.stroke] || 0) + 1;
+      if (shot.stroke) {
+        stats.strokes[shot.stroke] = (stats.strokes[shot.stroke] || 0) + 1;
       }
     });
   });

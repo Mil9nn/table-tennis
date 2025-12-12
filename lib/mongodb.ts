@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { env } from "./env";
 
 let cached = (global as any).mongoose;
 
@@ -51,7 +52,7 @@ export const connectDB = async () => {
 
     // 2. Create a new connection if it doesn't exist
     if (!cached.promise) {
-        cached.promise = mongoose.connect(process.env.MONGODB_URI!).then(async (mongooseInstance) => {
+        cached.promise = mongoose.connect(env.MONGODB_URI).then(async (mongooseInstance) => {
             
             // Ensure models are registered after successful connection
             await ensureModelsRegistered();

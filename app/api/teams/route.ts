@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { logError } from "@/lib/error-logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,9 +54,12 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("[teams GET] Error:", error);
+    logError(error, {
+      tags: { feature: "team", action: "fetch", endpoint: "GET /api/teams" },
+    });
+
     return NextResponse.json(
-      { 
+      {
         message: "Failed to fetch teams",
         ...(process.env.NODE_ENV === "development" && { details: error.message })
       },
@@ -81,17 +85,58 @@ export async function POST(req: NextRequest) {
     const playersJson = formData.get("players") as string;
     const teamImage = formData.get("teamImage") as Blob | null;
 
-    
-
     // Parse players array
     const players = playersJson ? JSON.parse(playersJson) : [];
 
-    // Validate required fields
+    // Basic validation (Zod validation for FormData is complex, so we do basic checks here)
     if (!name || !captain || !players || players.length < 2) {
       return NextResponse.json(
         { message: "Name, captain, and at least 2 players are required" },
         { status: 400 }
       );
+    }
+
+    // Validate name length
+    if (name.trim().length < 3 || name.trim().length > 100) {
+      return NextResponse.json(
+        { message: "Team name must be between 3 and 100 characters" },
+        { status: 400 }
+      );
+    }
+
+    // Validate captain is in players list
+    if (!players.includes(captain)) {
+      return NextResponse.json(
+        { message: "Captain must be one of the team players" },
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate players
+    const uniquePlayers = new Set(players);
+    if (uniquePlayers.size !== players.length) {
+      return NextResponse.json(
+        { message: "Duplicate players are not allowed" },
+        { status: 400 }
+      );
+    }
+
+    // Validate image file if provided
+    if (teamImage && teamImage.size > 0) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!allowedTypes.includes(teamImage.type)) {
+        return NextResponse.json(
+          { message: "Only JPEG, PNG, GIF, and WebP images are allowed" },
+          { status: 400 }
+        );
+      }
+
+      if (teamImage.size > 5 * 1024 * 1024) {
+        return NextResponse.json(
+          { message: "Image file size must not exceed 5MB" },
+          { status: 400 }
+        );
+      }
     }
 
     // ✅ Verify that the authenticated user is the captain
@@ -182,9 +227,13 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("[teams POST] Error:", error);
+    logError(error, {
+      tags: { feature: "team", action: "create", endpoint: "POST /api/teams" },
+      extra: { teamName: name },
+    });
+
     return NextResponse.json(
-      { 
+      {
         message: "Failed to create team",
         ...(process.env.NODE_ENV === "development" && { details: error.message })
       },

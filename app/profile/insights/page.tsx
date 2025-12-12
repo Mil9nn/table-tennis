@@ -112,7 +112,7 @@ const PerformanceInsightsPage = () => {
         ) : (
           <div className="space-y-4">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-2 max-w-md">
               {/* Overall Win Rate */}
               <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-3 mb-3">
@@ -122,69 +122,6 @@ const PerformanceInsightsPage = () => {
                 </div>
                 <p className="text-xl font-bold text-gray-700">
                   {stats.overallWinRate}%
-                </p>
-              </div>
-
-              {/* Singles Win Rate */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Singles Win Rate
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
-                  {stats.singlesWinRate}%
-                </p>
-              </div>
-
-              {/* Doubles Win Rate */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  
-                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Doubles Win Rate
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
-                  {stats.doublesWinRate}%
-                </p>
-              </div>
-
-              {/* Avg Points/Match */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  
-                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Avg Points/Match
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
-                  {stats.avgPointsPerMatch}
-                </p>
-              </div>
-
-              {/* Serve Accuracy */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  
-                  <h3 className="text-xs font-semibold text-yellow-500 tracking-wide">
-                    Serve Accuracy
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
-                  {stats.serveAccuracy}%
-                </p>
-              </div>
-
-              {/* Best Win Streak */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Best Win Streak
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
-                  {stats.bestWinStreak}
                 </p>
               </div>
             </div>

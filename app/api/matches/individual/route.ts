@@ -3,47 +3,46 @@ import { User } from "@/models/User";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
+import { validateRequest, createIndividualMatchSchema } from "@/lib/validations";
+import { logError } from "@/lib/error-logger";
 
 export async function POST(request: NextRequest) {
+  let body: any;
   try {
     const auth = await withAuth(request);
     if (!auth.success) return auth.response;
 
-    const body = await request.json();
+    body = await request.json();
 
     const scorer = await User.findById(auth.userId);
     if (!scorer) return NextResponse.json({ error: "invalid scorer, user not found" }, { status: 401 });
 
-    // ✅ Validate
-    if (
-      !body.matchType ||
-      !body.numberOfSets ||
-      !body.city ||
-      !Array.isArray(body.participants)
-    ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    // ✅ Validate request body with Zod
+    const validation = validateRequest(createIndividualMatchSchema, body);
+    if (!validation.success) {
+      return validation.error;
     }
 
+    const { matchType, numberOfSets, city, venue, participants, tournament } = validation.data;
+
     // 🔎 Lookup participants
-    const users = await User.find({ _id: { $in: body.participants } }).select(
+    const users = await User.find({ _id: { $in: participants } }).select(
       "_id username fullName profileImage"
     );
 
-    if (users.length !== body.participants.length) {
+    if (users.length !== participants.length) {
       return NextResponse.json({ error: "Invalid player IDs" }, { status: 400 });
     }
 
     // 📝 Create match using repository
     const match = await matchRepository.createIndividualMatch({
-      matchType: body.matchType,
-      numberOfSets: Number(body.numberOfSets),
-      city: body.city,
-      venue: body.venue,
-      participants: body.participants, // just IDs
+      matchType,
+      numberOfSets,
+      city,
+      venue,
+      participants, // just IDs
       scorer: scorer._id.toString(),
+      tournament,
     });
 
     // 👇 Populate with profileImage
@@ -55,7 +54,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: any) {
-    console.error("Error creating individual match:", err);
+    logError(err, {
+      tags: { feature: "match", action: "create", endpoint: "POST /api/matches/individual" },
+      extra: { matchData: body },
+    });
+
     return NextResponse.json({ error: "Failed to create match" }, { status: 500 });
   }
 }
@@ -142,8 +145,11 @@ export async function GET(req: NextRequest) {
         hasMore: skip + matches.length < totalCount
       }
     });
-  } catch (err) {
-    console.error("Error fetching individual matches:", err);
+  } catch (err: any) {
+    logError(err, {
+      tags: { feature: "match", action: "fetch", endpoint: "GET /api/matches/individual" },
+    });
+
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }

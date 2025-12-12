@@ -29,11 +29,26 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
   const getWinRateColor = (winRate: number, totalShots: number): string => {
     if (totalShots < 3) return "rgba(156, 163, 175, 0.2)"; // Gray for insufficient data
 
-    // Green (safe) to Red (vulnerable)
-    if (winRate >= 65) return "rgba(34, 197, 94, 0.7)"; // Strong green
-    if (winRate >= 55) return "rgba(132, 204, 22, 0.6)"; // Light green
-    if (winRate >= 50) return "rgba(250, 204, 21, 0.6)"; // Yellow
-    if (winRate >= 40) return "rgba(249, 115, 22, 0.7)"; // Orange
+    // Calculate relative thresholds based on average win rate for better sensitivity
+    const allWinRates = zoneData.heatmapGrid
+      .flat()
+      .filter((cell) => cell.totalShots >= 3)
+      .map((cell) => cell.winRate);
+    
+    const avgWinRate = allWinRates.length > 0
+      ? allWinRates.reduce((a, b) => a + b, 0) / allWinRates.length
+      : 50;
+    
+    // Use relative thresholds: zones below average are more vulnerable
+    // Red: significantly below average (< avg - 10%)
+    // Orange: below average (< avg - 5%)
+    // Yellow: slightly below average (< avg)
+    // Light green: above average (>= avg)
+    // Strong green: significantly above average (>= avg + 10%)
+    if (winRate >= avgWinRate + 10) return "rgba(34, 197, 94, 0.7)"; // Strong green
+    if (winRate >= avgWinRate) return "rgba(132, 204, 22, 0.6)"; // Light green
+    if (winRate >= avgWinRate - 5) return "rgba(250, 204, 21, 0.6)"; // Yellow
+    if (winRate >= avgWinRate - 10) return "rgba(249, 115, 22, 0.7)"; // Orange
     return "rgba(239, 68, 68, 0.8)"; // Red
   };
 
@@ -236,16 +251,26 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
             </span>
           </div>
 
-          {viewMode === "winRate" && (
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
-              <div className="flex items-center gap-2 flex-wrap w-full text-xs text-gray-600">
-                <span className="">Vulnerable (&lt;45%)</span>
-                <span>Average (45-55%)</span>
-                <span className="">Safe (&gt;55%)</span>
+          {viewMode === "winRate" && (() => {
+            const allWinRates = zoneData.heatmapGrid
+              .flat()
+              .filter((cell) => cell.totalShots >= 3)
+              .map((cell) => cell.winRate);
+            const avgWinRate = allWinRates.length > 0
+              ? allWinRates.reduce((a, b) => a + b, 0) / allWinRates.length
+              : 50;
+            
+            return (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
+                <div className="flex items-center gap-2 flex-wrap w-full text-xs text-gray-600">
+                  <span className="">Vulnerable (below avg)</span>
+                  <span>Average (~{avgWinRate.toFixed(0)}%)</span>
+                  <span className="">Strong (above avg)</span>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {viewMode === "vulnerability" && (
             <div className="flex gap-4 text-xs">

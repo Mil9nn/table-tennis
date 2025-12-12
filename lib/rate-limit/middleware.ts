@@ -7,12 +7,13 @@ import {
 } from "./config";
 import { RateLimitConfig } from "./types";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { env } from "@/lib/env";
 
 // Initialize Redis client only if credentials are available
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+const redis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
     })
   : null;
 
@@ -91,13 +92,13 @@ function getIdentifier(
   config: RateLimitConfig
 ): string {
   // Check if rate limiting is disabled
-  if (process.env.RATE_LIMIT_ENABLED === "false") {
+  if (env.RATE_LIMIT_ENABLED === "false") {
     return "bypass";
   }
 
   // Check for bypass key
   const bypassKey = request.headers.get("X-RateLimit-Bypass");
-  if (bypassKey === process.env.RATE_LIMIT_BYPASS_KEY) {
+  if (bypassKey && env.RATE_LIMIT_BYPASS_KEY && bypassKey === env.RATE_LIMIT_BYPASS_KEY) {
     return "bypass";
   }
 
@@ -212,7 +213,7 @@ function logRateLimitViolation(
   identifier: string,
   limit: number
 ): void {
-  if (process.env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production") {
     // In production, you might want to send this to a logging service
     console.warn(
       `[Rate Limit] ${method} ${pathname} - Identifier: ${identifier} - Limit: ${limit}`
@@ -243,12 +244,12 @@ export async function rateLimit(
   pathname: string
 ): Promise<NextResponse | null> {
   // Skip rate limiting if disabled
-  if (process.env.RATE_LIMIT_ENABLED === "false") {
+  if (env.RATE_LIMIT_ENABLED === "false") {
     return null;
   }
 
   // Skip if Redis is not configured
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
     console.warn("[Rate Limit] Redis not configured, skipping rate limiting");
     return null;
   }
@@ -327,7 +328,7 @@ export async function rateLimitWithHeaders(
   const config = getRateLimitConfig(method, pathname) || DEFAULT_RATE_LIMIT;
   const identifier = getIdentifier(request, config);
 
-  if (identifier !== "bypass" && process.env.UPSTASH_REDIS_REST_URL && redis) {
+  if (identifier !== "bypass" && env.UPSTASH_REDIS_REST_URL && redis) {
     try {
       const ratelimit = getRateLimiter(config);
 

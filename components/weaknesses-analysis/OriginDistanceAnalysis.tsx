@@ -27,7 +27,7 @@ export function OriginDistanceAnalysis({
       distanceOrder.indexOf(a.originZone) - distanceOrder.indexOf(b.originZone)
   );
 
-  const hasData = sortedDistances.filter((d) => d.totalShots >= 3).length > 0;
+  const hasData = sortedDistances.some((d) => d.totalShots > 0);
 
   // Return null if no displayable data
   if (!hasData) {
@@ -44,20 +44,37 @@ export function OriginDistanceAnalysis({
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 gap-4">
-          {sortedDistances
-            .filter((d) => d.totalShots >= 3)
-            .map((distance, idx) => {
-              const bgColor =
-                distance.winRate < 45
-                  ? "border-red-300 bg-red-50"
-                  : distance.winRate > 55
-                  ? "border-green-300 bg-green-50"
-                  : "border-yellow-300 bg-yellow-50";
-
-              const badgeVariant =
-                distance.winRate < 45 ? "destructive" : "secondary";
-
+          {sortedDistances.map((distance, idx) => {
+            // Show all categories, but style differently if no data
+            if (distance.totalShots === 0) {
               return (
+                <div key={idx} className="p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-60">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold capitalize text-sm text-gray-500">
+                      {distance.originZone.replace(/-/g, " ")}
+                    </h4>
+                    <Badge variant="outline" className="text-gray-400">
+                      No data
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    No shots recorded from this position
+                  </div>
+                </div>
+              );
+            }
+            
+            const bgColor =
+              distance.winRate < 45
+                ? "border-red-300 bg-red-50"
+                : distance.winRate > 55
+                ? "border-green-300 bg-green-50"
+                : "border-yellow-300 bg-yellow-50";
+
+            const badgeVariant =
+              distance.winRate < 45 ? "destructive" : "secondary";
+
+            return (
                 <div key={idx} className={`p-4 border rounded-lg ${bgColor}`}>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold capitalize text-sm">
@@ -103,7 +120,7 @@ export function OriginDistanceAnalysis({
                   )}
                 </div>
               );
-            })}
+          })}
         </div>
       </CardContent>
     </Card>

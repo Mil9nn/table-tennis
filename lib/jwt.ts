@@ -1,15 +1,16 @@
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { env } from "./env";
 
 export const generateToken = (userId: string) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET as string, {
+    return jwt.sign({ userId }, env.JWT_SECRET, {
         expiresIn: "7d",
     })
 };
 
 export const verifyToken = (token: string) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+        const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
         return decoded;
     } catch (error) {
         console.error("Token verification failed:", error);
@@ -20,8 +21,8 @@ export const verifyToken = (token: string) => {
 export const setAuthCookie = (response: NextResponse, token: string) => {
   response.cookies.set("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60, // 7 days
   });

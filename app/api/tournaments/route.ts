@@ -6,17 +6,26 @@ import Team from "@/models/Team";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { validateRequest, validateQueryParams, createTournamentSchema, getTournamentsQuerySchema } from "@/lib/validations";
+import { logError } from "@/lib/error-logger";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
   const rateLimitResponse = await rateLimit(request, "POST", "/api/tournaments");
   if (rateLimitResponse) return rateLimitResponse;
 
+  let body: any;
   try {
     const auth = await withAuth(request);
     if (!auth.success) return auth.response;
 
-    const body = await request.json();
+    body = await request.json();
+
+    // ✅ Validate request body with Zod
+    const validation = validateRequest(createTournamentSchema, body);
+    if (!validation.success) {
+      return validation.error;
+    }
 
     const {
       name,
@@ -34,16 +43,8 @@ export async function POST(request: NextRequest) {
       seedingMethod,
       knockoutConfig,
       hybridConfig,
-      teamConfig, // Add teamConfig support
-    } = body;
-
-    // Validate
-    if (!name || !format || !category || !matchType || !startDate || !city || !venue) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+      teamConfig,
+    } = validation.data;
 
     // Validate participants based on category
     if (participants && participants.length > 0) {
@@ -76,17 +77,7 @@ export async function POST(request: NextRequest) {
         }))
       : [];
 
-    // CRITICAL: Validate that groups are not used for round-robin format
-    // Groups only make sense when there's a next phase (use hybrid format instead)
-    if (format === "round_robin" && useGroups) {
-      return NextResponse.json(
-        {
-          error:
-            "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Use 'hybrid' format for round-robin → knockout tournaments.",
-        },
-        { status: 400 }
-      );
-    }
+    // Note: Validation for groups + round-robin is now handled by Zod schema
 
     const tournament = new Tournament({
       name,
@@ -166,10 +157,14 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: any) {
-    console.error("[tournaments POST] Error:", err);
-    if (err.errors) {
-      console.error("[tournaments POST] Validation errors:", err.errors);
-    }
+    logError(err, {
+      tags: { feature: "tournament", action: "create", endpoint: "POST /api/tournaments" },
+      extra: {
+        userId: request.headers.get("user-id"),
+        tournamentData: body,
+      }
+    });
+
     return NextResponse.json(
       {
         error: "Failed to create tournament",
@@ -196,15 +191,14 @@ export async function GET(req: NextRequest) {
     User;
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status");
-    const format = searchParams.get("format");
-    const category = searchParams.get("category");
-    const city = searchParams.get("city");
-    const search = searchParams.get("search");
-    const limit = parseInt(searchParams.get("limit") || "0", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
-    const sortBy = searchParams.get("sortBy") || "startDate";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+
+    // ✅ Validate query parameters
+    const validation = validateQueryParams(getTournamentsQuerySchema, searchParams);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { status, format, category, city, search, limit, skip, sortBy, sortOrder } = validation.data;
 
     let query: any = {};
     if (status && status !== "all") query.status = status;
@@ -412,9 +406,12 @@ export async function GET(req: NextRequest) {
       }
     }, { status: 200 });
   } catch (err: any) {
-    console.error("[tournaments GET] Error:", err);
+    logError(err, {
+      tags: { feature: "tournament", action: "fetch", endpoint: "GET /api/tournaments" },
+    });
+
     return NextResponse.json(
-      { 
+      {
         error: "Failed to fetch tournaments",
         ...(process.env.NODE_ENV === "development" && { details: err.message })
       },
