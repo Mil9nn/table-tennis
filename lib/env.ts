@@ -19,7 +19,8 @@ const envSchema = z.object({
   // JWT
   JWT_SECRET: z
     .string()
-    .min(32, "JWT_SECRET must be at least 32 characters long")
+    .trim()
+    .min(24, "JWT_SECRET must be at least 24 characters long")
     .describe("Secret key for signing JWT tokens"),
 
   // Cloudinary
@@ -122,7 +123,11 @@ export const env = (() => {
           
           // Provide helpful hints for common issues
           if (name === "JWT_SECRET") {
-            console.error(`    💡 Tip: Generate a secure secret with: openssl rand -base64 32`);
+            const currentValue = process.env.JWT_SECRET || "";
+            const currentLength = currentValue.trim().length;
+            console.error(`    💡 Current length: ${currentLength} characters`);
+            console.error(`    💡 Generate a secure secret with: openssl rand -base64 32`);
+            console.error(`    💡 Or use Node.js: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`);
           }
         });
         console.error("");
