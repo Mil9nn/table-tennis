@@ -12,7 +12,6 @@
  * 3. Assert - Check if result is correct
  */
 
-import { describe, it, expect } from 'vitest'
 import {
   emailSchema,
   passwordSchema,

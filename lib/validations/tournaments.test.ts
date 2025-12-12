@@ -4,7 +4,6 @@
  * This demonstrates testing more complex validation with business logic
  */
 
-import { describe, it, expect } from 'vitest'
 import { createTournamentSchema } from './tournaments'
 
 describe('createTournamentSchema', () => {
@@ -70,7 +69,7 @@ describe('createTournamentSchema', () => {
       const validFormats = ['round_robin', 'knockout', 'hybrid']
 
       validFormats.forEach(format => {
-        const data = {
+        const data: any = {
           name: 'Test Tournament',
           format,
           category: 'individual',
@@ -78,6 +77,11 @@ describe('createTournamentSchema', () => {
           startDate: '2025-12-25',
           city: 'NYC',
           venue: 'Arena',
+        }
+
+        // Hybrid format requires hybridConfig
+        if (format === 'hybrid') {
+          data.hybridConfig = {}
         }
 
         const result = createTournamentSchema.safeParse(data)

@@ -121,11 +121,11 @@ export const createTournamentSchema = z.object({
 
   seedingMethod: seedingMethodSchema.optional().default("none"),
 
-  knockoutConfig: knockoutConfigSchema,
+  knockoutConfig: knockoutConfigSchema.optional(),
 
-  hybridConfig: hybridConfigSchema,
+  hybridConfig: hybridConfigSchema.optional(),
 
-  teamConfig: teamConfigSchema,
+  teamConfig: teamConfigSchema.optional(),
 })
 .strict()
 .refine(

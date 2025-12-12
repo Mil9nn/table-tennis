@@ -7,9 +7,9 @@ import { z } from "zod";
 export const emailSchema = z
   .string()
   .min(1, "Email is required")
-  .email("Please enter a valid email address")
-  .toLowerCase()
   .trim()
+  .toLowerCase()
+  .email("Please enter a valid email address")
   .max(255, "Email must be less than 255 characters");
 
 /**

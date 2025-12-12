@@ -4,7 +4,6 @@
  * This demonstrates testing utility functions
  */
 
-import { describe, it, expect } from 'vitest'
 import { isValidObjectId, areValidObjectIds } from './index'
 
 /**
