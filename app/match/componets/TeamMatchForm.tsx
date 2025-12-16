@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -28,153 +27,13 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
 import CustomFormatConfig from "./CustomFormatConfig";
 import PositionAssignment from "./PositionAssignment";
-
-// Helper function to get required positions based on match format
-const getRequiredPositionsForSchema = (format: string): string[] => {
-  switch (format) {
-    case "five_singles":
-      return ["A", "B", "C"];
-    case "single_double_single":
-      return ["A", "B"];
-    case "custom":
-      return [];
-    default:
-      return [];
-  }
-};
-
-const getTeam2PositionsForSchema = (format: string): string[] => {
-  switch (format) {
-    case "five_singles":
-      return ["X", "Y", "Z"];
-    case "single_double_single":
-      return ["X", "Y"];
-    case "custom":
-      return [];
-    default:
-      return [];
-  }
-};
-
-const schema = z
-  .object({
-    matchFormat: z.string().min(1, "Select a team format"),
-    setsPerTie: z.enum(["1", "3", "5", "7"]),
-    team1Id: z.string().min(1, "Select Team 1"),
-    team2Id: z.string().min(1, "Select Team 2"),
-    city: z.string().min(1, "Enter city/venue"),
-    venue: z.string().min(1, "Venue is required"),
-    // These will be set via form.setValue when assignments/config change
-    team1Assignments: z.record(z.string(), z.string()).optional(),
-    team2Assignments: z.record(z.string(), z.string()).optional(),
-    customConfig: z
-      .object({
-        matches: z.array(
-          z.object({
-            type: z.enum(["singles", "doubles"]),
-            team1Players: z.array(z.string()),
-            team2Players: z.array(z.string()),
-          })
-        ),
-      })
-      .optional(),
-  })
-  .superRefine((data, ctx) => {
-    // Validate teams are different
-    if (data.team1Id === data.team2Id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Team 1 and Team 2 cannot be the same",
-        path: ["team2Id"],
-      });
-    }
-
-    // Validate position assignments for formats that need them
-    const requiredPositions = getRequiredPositionsForSchema(data.matchFormat);
-    const requiredTeam2Positions = getTeam2PositionsForSchema(data.matchFormat);
-
-    if (requiredPositions.length > 0) {
-      const team1Assignments = data.team1Assignments || {};
-      const team2Assignments = data.team2Assignments || {};
-
-      const team1AssignedPositions = new Set(Object.values(team1Assignments));
-      const team2AssignedPositions = new Set(Object.values(team2Assignments));
-
-      const missingTeam1Positions = requiredPositions.filter(
-        (pos) => !team1AssignedPositions.has(pos)
-      );
-      const missingTeam2Positions = requiredTeam2Positions.filter(
-        (pos) => !team2AssignedPositions.has(pos)
-      );
-
-      if (missingTeam1Positions.length > 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Team 1 missing position assignments: ${missingTeam1Positions.join(", ")}`,
-          path: ["team1Assignments"],
-        });
-      }
-
-      if (missingTeam2Positions.length > 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Team 2 missing position assignments: ${missingTeam2Positions.join(", ")}`,
-          path: ["team2Assignments"],
-        });
-      }
-    }
-
-    // Validate custom format
-    if (data.matchFormat === "custom") {
-      if (!data.customConfig || !data.customConfig.matches || data.customConfig.matches.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Please configure at least one match for custom format",
-          path: ["customConfig"],
-        });
-        return; // Early return to avoid further validation
-      }
-
-      // Validate all matches have players selected
-      data.customConfig.matches.forEach((match, index) => {
-        const requiredPlayers = match.type === "singles" ? 1 : 2;
-        
-        if (match.team1Players.length !== requiredPlayers) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Match ${index + 1}: Team 1 must have ${requiredPlayers} player(s)`,
-            path: ["customConfig", "matches", index, "team1Players"],
-          });
-        }
-
-        if (match.team2Players.length !== requiredPlayers) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Match ${index + 1}: Team 2 must have ${requiredPlayers} player(s)`,
-            path: ["customConfig", "matches", index, "team2Players"],
-          });
-        }
-
-        if (match.team1Players.some((p) => !p)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Match ${index + 1}: Team 1 has incomplete player selection`,
-            path: ["customConfig", "matches", index, "team1Players"],
-          });
-        }
-
-        if (match.team2Players.some((p) => !p)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Match ${index + 1}: Team 2 has incomplete player selection`,
-            path: ["customConfig", "matches", index, "team2Players"],
-          });
-        }
-      });
-    }
-  });
-
-type TeamMatchFormValues = z.infer<typeof schema>;
+import {
+  teamMatchCreateSchema,
+  TeamMatchFormValues,
+  getTeam1Positions,
+  getTeam2Positions,
+  teamMatchFormats,
+} from "@/shared/match/teamMatchSchemas";
 
 export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,7 +45,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const router = useRouter();
 
   const form = useForm<TeamMatchFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(teamMatchCreateSchema),
     defaultValues: {
       matchFormat: "five_singles",
       setsPerTie: "3",
@@ -247,39 +106,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
     }
   }, [team2Id, form]);
 
-  const teamMatchFormats = [
-    { value: "five_singles", label: "Swaythling Format [5 singles]" },
-    { value: "single_double_single", label: "Single–Double–Single" },
-    { value: "custom", label: "Custom Format" },
-  ];
 
-  // Get required positions based on match format
-  const getRequiredPositions = (format: string): string[] => {
-    switch (format) {
-      case "five_singles":
-        return ["A", "B", "C"];
-      case "single_double_single":
-        return ["A", "B"];
-      case "custom":
-        return []; // No fixed positions for custom
-      default:
-        return [];
-    }
-  };
-
-  // For team 2, use X, Y, Z instead of A, B, C
-  const getTeam2Positions = (format: string): string[] => {
-    switch (format) {
-      case "five_singles":
-        return ["X", "Y", "Z"];
-      case "single_double_single":
-        return ["X", "Y"];
-      case "custom":
-        return [];
-      default:
-        return [];
-    }
-  };
 
   const handleTeam1AssignmentChange = (playerId: string, position: string | null) => {
     setTeam1Assignments((prev) => {
@@ -451,7 +278,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
 
           {/* Position Assignment for non-custom formats */}
           {matchFormat !== "custom" &&
-           getRequiredPositions(matchFormat).length > 0 &&
+           getTeam1Positions(matchFormat).length > 0 &&
            team1Data &&
            team2Data && (
             <div className="space-y-4">
@@ -468,7 +295,7 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
                       <PositionAssignment
                         teamName={team1Data.name}
                         players={team1Data.players || []}
-                        positions={getRequiredPositions(matchFormat)}
+                        positions={getTeam1Positions(matchFormat)}
                         assignments={team1Assignments}
                         onAssignmentChange={handleTeam1AssignmentChange}
                       />

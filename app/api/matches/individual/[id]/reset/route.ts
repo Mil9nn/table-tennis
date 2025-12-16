@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
 import { withAuth } from "@/lib/api-utils";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -15,11 +16,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Only scorer can reset match
-    const scorerId = match.scorer?.toString();
-    if (scorerId && scorerId !== auth.userId) {
+    // Check scoring permission
+    // For tournament matches: organizer or any assigned scorer can reset
+    // For standalone matches: only the assigned scorer can reset
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
       return NextResponse.json(
-        { error: "Only the scorer can reset this match" },
+        { error: "Forbidden: you don't have permission to reset this match" },
         { status: 403 }
       );
     }

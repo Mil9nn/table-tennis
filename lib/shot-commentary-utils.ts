@@ -1,12 +1,19 @@
-import { Shot } from "@/types/shot.type";
+import { Shot, Side } from "@/types/shot.type";
 import { Participant } from "@/types/match.type";
+import { getAbsoluteSector, getRelativeSector } from "@/lib/sector-utils";
 
 export interface ShotCommentary {
-  // New enhanced fields
+  // ABSOLUTE (perspective-independent - used for statistics)
+  absoluteSector: "top" | "middle" | "bottom" | null;
   zone: "short" | "mid" | "deep" | null;
-  sector: "backhand" | "crossover" | "forehand" | null;
   line: "down the line" | "diagonal" | "cross court" | "middle line" | null;
+  
+  // RELATIVE (perspective-dependent - used for commentary/UI only)
+  sector: "backhand" | "crossover" | "forehand" | null;
+  
+  // Additional info
   originZone: "close-to-table" | "mid-distance" | "far-distance" | null;
+  
   // Legacy fields (for backward compatibility)
   direction: "down the line" | "across the table" | null;
   depth: "short ball" | "deep ball" | null;
@@ -137,7 +144,7 @@ function calculateTableIntersection(
  * Left side: Deep (0-16.67) | Mid (16.67-33.33) | Short (33.33-50)
  * Right side: Short (50-66.67) | Mid (66.67-83.33) | Deep (83.33-100)
  */
-export function getZone(landingX: number, receivingSide?: "side1" | "side2"): "short" | "mid" | "deep" | null {
+export function getZone(landingX: number, receivingSide?: Side): "short" | "mid" | "deep" | null {
   // Determine which side of the table the ball landed on
   const isLeftSide = landingX <= 50;
   
@@ -177,7 +184,7 @@ export function getZone(landingX: number, receivingSide?: "side1" | "side2"): "s
  */
 export function getSector(
   landingY: number,
-  receivingSide?: "side1" | "side2",
+  receivingSide?: Side,
   isLeftHanded: boolean = false
 ): "backhand" | "crossover" | "forehand" | null {
   // Determine sector based on Y coordinate
@@ -191,9 +198,9 @@ export function getSector(
     sector = "forehand";
   }
   
-  // For right side player (side2), flip backhand/forehand
+  // For right side player (side2/team2), flip backhand/forehand
   // Right side: Forehand (top) | Crossover (middle) | Backhand (bottom)
-  if (receivingSide === "side2") {
+  if (receivingSide === "side2" || receivingSide === "team2") {
     if (sector === "backhand") {
       sector = "forehand";
     } else if (sector === "forehand") {
@@ -237,8 +244,8 @@ export function getSector(
 function getLine(
   originY: number,
   landingY: number,
-  originSide: "side1" | "side2",
-  receivingSide: "side1" | "side2",
+  originSide: Side,
+  receivingSide: Side,
   originZone: "short" | "mid" | "deep" | null,
   landingZone: "short" | "mid" | "deep" | null,
   isLeftHanded: boolean = false
@@ -346,7 +353,7 @@ const THRESHOLDS = {
   LINE_ANGLE_THRESHOLD: 15,    // Angle threshold for middle line (degrees)
 } as const;
 
-export function analyzeShotPlacement(shot: Shot, receivingSide?: "side1" | "side2"): ShotCommentary {
+export function analyzeShotPlacement(shot: Pick<Shot, 'originX' | 'originY' | 'landingX' | 'landingY' | 'side'>, receivingSide?: Side): ShotCommentary {
   const { originX, originY, landingX, landingY, side } = shot;
 
   if (
@@ -356,6 +363,7 @@ export function analyzeShotPlacement(shot: Shot, receivingSide?: "side1" | "side
     landingY == null
   ) {
     return {
+      absoluteSector: null,
       zone: null,
       sector: null,
       line: null,
@@ -370,10 +378,13 @@ export function analyzeShotPlacement(shot: Shot, receivingSide?: "side1" | "side
   }
 
   const commentary: ShotCommentary = {
-    // New enhanced fields
+    // ABSOLUTE (perspective-independent)
+    absoluteSector: null,
     zone: null,
-    sector: null,
     line: null,
+    // RELATIVE (perspective-dependent)
+    sector: null,
+    // Additional
     originZone: null,
     // Legacy fields
     direction: null,
@@ -404,8 +415,13 @@ export function analyzeShotPlacement(shot: Shot, receivingSide?: "side1" | "side
   const shotReceivingSide = receivingSide || (side === "side1" ? "side2" : "side1");
   commentary.zone = getZone(landingX, shotReceivingSide);
   
-  // Sector (landing position - vertical/Y-based, relative to receiving player, default right-handed)
-  commentary.sector = getSector(landingY, shotReceivingSide, false);
+  // ABSOLUTE SECTOR (landing position - vertical/Y-based, perspective-independent)
+  // This is used for statistics and analysis, ALWAYS the same regardless of side
+  commentary.absoluteSector = getAbsoluteSector(landingY);
+  
+  // RELATIVE SECTOR (landing position - vertical/Y-based, relative to receiving player)
+  // This is only for UI display and commentary, changes based on perspective
+  commentary.sector = getRelativeSector(landingY, shotReceivingSide, false);
   
   // Line (shot trajectory based on sectors and zones)
   // Determine origin side (where the hitter is)
@@ -857,13 +873,14 @@ export function generateFullCommentary(
   let gameScoreText = "";
   if (currentGameScore !== undefined) {
     // Determine which side won the point
-    const winnerSide = shot.side;
-    const winnerScore = winnerSide === "side1" ? currentGameScore.side1Score : currentGameScore.side2Score;
-    const loserScore = winnerSide === "side1" ? currentGameScore.side2Score : currentGameScore.side1Score;
-    const winnerFullName = winnerSide === "side1" ? (side1Name || "Player 1") : (side2Name || "Player 2");
+    // Support both individual (side1/side2) and team (team1/team2) matches
+    const winnerSide = shot.side as string;
+    const isSide1 = winnerSide === "side1" || winnerSide === "team1";
+    const winnerScore = isSide1 ? currentGameScore.side1Score : currentGameScore.side2Score;
+    const loserScore = isSide1 ? currentGameScore.side2Score : currentGameScore.side1Score;
     
     // Use en dash (–) instead of hyphen (-) for score
-    gameScoreText = ` The game score is now <strong>${winnerScore}–${loserScore}</strong> in favor of <strong>${winnerFullName}</strong>.`;
+    gameScoreText = ` The game score is now <strong>${winnerScore}–${loserScore}</strong>.`;
   }
   
   // Build full commentary in the exact format requested

@@ -3,6 +3,9 @@ import mongoose, { ClientSession } from "mongoose";
 import Match from "@/models/MatchBase";
 import IndividualMatch, { IIndividualMatch } from "@/models/IndividualMatch";
 import TeamMatch, { ITeamMatch } from "@/models/TeamMatch";
+import {
+  CreateTeamMatchDTO as SharedCreateTeamMatchDTO,
+} from "@/shared/match/teamMatchTypes";
 
 /**
  * Match Repository
@@ -37,26 +40,8 @@ export interface CreateIndividualMatchDTO {
   scheduledDate?: Date;
 }
 
-export interface CreateTeamMatchDTO {
-  tournament?: string;
-  matchFormat: 'five_singles' | 'single_double_single' | 'custom';
-  numberOfSetsPerSubMatch: number;
-  team1: any; // TeamInfo
-  team2: any; // TeamInfo
-  subMatches: any[];
-  groupId?: string;
-  bracketPosition?: {
-    round: number;
-    matchNumber: number;
-    nextMatchNumber?: number;
-  };
-  roundName?: string;
-  courtNumber?: number;
-  isThirdPlaceMatch?: boolean;
-  city?: string;
-  venue?: string;
-  scheduledDate?: Date;
-}
+// Re-export the shared DTO for backwards compatibility
+export type CreateTeamMatchDTO = SharedCreateTeamMatchDTO;
 
 export class MatchRepository {
   /**
@@ -97,13 +82,22 @@ export class MatchRepository {
     data: CreateTeamMatchDTO,
     session?: ClientSession
   ): Promise<ITeamMatch> {
-    const match = await TeamMatch.create(
-      [{
-        matchCategory: 'team',
-        ...data
-      }],
-      { session }
-    );
+    const matchData: any = {
+      matchCategory: 'team',
+      ...data
+    };
+
+    // Convert scorer string to ObjectId if provided
+    if (data.scorer) {
+      matchData.scorer = new mongoose.Types.ObjectId(data.scorer);
+    }
+
+    // Convert tournament to ObjectId if provided
+    if (data.tournament) {
+      matchData.tournament = new mongoose.Types.ObjectId(data.tournament);
+    }
+
+    const match = await TeamMatch.create([matchData], { session });
     return match[0];
   }
 

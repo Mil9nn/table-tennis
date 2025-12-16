@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import WagonWheel from "@/components/WagonWheel";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
 
 interface Participant {
   _id: string;
@@ -29,8 +28,6 @@ export function WagonWheelSection({
   games,
   hideByGame = false,
 }: WagonWheelSectionProps) {
-  const [animateKey] = useState(0);
-
   return (
     <div className="space-y-4 p-2">
       {/* Player Combined Shots */}
@@ -66,7 +63,7 @@ export function WagonWheelSection({
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
                   >
-                    <WagonWheel key={animateKey} shots={playerShots} animateOnce />
+                    <WagonWheel key={`${player._id}-wagonwheel`} shots={playerShots} animateOnce />
                   </motion.div>
                 </AnimatePresence>
               </CardContent>
@@ -114,7 +111,7 @@ export function WagonWheelSection({
               <div className="grid md:grid-cols-2 gap-4">
                 {playerGames.map((game) => (
                   <Card
-                    key={game.gameNumber}
+                    key={`${player._id}-game-${game.gameNumber}`}
                     className="rounded-2xl border border-gray-800 bg-black text-white shadow-lg"
                   >
                     <CardHeader className="pb-2 flex items-center justify-between">
@@ -137,7 +134,7 @@ export function WagonWheelSection({
                           transition={{ duration: 0.3, ease: "easeOut" }}
                         >
                           <WagonWheel
-                            key={animateKey}
+                            key={`${player._id}-game-${game.gameNumber}-wagonwheel`}
                             shots={game.shots}
                             animateOnce
                           />

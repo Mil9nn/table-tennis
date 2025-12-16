@@ -128,22 +128,11 @@ export default function CustomFormatConfig({
     return player.user.fullName || player.user.username;
   };
 
-  // Get available players (not used in previous matches)
-  const getAvailablePlayers = (teamPlayers: Player[], currentMatchIndex: number, currentTeam: 'team1' | 'team2') => {
-    const usedPlayerIds = new Set<string>();
-    
-    // Collect all players used in previous matches
-    matches.forEach((match, idx) => {
-      if (idx < currentMatchIndex) {
-        if (currentTeam === 'team1') {
-          match.team1Players.forEach(id => usedPlayerIds.add(id));
-        } else {
-          match.team2Players.forEach(id => usedPlayerIds.add(id));
-        }
-      }
-    });
-
-    return teamPlayers.filter(p => !usedPlayerIds.has(p.user._id));
+  // Get available players for a match
+  // In table tennis team matches, players CAN play in multiple matches (singles + doubles, etc.)
+  // So we return all team players without filtering by previous match usage
+  const getAvailablePlayers = (teamPlayers: Player[], _currentMatchIndex: number, _currentTeam: 'team1' | 'team2') => {
+    return teamPlayers;
   };
 
   return (

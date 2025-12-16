@@ -9,7 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend,
 } from "recharts";
 import { ShotWeaknessData } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
@@ -43,9 +42,8 @@ export function ShotWeaknessChart({
       .slice(0, showTop);
   } else {
     // Show all (sorted by win rate ascending)
-    displayData = displayData
-      .filter((s) => s.totalAttempts >= 3)
-      .sort((a, b) => a.winRate - b.winRate);
+    // Backend already filters at MIN_SHOT_ATTEMPTS (5), so no need to filter again
+    displayData = displayData.sort((a, b) => a.winRate - b.winRate);
   }
 
   if (displayData.length === 0) {
@@ -76,29 +74,29 @@ export function ShotWeaknessChart({
     const weakness = data.fullData;
 
     return (
-      <div className="bg-white border border-gray-300 p-3 rounded-lg shadow-lg">
+      <div className="bg-white border border-gray-300 p-3 rounded-lg shadow-lg max-w-[180px]">
         <p className="font-semibold text-sm mb-2">{data.stroke}</p>
         <div className="space-y-1 text-xs">
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between gap-2">
             <span className="text-gray-600">Win Rate:</span>
             <span className="font-semibold text-green-600">{weakness.winRate.toFixed(1)}%</span>
           </div>
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between gap-2">
             <span className="text-gray-600">Loss Rate:</span>
             <span className="font-semibold text-red-600">{weakness.lossRate.toFixed(1)}%</span>
           </div>
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between gap-2">
             <span className="text-gray-600">Attempts:</span>
             <span className="font-semibold">{weakness.totalAttempts}</span>
           </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-gray-600">Wins/Losses:</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600">W/L:</span>
             <span className="font-semibold">
               {weakness.pointsWon}/{weakness.pointsLost}
             </span>
           </div>
         </div>
-        <p className="text-xs text-gray-500 italic mt-2 border-t pt-2">
+        <p className="text-xs text-gray-500 italic mt-2 border-t pt-2 break-words">
           <RecommendationText text={weakness.recommendation} />
         </p>
       </div>
@@ -120,18 +118,20 @@ export function ShotWeaknessChart({
           {variant === "all" && "Win rate by shot type"}
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="stroke" type="category" tick={{ fontSize: 11 }} width={120} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
+              <YAxis dataKey="stroke" type="category" tick={{ fontSize: 11 }} />
+              <Tooltip 
+                 content={<CustomTooltip />}
+                 allowEscapeViewBox={{ x: false, y: false }}
+                 cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+               />
 
               <Bar dataKey="winRate" name="Win Rate %" radius={[0, 4, 4, 0]}>
                 {chartData.map((entry, index) => (

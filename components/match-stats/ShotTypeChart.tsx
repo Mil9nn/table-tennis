@@ -58,7 +58,7 @@ export function ShotTypeChart({ data }: ShotTypeChartProps) {
                 }}
                 labelStyle={{ color: "#aaa" }}
                 itemStyle={{ color: "#fff" }}
-                formatter={(value: number) => [`${value}`, "Count"]}
+                formatter={(value?: number) => [`${value ?? 0}`, "Count"]}
               />
 
               <Bar

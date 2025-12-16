@@ -55,7 +55,7 @@ const tournamentSchema = z
     name: z.string().min(3, "Tournament name must be at least 3 characters"),
     startDate: z.date(),
     city: z.string().min(2, "City is required"),
-    venue: z.string().min(1, "Venue is required"),
+    venue: z.string().min(3, "Venue must be at least 3 characters"),
 
     // ═══════════════════════════════════════════
     // TOURNAMENT TYPE
@@ -66,8 +66,10 @@ const tournamentSchema = z
     // ═══════════════════════════════════════════
     // MATCH SETTINGS
     // ═══════════════════════════════════════════
+    // Note: matchType is always required (even for teams)
     matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
-    setsPerMatch: z.enum(["1", "3", "5", "7", "9"]),
+    // setsPerMatch only used for individual tournaments (team tournaments use teamConfig.setsPerSubMatch)
+    setsPerMatch: z.enum(["1", "3", "5", "7", "9"]).optional(),
 
     // ═══════════════════════════════════════════
     // PARTICIPANTS (stored in form for validation)
@@ -136,6 +138,15 @@ const tournamentSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
+    // Validate: Individual tournaments must have setsPerMatch
+    if (data.category === "individual" && !data.setsPerMatch) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sets per match is required for individual tournaments",
+        path: ["setsPerMatch"],
+      });
+    }
+
     // Validate: Round-robin format cannot use groups
     // Groups only make sense when there's a next phase (use hybrid format instead)
     if (data.format === "round_robin" && data.useGroups) {
@@ -285,6 +296,14 @@ export default function CreateTournamentPage() {
     // All validation is now handled by zod schema
     setIsSubmitting(true);
     try {
+      // DEBUG: Log form data
+      console.log("🔵 [CREATE FORM] Form data received:", {
+        category: data.category,
+        teamConfig: data.teamConfig,
+        teamConfig_setsPerSubMatch: data.teamConfig?.setsPerSubMatch,
+        setsPerMatch: data.setsPerMatch,
+      });
+
       // Build the API payload
       const payload: any = {
         name: data.name,
@@ -297,7 +316,11 @@ export default function CreateTournamentPage() {
         participants: data.participants,
         seedingMethod: "none",
         rules: {
-          setsPerMatch: Number(data.setsPerMatch),
+          // For team tournaments, set setsPerMatch to match setsPerSubMatch for consistency
+          // The actual match generation uses teamConfig.setsPerSubMatch
+          setsPerMatch: data.category === "team" 
+            ? Number(data.teamConfig?.setsPerSubMatch) || 3
+            : Number(data.setsPerMatch),
           pointsPerSet: 11,
           pointsForWin: 2,
           advanceTop: 0,
@@ -365,9 +388,21 @@ export default function CreateTournamentPage() {
         };
       }
 
-      
+      // DEBUG: Log payload being sent
+      console.log("🟢 [CREATE FORM] Payload being sent to API:", {
+        category: payload.category,
+        teamConfig: payload.teamConfig,
+        rules_setsPerMatch: payload.rules.setsPerMatch,
+      });
 
       const response = await axiosInstance.post("/tournaments", payload);
+
+      // DEBUG: Log response
+      console.log("🟡 [CREATE FORM] Tournament created:", {
+        id: response.data.tournament._id,
+        teamConfig: response.data.tournament.teamConfig,
+        rules_setsPerMatch: response.data.tournament.rules?.setsPerMatch,
+      });
       toast.success("Tournament created successfully!");
       router.push(`/tournaments/${response.data.tournament._id}`);
     } catch (err: any) {
@@ -709,7 +744,7 @@ export default function CreateTournamentPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700">
-                          Best of (Sets)
+                          Sets Per Match
                         </FormLabel>
                         <div className="flex gap-2">
                           {["1", "3", "5", "7", "9"].map((n) => {
@@ -738,7 +773,7 @@ export default function CreateTournamentPage() {
                 </div>
               )}
 
-              {/* Team tournament: Show team match format only */}
+              {/* Team tournament: Show team config (match structure + sets per submatch) */}
               {watchCategory === "team" && <TeamConfig form={form} />}
             </div>
 
@@ -749,7 +784,17 @@ export default function CreateTournamentPage() {
               <h2 className="text-lg font-semibold text-[#667eea]">
                 {watchFormat === "knockout" && "Knockout Settings"}
                 {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
+                {watchFormat === "round_robin" && "Round Robin Settings"}
               </h2>
+
+              {/* ROUND ROBIN FORMAT */}
+              {watchFormat === "round_robin" && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-600">
+                    Pure round-robin tournaments play all participants against each other without groups or knockout phases.
+                  </p>
+                </div>
+              )}
 
               {/* KNOCKOUT FORMAT */}
               {watchFormat === "knockout" && (
@@ -781,6 +826,13 @@ export default function CreateTournamentPage() {
 
                   {/* Qualification */}
                   <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4">
+                    {watchQualMethod === "top_n_per_group" && !watchHybridUseGroups && (
+                      <div className="mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-300">
+                        <p className="text-xs text-yellow-800">
+                          <span className="font-semibold">Note:</span> "Top N Per Group" requires groups to be enabled in Phase 1. Reverting to "Top N Overall".
+                        </p>
+                      </div>
+                    )}
                     <QualificationConfig
                       form={form}
                       useGroups={watchHybridUseGroups ?? false}

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import { buildDoublesRotationForTeamMatch } from "@/components/live-scorer/individual/helpers";
+import { withAuth } from "@/lib/api-utils";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(
   req: NextRequest,
@@ -13,24 +14,24 @@ export async function POST(
     const { id, subMatchId } = await context.params;
     const serverConfig = await req.json();
 
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const match = await TeamMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== decoded.userId) {
+    // Check scoring permission
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
       return NextResponse.json(
-        { error: "Forbidden: only the assigned scorer can configure servers" },
+        { error: "Forbidden: you don't have permission to configure this match" },
         { status: 403 }
       );
     }
@@ -74,10 +75,13 @@ export async function POST(
       match,
       message: "Server configuration saved",
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Server config error:", err);
     return NextResponse.json(
-      { error: "Failed to save server configuration" },
+      { 
+        error: "Failed to save server configuration",
+        ...(process.env.NODE_ENV === "development" && { details: err.message, stack: err.stack })
+      },
       { status: 500 }
     );
   }

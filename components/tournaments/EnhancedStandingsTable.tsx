@@ -2,12 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { 
+import {
   Standing,
-  isTeamParticipant,
-  getParticipantDisplayName,
-  getParticipantImage,
-  getParticipantLink,
+  TeamPlayerStats,
 } from "@/types/tournament.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 
@@ -31,7 +28,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Flame } from "lucide-react";
+import { Eye, Flame, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DetailedPlayerStats {
   participant: {
@@ -56,17 +54,6 @@ interface DetailedPlayerStats {
     pointsDiff: number;
     points: number;
     form: string[];
-  };
-  advancedStats: {
-    winRate: number;
-    setsWinRate: number;
-    pointsPerMatch: number;
-    avgPointsScored: number;
-    avgPointsConceded: number;
-    avgSetDifferential: number;
-    currentStreak: number;
-    longestWinStreak: number;
-    dominanceRating: number;
   };
   matchHistory: {
     matchId: string;
@@ -125,6 +112,7 @@ export function EnhancedStandingsTable({
     useState<DetailedPlayerStats | null>(null);
   const [showPlayerDialog, setShowPlayerDialog] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   const isTeamTournament = category === "team";
 
@@ -154,11 +142,6 @@ export function EnhancedStandingsTable({
   const calculateWinRate = (won: number, played: number) => {
     if (played === 0) return 0;
     return (won / played) * 100;
-  };
-
-  const calculatePointsPerMatch = (points: number, played: number) => {
-    if (played === 0) return 0;
-    return points / played;
   };
 
   const calculateStreak = (form: string[]) => {
@@ -217,36 +200,38 @@ export function EnhancedStandingsTable({
     }
   };
 
-  // Get display name for any participant type
   const getDisplayName = (p: any): string => {
     if (!p) return "Unknown";
-    // Check if it's a team (has 'name' property but no 'username')
     if (p.name && !p.username) return p.name;
     return p.fullName || p.username || p.name || "Unknown";
   };
 
-  // Get subtext for participant (username for users, city/player count for teams)
   const getSubtext = (p: any): string => {
     if (!p) return "";
-    // Check if it's a team
     if (p.name && !p.username) {
       return p.city || `${p.players?.length || 0} players`;
     }
     return `@${p.username || "unknown"}`;
   };
 
-  // Get image for participant
   const getImage = (p: any): string | undefined => {
     if (!p) return undefined;
-    // Check if it's a team
     if (p.name && !p.username) return p.logo;
     return p.profileImage;
   };
 
-  // Get initial for avatar fallback
   const getInitial = (p: any): string => {
     const name = getDisplayName(p);
     return name.charAt(0).toUpperCase() || "?";
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((n) => n.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -278,38 +263,46 @@ export function EnhancedStandingsTable({
               <TableHead className="text-center text-[11px] font-medium text-slate-600">
                 L
               </TableHead>
+              <TableHead className="text-center text-[11px] text-slate-600">
+                D
+              </TableHead>
 
-              {showDetailedStats && (
+              {isTeamTournament ? (
                 <>
                   <TableHead className="text-center text-[11px] text-slate-600">
-                    D
+                    SM.W
                   </TableHead>
                   <TableHead className="text-center text-[11px] text-slate-600">
-                    SW
-                  </TableHead>
-                  <TableHead className="text-center text-[11px] text-slate-600">
-                    SL
-                  </TableHead>
-                  <TableHead className="text-center text-[11px] text-slate-600">
-                    SD
-                  </TableHead>
-                  <TableHead className="text-center text-[11px] text-slate-600">
-                    PS
-                  </TableHead>
-                  <TableHead className="text-center text-[11px] text-slate-600">
-                    PD
+                    SM.L
                   </TableHead>
                 </>
+              ) : (
+                showDetailedStats && (
+                  <>
+                    <TableHead className="text-center text-[11px] text-slate-600">
+                      SW
+                    </TableHead>
+                    <TableHead className="text-center text-[11px] text-slate-600">
+                      SL
+                    </TableHead>
+                    <TableHead className="text-center text-[11px] text-slate-600">
+                      SD
+                    </TableHead>
+                    <TableHead className="text-center text-[11px] text-slate-600">
+                      PS
+                    </TableHead>
+                    <TableHead className="text-center text-[11px] text-slate-600">
+                      PD
+                    </TableHead>
+                  </>
+                )
               )}
 
               <TableHead className="text-center font-semibold text-[11px] text-slate-700">
                 Pts
               </TableHead>
               <TableHead className="text-center text-[11px] text-slate-600">
-                WR
-              </TableHead>
-              <TableHead className="text-center text-[11px] text-slate-600">
-                Pts/M
+                Win%
               </TableHead>
               <TableHead className="text-center text-[11px] text-slate-600">
                 Streak
@@ -317,10 +310,14 @@ export function EnhancedStandingsTable({
               <TableHead className="text-center text-[11px] text-slate-600">
                 Form
               </TableHead>
-              {tournamentId && (
-                <TableHead className="text-right text-[11px] text-slate-600">
-                  Actions
-                </TableHead>
+              {isTeamTournament ? (
+                <TableHead className="w-8"></TableHead>
+              ) : (
+                tournamentId && (
+                  <TableHead className="text-right text-[11px] text-slate-600">
+                    Actions
+                  </TableHead>
+                )
               )}
             </TableRow>
           </TableHeader>
@@ -328,346 +325,431 @@ export function EnhancedStandingsTable({
           <TableBody>
             {standings.map((s) => {
               const highlight = s.rank <= highlightTop;
-              const participantLink = isTeamTournament 
+              const participantLink = isTeamTournament
                 ? `/teams/${s.participant._id}`
                 : `/profile/${s.participant._id}`;
+              const isExpanded = expandedTeam === s.participant._id;
+              const hasPlayerStats =
+                isTeamTournament && s.playerStats && s.playerStats.length > 0;
 
               return (
-                <TableRow
-                  key={s.participant._id}
-                  className={`transition-all ${
-                    highlight ? "bg-indigo-50/60" : "hover:bg-slate-50"
-                  }`}
-                >
-                  {/* Rank */}
-                  <TableCell className="text-center">
-                    {rankChip(s.rank)}
-                  </TableCell>
-
-                  {/* Player/Team */}
-                  <TableCell>
-                    <Link href={participantLink} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage
-                          src={getImage(s.participant)}
-                          alt={getDisplayName(s.participant)}
-                        />
-                        <AvatarFallback className="text-xs">
-                          {getInitial(s.participant)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col leading-tight">
-                        <span className="text-[13px] font-medium text-slate-700">
-                          {getDisplayName(s.participant)}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {getSubtext(s.participant)}
-                        </span>
-                      </div>
-                    </Link>
-                  </TableCell>
-
-                  {/* MP */}
-                  <TableCell className="text-center text-slate-700">
-                    {s.played}
-                  </TableCell>
-
-                  {/* W */}
-                  <TableCell className="text-center text-green-600 font-medium">
-                    {s.won}
-                  </TableCell>
-
-                  {/* L */}
-                  <TableCell className="text-center text-red-600 font-medium">
-                    {s.lost}
-                  </TableCell>
-
-                  {showDetailedStats && (
-                    <>
-                      <TableCell className="text-center text-slate-500">
-                        {s.drawn}
-                      </TableCell>
-                      <TableCell className="text-center">{s.setsWon}</TableCell>
-                      <TableCell className="text-center">
-                        {s.setsLost}
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <span
-                          className={
-                            s.setsDiff > 0
-                              ? "text-green-600"
-                              : s.setsDiff < 0
-                              ? "text-red-600"
-                              : "text-slate-500"
-                          }
-                        >
-                          {s.setsDiff > 0 && "+"}
-                          {s.setsDiff}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        {s.pointsScored}
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <span
-                          className={
-                            s.pointsDiff > 0
-                              ? "text-green-600"
-                              : s.pointsDiff < 0
-                              ? "text-red-600"
-                              : "text-slate-500"
-                          }
-                        >
-                          {s.pointsDiff > 0 && "+"}
-                          {s.pointsDiff}
-                        </span>
-                      </TableCell>
-                    </>
-                  )}
-
-                  {/* Points */}
-                  <TableCell className="text-center">
-                    <Badge className="bg-indigo-100 text-indigo-700 font-semibold text-[11px] px-2 py-0.5 rounded-md">
-                      {s.points}
-                    </Badge>
-                  </TableCell>
-
-                  {/* Win Rate */}
-                  <TableCell className="text-center text-slate-700 font-medium">
-                    {calculateWinRate(s.won, s.played).toFixed(1)}%
-                  </TableCell>
-
-                  {/* Points per Match */}
-                  <TableCell className="text-center text-slate-700">
-                    <span className="text-xs">
-                      {calculatePointsPerMatch(s.points, s.played).toFixed(1)}
-                    </span>
-                  </TableCell>
-
-                  {/* Streak */}
-                  <TableCell className="text-center">
-                    {getStreakDisplay(calculateStreak(s.form))}
-                  </TableCell>
-
-                  {/* Form */}
-                  <TableCell>
-                    <div className="flex gap-1 justify-center">
-                      {s.form.slice(-5).map((r, i) => (
-                        <div key={i}>{formChip(r)}</div>
-                      ))}
-                    </div>
-                  </TableCell>
-
-                  {/* Actions */}
-                  {tournamentId && (
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewPlayer(s.participant._id)}
-                        disabled={loadingDetails}
-                        className="h-7 text-[11px] px-2 text-slate-600 hover:text-slate-900"
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        View
-                      </Button>
+                <React.Fragment key={s.participant._id}>
+                  <TableRow
+                    className={cn(
+                      "transition-all",
+                      highlight ? "bg-indigo-50/60" : "hover:bg-slate-50"
+                    )}
+                  >
+                    {/* Rank */}
+                    <TableCell className="text-center">
+                      {rankChip(s.rank)}
                     </TableCell>
+
+                    {/* Player/Team */}
+                    <TableCell>
+                      <Link
+                        href={participantLink}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                      >
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage
+                            src={getImage(s.participant)}
+                            alt={getDisplayName(s.participant)}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {getInitial(s.participant)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col leading-tight">
+                          <span className="text-[13px] font-medium text-slate-700">
+                            {getDisplayName(s.participant)}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            {getSubtext(s.participant)}
+                          </span>
+                        </div>
+                      </Link>
+                    </TableCell>
+
+                    {/* MP */}
+                    <TableCell className="text-center text-slate-700">
+                      {s.played}
+                    </TableCell>
+
+                    {/* W */}
+                    <TableCell className="text-center text-green-600 font-medium">
+                      {s.won}
+                    </TableCell>
+
+                    {/* L */}
+                    <TableCell className="text-center text-red-600 font-medium">
+                      {s.lost}
+                    </TableCell>
+
+                    {/* D */}
+                    <TableCell className="text-center text-slate-500">
+                      {s.drawn}
+                    </TableCell>
+
+                    {isTeamTournament ? (
+                      <>
+                        {/* SM.W (SubMatches Won) */}
+                        <TableCell className="text-center text-green-600">
+                          {s.subMatchesWon ?? s.setsWon}
+                        </TableCell>
+
+                        {/* SM.L (SubMatches Lost) */}
+                        <TableCell className="text-center text-red-600">
+                          {s.subMatchesLost ?? s.setsLost}
+                        </TableCell>
+                      </>
+                    ) : (
+                      showDetailedStats && (
+                        <>
+                          <TableCell className="text-center">
+                            {s.setsWon}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {s.setsLost}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span
+                              className={
+                                s.setsDiff > 0
+                                  ? "text-green-600"
+                                  : s.setsDiff < 0
+                                  ? "text-red-600"
+                                  : "text-slate-500"
+                              }
+                            >
+                              {s.setsDiff > 0 && "+"}
+                              {s.setsDiff}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {s.pointsScored}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span
+                              className={
+                                s.pointsDiff > 0
+                                  ? "text-green-600"
+                                  : s.pointsDiff < 0
+                                  ? "text-red-600"
+                                  : "text-slate-500"
+                              }
+                            >
+                              {s.pointsDiff > 0 && "+"}
+                              {s.pointsDiff}
+                            </span>
+                          </TableCell>
+                        </>
+                      )
+                    )}
+
+                    {/* Points */}
+                    <TableCell className="text-center">
+                      <Badge className="bg-indigo-100 text-indigo-700 font-semibold text-[11px] px-2 py-0.5 rounded-md">
+                        {s.points}
+                      </Badge>
+                    </TableCell>
+
+                    {/* Win Rate */}
+                    <TableCell className="text-center text-slate-700 font-medium">
+                      {calculateWinRate(s.won, s.played).toFixed(0)}%
+                    </TableCell>
+
+                    {/* Streak */}
+                    <TableCell className="text-center">
+                      {getStreakDisplay(calculateStreak(s.form))}
+                    </TableCell>
+
+                    {/* Form */}
+                    <TableCell>
+                      <div className="flex gap-1 justify-center">
+                        {s.form.slice(-5).map((r, i) => (
+                          <div key={i}>{formChip(r)}</div>
+                        ))}
+                      </div>
+                    </TableCell>
+
+                    {/* Actions / Expand */}
+                    {isTeamTournament ? (
+                      <TableCell className="text-center">
+                        {hasPlayerStats && (
+                          <button
+                            onClick={() =>
+                              setExpandedTeam(
+                                isExpanded ? null : s.participant._id
+                              )
+                            }
+                            className="p-1 hover:bg-slate-200 rounded transition-colors"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "w-4 h-4 text-slate-500 transition-transform",
+                                isExpanded && "rotate-180"
+                              )}
+                            />
+                          </button>
+                        )}
+                      </TableCell>
+                    ) : (
+                      tournamentId && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewPlayer(s.participant._id)}
+                            disabled={loadingDetails}
+                            className="h-7 text-[11px] px-2 text-slate-600 hover:text-slate-900"
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      )
+                    )}
+                  </TableRow>
+
+                  {/* Expanded player stats row for teams */}
+                  {isTeamTournament && isExpanded && hasPlayerStats && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={isTeamTournament ? 13 : 16}
+                        className="bg-slate-50/50 p-0"
+                      >
+                        <div className="px-6 py-4">
+                          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-3">
+                            Player Performance
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {s.playerStats!.map((ps: TeamPlayerStats) => (
+                              <Link
+                                key={ps.player._id}
+                                href={`/profile/${ps.player._id}`}
+                                className="flex items-center gap-3 py-2 px-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group"
+                              >
+                                <Avatar className="h-6 w-6 ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
+                                  <AvatarImage src={ps.player.profileImage} />
+                                  <AvatarFallback className="text-[10px] bg-muted">
+                                    {getInitials(
+                                      ps.player.fullName ||
+                                        ps.player.username ||
+                                        "?"
+                                    )}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-[12px] flex-1 truncate font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
+                                  {ps.player.fullName || ps.player.username}
+                                </span>
+                                <span className="text-[11px] text-slate-500">
+                                  {ps.subMatchesWon}/{ps.subMatchesPlayed}
+                                </span>
+                                <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0">
+                                  {ps.winRate.toFixed(0)}%
+                                </Badge>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </TableRow>
+                </React.Fragment>
               );
             })}
           </TableBody>
         </Table>
       </div>
 
-      {/* Player/Team Details Dialog */}
-      <Dialog open={showPlayerDialog} onOpenChange={setShowPlayerDialog}>
-        <DialogContent className="max-w-4xl max-h-[75vh] overflow-y-auto">
-          {selectedPlayer && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={getImage(selectedPlayer.participant)}
-                      alt={getDisplayName(selectedPlayer.participant)}
-                    />
-                    <AvatarFallback className="text-[11px]">
-                      {getInitial(selectedPlayer.participant)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="text-base font-semibold text-slate-800">
-                      {getDisplayName(selectedPlayer.participant)}
+      {/* Player Details Dialog (for individual tournaments only) */}
+      {!isTeamTournament && (
+        <Dialog open={showPlayerDialog} onOpenChange={setShowPlayerDialog}>
+          <DialogContent className="max-w-4xl max-h-[75vh] overflow-y-auto">
+            {selectedPlayer && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage
+                        src={getImage(selectedPlayer.participant)}
+                        alt={getDisplayName(selectedPlayer.participant)}
+                      />
+                      <AvatarFallback className="text-[11px]">
+                        {getInitial(selectedPlayer.participant)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="text-base font-semibold text-slate-800">
+                        {getDisplayName(selectedPlayer.participant)}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-normal">
+                        {getSubtext(selectedPlayer.participant)}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-500 font-normal">
-                      {getSubtext(selectedPlayer.participant)}
-                    </div>
-                  </div>
-                  <Badge className="bg-indigo-100 text-indigo-700 text-[11px] font-semibold px-2.5 py-1">
-                    Rank #{selectedPlayer.standing.rank}
-                  </Badge>
-                </DialogTitle>
-                <DialogDescription className="text-[11px] text-slate-500">
-                  Complete match history and head-to-head records
-                </DialogDescription>
-              </DialogHeader>
+                    <Badge className="bg-indigo-100 text-indigo-700 text-[11px] font-semibold px-2.5 py-1">
+                      Rank #{selectedPlayer.standing.rank}
+                    </Badge>
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-slate-500">
+                    Complete match history and head-to-head records
+                  </DialogDescription>
+                </DialogHeader>
 
-              <Tabs defaultValue="matches" className="w-full mt-4">
-                <TabsList className="grid w-full grid-cols-2 h-9">
-                  <TabsTrigger value="matches" className="text-[12px]">
-                    Match History
-                  </TabsTrigger>
-                  <TabsTrigger value="h2h" className="text-[12px]">
-                    Head-to-Head
-                  </TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="matches" className="w-full mt-4">
+                  <TabsList className="grid w-full grid-cols-2 h-9">
+                    <TabsTrigger value="matches" className="text-[12px]">
+                      Match History
+                    </TabsTrigger>
+                    <TabsTrigger value="h2h" className="text-[12px]">
+                      Head-to-Head
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="matches" className="mt-3">
-                  {selectedPlayer.matchHistory.length === 0 ? (
-                    <div className="text-center text-slate-500 text-[12px] py-12">
-                      No matches played yet
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {selectedPlayer.matchHistory.map((match) => (
-                        <div
-                          key={match.matchId}
-                          className="flex items-center justify-between py-2.5 px-3 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div
-                              className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                                match.result === "win"
-                                  ? "bg-green-100 text-green-700"
-                                  : match.result === "loss"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-slate-200 text-slate-600"
-                              }`}
-                            >
-                              {match.result === "win"
-                                ? "W"
-                                : match.result === "loss"
-                                ? "L"
-                                : "D"}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium text-[13px] text-slate-700 truncate">
-                                vs {getDisplayName(match.opponent)}
-                              </div>
-                              <div className="text-[11px] text-slate-500">
-                                {match.groupId ? "Group Stage" : "Round Robin"}
-                                {match.roundNumber &&
-                                  ` • Round ${match.roundNumber}`}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-base font-semibold text-slate-800">
-                              {match.score}
-                            </div>
-                            <div className="text-[10px] text-slate-500">
-                              {match.pointsScored}-{match.pointsConceded} pts
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="h2h" className="mt-4">
-                  {selectedPlayer.headToHead.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-12">
-                      No head-to-head data available
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {selectedPlayer.headToHead.map((h2h) => {
-                        const winRate =
-                          h2h.matches > 0 ? (h2h.wins / h2h.matches) * 100 : 0;
-                        return (
+                  <TabsContent value="matches" className="mt-3">
+                    {selectedPlayer.matchHistory.length === 0 ? (
+                      <div className="text-center text-slate-500 text-[12px] py-12">
+                        No matches played yet
+                      </div>
+                    ) : (
+                      <div className="space-y-0">
+                        {selectedPlayer.matchHistory.map((match) => (
                           <div
-                            key={h2h.opponentId}
-                            className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                            key={match.matchId}
+                            className="flex items-center justify-between py-2.5 px-3 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="font-semibold text-sm">
-                                vs {getDisplayName(h2h.opponent)}
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div
+                                className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                  match.result === "win"
+                                    ? "bg-green-100 text-green-700"
+                                    : match.result === "loss"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-slate-200 text-slate-600"
+                                }`}
+                              >
+                                {match.result === "win"
+                                  ? "W"
+                                  : match.result === "loss"
+                                  ? "L"
+                                  : "D"}
                               </div>
-                              <Badge variant="outline" className="text-xs">
-                                {h2h.matches}{" "}
-                                {h2h.matches === 1 ? "match" : "matches"}
-                              </Badge>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-[13px] text-slate-700 truncate">
+                                  vs {getDisplayName(match.opponent)}
+                                </div>
+                                <div className="text-[11px] text-slate-500">
+                                  {match.groupId ? "Group Stage" : "Round Robin"}
+                                  {match.roundNumber &&
+                                    ` • Round ${match.roundNumber}`}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4 mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg font-bold text-green-600">
-                                  {h2h.wins}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  W
-                                </span>
+                            <div className="text-right shrink-0">
+                              <div className="text-base font-semibold text-slate-800">
+                                {match.score}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg font-bold text-red-600">
-                                  {h2h.losses}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  L
-                                </span>
+                              <div className="text-[10px] text-slate-500">
+                                {match.pointsScored}-{match.pointsConceded} pts
                               </div>
-                              {h2h.draws > 0 && (
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="h2h" className="mt-4">
+                    {selectedPlayer.headToHead.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-12">
+                        No head-to-head data available
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedPlayer.headToHead.map((h2h) => {
+                          const winRate =
+                            h2h.matches > 0 ? (h2h.wins / h2h.matches) * 100 : 0;
+                          return (
+                            <div
+                              key={h2h.opponentId}
+                              className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="font-semibold text-sm">
+                                  vs {getDisplayName(h2h.opponent)}
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {h2h.matches}{" "}
+                                  {h2h.matches === 1 ? "match" : "matches"}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 mb-2">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-gray-600">
-                                    {h2h.draws}
+                                  <span className="text-lg font-bold text-green-600">
+                                    {h2h.wins}
                                   </span>
                                   <span className="text-xs text-muted-foreground">
-                                    D
+                                    W
                                   </span>
                                 </div>
-                              )}
-                              <div className="ml-auto text-right">
-                                <div className="text-sm font-semibold">
-                                  {winRate.toFixed(0)}%
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg font-bold text-red-600">
+                                    {h2h.losses}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    L
+                                  </span>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Win Rate
+                                {h2h.draws > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg font-bold text-gray-600">
+                                      {h2h.draws}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      D
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="ml-auto text-right">
+                                  <div className="text-sm font-semibold">
+                                    {winRate.toFixed(0)}%
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Win Rate
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-4 text-xs">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-muted-foreground">
+                                    Sets:
+                                  </span>
+                                  <span className="font-medium">
+                                    {h2h.setsWon}-{h2h.setsLost}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-muted-foreground">
+                                    Points:
+                                  </span>
+                                  <span className="font-medium">
+                                    {h2h.pointsScored}-{h2h.pointsConceded}
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-4 text-xs">
-                              <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground">
-                                  Sets:
-                                </span>
-                                <span className="font-medium">
-                                  {h2h.setsWon}-{h2h.setsLost}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground">
-                                  Points:
-                                </span>
-                                <span className="font-medium">
-                                  {h2h.pointsScored}-{h2h.pointsConceded}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

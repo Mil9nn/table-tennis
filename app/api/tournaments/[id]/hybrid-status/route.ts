@@ -8,188 +8,151 @@
  * - Next actions available
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import Tournament from "@/models/Tournament";
-import { User } from "@/models/User";
 import Team from "@/models/Team";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { User } from "@/models/User";
 import {
   getHybridTournamentStatus,
-  getPhaseInfo,
   getQualificationSummary,
 } from "@/services/tournament";
+import {
+  withDBAndErrorHandling,
+  requireAuth,
+  loadTournament,
+  jsonOk,
+} from "@/lib/api";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    await connectDB();
+export const GET = withDBAndErrorHandling(async (req, context) => {
+  await requireAuth(req);
+  const { id } = await context.params;
 
-    // Ensure models are registered (explicitly reference to ensure they're loaded)
-    const TournamentModel = Tournament;
-    const UserModel = User;
-    const TeamModel = Team;
-    
-    if (!TournamentModel || !UserModel || !TeamModel) {
-      throw new Error("Required models not loaded");
-    }
+  const { tournament, isTeamTournament } = await loadTournament(id, null, {
+    skipConnect: true,
+  });
 
-    const token = getTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Populate participants based on tournament category
+  if (isTeamTournament) {
+    await tournament.populate({
+      path: "participants",
+      model: Team,
+      select: "name logo city captain",
+    });
+    await tournament.populate({
+      path: "qualifiedParticipants",
+      model: Team,
+      select: "name logo city captain",
+    });
+  } else {
+    await tournament.populate({
+      path: "participants",
+      model: User,
+      select: "username fullName profileImage",
+    });
+    await tournament.populate({
+      path: "qualifiedParticipants",
+      model: User,
+      select: "username fullName profileImage",
+    });
+  }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const params = await context.params;
-    const tournamentId = params.id;
-
-    // Find tournament
-    const tournament = await Tournament.findById(tournamentId);
-    
-    if (!tournament) {
-      return NextResponse.json(
-        { error: "Tournament not found" },
-        { status: 404 }
-      );
-    }
-
-    // Populate participants based on tournament category
-    const isTeamTournament = tournament.category === "team";
-    if (isTeamTournament) {
-      await tournament.populate({
-        path: "participants",
-        model: Team,
-        select: "name logo city captain",
-      });
-      await tournament.populate({
-        path: "qualifiedParticipants",
-        model: Team,
-        select: "name logo city captain",
-      });
-    } else {
-      await tournament.populate({
-        path: "participants",
-        model: User,
-        select: "username fullName profileImage",
-      });
-      await tournament.populate({
-        path: "qualifiedParticipants",
-        model: User,
-        select: "username fullName profileImage",
-      });
-    }
-
-    // If not hybrid, return basic info
-    if (tournament.format !== "hybrid") {
-      return NextResponse.json(
-        {
-          isHybrid: false,
-          format: tournament.format,
-          message: "Tournament is not hybrid format",
-        },
-        { status: 200 }
-      );
-    }
-
-    // Get comprehensive hybrid status
-    const status = getHybridTournamentStatus(tournament);
-    const phaseInfo = getPhaseInfo(tournament);
-    const qualificationSummary = getQualificationSummary(tournament);
-
-    // Build response
-    const response: any = {
-      isHybrid: true,
+  // If not hybrid, return basic info
+  if (tournament.format !== "hybrid") {
+    return jsonOk({
+      isHybrid: false,
       format: tournament.format,
-      currentPhase: status.currentPhase,
-      phaseTransitionDate: tournament.phaseTransitionDate,
+      message: "Tournament is not hybrid format",
+    });
+  }
 
-      // Phase completion status
-      roundRobinComplete: status.roundRobinComplete,
-      knockoutComplete: status.knockoutComplete,
+  // Get comprehensive hybrid status
+  const status = getHybridTournamentStatus(tournament as any);
+  const qualificationSummary = getQualificationSummary(tournament as any);
 
-      // Qualification info
-      qualifiedCount: status.qualifiedCount,
-      totalParticipants: status.totalParticipants,
+  // Build response
+  const response: Record<string, any> = {
+    isHybrid: true,
+    format: tournament.format,
+    currentPhase: status.currentPhase,
+    phaseTransitionDate: tournament.phaseTransitionDate,
 
-      // Configuration
-      hybridConfig: tournament.hybridConfig,
+    // Phase completion status
+    roundRobinComplete: status.roundRobinComplete,
+    knockoutComplete: status.knockoutComplete,
 
-      // Actions
-      canTransition: status.canTransition,
-      nextAction: status.nextAction,
-    };
+    // Qualification info
+    qualifiedCount: status.qualifiedCount,
+    totalParticipants: status.totalParticipants,
 
-    // Add qualification summary if available
-    if (qualificationSummary) {
-      response.qualificationSummary = qualificationSummary;
-    }
+    // Configuration
+    hybridConfig: tournament.hybridConfig,
 
-    // Add qualified participants if available
-    if (tournament.qualifiedParticipants && tournament.qualifiedParticipants.length > 0) {
-      response.qualifiedParticipants = tournament.qualifiedParticipants;
-    }
+    // Actions
+    canTransition: status.canTransition,
+    nextAction: status.nextAction,
+  };
 
-    // Add round-robin progress
-    if (status.currentPhase === "round_robin") {
-      if (tournament.useGroups && tournament.groups) {
-        // Group-based progress
-        const groupProgress = tournament.groups.map((group: any) => ({
-          groupId: group.groupId,
-          groupName: group.groupName,
-          participantCount: group.participants.length,
-          roundsTotal: group.rounds.length,
-          roundsCompleted: group.rounds.filter((r: any) => r.completed).length,
-          isComplete: group.rounds.every((r: any) => r.completed),
-        }));
+  // Add qualification summary if available
+  if (qualificationSummary) {
+    response.qualificationSummary = qualificationSummary;
+  }
 
-        response.roundRobinProgress = {
-          useGroups: true,
-          groups: groupProgress,
-          allGroupsComplete: groupProgress.every((g: any) => g.isComplete),
-        };
-      } else {
-        // Single group progress
-        const roundsTotal = tournament.rounds.length;
-        const roundsCompleted = tournament.rounds.filter(
-          (r: any) => r.completed
-        ).length;
+  // Add qualified participants if available
+  if (
+    tournament.qualifiedParticipants &&
+    tournament.qualifiedParticipants.length > 0
+  ) {
+    response.qualifiedParticipants = tournament.qualifiedParticipants;
+  }
 
-        response.roundRobinProgress = {
-          useGroups: false,
-          roundsTotal,
-          roundsCompleted,
-          isComplete: roundsCompleted === roundsTotal,
-        };
-      }
-    }
+  // Add round-robin progress
+  if (status.currentPhase === "round_robin") {
+    const usesGroups =
+      tournament.hybridConfig?.roundRobinUseGroups || tournament.useGroups;
 
-    // Add knockout progress
-    if (status.currentPhase === "knockout" && tournament.bracket) {
-      const bracket = tournament.bracket;
-      response.knockoutProgress = {
-        currentRound: bracket.currentRound,
-        totalRounds: bracket.rounds.length,
-        roundsCompleted: bracket.rounds.filter((r: any) => r.completed).length,
-        bracketSize: bracket.size,
-        isComplete: bracket.completed,
+    if (usesGroups && tournament.groups && tournament.groups.length > 0) {
+      // Group-based progress
+      const groupProgress = tournament.groups.map((group: any) => ({
+        groupId: group.groupId,
+        groupName: group.groupName,
+        participantCount: group.participants?.length || 0,
+        roundsTotal: group.rounds?.length || 0,
+        roundsCompleted:
+          group.rounds?.filter((r: any) => r.completed).length || 0,
+        isComplete:
+          group.rounds?.length > 0 &&
+          group.rounds.every((r: any) => r.completed),
+      }));
+
+      response.roundRobinProgress = {
+        useGroups: true,
+        groups: groupProgress,
+        allGroupsComplete: groupProgress.every((g: any) => g.isComplete),
+      };
+    } else {
+      // Single group progress (no groups, flat round-robin)
+      const roundsTotal = tournament.rounds?.length || 0;
+      const roundsCompleted =
+        tournament.rounds?.filter((r: any) => r.completed).length || 0;
+
+      response.roundRobinProgress = {
+        useGroups: false,
+        roundsTotal,
+        roundsCompleted,
+        isComplete: roundsTotal > 0 && roundsCompleted === roundsTotal,
       };
     }
-
-    return NextResponse.json(response, { status: 200 });
-  } catch (error: any) {
-    console.error("Error fetching hybrid status:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to fetch hybrid tournament status",
-        details: error.message,
-      },
-      { status: 500 }
-    );
   }
-}
+
+  // Add knockout progress
+  if (status.currentPhase === "knockout" && tournament.bracket) {
+    const bracket = tournament.bracket;
+    response.knockoutProgress = {
+      currentRound: bracket.currentRound,
+      totalRounds: bracket.rounds.length,
+      roundsCompleted: bracket.rounds.filter((r: any) => r.completed).length,
+      bracketSize: bracket.size,
+      isComplete: bracket.completed,
+    };
+  }
+
+  return jsonOk(response);
+});

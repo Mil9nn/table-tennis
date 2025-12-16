@@ -98,6 +98,40 @@ export interface IndividualMatch {
 // TEAM MATCH TYPES
 // ============================================
 
+// Re-export canonical types from shared module
+export type {
+  TeamMatchFormat,
+  TeamSubMatchType,
+  TeamWinnerSide,
+  TeamSideKey,
+  TeamServerKey,
+  TeamServerConfig,
+  TeamGame,
+  TeamSubMatchBase,
+  TeamSubMatch,
+  TeamSubMatchPopulated,
+  TeamMatchSnapshot,
+  TeamMatchSnapshotPopulated,
+  TeamMatchFinalScore,
+  TeamPlayerStats,
+  TeamMatchStatistics,
+  TeamMatchBase,
+  TeamMatchDocument,
+  TeamMatchPopulated,
+  SinglesSubMatchConfig,
+  DoublesSubMatchConfig,
+  CreateTeamMatchDTO,
+  TeamSubMatchScorePayload,
+} from "@/shared/match/teamMatchTypes";
+
+export {
+  FORMAT_DISPLAY_NAMES,
+  FORMAT_REQUIREMENTS,
+  getRequiredPositions,
+  isTeamSubMatchPopulated,
+} from "@/shared/match/teamMatchTypes";
+
+// Legacy types for backwards compatibility
 export interface TeamInfo {
   _id: string;
   name: string;
@@ -105,25 +139,28 @@ export interface TeamInfo {
   logo?: string;
   players: Player[];
   city: string;
-  stats: {
-    matchesPlayed: number;
-    matchesWon: number;
-    matchesLost: number;
-    winPercentage: number;
-    gamesWon: number;
-    gamesLost: number;
+  stats?: {
+    matchesPlayed?: number;
+    matchesWon?: number;
+    matchesLost?: number;
+    winPercentage?: number;
+    gamesWon?: number;
+    gamesLost?: number;
+    totalMatches?: number;
+    wins?: number;
+    losses?: number;
   };
   assignments?: Record<string, string>;
 }
 
 export interface SubMatch {
-  _id?: Types.ObjectId;
+  _id?: Types.ObjectId | string;
   matchNumber: number;
-  matchType: IndividualMatchType;
+  matchType: "singles" | "doubles";
   numberOfSets: number;
 
-  playerTeam1?: Participant | Types.ObjectId | Participant[];
-  playerTeam2?: Participant | Types.ObjectId | Participant[];
+  playerTeam1?: Participant | Types.ObjectId | Participant[] | string[];
+  playerTeam2?: Participant | Types.ObjectId | Participant[] | string[];
   serverConfig?: InitialServerConfig | null;
   currentServer?: ServerKey | null;
 
@@ -135,16 +172,19 @@ export interface SubMatch {
   winnerSide?: "team1" | "team2" | null;
   status: MatchStatus;
   completed: boolean;
+  startedAt?: Date;
+  completedAt?: Date;
 }
 
 export interface TeamMatch {
   _id: string;
   matchCategory: "team";
-  matchFormat: TeamMatchFormat;
+  matchFormat: "five_singles" | "single_double_single" | "custom";
   numberOfSetsPerSubMatch: number;
+  numberOfSubMatches?: number;
   team1: TeamInfo;
   team2: TeamInfo;
-  scorer?: Participant | string; // Can be Participant object (populated) or string ID (not populated)
+  scorer?: Participant | string;
   city?: string;
   venue?: string;
   status: MatchStatus;
@@ -158,16 +198,20 @@ export interface TeamMatch {
   serverConfig?: InitialServerConfig | null;
   currentServer?: ServerKey | null;
   statistics?: {
+    longestStreak?: number;
+    clutchPointsWon?: number;
+    playerStats?: Record<string, any>;
   };
-
+  tournament?: {
+    _id: string;
+    name: string;
+    format: string;
+    status: string;
+  } | null;
+  scheduledDate?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
-
-export type TeamMatchFormat =
-  | "five_singles"
-  | "single_double_single"
-  | "custom";
 
 // ============================================
 // UNIFIED TYPES
@@ -198,41 +242,6 @@ export function isIndividualMatch(
 export function isTeamMatch(match: NormalizedMatch): match is TeamMatch {
   return match.matchCategory === "team";
 }
-
-// ============================================
-// FORMAT HELPERS
-// ============================================
-
-export const FORMAT_DISPLAY_NAMES: Record<TeamMatchFormat, string> = {
-  five_singles: "Swaythling Cup (Best of 5)",
-  single_double_single: "Single-Double-Single",
-  custom: "Custom Format",
-};
-
-export const FORMAT_REQUIREMENTS: Record<
-  TeamMatchFormat,
-  {
-    team1: string[];
-    team2: string[];
-    minPlayers: number;
-  }
-> = {
-  five_singles: {
-    team1: ["A", "B", "C"],
-    team2: ["X", "Y", "Z"],
-    minPlayers: 3,
-  },
-  single_double_single: {
-    team1: ["A", "B"],
-    team2: ["X", "Y"],
-    minPlayers: 2,
-  },
-  custom: {
-    team1: [],
-    team2: [],
-    minPlayers: 1,
-  },
-};
 
 // ============================================
 // SCORE UPDATE TYPES

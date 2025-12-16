@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "play:round-robin": "tsx scripts/play-round-robin.ts",
+    "play:knockout": "node scripts/play-knockout.js",
+    "create:teams": "tsx scripts/seed-teams.ts",
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",

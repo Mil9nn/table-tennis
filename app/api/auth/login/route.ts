@@ -50,7 +50,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const token = generateToken(user._id.toString());
+    let token;
+    try {
+      token = generateToken(user._id.toString());
+    } catch (tokenError: any) {
+      console.error("Failed to generate JWT token:", tokenError);
+      return NextResponse.json(
+        { 
+          message: "Authentication error - failed to generate token",
+          error: process.env.NODE_ENV === "development" ? tokenError.message : undefined
+        },
+        { status: 500 }
+      );
+    }
 
     const response = NextResponse.json(
       {
@@ -69,10 +81,13 @@ export async function POST(request: NextRequest) {
 
     setAuthCookie(response, token);
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { message: "Something went wrong" },
+      { 
+        message: error?.message || "Something went wrong",
+        error: process.env.NODE_ENV === "development" ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }

@@ -44,6 +44,7 @@ import TournamentSchedule from "@/components/tournaments/TournamentSchedule";
 import { JoinCodeDialog } from "@/components/tournaments/JoinCodeDialog";
 import { ManageParticipantsDialog } from "@/components/tournaments/ManageParticipantsDialog";
 import { ManageGroupsDialog } from "@/components/tournaments/ManageGroupsDialog";
+import { ManageScorersDialog } from "@/components/tournaments/ManageScorersDialog";
 import KnockoutBracketView from "@/components/tournaments/KnockoutBracketView";
 import { HybridTournamentManager } from "@/components/tournaments/HybridTournamentManager";
 import { TournamentErrorBoundary } from "@/components/tournaments/TournamentErrorBoundary";
@@ -71,6 +72,7 @@ export default function TournamentDetailPage() {
   const [manageParticipantsOpen, setManageParticipantsOpen] = useState(false);
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
   const [seedingManagerOpen, setSeedingManagerOpen] = useState(false);
+  const [manageScorersOpen, setManageScorersOpen] = useState(false);
 
   const fetchTournament = useCallback(
     async (skipLoadingState = false) => {
@@ -163,23 +165,21 @@ export default function TournamentDetailPage() {
     );
   };
 
+  const handleScorersUpdate = (scorers: any[]) => {
+    setTournament((prev) =>
+      prev
+        ? {
+            ...prev,
+            scorers,
+          }
+        : null
+    );
+  };
+
   const handleGroupsUpdate = async (groups: any[]) => {
-    // If matches were already generated, groups update will regenerate matches
-    // So we need to fetch the full tournament data to get the updated matches
-    if (tournament?.drawGenerated) {
-      // Fetch full tournament data to get regenerated matches
-      await fetchTournament(true); // Skip loading state to avoid flash
-    } else {
-      // Just update groups in state if matches haven't been generated yet
-      setTournament((prev) =>
-        prev
-          ? {
-              ...prev,
-              groups,
-            }
-          : null
-      );
-    }
+    // Groups update now always generates/regenerates matches
+    // Fetch full tournament data to get the generated matches
+    await fetchTournament(true); // Skip loading state to avoid flash
   };
 
   const handleCancel = async () => {
@@ -465,15 +465,15 @@ export default function TournamentDetailPage() {
     <TournamentErrorBoundary>
       <div className="min-h-screen bg-slate-50">
         {/* Modern Header */}
-        <div className="bg-blue-500 border-b border-slate-400">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700/20">
           <div className="max-w-7xl mx-auto">
-            <div className="">
+            <div className="px-6 py-4">
               {/* Header Row */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 p-2 px-4">
-                <div className="flex-1 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 space-y-1">
                   {/* Title + Status */}
-                  <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-semibold text-slate-100 tracking-tight">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl font-bold text-white tracking-tight">
                       {tournament.name}
                     </h1>
 
@@ -481,35 +481,11 @@ export default function TournamentDetailPage() {
                       variant="outline"
                       className={`${getStatusColor(
                         tournament.status
-                      )} text-xs font-semibold px-2 rounded-full border-slate-400`}
+                      )} text-xs font-semibold px-2 py-0.5 rounded-md border`}
                     >
                       {tournament.status?.replace("_", " ").toUpperCase() ||
                         "DRAFT"}
                     </Badge>
-                  </div>
-
-                  {/* Meta Info */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
-                    <span className="font-medium">
-                      {tournament.format?.replace("_", " ").toUpperCase() ||
-                        "N/A"}
-                    </span>
-
-                    <span>•</span>
-
-                    <span>
-                      {tournament.matchType?.replace("_", " ") || "N/A"}
-                    </span>
-
-                    {tournament.venue && (
-                      <>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-3" />
-                          {tournament.venue}
-                        </span>
-                      </>
-                    )}
                   </div>
                 </div>
 
@@ -599,6 +575,14 @@ export default function TournamentDetailPage() {
                             <DropdownMenuSeparator />
                           </>
                         )}
+                        
+                        {/* Manage Scorers - available anytime for organizer */}
+                        <DropdownMenuItem
+                          onClick={() => setManageScorersOpen(true)}
+                        >
+                          <Users2 className="w-4 h-4" />
+                          Manage Scorers
+                        </DropdownMenuItem>
                         {/* Show Manage Groups if groups are enabled and can be managed (outside drawGenerated check for hybrid tournaments) */}
                         {canManageGroups() && (
                           <DropdownMenuItem
@@ -656,66 +640,60 @@ export default function TournamentDetailPage() {
                 )}
               </div>
 
-              {/* Stats Row - Compact */}
-              <div className="bg-white p-2 px-4 flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Calendar className="size-3 text-slate-500" />
-                  <p className="text-xs font-semibold text-slate-500">
+              {/* Stats Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-6 py-3 border-t border-blue-400/20">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-blue-100">Start Date</p>
+                  <p className="text-xs font-semibold text-white flex items-center gap-1">
+                    <Calendar className="size-3" />
                     {tournament.startDate
                       ? formatDateShort(tournament.startDate)
                       : "N/A"}
                   </p>
                 </div>
-                <span className="text-slate-500">•</span>
-                <div className="flex items-center gap-2">
-                  <MapPin className="size-3 text-slate-500" />
-                  <p className="text-xs font-semibold text-slate-500">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-blue-100">Location</p>
+                  <p className="text-xs font-semibold text-white flex items-center gap-1">
+                    <MapPin className="size-3" />
                     {tournament.city || "N/A"}
                   </p>
                 </div>
-                <span className="text-slate-500">•</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <Users2 className="size-3 text-slate-500" />
-                    <span className="text-xs font-medium text-slate-600">
-                      Participants:
-                    </span>
-                  </div>
-                  <p className="text-xs font-semibold text-slate-500">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-blue-100">
+                    {isTeamTournament ? "Teams" : "Participants"}
+                  </p>
+                  <p className="text-xs font-semibold text-white flex items-center gap-1">
+                    <Users2 className="size-3" />
                     {tournament.participants?.length || 0}
                     {hasGroups() && (
-                      <span className="text-xs text-slate-500">
-                        (
-                        {tournament.format === "hybrid"
+                      <span className="text-xs font-normal text-blue-100">
+                        ({tournament.format === "hybrid"
                           ? tournament.hybridConfig?.roundRobinNumberOfGroups ||
                             0
-                          : tournament.numberOfGroups || 0}{" "}
-                        groups)
+                          : tournament.numberOfGroups || 0}G)
                       </span>
                     )}
                   </p>
                 </div>
                 
                 {tournament.status !== "draft" && totalMatches > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="size-3 text-blue-500" />
-                      <span className="text-xs font-medium text-blue-500">
-                        Progress:
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-blue-500">
-                      {completedMatches} / {totalMatches}
-                    </p>
-                    <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${(completedMatches / totalMatches) * 100}%`,
-                        }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full bg-indigo-600"
-                      />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-blue-100">Progress</p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-white flex items-center gap-1">
+                        <BarChart3 className="size-3" />
+                        {completedMatches}/{totalMatches}
+                      </p>
+                      <div className="h-1 bg-blue-400/30 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${(completedMatches / totalMatches) * 100}%`,
+                          }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          className="h-full bg-white/80"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -726,86 +704,7 @@ export default function TournamentDetailPage() {
 
         {/* Content Area */}
         <div className="max-w-7xl mx-auto">
-          {/* Generate Matches CTA - Compact */}
-          {canGenerateMatches && !isCustomMatchingTournament && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="border-indigo-200 rounded-none bg-gradient-to-r from-indigo-50 to-blue-50">
-                <CardContent className="">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-1">
-                        Ready to Start?
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Generate the tournament draw to create all matches
-                        {hasGroups() && " and assign groups"}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={generateMatches}
-                      disabled={generating}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                    >
-                      {generating ? (
-                        <>
-                          <Loader2 className="w-4 h-4  animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 " />
-                          Generate Draw
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
-          {/* Generate Bracket CTA for Custom Matching Tournaments */}
-          {canGenerateMatches && isCustomMatchingTournament && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="border-indigo-200 rounded-none bg-gradient-to-r from-indigo-50 to-blue-50">
-                <CardContent className="">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-1">
-                        Ready to Create Bracket?
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Generate the bracket structure. You'll then configure matchups manually.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={generateMatches}
-                      disabled={generating}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                    >
-                      {generating ? (
-                        <>
-                          <Loader2 className="w-4 h-4  animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 " />
-                          Generate Bracket
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
           {/* Error Recovery - Draw generated but no matches (only show if NOT custom matching) */}
           {isOrganizer &&
@@ -908,10 +807,23 @@ export default function TournamentDetailPage() {
 
           {/* Main Tabs */}
           <Tabs
-            defaultValue={hasGroups() ? "groups" : "standings"}
+            defaultValue="info"
             className="w-full"
           >
             <TabsList className="grid w-full max-w-2xl rounded-none p-0 grid-cols-4 h-auto">
+              {/* Info Tab */}
+              <TabsTrigger
+                value="info"
+                className="
+                  rounded-none text-sm font-medium px-4 py-2
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm
+                  data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
+                  transition-all
+                "
+              >
+                Info
+              </TabsTrigger>
+
               {/* Groups Tab - Show for tournaments with groups */}
               {hasGroups() && (
                 <TabsTrigger
@@ -965,18 +877,6 @@ export default function TournamentDetailPage() {
                 "
               >
                 {isTeamTournament ? "Teams" : "Players"}
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="info"
-                className="
-                  rounded-none text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:shadow-sm
-                  data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
-                  transition-all
-                "
-              >
-                Info
               </TabsTrigger>
             </TabsList>
 
@@ -1074,6 +974,7 @@ export default function TournamentDetailPage() {
                       showDate={false}
                       showTime={false}
                       venue={tournament.venue}
+                      isTeamTournament={isTeamTournament}
                     />
                   ) : isCustomMatchingTournament && tournament.drawGenerated ? (
                     <div className="py-12 text-center text-muted-foreground">
@@ -1263,10 +1164,12 @@ export default function TournamentDetailPage() {
                       <dl className="space-y-1.5 text-sm">
                         <div className="flex justify-between items-center py-1 border-b border-black/5">
                           <dt className="text-muted-foreground">
-                            Sets per match
+                            {tournament.category === "team" ? "Sets per submatch" : "Sets per match"}
                           </dt>
                           <dd className="font-medium text-neutral-700">
-                            Best of {tournament.rules?.setsPerMatch || "N/A"}
+                            {tournament.category === "team"
+                              ? (tournament as any).teamConfig?.setsPerSubMatch || "N/A"
+                              : tournament.rules?.setsPerMatch || "N/A"}
                           </dd>
                         </div>
 
@@ -1344,6 +1247,18 @@ export default function TournamentDetailPage() {
             currentSeeding={tournament.seeding || []}
             onUpdate={() => fetchTournament(true)}
             category={tournament.category}
+          />
+        )}
+
+        {/* Manage Scorers Dialog */}
+        {tournament && (
+          <ManageScorersDialog
+            open={manageScorersOpen}
+            onOpenChange={setManageScorersOpen}
+            tournamentId={tournament._id}
+            organizer={tournament.organizer}
+            scorers={tournament.scorers || []}
+            onUpdate={handleScorersUpdate}
           />
         )}
       </div>

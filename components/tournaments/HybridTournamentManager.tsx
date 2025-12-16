@@ -162,18 +162,7 @@ export function HybridTournamentManager({
 
   return (
     <Card className="rounded-none bg-gradient-to-br from-blue-50 to-purple-50">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardDescription>Round-Robin → Knockout Format</CardDescription>
-          </div>
-          <Badge className={`${getPhaseColor(status.currentPhase)} text-white rounded-full`}>
-            {status.currentPhase.replace("_", " ").toUpperCase()}
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Phase Progress Indicator */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -213,9 +202,9 @@ export function HybridTournamentManager({
             </div>
 
             {status.roundRobinProgress.useGroups && status.roundRobinProgress.groups ? (
-              <div className="space-y-2">
+              <div className="bg-white rounded-lg px-2 overflow-hidden">
                 {status.roundRobinProgress.groups.map((group) => (
-                  <div key={group.groupId} className="bg-white rounded-lg p-3 border">
+                  <div key={group.groupId} className="p-2">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{group.groupName}</span>
                       <span className="text-xs text-gray-500">

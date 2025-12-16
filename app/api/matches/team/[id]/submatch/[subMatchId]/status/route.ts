@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { withAuth } from "@/lib/api-utils";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(
   req: NextRequest,
@@ -14,12 +16,29 @@ export async function POST(
 
   try {
     await connectDB();
+    
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const body = await req.json();
 
     const match = await TeamMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    // Check scoring permission
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
+      return NextResponse.json(
+        { error: "Forbidden: you don't have permission to update this match" },
+        { status: 403 }
+      );
     }
 
     const subMatch = match.subMatches.id(subMatchId);

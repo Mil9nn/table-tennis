@@ -63,9 +63,18 @@ export function ServeReceiveWeaknessCard({
 
           {/* Recommendation */}
           <div className="pt-2 border-t">
-            <p className="text-xs text-gray-600 italic">
+            <p className={`text-xs italic ${
+              serveStats.recommendation?.includes("Need more") 
+                ? "text-gray-500" 
+                : "text-gray-600"
+            }`}>
               <RecommendationText text={serveStats.recommendation} />
             </p>
+            {serveStats.totalServes > 0 && serveStats.totalServes < 3 && (
+              <p className="text-xs text-gray-400 mt-1">
+                (Minimum 3 serves needed for accurate analysis)
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -122,9 +131,18 @@ export function ServeReceiveWeaknessCard({
 
           {/* Recommendation */}
           <div className="pt-2 border-t">
-            <p className="text-xs text-gray-600 italic">
+            <p className={`text-xs italic ${
+              receiveStats.recommendation?.includes("Need more") 
+                ? "text-gray-500" 
+                : "text-gray-600"
+            }`}>
               <RecommendationText text={receiveStats.recommendation} />
             </p>
+            {receiveStats.totalReceives > 0 && receiveStats.totalReceives < 3 && (
+              <p className="text-xs text-gray-400 mt-1">
+                (Minimum 3 receives needed for accurate analysis)
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

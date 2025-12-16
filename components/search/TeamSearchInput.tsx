@@ -19,6 +19,8 @@ interface TeamSearchInputProps {
   onSelect: (team: Team) => void;
   clearAfterSelect?: boolean;
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 export default function TeamSearchInput({
@@ -26,6 +28,8 @@ export default function TeamSearchInput({
   onSelect,
   clearAfterSelect = false,
   defaultValue,
+  value: externalValue,
+  onChange: externalOnChange,
 }: TeamSearchInputProps) {
   const [query, setQuery] = useState(defaultValue || "");
   const [teams, setTeams] = useState<Team[]>([]);
@@ -33,8 +37,18 @@ export default function TeamSearchInput({
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [focused, setFocused] = useState(false);
 
+  // Use external value if provided, otherwise use internal query
+  const currentQuery = externalValue !== undefined ? externalValue : query;
+  
+  const updateQuery = (newValue: string) => {
+    setQuery(newValue);
+    if (externalOnChange) {
+      externalOnChange(newValue);
+    }
+  };
+
   useEffect(() => {
-    if (query.trim().length < 2) {
+    if (currentQuery.trim().length < 2) {
       setTeams([]);
       return;
     }
@@ -42,7 +56,7 @@ export default function TeamSearchInput({
     const timeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await axiosInstance.get(`/teams/search?query=${query}`);
+        const res = await axiosInstance.get(`/teams/search?query=${currentQuery}`);
         if (res.data.success) {
           setTeams(res.data.teams || []);
         }
@@ -54,25 +68,31 @@ export default function TeamSearchInput({
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [query]);
+  }, [currentQuery]);
 
   const handleSelect = (team: Team) => {
-    setSelectedTeam(team);
     onSelect(team);
-    if (clearAfterSelect) setQuery("");
-    else setQuery(team.name);
-    setTeams([]);
+
+    if (clearAfterSelect) {
+      updateQuery("");
+      setTeams([]);
+      setSelectedTeam(null);
+    } else {
+      setSelectedTeam(team);
+      updateQuery("");
+      setTeams([]);
+    }
   };
 
   const handleClear = () => {
     setSelectedTeam(null);
-    setQuery("");
+    updateQuery("");
   };
 
   return (
     <div className="relative w-full">
-      {/* Selected Team Display */}
-      {selectedTeam ? (
+      {/* Selected Team Display - only show if clearAfterSelect is false */}
+      {selectedTeam && !clearAfterSelect ? (
         <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
@@ -97,8 +117,8 @@ export default function TeamSearchInput({
         <>
           <Input
             placeholder={placeholder}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={currentQuery}
+            onChange={(e) => updateQuery(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 150)}
             className="pr-10"
@@ -110,7 +130,7 @@ export default function TeamSearchInput({
       )}
 
       {/* Dropdown */}
-      {focused && query.trim().length >= 2 && !loading && !selectedTeam && (
+      {focused && currentQuery.trim().length >= 2 && !loading && !selectedTeam && (
         <div className="absolute z-50 mt-1 w-full bg-background border rounded-lg shadow-lg overflow-y-auto max-h-64 animate-in fade-in-50 slide-in-from-top-1">
           {teams.length > 0 ? (
             teams.map((team) => (

@@ -21,6 +21,14 @@ export async function POST(request: NextRequest) {
 
     body = await request.json();
 
+    // DEBUG: Log received body
+    console.log("🔵 [API POST] Received body:", {
+      category: body.category,
+      teamConfig: body.teamConfig,
+      teamConfig_setsPerSubMatch: body.teamConfig?.setsPerSubMatch,
+      rules_setsPerMatch: body.rules?.setsPerMatch,
+    });
+
     // ✅ Validate request body with Zod
     const validation = validateRequest(createTournamentSchema, body);
     if (!validation.success) {
@@ -97,7 +105,10 @@ export async function POST(request: NextRequest) {
       knockoutConfig: knockoutConfig || undefined,
       hybridConfig: hybridConfig || undefined,
       // Include teamConfig for team tournaments
-      teamConfig: category === "team" ? (teamConfig || {
+      teamConfig: category === "team" ? (teamConfig ? {
+        ...teamConfig,
+        setsPerSubMatch: Number(teamConfig.setsPerSubMatch) || 3,
+      } : {
         matchFormat: "five_singles",
         setsPerSubMatch: 3,
       }) : undefined,
@@ -106,6 +117,7 @@ export async function POST(request: NextRequest) {
       rules: {
         pointsForWin: rules?.pointsForWin || 2,
         pointsForLoss: rules?.pointsForLoss || 0,
+        // Note: For team tournaments, setsPerMatch is not used. Team submatches use teamConfig.setsPerSubMatch
         setsPerMatch: rules?.setsPerMatch || 3,
         pointsPerSet: rules?.pointsPerSet || 11,
         advanceTop: rules?.advanceTop || 0,
@@ -121,7 +133,24 @@ export async function POST(request: NextRequest) {
       status: "draft",
     });
 
+    // DEBUG: Log tournament object before save
+    console.log("🟢 [API POST] Tournament object created:", {
+      id: tournament._id,
+      category: tournament.category,
+      teamConfig: tournament.teamConfig,
+      teamConfig_setsPerSubMatch: tournament.teamConfig?.setsPerSubMatch,
+      rules_setsPerMatch: tournament.rules?.setsPerMatch,
+    });
+
     await tournament.save();
+
+    // DEBUG: Log after save
+    console.log("🟡 [API POST] Tournament saved:", {
+      id: tournament._id,
+      teamConfig: tournament.teamConfig,
+      teamConfig_setsPerSubMatch: tournament.teamConfig?.setsPerSubMatch,
+      rules_setsPerMatch: tournament.rules?.setsPerMatch,
+    });
     
     // Populate participants based on category
     const isTeamTournament = category === "team";

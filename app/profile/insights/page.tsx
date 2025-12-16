@@ -233,7 +233,6 @@ const PerformanceInsightsPage = () => {
                       />
                       <ZoneHeatmap
                         zoneData={weaknessData.zoneWeaknesses}
-                        viewMode="winRate"
                       />
                     </div>
 

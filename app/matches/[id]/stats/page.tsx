@@ -9,6 +9,7 @@ import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
 import { MatchHeader } from "@/components/match-stats/MatchHeader";
 import { MatchScoreSummary } from "@/components/match-stats/MatchScoreSummary";
 import { ServeReceiveChart } from "@/components/match-stats/ServeReceiveChart";
+import { ServeTypeChart } from "@/components/match-stats/ServeTypeChart";
 import { ShotTypeChart } from "@/components/match-stats/ShotTypeChart";
 import { GameProgressionChart } from "@/components/match-stats/GameProgressionChart";
 import { GameByGameBreakdown } from "@/components/match-stats/GameByGameBreakdown";
@@ -19,6 +20,7 @@ import {
   computeStats,
   computePlayerStats,
   computeServeStats,
+  computeServeTypeStats,
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
 
@@ -83,6 +85,21 @@ export default function MatchStatsPage() {
         player: player?.fullName || player?.username || "Unknown",
         Serve: s.servePoints,
         Receive: s.receivePoints,
+      };
+    });
+
+    const serveTypeStats = computeServeTypeStats(allGames);
+    const serveTypeData = Object.entries(serveTypeStats).map(([playerId, s]) => {
+      const player = allParticipants.find((p) => p._id.toString() === playerId);
+      const playerName = player?.fullName || player?.username || "Unknown";
+      return {
+        player: playerName,
+        type: "Serve" as const,
+        side_spin: s.serve.side_spin || 0,
+        top_spin: s.serve.top_spin || 0,
+        back_spin: s.serve.back_spin || 0,
+        mix_spin: s.serve.mix_spin || 0,
+        no_spin: s.serve.no_spin || 0,
       };
     });
 
@@ -166,6 +183,7 @@ export default function MatchStatsPage() {
                 totalGames={allGames.length}
               />
               <ServeReceiveChart data={serveData} />
+              <ServeTypeChart data={serveTypeData} />
               <ShotTypeChart data={strokeData} />
               {allGames.length > 1 && (
                 <GameProgressionChart
@@ -234,6 +252,21 @@ export default function MatchStatsPage() {
         player: player?.fullName || player?.username || "Unknown",
         Serve: s.servePoints,
         Receive: s.receivePoints,
+      };
+    });
+
+    const serveTypeStats = computeServeTypeStats(allSubMatchGames);
+    const serveTypeData = Object.entries(serveTypeStats).map(([playerId, s]) => {
+      const player = allParticipants.find((p) => p._id?.toString() === playerId);
+      const playerName = player?.fullName || player?.username || "Unknown";
+      return {
+        player: playerName,
+        type: "Serve" as const,
+        side_spin: s.serve.side_spin || 0,
+        top_spin: s.serve.top_spin || 0,
+        back_spin: s.serve.back_spin || 0,
+        mix_spin: s.serve.mix_spin || 0,
+        no_spin: s.serve.no_spin || 0,
       };
     });
 
@@ -318,6 +351,7 @@ export default function MatchStatsPage() {
                 totalGames={allSubMatchGames.length}
               />
               <ServeReceiveChart data={serveData} />
+              <ServeTypeChart data={serveTypeData} />
               <ShotTypeChart data={strokeData} />
               {(match.subMatches?.length || 0) > 1 && (
                 <GameProgressionChart

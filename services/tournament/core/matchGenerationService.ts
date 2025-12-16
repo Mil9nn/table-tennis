@@ -97,6 +97,17 @@ export async function createScheduledTeamMatch(
   scorerId: string,
   groupId?: string
 ): Promise<any> {
+  // DEBUG: Log tournament
+  console.log("🔵 [MATCH GEN] Tournament received:", {
+    id: tournament._id,
+    category: (tournament as any).category,
+    teamConfig: (tournament as any).teamConfig,
+    teamConfig_setsPerSubMatch: (tournament as any).teamConfig?.setsPerSubMatch,
+    teamConfig_setsPerSubMatch_type: typeof (tournament as any).teamConfig?.setsPerSubMatch,
+    rules_setsPerMatch: (tournament as any).rules?.setsPerMatch,
+    teamConfig_full: JSON.stringify((tournament as any).teamConfig),
+  });
+
   // Fetch team docs
   const team1 = await Team.findById(pairing.player1).lean();
   const team2 = await Team.findById(pairing.player2).lean();
@@ -108,11 +119,37 @@ export async function createScheduledTeamMatch(
   // Prepare submatches according to teamConfig (optional: if assignments exist)
   const matchFormat =
     (tournament as any).teamConfig?.matchFormat || "five_singles";
-  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
+  const rawSetsValue = (tournament as any).teamConfig?.setsPerSubMatch;
+  const setsPerSubMatch = rawSetsValue 
+    ? Number(rawSetsValue)
+    : 3;
+
+  // DEBUG: Log extracted values step-by-step
+  console.log("🟢 [MATCH GEN] Extracting setsPerSubMatch:", {
+    rawValue: rawSetsValue,
+    rawType: typeof rawSetsValue,
+    afterNumber: setsPerSubMatch,
+    afterType: typeof setsPerSubMatch,
+    fallbackApplied: !rawSetsValue,
+    matchFormat,
+  });
 
   const subMatches: any[] = [];
-  const team1Assignments = (team1 as any).assignments || {};
-  const team2Assignments = (team2 as any).assignments || {};
+  
+  // Convert Map to object if needed (MongoDB stores Map as object)
+  const getAssignmentsObject = (assignments: any): Record<string, string> => {
+    if (!assignments) return {};
+    if (assignments instanceof Map) {
+      return Object.fromEntries(assignments);
+    }
+    if (typeof assignments === 'object') {
+      return assignments;
+    }
+    return {};
+  };
+
+  const team1Assignments = getAssignmentsObject((team1 as any).assignments);
+  const team2Assignments = getAssignmentsObject((team2 as any).assignments);
 
   function findByPos(assignments: Record<string, string>, pos: string) {
     const entries = Object.entries(assignments || {});
@@ -120,7 +157,29 @@ export async function createScheduledTeamMatch(
     return found ? found[0] : null;
   }
 
+  // Validate team assignments based on format
+  const team1Positions = Object.values(team1Assignments);
+  const team2Positions = Object.values(team2Assignments);
+
   if (matchFormat === "five_singles") {
+    // five_singles requires A, B, C for team1 and X, Y, Z for team2
+    const requiredTeam1 = ["A", "B", "C"];
+    const requiredTeam2 = ["X", "Y", "Z"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign all player positions (A, B, C for home team; X, Y, Z for away team) before generating the draw.`);
+    }
+
     const order = [
       ["A", "X"],
       ["B", "Y"],
@@ -129,8 +188,8 @@ export async function createScheduledTeamMatch(
       ["B", "X"],
     ];
     order.forEach((pair, idx) => {
-      const p1 = findByPos(team1Assignments as any, pair[0]);
-      const p2 = findByPos(team2Assignments as any, pair[1]);
+      const p1 = findByPos(team1Assignments, pair[0]);
+      const p2 = findByPos(team2Assignments, pair[1]);
       if (p1 && p2) {
         subMatches.push({
           matchNumber: idx + 1,
@@ -145,10 +204,28 @@ export async function createScheduledTeamMatch(
       }
     });
   } else if (matchFormat === "single_double_single") {
-    const A = findByPos(team1Assignments as any, "A");
-    const B = findByPos(team1Assignments as any, "B");
-    const X = findByPos(team2Assignments as any, "X");
-    const Y = findByPos(team2Assignments as any, "Y");
+    // single_double_single requires A, B for team1 and X, Y for team2
+    const requiredTeam1 = ["A", "B"];
+    const requiredTeam2 = ["X", "Y"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign player positions (A, B for home team; X, Y for away team) before generating the draw.`);
+    }
+
+    const A = findByPos(team1Assignments, "A");
+    const B = findByPos(team1Assignments, "B");
+    const X = findByPos(team2Assignments, "X");
+    const Y = findByPos(team2Assignments, "Y");
     if (A && X) {
       subMatches.push({
         matchNumber: 1,
@@ -214,7 +291,31 @@ export async function createScheduledTeamMatch(
     subMatches,
   });
 
+  // DEBUG: Log match object before save
+  console.log("🟡 [MATCH GEN] TeamMatch object created (pre-save):", {
+    id: teamMatch._id,
+    matchFormat: teamMatch.matchFormat,
+    numberOfSetsPerSubMatch: teamMatch.numberOfSetsPerSubMatch,
+    numberOfSetsPerSubMatch_type: typeof teamMatch.numberOfSetsPerSubMatch,
+    numberOfSubMatches: teamMatch.numberOfSubMatches,
+    subMatches_count: teamMatch.subMatches?.length,
+  });
+
   await teamMatch.save();
+
+  // DEBUG: Log after save
+  console.log("🟠 [MATCH GEN] Match saved to database:", {
+    id: teamMatch._id,
+    numberOfSetsPerSubMatch: teamMatch.numberOfSetsPerSubMatch,
+    numberOfSetsPerSubMatch_type: typeof teamMatch.numberOfSetsPerSubMatch,
+    subMatches: teamMatch.subMatches?.map((sm: any) => ({
+      id: sm._id,
+      numberOfSets: sm.numberOfSets,
+    })),
+  });
+
+  console.log("🔴 [MATCH GEN] Full match object:", teamMatch);
+
   return teamMatch;
 }
 
@@ -242,11 +343,26 @@ export async function createBracketTeamMatch(
   // Prepare submatches according to teamConfig (optional: if assignments exist)
   const matchFormat =
     (tournament as any).teamConfig?.matchFormat || "five_singles";
-  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch || 3;
+  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch 
+    ? Number((tournament as any).teamConfig.setsPerSubMatch)
+    : 3;
 
   const subMatches: any[] = [];
-  const team1Assignments = (team1 as any).assignments || {};
-  const team2Assignments = (team2 as any).assignments || {};
+  
+  // Convert Map to object if needed (MongoDB stores Map as object)
+  const getAssignmentsObj = (assignments: any): Record<string, string> => {
+    if (!assignments) return {};
+    if (assignments instanceof Map) {
+      return Object.fromEntries(assignments);
+    }
+    if (typeof assignments === 'object') {
+      return assignments;
+    }
+    return {};
+  };
+
+  const team1Assignments = getAssignmentsObj((team1 as any).assignments);
+  const team2Assignments = getAssignmentsObj((team2 as any).assignments);
 
   function findByPos(assignments: Record<string, string>, pos: string) {
     const entries = Object.entries(assignments || {});
@@ -254,7 +370,29 @@ export async function createBracketTeamMatch(
     return found ? found[0] : null;
   }
 
+  // Validate team assignments based on format
+  const team1Positions = Object.values(team1Assignments);
+  const team2Positions = Object.values(team2Assignments);
+
   if (matchFormat === "five_singles") {
+    // five_singles requires A, B, C for team1 and X, Y, Z for team2
+    const requiredTeam1 = ["A", "B", "C"];
+    const requiredTeam2 = ["X", "Y", "Z"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign all player positions (A, B, C for home team; X, Y, Z for away team) before generating the draw.`);
+    }
+
     const order = [
       ["A", "X"],
       ["B", "Y"],
@@ -263,8 +401,8 @@ export async function createBracketTeamMatch(
       ["B", "X"],
     ];
     order.forEach((pair, idx) => {
-      const p1 = findByPos(team1Assignments as any, pair[0]);
-      const p2 = findByPos(team2Assignments as any, pair[1]);
+      const p1 = findByPos(team1Assignments, pair[0]);
+      const p2 = findByPos(team2Assignments, pair[1]);
       if (p1 && p2) {
         subMatches.push({
           matchNumber: idx + 1,
@@ -279,10 +417,28 @@ export async function createBracketTeamMatch(
       }
     });
   } else if (matchFormat === "single_double_single") {
-    const A = findByPos(team1Assignments as any, "A");
-    const B = findByPos(team1Assignments as any, "B");
-    const X = findByPos(team2Assignments as any, "X");
-    const Y = findByPos(team2Assignments as any, "Y");
+    // single_double_single requires A, B for team1 and X, Y for team2
+    const requiredTeam1 = ["A", "B"];
+    const requiredTeam2 = ["X", "Y"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign player positions (A, B for home team; X, Y for away team) before generating the draw.`);
+    }
+
+    const A = findByPos(team1Assignments, "A");
+    const B = findByPos(team1Assignments, "B");
+    const X = findByPos(team2Assignments, "X");
+    const Y = findByPos(team2Assignments, "Y");
     if (A && X) {
       subMatches.push({
         matchNumber: 1,
