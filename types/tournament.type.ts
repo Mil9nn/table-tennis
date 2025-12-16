@@ -134,7 +134,8 @@ export interface Tournament {
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
 
   participants: Participant[];
-  organizer: UserParticipant; // Organizer is always a user
+  organizer: UserParticipant; // Organizer is always a user (admin)
+  scorers?: UserParticipant[]; // Users who can score matches (max 10)
 
   // Seeding
   seeding: Seeding[];
@@ -243,4 +244,20 @@ export interface Standing {
   rank: number;
   form: string[]; // Last 5 results: "W", "L", "D"
   headToHead?: { [opponentId: string]: number };
+  // Team-specific fields
+  subMatchesWon?: number;
+  subMatchesLost?: number;
+  playerStats?: TeamPlayerStats[];
+}
+
+export interface TeamPlayerStats {
+  player: {
+    _id: string;
+    username: string;
+    fullName?: string;
+    profileImage?: string;
+  };
+  subMatchesPlayed: number;
+  subMatchesWon: number;
+  winRate: number;
 }

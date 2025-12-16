@@ -3,50 +3,27 @@
  *
  * Provides factory functions for creating SubMatch objects with validation.
  * Eliminates duplication of SubMatch creation logic across team match generation.
+ *
+ * Uses canonical types from @/shared/match/teamMatchTypes
  */
 
-// Types
-export interface SinglesSubMatchConfig {
-  matchNumber: number;
-  playerTeam1: string;
-  playerTeam2: string;
-  numberOfSets: number;
-}
-
-export interface DoublesSubMatchConfig {
-  matchNumber: number;
-  playerTeam1: [string, string];
-  playerTeam2: [string, string];
-  numberOfSets: number;
-}
-
-export interface SubMatch {
-  matchNumber: number;
-  matchType: "singles" | "doubles";
-  playerTeam1: string | string[];
-  playerTeam2: string | string[];
-  numberOfSets: number;
-  games: any[];
-  finalScore: {
-    team1Sets: number;
-    team2Sets: number;
-  };
-  winnerSide: null;
-  status: "scheduled";
-  completed: false;
-}
+import {
+  TeamSubMatchBase,
+  TeamSubMatchType,
+  SinglesSubMatchConfig,
+  DoublesSubMatchConfig,
+} from "@/shared/match/teamMatchTypes";
 
 /**
  * Create a singles submatch with validation
  *
  * @param config - Configuration for singles submatch
- * @returns SubMatch object for singles match
+ * @returns TeamSubMatchBase object for singles match
  * @throws Error if player IDs are missing or invalid
  */
-export function createSinglesSubMatch(config: SinglesSubMatchConfig): SubMatch {
+export function createSinglesSubMatch(config: SinglesSubMatchConfig): TeamSubMatchBase {
   const { matchNumber, playerTeam1, playerTeam2, numberOfSets } = config;
 
-  // Validation
   if (!playerTeam1 || typeof playerTeam1 !== "string") {
     throw new Error(`Invalid playerTeam1 for match ${matchNumber}`);
   }
@@ -59,9 +36,9 @@ export function createSinglesSubMatch(config: SinglesSubMatchConfig): SubMatch {
 
   return {
     matchNumber,
-    matchType: "singles",
-    playerTeam1,
-    playerTeam2,
+    matchType: "singles" as TeamSubMatchType,
+    playerTeam1: [playerTeam1],
+    playerTeam2: [playerTeam2],
     numberOfSets,
     games: [],
     finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -75,13 +52,12 @@ export function createSinglesSubMatch(config: SinglesSubMatchConfig): SubMatch {
  * Create a doubles submatch with validation
  *
  * @param config - Configuration for doubles submatch
- * @returns SubMatch object for doubles match
+ * @returns TeamSubMatchBase object for doubles match
  * @throws Error if player IDs are missing, invalid, or not exactly 2 per team
  */
-export function createDoublesSubMatch(config: DoublesSubMatchConfig): SubMatch {
+export function createDoublesSubMatch(config: DoublesSubMatchConfig): TeamSubMatchBase {
   const { matchNumber, playerTeam1, playerTeam2, numberOfSets } = config;
 
-  // Validation
   if (!Array.isArray(playerTeam1) || playerTeam1.length !== 2) {
     throw new Error(
       `Invalid playerTeam1 for doubles match ${matchNumber}. Expected array of 2 player IDs, got: ${JSON.stringify(playerTeam1)}`
@@ -104,9 +80,9 @@ export function createDoublesSubMatch(config: DoublesSubMatchConfig): SubMatch {
 
   return {
     matchNumber,
-    matchType: "doubles",
-    playerTeam1,
-    playerTeam2,
+    matchType: "doubles" as TeamSubMatchType,
+    playerTeam1: [...playerTeam1],
+    playerTeam2: [...playerTeam2],
     numberOfSets,
     games: [],
     finalScore: { team1Sets: 0, team2Sets: 0 },
@@ -121,12 +97,12 @@ export function createDoublesSubMatch(config: DoublesSubMatchConfig): SubMatch {
  *
  * @param matchType - "singles" or "doubles"
  * @param config - Configuration object (structure depends on matchType)
- * @returns SubMatch object
+ * @returns TeamSubMatchBase object
  */
 export function createSubMatch(
-  matchType: "singles" | "doubles",
+  matchType: TeamSubMatchType,
   config: SinglesSubMatchConfig | DoublesSubMatchConfig
-): SubMatch {
+): TeamSubMatchBase {
   if (matchType === "singles") {
     return createSinglesSubMatch(config as SinglesSubMatchConfig);
   } else {

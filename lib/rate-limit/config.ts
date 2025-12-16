@@ -50,16 +50,16 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
 
   // Search Endpoints
   "GET:/api/users/search": {
-    limit: 30,
+    limit: 60,
     window: "1 m",
     algorithm: "slidingWindow",
     identifier: "ip", // Per IP, expensive regex queries
   },
   "GET:/api/teams/search": {
-    limit: 30,
+    limit: 100,
     window: "1 m",
     algorithm: "slidingWindow",
-    identifier: "ip", // Per IP, expensive regex queries
+    identifier: "ip", // Per IP, expensive regex queries - increased for tournament team selection
   },
 
   // Score Update Routes (High Frequency)

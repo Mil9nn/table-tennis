@@ -87,6 +87,7 @@ export interface ITournament extends Document {
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
   participants: mongoose.Types.ObjectId[];
   organizer: mongoose.Types.ObjectId;
+  scorers: mongoose.Types.ObjectId[]; // Users who can score matches (max 10)
 
   // Seeding system
   seeding: ISeeding[];
@@ -211,6 +212,10 @@ const tournamentSchema = new Schema<ITournament>(
     // We don't use ref here to allow both types, population is handled manually based on category
     participants: [{ type: Schema.Types.ObjectId }],
     organizer: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    
+    // Scorers - users who can score matches in this tournament (max 10)
+    // Organizer is implicitly a scorer and doesn't need to be in this array
+    scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
     // Seeding
     seeding: [

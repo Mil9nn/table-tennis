@@ -60,10 +60,20 @@ export const tournamentRulesSchema = z.object({
 export const knockoutConfigSchema = z.object({
   thirdPlaceMatch: z.boolean().optional().default(false),
   consolationBracket: z.boolean().optional().default(false),
+  allowCustomMatching: z.boolean().optional().default(true),
+  autoGenerateBracket: z.boolean().optional().default(true),
 }).strict().optional();
 
 // Hybrid config schema
 export const hybridConfigSchema = z.object({
+  roundRobinUseGroups: z.boolean().optional().default(false),
+  roundRobinNumberOfGroups: z.number().int().min(2).max(8).optional(),
+  qualificationMethod: z.enum(["top_n_overall", "top_n_per_group", "percentage"]).optional(),
+  qualifyingCount: z.number().int().min(1).optional(),
+  qualifyingPerGroup: z.number().int().min(1).optional(),
+  qualifyingPercentage: z.number().int().min(1).max(100).optional(),
+  knockoutAllowCustomMatching: z.boolean().optional().default(true),
+  knockoutThirdPlaceMatch: z.boolean().optional().default(false),
   roundRobinRules: tournamentRulesSchema.optional(),
   knockoutRules: tournamentRulesSchema.optional(),
 }).strict().optional();
@@ -72,11 +82,10 @@ export const hybridConfigSchema = z.object({
 export const teamConfigSchema = z.object({
   matchFormat: z.enum([
     "five_singles",
-    "four_singles_one_doubles",
-    "three_singles_two_doubles",
+    "single_double_single",
     "custom"
   ]),
-  setsPerSubMatch: z.number().int().min(1).max(5).default(3),
+  setsPerSubMatch: z.coerce.number().int().min(1).max(9).default(3),
 }).strict().optional();
 
 // Create tournament schema
@@ -111,6 +120,8 @@ export const createTournamentSchema = z.object({
     .optional()
     .default([]),
 
+  // Note: setsPerMatch only applies to individual tournaments
+  // Team tournaments use teamConfig.setsPerSubMatch for each submatch
   rules: tournamentRulesSchema.optional(),
 
   useGroups: z.boolean().optional().default(false),
@@ -169,8 +180,8 @@ export const createTournamentSchema = z.object({
 )
 .refine(
   (data) => {
-    // Hybrid format must have hybridConfig
-    if (data.format === "hybrid" && !data.hybridConfig) {
+    // Hybrid format should have hybridConfig, but allow empty object
+    if (data.format === "hybrid" && data.hybridConfig === undefined) {
       return false;
     }
     return true;

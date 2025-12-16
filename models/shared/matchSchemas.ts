@@ -35,6 +35,13 @@ export function createShotSchema(sideEnum: string[]) {
       default: null,
     },
 
+    // If stroke is a serve_point, record the serve type
+    serveType: {
+      type: String,
+      enum: ["side_spin", "top_spin", "back_spin", "mix_spin", "no_spin"],
+      default: null,
+    },
+
     server: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     // Shot coordinate system:
@@ -140,7 +147,9 @@ export const playerStatsSchema = new mongoose.Schema({
 
 // Team info schema for team matches
 export const teamInfoSchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId },
   name: { type: String, required: true },
+  logo: { type: String },
   captain: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   // players array — matches your Team schema style (user + role + joinedDate)
@@ -169,6 +178,9 @@ export const teamInfoSchema = new mongoose.Schema({
     gamesLost: { type: Number, default: 0 },
   },
 });
+
+
+
 
 
 

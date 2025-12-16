@@ -73,7 +73,8 @@ export async function GET(
 
     // Build the populate configuration dynamically
     let query = Tournament.findById(id)
-      .populate("organizer", "username fullName profileImage");
+      .populate("organizer", "username fullName profileImage")
+      .populate("scorers", "username fullName profileImage");
 
     // Populate participants based on category
     if (isTeamTournament) {

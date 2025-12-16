@@ -9,10 +9,9 @@ import { formatStrokeName } from "@/lib/utils";
 
 interface ZoneHeatmapProps {
   zoneData: ZoneWeaknessData;
-  viewMode?: "winRate" | "shotCount" | "vulnerability";
 }
 
-export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps) {
+export function ZoneHeatmap({ zoneData }: ZoneHeatmapProps) {
   const [hoveredZone, setHoveredZone] = useState<{ x: number; y: number } | null>(null);
 
   // Table dimensions in SVG units
@@ -27,12 +26,12 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
 
   // Get color based on win rate
   const getWinRateColor = (winRate: number, totalShots: number): string => {
-    if (totalShots < 3) return "rgba(156, 163, 175, 0.2)"; // Gray for insufficient data
+    if (totalShots === 0) return "rgba(156, 163, 175, 0.2)"; // Gray for no data
 
     // Calculate relative thresholds based on average win rate for better sensitivity
     const allWinRates = zoneData.heatmapGrid
       .flat()
-      .filter((cell) => cell.totalShots >= 3)
+      .filter((cell) => cell.totalShots > 0)
       .map((cell) => cell.winRate);
     
     const avgWinRate = allWinRates.length > 0
@@ -52,35 +51,9 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
     return "rgba(239, 68, 68, 0.8)"; // Red
   };
 
-  // Get color based on vulnerability
-  const getVulnerabilityColor = (vulnerability: string, totalShots: number): string => {
-    if (totalShots < 3) return "rgba(156, 163, 175, 0.2)";
-
-    if (vulnerability === "high") return "rgba(239, 68, 68, 0.8)";
-    if (vulnerability === "medium") return "rgba(250, 204, 21, 0.6)";
-    return "rgba(34, 197, 94, 0.5)";
-  };
-
-  // Get color based on shot count
-  const getShotCountColor = (shotCount: number): string => {
-    const maxShots = Math.max(
-      ...zoneData.heatmapGrid.flat().map((cell) => cell.totalShots)
-    );
-    if (shotCount === 0) return "rgba(156, 163, 175, 0.2)";
-
-    const intensity = Math.min(shotCount / (maxShots || 1), 1);
-    return `rgba(59, 130, 246, ${0.3 + intensity * 0.6})`;
-  };
-
-  // Get zone color based on view mode
+  // Get zone color based on win rate
   const getZoneColor = (cell: any): string => {
-    if (viewMode === "winRate") {
-      return getWinRateColor(cell.winRate, cell.totalShots);
-    } else if (viewMode === "vulnerability") {
-      return getVulnerabilityColor(cell.vulnerability, cell.totalShots);
-    } else {
-      return getShotCountColor(cell.totalShots);
-    }
+    return getWinRateColor(cell.winRate, cell.totalShots);
   };
 
   // Get hovered cell data
@@ -93,7 +66,7 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
       <CardHeader>
         <CardTitle className="text-lg">Zone Vulnerability Heatmap</CardTitle>
         <p className="text-xs text-gray-500">
-          Hover over zones to see detailed stats. Red = <span className="font-semibold">vulnerable</span>, Green = <span className="font-semibold">safe</span>
+          Hover over zones to see detailed stats. Colors show performance in that zone relative to your average performance across all zones (Red = below average, Green = above average)
         </p>
       </CardHeader>
       <CardContent>
@@ -165,6 +138,21 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
                         {cell.totalShots}
                       </text>
                     )}
+                    {/* Indicator for insufficient data */}
+                    {cell.totalShots > 0 && cell.totalShots < 3 && (
+                      <text
+                        x={cellX + CELL_WIDTH / 2}
+                        y={cellY + CELL_HEIGHT / 2 + 10}
+                        fill="#ffffff"
+                        fontSize="6"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                        opacity="0.5"
+                      >
+                        *
+                      </text>
+                    )}
                   </g>
                 );
               })
@@ -191,7 +179,12 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-600">Total Shots:</span>
-                  <span className="font-semibold">{hoveredCell.totalShots}</span>
+                  <span className="font-semibold">
+                    {hoveredCell.totalShots}
+                    {hoveredCell.totalShots < 3 && (
+                      <span className="text-gray-400 text-xs ml-1">(insufficient data)</span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-600">Win Rate:</span>
@@ -244,50 +237,52 @@ export function ZoneHeatmap({ zoneData, viewMode = "winRate" }: ZoneHeatmapProps
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-gray-700">Color Legend:</span>
-            <span className="text-gray-500">
-              {viewMode === "winRate" && "Win Rate"}
-              {viewMode === "vulnerability" && "Vulnerability Level"}
-              {viewMode === "shotCount" && "Shot Frequency"}
-            </span>
+            <span className="text-gray-500">Win Rate</span>
           </div>
 
-          {viewMode === "winRate" && (() => {
+          {(() => {
             const allWinRates = zoneData.heatmapGrid
               .flat()
-              .filter((cell) => cell.totalShots >= 3)
+              .filter((cell) => cell.totalShots > 0)
               .map((cell) => cell.winRate);
             const avgWinRate = allWinRates.length > 0
               ? allWinRates.reduce((a, b) => a + b, 0) / allWinRates.length
               : 50;
             
             return (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
-                <div className="flex items-center gap-2 flex-wrap w-full text-xs text-gray-600">
-                  <span className="">Vulnerable (below avg)</span>
-                  <span>Average (~{avgWinRate.toFixed(0)}%)</span>
-                  <span className="">Strong (above avg)</span>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-600 font-medium">
+                  Your average win rate across zones: <span className="font-semibold text-blue-600">{avgWinRate.toFixed(1)}%</span>
+                </p>
+                <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-lime-500 to-green-500"></div>
+                <div className="flex items-center gap-3 text-xs flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-red-500 opacity-80"></div>
+                    <span className="text-gray-600">Very Weak (&lt; avg - 10%)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-orange-500 opacity-70"></div>
+                    <span className="text-gray-600">Weak (avg - 10% to -5%)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-60"></div>
+                    <span className="text-gray-600">Below Average (avg - 5% to avg)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-lime-500 opacity-60"></div>
+                    <span className="text-gray-600">Above Average (avg to avg + 10%)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-green-500 opacity-70"></div>
+                    <span className="text-gray-600">Very Strong (&gt;= avg + 10%)</span>
+                  </div>
                 </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  * Zones with fewer than 3 shots are marked as neutral (insufficient data)
+                </p>
               </div>
             );
           })()}
-
-          {viewMode === "vulnerability" && (
-            <div className="flex gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded bg-red-500 opacity-80"></div>
-                <span>High</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded bg-yellow-500 opacity-60"></div>
-                <span>Medium</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded bg-green-500 opacity-50"></div>
-                <span>Low</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Vulnerable Zones Summary */}

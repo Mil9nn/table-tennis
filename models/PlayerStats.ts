@@ -43,6 +43,14 @@ const shotsSchema = new mongoose.Schema({
   forehand: { type: shotStatsSchema, default: () => ({}) },
   backhand: { type: shotStatsSchema, default: () => ({}) },
   serve: { type: shotStatsSchema, default: () => ({}) },
+  // serveTypes: counts of which serve types fetched points
+  serveTypes: {
+    side_spin: { type: Number, default: 0 },
+    top_spin: { type: Number, default: 0 },
+    back_spin: { type: Number, default: 0 },
+    mix_spin: { type: Number, default: 0 },
+    no_spin: { type: Number, default: 0 },
+  },
   offensive: { type: Number, default: 0 },
   defensive: { type: Number, default: 0 },
   neutral: { type: Number, default: 0 },

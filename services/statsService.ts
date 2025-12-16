@@ -445,9 +445,11 @@ class StatsService {
    */
   private extractPlayerShots(match: any, userId: string): any {
     const shots = {
-      forehand: { total: 0 },
-      backhand: { total: 0 },
-      serve: { total: 0 },
+      forehand: { total: 0, winners: 0, errors: 0 },
+      backhand: { total: 0, winners: 0, errors: 0 },
+      serve: { total: 0, winners: 0, errors: 0 },
+      // Track serve types that fetched points
+      serveTypes: { side_spin: 0, top_spin: 0, back_spin: 0, mix_spin: 0, no_spin: 0 },
       offensive: 0,
       defensive: 0,
       neutral: 0,
@@ -469,6 +471,19 @@ class StatsService {
           shots.detailed[shot.stroke] = 0;
         }
         shots.detailed[shot.stroke] += 1;
+
+        // Serve-specific handling
+        if (shot.stroke === "serve_point") {
+          shots.serve.total += 1;
+
+          // If serveType present, increment corresponding counter
+          if (shot.serveType) {
+            const key = shot.serveType as keyof typeof shots.serveTypes;
+            if (shots.serveTypes[key] !== undefined) {
+              shots.serveTypes[key] += 1;
+            }
+          }
+        }
 
         // Update forehand/backhand
         if (shot.stroke.startsWith("forehand")) {
@@ -514,6 +529,12 @@ class StatsService {
     existingShots.serve.total += newShots.serve.total;
     existingShots.serve.winners += newShots.serve.winners;
     existingShots.serve.errors += newShots.serve.errors;
+
+    // Merge serveTypes
+    for (const k of Object.keys(newShots.serveTypes || {})) {
+      if (!existingShots.serveTypes[k]) existingShots.serveTypes[k] = 0;
+      existingShots.serveTypes[k] += (newShots.serveTypes as any)[k];
+    }
 
     existingShots.offensive += newShots.offensive;
     existingShots.defensive += newShots.defensive;

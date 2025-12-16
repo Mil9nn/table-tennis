@@ -100,15 +100,19 @@ export class TournamentRepository {
 
   /**
    * Find tournament by ID (works for both individual and team)
+   * First checks the category field to use the correct model
    */
   async findById(id: string): Promise<Tournament | null> {
-    // Try individual first
-    let tournament = await TournamentIndividual.findById(id);
-    if (tournament) return tournament;
-
-    // Try team
-    tournament = await TournamentTeam.findById(id);
-    return tournament;
+    // First, do a lean query to check the category
+    const doc = await TournamentIndividual.findById(id).select('category').lean<{ category?: 'team' | 'individual' } | null>();
+    if (!doc) return null;
+    
+    // Use the correct model based on category
+    if (doc.category === 'team') {
+      return TournamentTeam.findById(id);
+    }
+    
+    return TournamentIndividual.findById(id);
   }
 
   /**
@@ -141,29 +145,30 @@ export class TournamentRepository {
    * Find tournament by ID with all relationships populated
    */
   async findByIdPopulated(id: string): Promise<Tournament | null> {
-    // Try individual first
-    let tournament: Tournament | null = await TournamentIndividual.findById(id)
+    // First, do a lean query to check the category
+    const doc = await TournamentIndividual.findById(id).select('category').lean<{ category?: 'team' | 'individual' } | null>();
+    if (!doc) return null;
+    
+    // Use the correct model based on category
+    if (doc.category === 'team') {
+      return TournamentTeam.findById(id)
+        .populate({
+          path: 'participants',
+          select: 'name logo captain players',
+          populate: {
+            path: 'captain players.user',
+            select: 'username fullName profileImage'
+          }
+        })
+        .populate('organizer', 'username fullName profileImage')
+        .populate('bracket');
+    }
+    
+    return TournamentIndividual.findById(id)
       .populate('participants', 'username fullName profileImage rank')
       .populate('organizer', 'username fullName profileImage')
       .populate('seeding.participant', 'username fullName profileImage')
       .populate('bracket');
-
-    if (tournament) return tournament;
-
-    // Try team
-    tournament = (await TournamentTeam.findById(id)
-      .populate({
-        path: 'participants',
-        select: 'name logo captain players',
-        populate: {
-          path: 'captain players.user',
-          select: 'username fullName profileImage'
-        }
-      })
-      .populate('organizer', 'username fullName profileImage')
-      .populate('bracket')) as Tournament | null;
-
-    return tournament;
   }
 
   /**

@@ -218,29 +218,43 @@ export async function updateTournamentAfterMatch(match: any) {
     return;
   }
 
-  // Ensure match has participants (they might be ObjectIds or populated objects)
-  if (!match.participants || match.participants.length === 0) {
-    console.error(
-      "[updateTournamentAfterMatch] Match has no participants",
-      match._id
-    );
-    return;
-  }
+  const isTeamMatch = match.matchCategory === "team";
 
-  // Normalize participants to ObjectIds if needed
-  const participantIds = match.participants.map((p: any) => {
-    if (typeof p === "string") return p;
-    if (p?._id) return p._id.toString();
-    return p.toString();
-  });
+  // For individual matches, validate participants
+  if (!isTeamMatch) {
+    // Ensure match has participants (they might be ObjectIds or populated objects)
+    if (!match.participants || match.participants.length === 0) {
+      console.error(
+        "[updateTournamentAfterMatch] Match has no participants",
+        match._id
+      );
+      return;
+    }
 
-  // Ensure we have valid participant IDs
-  if (participantIds.length < 2 || participantIds.some((id: any) => !id)) {
-    console.error("[updateTournamentAfterMatch] Invalid participant IDs", {
-      matchId: match._id,
-      participantIds,
+    // Normalize participants to ObjectIds if needed
+    const participantIds = match.participants.map((p: any) => {
+      if (typeof p === "string") return p;
+      if (p?._id) return p._id.toString();
+      return p.toString();
     });
-    return;
+
+    // Ensure we have valid participant IDs
+    if (participantIds.length < 2 || participantIds.some((id: any) => !id)) {
+      console.error("[updateTournamentAfterMatch] Invalid participant IDs", {
+        matchId: match._id,
+        participantIds,
+      });
+      return;
+    }
+  } else {
+    // For team matches, validate team1 and team2 exist
+    if (!match.team1 || !match.team2) {
+      console.error(
+        "[updateTournamentAfterMatch] Team match missing team1 or team2",
+        match._id
+      );
+      return;
+    }
   }
 
   // Handle knockout tournaments

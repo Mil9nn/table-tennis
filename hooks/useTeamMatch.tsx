@@ -6,8 +6,9 @@ import {
   TeamMatch,
   SubMatch,
   MatchStatus,
-  PlayerKey,
 } from "@/types/match.type";
+import { TeamSideKey } from "@/shared/match/teamMatchTypes";
+import { isGameWon } from "@/shared/match/scoringRules";
 import { useMatchStore } from "./useMatchStore";
 
 interface TeamMatchState {
@@ -32,7 +33,7 @@ interface TeamMatchState {
 
   setInitialTeamMatch: (match: TeamMatch) => void;
   updateSubMatchScore: (
-    side: "team1" | "team2",
+    side: TeamSideKey,
     increment: number,
     shotType?: string,
     playerId?: string,
@@ -41,12 +42,45 @@ interface TeamMatchState {
       originY: number;
       landingX: number;
       landingY: number;
+      serveType?: string | null;
     }
   ) => Promise<void>;
-  subtractPoint: (side: PlayerKey) => Promise<void>;
+  subtractPoint: (side: TeamSideKey) => Promise<void>;
   toggleSubMatch: () => Promise<void>;
-  resetSubMatch: () => Promise<void>;
+  resetSubMatch: (fullReset?: boolean) => Promise<void>;
   swapSides: () => Promise<void>;
+}
+
+/**
+ * Helper to ensure submatch is active before scoring
+ * Returns true if ready to score, false if not
+ */
+async function ensureSubMatchActive(
+  get: () => TeamMatchState,
+  status: MatchStatus,
+  isSubMatchActive: boolean
+): Promise<boolean> {
+  if (status === "completed") {
+    toast.error("Match is completed!");
+    return false;
+  }
+
+  if (!isSubMatchActive && status === "scheduled") {
+    try {
+      await get().toggleSubMatch();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return true;
+    } catch (error) {
+      console.error("Failed to auto-start submatch:", error);
+      toast.error("Failed to start the submatch");
+      return false;
+    }
+  } else if (!isSubMatchActive) {
+    toast.error("Start the submatch first");
+    return false;
+  }
+
+  return true;
 }
 
 export const useTeamMatch = create<TeamMatchState>((set, get) => ({
@@ -129,6 +163,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       originY: number;
       landingX: number;
       landingY: number;
+      serveType?: string | null;
     }
   ) => {
     const match = useMatchStore.getState().match as TeamMatch | null;
@@ -140,43 +175,17 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       return;
     }
 
-    const {
-      currentSubMatchIndex,
-      team1Score,
-      team2Score,
-      currentGame,
-      isSubMatchActive,
-      status,
-    } = get();
+    const { team1Score, team2Score, currentGame, isSubMatchActive, status } = get();
 
-    if (status === "completed") {
-      toast.error("Match is completed!");
-      return;
-    }
-
-    // Auto-start submatch if scheduled (not yet started)
-    if (!isSubMatchActive && status === "scheduled") {
-      try {
-        await get().toggleSubMatch();
-        // Wait a bit for the toggle to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error("Failed to auto-start submatch:", error);
-        toast.error("Failed to start the submatch");
-        return;
-      }
-    } else if (!isSubMatchActive) {
-      toast.error("Start the submatch first");
-      return;
-    }
+    const canProceed = await ensureSubMatchActive(get, status, isSubMatchActive);
+    if (!canProceed) return;
 
     const newT1 = side === "team1" ? team1Score + increment : team1Score;
     const newT2 = side === "team2" ? team2Score + increment : team2Score;
 
     if (newT1 < 0 || newT2 < 0) return;
 
-    const isGameWon =
-      (newT1 >= 11 || newT2 >= 11) && Math.abs(newT1 - newT2) >= 2;
+    const gameWon = isGameWon(newT1, newT2);
 
     const requestBody: any = {
       gameNumber: currentGame,
@@ -189,6 +198,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
         side,
         player: playerId,
         stroke: shotType,
+        serveType: shotLocationData?.serveType || null,
         server: null,
         originX: shotLocationData?.originX,
         originY: shotLocationData?.originY,
@@ -208,7 +218,7 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
         useMatchStore.getState().setMatch(data.match);
         get().setInitialTeamMatch(data.match);
 
-        if (isGameWon) {
+        if (gameWon) {
           toast.success(`Game ${currentGame} won!`);
         }
       }
@@ -230,29 +240,10 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       return;
     }
 
-    const { currentSubMatchIndex, currentGame, isSubMatchActive, status } =
-      get();
+    const { currentGame, isSubMatchActive, status } = get();
 
-    if (status === "completed") {
-      toast.error("Match is completed!");
-      return;
-    }
-
-    // Auto-start submatch if scheduled (not yet started)
-    if (!isSubMatchActive && status === "scheduled") {
-      try {
-        await get().toggleSubMatch();
-        // Wait a bit for the toggle to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error("Failed to auto-start submatch:", error);
-        toast.error("Failed to start the submatch");
-        return;
-      }
-    } else if (!isSubMatchActive) {
-      toast.error("Start the submatch first");
-      return;
-    }
+    const canProceed = await ensureSubMatchActive(get, status, isSubMatchActive);
+    if (!canProceed) return;
 
     set({ isUndoing: true });
     try {
@@ -317,12 +308,39 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
     }
   },
 
-  resetSubMatch: async () => {
+  resetSubMatch: async (fullReset = false) => {
     const match = useMatchStore.getState().match as TeamMatch | null;
-    if (!match) return;
+    if (!match) {
+      toast.error("No match loaded");
+      return;
+    }
 
-    // Implement reset logic if needed
-    toast.info("Reset functionality not yet implemented");
+    const subMatchId = get().currentSubMatch?._id;
+    if (!subMatchId) {
+      toast.error("No submatch selected!");
+      return;
+    }
+
+    const resetType = fullReset || get().currentSubMatch?.status === "completed" ? "submatch" : "game";
+
+    try {
+      const { data } = await axiosInstance.post(
+        `/matches/team/${match._id}/submatch/${subMatchId}/reset`,
+        { resetType }
+      );
+
+      if (data?.match) {
+        useMatchStore.getState().setMatch(data.match);
+        get().setInitialTeamMatch(data.match);
+        toast.success(
+          resetType === "submatch" ? "Submatch restarted" : "Game reset"
+        );
+      }
+    } catch (err: any) {
+      console.error("resetSubMatch error", err);
+      const errorMessage = err?.response?.data?.error || err?.message || "Failed to reset submatch";
+      toast.error(errorMessage);
+    }
   },
 
   swapSides: async () => {

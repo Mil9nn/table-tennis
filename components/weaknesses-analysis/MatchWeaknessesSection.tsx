@@ -127,7 +127,6 @@ export function MatchWeaknessesSection({
           />
           <ZoneHeatmap
             zoneData={participant.weaknesses.zoneWeaknesses}
-            viewMode="winRate"
           />
         </div>
 
@@ -203,7 +202,7 @@ export function MatchWeaknessesSection({
             />
             <ZoneHeatmap
               zoneData={participant.weaknesses.zoneWeaknesses}
-              viewMode="winRate"
+              
             />
           </div>
 

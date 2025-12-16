@@ -38,6 +38,21 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Color Legend */}
+        <div className="flex items-center gap-4 flex-wrap text-xs pb-4 border-b">
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-green-500"></span>
+            <span className="text-gray-600">Strong (&gt;55%)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span className="text-gray-600">Average (45-55%)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-red-500"></span>
+            <span className="text-gray-600">Weak (&lt;45%)</span>
+          </div>
+        </div>
         {sortedLines.map((line, idx) => {
           const isVulnerable = line.winRate < 45;
           const opponentEffective = line.averageOpponentWinRate > 55;

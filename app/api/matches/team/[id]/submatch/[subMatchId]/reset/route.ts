@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
 import { withAuth } from "@/lib/api-utils";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(
   req: NextRequest,
@@ -19,12 +20,29 @@ export async function POST(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== auth.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check scoring permission
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
+      return NextResponse.json(
+        { error: "Forbidden: you don't have permission to reset this match" },
+        { status: 403 }
+      );
     }
 
-    const subMatchIndex = parseInt(subMatchId);
-    const subMatch = match.subMatches[subMatchIndex];
+    // Support both matchNumber (integer), array index, and MongoDB _id (string)
+    const subMatchIdNum = parseInt(subMatchId);
+    let subMatch = match.subMatches.find((sm: any) => 
+      sm.matchNumber === subMatchIdNum || sm._id?.toString() === subMatchId
+    );
+    // Fallback to array index for backwards compatibility
+    if (!subMatch && !isNaN(subMatchIdNum) && subMatchIdNum < match.subMatches.length) {
+      subMatch = match.subMatches[subMatchIdNum];
+    }
 
     if (!subMatch) {
       return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });

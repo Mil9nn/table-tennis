@@ -61,4 +61,10 @@ export const SHOT_TYPE_COLORS: Record<string, string> = {
   backhand_drop: "#AAFFC3", // mint green
   net_point: "#FF6B6B", // coral red
   serve_point: "#4ECDC4", // turquoise
+  // Serve type specific colors
+  side_spin: "#F94144",
+  top_spin: "#F3722C",
+  back_spin: "#F8961E",
+  mix_spin: "#90BE6D",
+  no_spin: "#577590",
 };

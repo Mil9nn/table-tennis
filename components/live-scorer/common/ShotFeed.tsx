@@ -124,12 +124,14 @@ export default function ShotFeed({
                     
                     // Calculate game score at the time of this shot
                     // Count shots by side up to and including this shot
+                    // Support both individual (side1/side2) and team (team1/team2) matches
                     let gameScoreSide1 = 0;
                     let gameScoreSide2 = 0;
                     for (let j = 0; j <= i; j++) {
-                      if (shots[j].side === "side1") {
+                      const shotSide = shots[j].side;
+                      if (shotSide === "side1" || shotSide === "team1") {
                         gameScoreSide1++;
-                      } else if (shots[j].side === "side2") {
+                      } else if (shotSide === "side2" || shotSide === "team2") {
                         gameScoreSide2++;
                       }
                     }
@@ -186,9 +188,9 @@ export default function ShotFeed({
 
                         {/* Shot commentary with color accent */}
                         <div className="flex-1 flex gap-2.5">
-                          {/* Color accent bar */}
+                          {/* Color accent bar - support both side1/side2 and team1/team2 */}
                           <div className={`w-1 rounded-full flex-shrink-0 ${
-                            shot.side === "side1"
+                            shot.side === "side1" || shot.side === "team1"
                               ? "bg-gradient-to-b from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500"
                               : "bg-gradient-to-b from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500"
                           }`} />
@@ -216,7 +218,7 @@ export default function ShotFeed({
                                 </span>{" "}
                                 →{" "}
                                 <span className={`font-medium ${
-                                  shot.side === "side1"
+                                  shot.side === "side1" || shot.side === "team1"
                                     ? "text-blue-600 dark:text-blue-400"
                                     : "text-amber-600 dark:text-amber-400"
                                 }`}>

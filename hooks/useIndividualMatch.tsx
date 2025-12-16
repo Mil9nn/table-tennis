@@ -49,6 +49,7 @@ export interface IndividualMatchState {
       originY: number;
       landingX: number;
       landingY: number;
+      serveType?: string | null;
     }
   ) => Promise<void>;
   subtractPoint: (player: PlayerKey) => Promise<void>;
@@ -237,6 +238,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         originY: number;
         landingX: number;
         landingY: number;
+        serveType?: string | null;
       }
     ) => {
       const match = useMatchStore.getState().match as IndividualMatch | null;
@@ -325,6 +327,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
             side: player,
             player: shotPlayerId,
             stroke: shotType,
+            serveType: shotLocationData?.serveType || null,
             server: serverId,
             originX: shotLocationData?.originX,
             originY: shotLocationData?.originY,

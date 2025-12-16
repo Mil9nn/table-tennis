@@ -85,7 +85,11 @@ export interface OverallInsights {
 
 export interface ZoneSectorWeakness {
   zone: "short" | "mid" | "deep";
-  sector: "backhand" | "crossover" | "forehand";
+  // ABSOLUTE SECTOR (perspective-independent, used for stats)
+  // - "top": Y 0-33.33 (where left-side players have backhand)
+  // - "middle": Y 33.33-66.67 (crossover/center)
+  // - "bottom": Y 66.67-100 (where left-side players have forehand)
+  sector: "top" | "middle" | "bottom";
   totalShots: number;
   wins: number;
   losses: number;

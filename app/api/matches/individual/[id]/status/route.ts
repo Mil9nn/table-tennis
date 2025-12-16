@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/api-utils";
 import { statsService } from "@/services/statsService";
 import { updateTournamentAfterMatch } from "@/services/tournament/tournamentUpdateService";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(
   req: NextRequest,
@@ -31,9 +32,18 @@ export async function POST(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== auth.userId) {
+    // Check scoring permission
+    // For tournament matches: organizer or any assigned scorer can score
+    // For standalone matches: only the assigned scorer can score
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
       return NextResponse.json(
-        { error: "Forbidden only the assigned scorer can update the score" },
+        { error: "Forbidden: you don't have permission to update this match" },
         { status: 403 }
       );
     }

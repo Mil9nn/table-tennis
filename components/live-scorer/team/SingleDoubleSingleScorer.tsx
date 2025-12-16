@@ -117,6 +117,11 @@ export default function SingleDoubleSingleScorer({
 
   const { player1, player2 } = getPlayersForSubmatch();
 
+  // Check if players are assigned (not TBD)
+  const hasValidPlayers = isDoublesMatch
+    ? player1[0]?._id && player1[1]?._id && player2[0]?._id && player2[1]?._id
+    : player1[0]?._id && player2[0]?._id;
+
   const teamMatchPlayers = isDoublesMatch
     ? {
         side1: [
@@ -181,6 +186,49 @@ export default function SingleDoubleSingleScorer({
 
   const isCompleted = status === "completed";
 
+  // Show warning if players are not assigned for this submatch
+  if (!hasValidPlayers && !isCompleted) {
+    const player1Name = player1[0]?.fullName || player1[0]?.username || "TBD";
+    const player2Name = player2[0]?.fullName || player2[0]?.username || "TBD";
+
+    return (
+      <div className="max-w-6xl mx-auto p-8">
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle>Players Not Assigned</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <p className="text-gray-600 mb-4">
+              Match {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Players need to be assigned to positions before this match can be scored.
+              Please ensure both teams have configured their player assignments (A, B positions).
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+                disabled={currentSubMatchIndex === 0}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+                disabled={currentSubMatchIndex >= match.subMatches.length - 1}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Format labels for submatches
   const getSubMatchLabel = (index: number) => {
     if (index === 0) return "Singles 1";
@@ -205,7 +253,7 @@ export default function SingleDoubleSingleScorer({
   }
 
   const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-  const lastSide = lastShot.side as PlayerKey;
+  const lastSide = lastShot.side as "team1" | "team2";
 
   await subtractPoint(lastSide);
 };

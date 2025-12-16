@@ -82,22 +82,25 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   const player1Raw = currentSubMatch.playerTeam1;
   const player2Raw = currentSubMatch.playerTeam2;
 
-  const player1 = (Array.isArray(player1Raw) ? player1Raw[0] : player1Raw) as Participant;
-  const player2 = (Array.isArray(player2Raw) ? player2Raw[0] : player2Raw) as Participant;
+  const player1 = (Array.isArray(player1Raw) ? player1Raw[0] : player1Raw) as Participant | null;
+  const player2 = (Array.isArray(player2Raw) ? player2Raw[0] : player2Raw) as Participant | null;
 
-  const player1Name = player1?.fullName;
-  const player2Name = player2?.fullName;
+  const player1Name = player1?.fullName || player1?.username || "TBD";
+  const player2Name = player2?.fullName || player2?.username || "TBD";
+
+  // Check if players are assigned (not TBD)
+  const hasValidPlayers = player1?._id && player2?._id;
 
   const teamMatchPlayers = {
     side1: {
-      name: player1Name!,
-      playerId: player1?._id,
+      name: player1Name,
+      playerId: player1?._id || "",
       serverKey: "team1" as const,
       profileImage: player1?.profileImage,
     },
     side2: {
-      name: player2Name!,
-      playerId: player2?._id,
+      name: player2Name,
+      playerId: player2?._id || "",
       serverKey: "team2" as const,
       profileImage: player2?.profileImage,
     },
@@ -117,6 +120,46 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
 
   const isCompleted = status === "completed";
 
+  // Show warning if players are not assigned for this submatch
+  if (!hasValidPlayers && !isCompleted) {
+    return (
+      <div className="max-w-6xl mx-auto p-8">
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle>Players Not Assigned</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <p className="text-gray-600 mb-4">
+              Match {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Players need to be assigned to positions before this match can be scored.
+              Please ensure both teams have configured their player assignments (A, B, C positions).
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+                disabled={currentSubMatchIndex === 0}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+                disabled={currentSubMatchIndex >= match.subMatches.length - 1}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const handleUndo = async () => {
   if (team1Score === 0 && team2Score === 0) {
     toast.error("No points to undo");
@@ -133,7 +176,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   }
 
   const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-  const lastSide = lastShot.side as PlayerKey;
+  const lastSide = lastShot.side as "team1" | "team2";
 
   await subtractPoint(lastSide);
 };

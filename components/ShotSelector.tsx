@@ -20,7 +20,7 @@ import { Button } from "./ui/button";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { formatStrokeName } from "@/lib/utils";
 
-type SelectionStep = "player" | "shot" | "origin" | "landing";
+type SelectionStep = "player" | "shot" | "serveType" | "origin" | "landing";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
@@ -39,6 +39,7 @@ const ShotSelector = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [selectedServeType, setSelectedServeType] = useState<string | null>(null);
 
   const updateScoreIndividual = useIndividualMatch(
     (state) => state.updateScore
@@ -92,7 +93,7 @@ const ShotSelector = () => {
         if (players.length === 1 && !pendingPlayer?.playerId) {
           setPendingPlayer({
             side: pendingPlayer?.side || "side1",
-            playerId: players[0]?._id as string,
+            playerId: (players[0] as any)?._id ?? (players[0] as string),
           });
         }
         setCurrentStep("shot");
@@ -111,6 +112,7 @@ const ShotSelector = () => {
     setShotDialogOpen(false);
     setCurrentStep("player");
     setSelectedShot(null);
+    setSelectedServeType(null);
     setOriginPoint(null);
     setLandingPoint(null);
     setPendingPlayer(null);
@@ -118,6 +120,11 @@ const ShotSelector = () => {
 
   const handleShotSelect = (shotValue: string) => {
     setSelectedShot(shotValue);
+    // If it's a serve point, ask for serve type first
+    if (shotValue === "serve_point") {
+      setCurrentStep("serveType");
+      return;
+    }
     setCurrentStep("origin");
   };
 
@@ -133,13 +140,17 @@ const ShotSelector = () => {
 
     const { side, playerId } = pendingPlayer;
 
-    // Create shot data with location
-    const shotData = {
+    // Create shot data with location and serveType (if set)
+    const shotData: any = {
       originX: originPoint.x,
       originY: originPoint.y,
       landingX: x,
       landingY: y,
     };
+
+    if (selectedShot === "serve_point") {
+      shotData.serveType = selectedServeType || null;
+    }
 
     try {
       if (isIndividualMatch(match)) {
@@ -168,8 +179,16 @@ const ShotSelector = () => {
       setCurrentStep("origin");
       setLandingPoint(null);
     } else if (currentStep === "origin") {
-      setCurrentStep("shot");
+      // If we came from serveType step, go back there
+      if (selectedShot === "serve_point") {
+        setCurrentStep("serveType");
+      } else {
+        setCurrentStep("shot");
+      }
       setOriginPoint(null);
+    } else if (currentStep === "serveType") {
+      setCurrentStep("shot");
+      setSelectedServeType(null);
     } else if (currentStep === "shot") {
       if (needsPlayerSelection) {
         setCurrentStep("player");
@@ -226,7 +245,7 @@ const ShotSelector = () => {
                 onClick={() => {
                   setPendingPlayer({
                     side: pendingPlayer?.side!,
-                    playerId: p?._id,
+                    playerId: (p as any)?._id ?? (p as string),
                   });
                   setCurrentStep("shot");
                 }}
@@ -263,6 +282,64 @@ const ShotSelector = () => {
             </div>
             <ScrollBar orientation="vertical" />
           </ScrollArea>
+        )}
+
+        {/* Step 2.5: Serve Type Selection (only for serve_point) */}
+        {currentStep === "serveType" && (
+          <div className="space-y-3">
+            <h3 className="font-medium text-sm text-gray-700">Select Serve Type</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setSelectedServeType("side_spin");
+                  setCurrentStep("origin");
+                }}
+                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+              >
+                Side-spin Serve
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedServeType("top_spin");
+                  setCurrentStep("origin");
+                }}
+                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+              >
+                Top-spin Serve
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedServeType("back_spin");
+                  setCurrentStep("origin");
+                }}
+                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+              >
+                Back-spin Serve
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedServeType("mix_spin");
+                  setCurrentStep("origin");
+                }}
+                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+              >
+                Mix/Variable-spin Serve
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedServeType("no_spin");
+                  setCurrentStep("origin");
+                }}
+                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400 col-span-2"
+              >
+                No-spin Serve
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Step 3: Origin Point Selection */}

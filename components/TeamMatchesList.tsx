@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { TeamMatch } from "@/types/match.type";
 import { formatDate } from "@/lib/utils";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface TeamMatchesListProps {
   matches: TeamMatch[];
@@ -34,14 +35,22 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
             {/* Teams & Score */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                {/* Team 1 */}
-                <span
-                  className={`font-medium text-sm truncate ${
-                    team1Won ? "text-green-600" : "text-gray-800"
-                  }`}
-                >
-                  {match.team1?.name || "Team 1"}
-                </span>
+                {/* Team 1 with Logo */}
+                <div className="flex items-center gap-1.5">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={match.team1?.logo} alt={match.team1?.name} />
+                    <AvatarFallback className="text-[10px] bg-gray-100 text-gray-600">
+                      {match.team1?.name?.charAt(0)?.toUpperCase() || "T"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
+                    className={`font-medium text-sm truncate ${
+                      team1Won ? "text-green-600" : "text-gray-800"
+                    }`}
+                  >
+                    {match.team1?.name || "Team 1"}
+                  </span>
+                </div>
 
                 {/* Score */}
                 {isCompleted ? (
@@ -52,14 +61,22 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                   <span className="text-xs text-gray-400">vs</span>
                 )}
 
-                {/* Team 2 */}
-                <span
-                  className={`font-medium text-sm truncate ${
-                    team2Won ? "text-green-600" : "text-gray-800"
-                  }`}
-                >
-                  {match.team2?.name || "Team 2"}
-                </span>
+                {/* Team 2 with Logo */}
+                <div className="flex items-center gap-1.5">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={match.team2?.logo} alt={match.team2?.name} />
+                    <AvatarFallback className="text-[10px] bg-gray-100 text-gray-600">
+                      {match.team2?.name?.charAt(0)?.toUpperCase() || "T"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
+                    className={`font-medium text-sm truncate ${
+                      team2Won ? "text-green-600" : "text-gray-800"
+                    }`}
+                  >
+                    {match.team2?.name || "Team 2"}
+                  </span>
+                </div>
               </div>
 
               {/* Meta info */}

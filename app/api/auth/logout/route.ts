@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { clearAuthCookie } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -11,13 +12,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const response = NextResponse.json({ message: "Logged out successfully" }, { status: 200 });
     
-    response.cookies.set("token", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 0,
-    });
+    clearAuthCookie(response);
 
     return response;
   } catch (error) {

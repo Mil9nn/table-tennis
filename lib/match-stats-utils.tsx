@@ -113,6 +113,46 @@ export function computeServeStats(games: any[], matchCategory: string) {
   return serveStats;
 }
 
+export function computeServeTypeStats(games: any[]) {
+  // Returns mapping playerId -> { serve: {...} }
+  // serve = all serve types used by player when serving (regardless of point outcome)
+  const stats: Record<string, { serve: Record<string, number> }> = {};
+
+  const createEmptyStats = () => ({
+    serve: { side_spin: 0, top_spin: 0, back_spin: 0, mix_spin: 0, no_spin: 0 },
+  });
+
+  (games || []).forEach((g) => {
+    (g.shots || []).forEach((shot: any) => {
+      if (!shot) return;
+
+      let serverId: string | null = null;
+      if (typeof shot.server === "string") {
+        serverId = shot.server;
+      } else if (shot.server?._id) {
+        serverId = shot.server._id.toString();
+      } else if (shot.server) {
+        serverId = shot.server.toString();
+      }
+
+      if (!serverId) return;
+
+      // Ensure server has stats initialized (even if no serveType on this shot)
+      if (!stats[serverId]) stats[serverId] = createEmptyStats();
+
+      const st = shot.serveType || null;
+      if (!st) return;
+
+      // Count the serve type used by the server
+      if (stats[serverId].serve[st] !== undefined) {
+        stats[serverId].serve[st] += 1;
+      }
+    });
+  });
+
+  return stats;
+}
+
 export const renderCustomLabel = ({
   cx,
   cy,

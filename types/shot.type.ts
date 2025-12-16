@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { Participant } from "./match.type";
 
-export type Side = "side1" | "side2";
+export type Side = "side1" | "side2" | "team1" | "team2";
 
 export type Stroke =
   | "forehand_drive"
@@ -25,6 +25,13 @@ export type Stroke =
   | "net_point"
   | "serve_point";
 
+export type ServeType =
+  | "side_spin"
+  | "top_spin"
+  | "back_spin"
+  | "mix_spin"
+  | "no_spin";
+
 export interface Shot {
   _id: string;
   shotNumber?: number;
@@ -38,4 +45,5 @@ export interface Shot {
   originY?: number;
   landingX?: number;
   landingY?: number;
+  serveType?: ServeType | null;
 }

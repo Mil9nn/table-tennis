@@ -97,33 +97,26 @@ export async function GET(request: NextRequest) {
         matchPointsScored += userScore || 0;
         matchPointsConceded += opponentScore || 0;
 
-        // Calculate serve accuracy from shots
+        // Calculate serve accuracy
+        // Note: If only winning shots are stored, we can only track serves that won points directly
+        // A serve wins a point if: shot.server === userId AND shot.player === userId
+        // This means the serve was the winning shot (ace or unreturned serve)
+        
         game.shots?.forEach((shot: any) => {
-          if (shot.server?.toString() === userId) {
+          const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+          const shotServerId = shot.server?._id?.toString() || shot.server?.toString();
+          
+          // If user served this point
+          if (shotServerId === userId) {
             matchServes++;
-            // Check if the point was won (next shot is from opponent or game ended)
-            const shotIndex = game.shots.indexOf(shot);
-            const nextShot = game.shots[shotIndex + 1];
-
-            // If there's no next shot and user scored, they won the point
-            // If next shot is from opponent, user won the point
-            if (!nextShot) {
-              const gameWinner = game.winnerSide === userSide;
-              if (gameWinner && shotIndex === game.shots.length - 1) {
-                matchServesWon++;
-              }
-            } else if (nextShot && nextShot.player?.toString() !== userId) {
-              // Check if the rally continued (simplified: if opponent hit, we need to track if user eventually won)
-              // For now, we'll count serves where user's team scored the point
-              const userScoreBefore = userScore;
-              const pointsAfter = game.shots.slice(shotIndex).filter((s: any) => {
-                const nextUserScore = userSide === "side1" ? game.side1Score : game.side2Score;
-                return nextUserScore > userScoreBefore;
-              });
-              if (pointsAfter.length > 0) {
-                matchServesWon++;
-              }
+            
+            // If the serve was the winning shot (shot.player === userId), serve won the point
+            // This handles aces and unreturned serves
+            if (shotPlayerId === userId) {
+              matchServesWon++;
             }
+            // Note: If serve didn't win directly (rally continued), we can't track it accurately
+            // if only winning shots are stored, as the serve shot wouldn't be in the array
           }
         });
       });
@@ -136,6 +129,8 @@ export async function GET(request: NextRequest) {
       // Add to match points data for graph
       matchPointsData.push({
         match: `M${index + 1}`,
+        matchId: match._id.toString(),
+        matchCategory: "individual",
         scored: matchPointsScored,
         conceded: matchPointsConceded,
         date: match.createdAt,
@@ -145,6 +140,8 @@ export async function GET(request: NextRequest) {
       if (matchServes > 0) {
         serveAccuracyOverTime.push({
           match: `M${index + 1}`,
+          matchId: match._id.toString(),
+          matchCategory: "individual",
           accuracy: (matchServesWon / matchServes) * 100,
           date: match.createdAt,
         });
@@ -191,13 +188,17 @@ export async function GET(request: NextRequest) {
             matchPointsConceded += opponentScore || 0;
 
             // Calculate serve accuracy
+            // Same logic as individual matches: serve wins if serve shot is the winning shot
             game.shots?.forEach((shot: any) => {
-              if (shot.server?.toString() === userId) {
+              const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+              const shotServerId = shot.server?._id?.toString() || shot.server?.toString();
+              
+              // If user served this point
+              if (shotServerId === userId) {
                 matchServes++;
-                // Simplified serve accuracy calculation
-                const shotIndex = game.shots.indexOf(shot);
-                const nextShot = game.shots[shotIndex + 1];
-                if (!nextShot || nextShot.player?.toString() !== userId) {
+                
+                // If the serve was the winning shot, serve won the point
+                if (shotPlayerId === userId) {
                   matchServesWon++;
                 }
               }
@@ -215,6 +216,8 @@ export async function GET(request: NextRequest) {
       if (matchPointsScored > 0 || matchPointsConceded > 0) {
         matchPointsData.push({
           match: `TM${index + 1}`,
+          matchId: match._id.toString(),
+          matchCategory: "team",
           scored: matchPointsScored,
           conceded: matchPointsConceded,
           date: match.createdAt,
@@ -223,6 +226,8 @@ export async function GET(request: NextRequest) {
         if (matchServes > 0) {
           serveAccuracyOverTime.push({
             match: `TM${index + 1}`,
+            matchId: match._id.toString(),
+            matchCategory: "team",
             accuracy: (matchServesWon / matchServes) * 100,
             date: match.createdAt,
           });

@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Check if sufficient data
+    // Check if any data available
     if (allGames.length === 0) {
       return NextResponse.json({
         success: true,
@@ -102,15 +102,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (allGames.length < 5) {
-      return NextResponse.json({
-        success: true,
-        message: `Limited data (${allGames.length} games). Play more matches for accurate analysis.`,
-        data: null,
-      });
-    }
-
-    // Perform weakness analysis
+    // Perform weakness analysis (no minimum game limit)
     const analysisResult = analyzeWeaknesses(allGames, userId);
 
     return NextResponse.json({

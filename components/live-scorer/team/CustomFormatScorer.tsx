@@ -202,7 +202,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     }
 
     const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-    const lastSide = lastShot.side as PlayerKey;
+    const lastSide = lastShot.side as "team1" | "team2";
 
     await subtractPoint(lastSide);
   };
@@ -439,13 +439,13 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                 <GamesHistory
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
-                  participants={[player1, player2] as any}
+                  participants={[...player1, ...player2] as any}
                 />
 
                 <ShotFeed
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
-                  participants={[player1, player2] as any}
+                  participants={[...player1, ...player2] as any}
                 />
               </div>
             </>

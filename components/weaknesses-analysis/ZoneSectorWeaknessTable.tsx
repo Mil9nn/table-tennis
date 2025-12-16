@@ -28,11 +28,19 @@ export function ZoneSectorWeaknessTable({
 
   // Group by zone for better visualization
   const zones: Array<"short" | "mid" | "deep"> = ["short", "mid", "deep"];
-  const sectors: Array<"backhand" | "crossover" | "forehand"> = [
-    "backhand",
-    "crossover",
-    "forehand",
+  // ABSOLUTE SECTORS (perspective-independent table locations)
+  const sectors: Array<"top" | "middle" | "bottom"> = [
+    "top",      // Y 0-33.33 (backhand side for left-side players)
+    "middle",   // Y 33.33-66.67 (crossover/center)
+    "bottom",   // Y 66.67-100 (forehand side for left-side players)
   ];
+
+  // Map absolute sectors to user-friendly labels
+  const sectorLabels: Record<"top" | "middle" | "bottom", string> = {
+    "top": "Top Sector (BH)",
+    "middle": "Middle Sector",
+    "bottom": "Bottom Sector (FH)",
+  };
 
   return (
     <Card>
@@ -41,6 +49,11 @@ export function ZoneSectorWeaknessTable({
         <p className="text-sm text-gray-500">
           Performance across 9 table zones (3 zones × 3 sectors)
         </p>
+        {displayWeaknesses.some((w) => w.totalShots > 0 && w.totalShots < 3) && (
+          <p className="text-xs text-gray-400 mt-2 pt-2 border-t">
+            * Zones with fewer than 3 shots are marked with reduced opacity (insufficient data for reliable analysis)
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {/* Table format: Rows = Zones, Columns = Sectors */}
@@ -48,16 +61,16 @@ export function ZoneSectorWeaknessTable({
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="p-2 text-left text-sm font-semibold">Zone</th>
-                {sectors.map((sector) => (
-                  <th
-                    key={sector}
-                    className="p-2 text-center text-sm font-semibold capitalize"
-                  >
-                    {sector}
-                  </th>
-                ))}
-              </tr>
+                 <th className="p-2 text-left text-sm font-semibold">Zone</th>
+                 {sectors.map((sector) => (
+                   <th
+                     key={sector}
+                     className="p-2 text-center text-sm font-semibold"
+                   >
+                     {sectorLabels[sector]}
+                   </th>
+                 ))}
+               </tr>
             </thead>
             <tbody>
               {zones.map((zone) => (
@@ -76,6 +89,9 @@ export function ZoneSectorWeaknessTable({
                       );
                     }
 
+                    // Check if data is insufficient (below minimum threshold)
+                    const isInsufficientData = weakness.totalShots > 0 && weakness.totalShots < 3;
+
                     const bgColor =
                       weakness.vulnerability === "high"
                         ? "bg-red-100"
@@ -91,13 +107,19 @@ export function ZoneSectorWeaknessTable({
                         : "text-green-800";
 
                     return (
-                      <td key={sector} className="p-2">
-                        <div className={`rounded p-2 ${bgColor} ${textColor}`}>
+                      <td key={sector} className="shadow-sm">
+                        <div className={`p-2 ${bgColor} ${textColor} ${isInsufficientData ? 'opacity-60' : ''}`}>
                           <div className="text-sm font-semibold">
                             {weakness.winRate.toFixed(0)}%
+                            {isInsufficientData && (
+                              <span className="text-xs ml-1 opacity-75">*</span>
+                            )}
                           </div>
                           <div className="text-xs">
                             {weakness.wins}W / {weakness.losses}L
+                            {isInsufficientData && (
+                              <span className="text-xs ml-1 opacity-75">({weakness.totalShots} shots)</span>
+                            )}
                           </div>
                           {weakness.dominantStroke && (
                             <div className="text-xs mt-1 truncate">
@@ -115,17 +137,17 @@ export function ZoneSectorWeaknessTable({
         </div>
 
         {/* Recommendations for top 3 vulnerable */}
-        {displayWeaknesses
-          .filter((w) => w.totalShots >= 5 && w.vulnerability === "high")
-          .slice(0, 3)
-          .map((w, idx) => (
-            <div
-              key={idx}
-              className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800"
-            >
-              <RecommendationText text={w.recommendation} />
-            </div>
-          ))}
+         {displayWeaknesses
+           .filter((w) => w.totalShots >= 5 && w.vulnerability === "high")
+           .slice(0, 3)
+           .map((w, idx) => (
+             <div
+               key={idx}
+               className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800"
+             >
+               <RecommendationText text={w.recommendation} />
+             </div>
+           ))}
       </CardContent>
     </Card>
   );

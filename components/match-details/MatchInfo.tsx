@@ -89,7 +89,7 @@ function TeamMatchInfo({ match }: { match: any }) {
       />
       <InfoItem
         icon={ListOrdered}
-        label="Sets per Match"
+        label="Sets per Submatch"
         value={`Best of ${match.numberOfSetsPerSubMatch}`}
         iconColor="text-violet-500"
       />

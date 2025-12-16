@@ -30,13 +30,24 @@ const LoginPage = () => {
   });
 
   async function onSubmit(values: LoginInput) {
-    const response = await login(values);
+    try {
+      const response = await login(values);
 
-    // Check if profile is complete
-    if (response?.user && !response.user.isProfileComplete) {
-      router.push("/complete-profile");
-    } else {
-      router.push("/");
+      // Only redirect if login was successful and we have a user
+      if (response?.user) {
+        // Check if profile is complete
+        if (!response.user.isProfileComplete) {
+          router.push("/complete-profile");
+        } else {
+          router.push("/");
+        }
+      }
+      // If no user in response, login failed - don't redirect
+      // Error toast is already shown by the login function
+    } catch (error) {
+      // Login failed - error toast is already shown by the login function
+      // Don't redirect, stay on login page
+      console.error("Login submission error:", error);
     }
   }
 

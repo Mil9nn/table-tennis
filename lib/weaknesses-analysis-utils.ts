@@ -20,107 +20,131 @@ import {
 } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
 import { analyzeShotPlacement, getZone, getSector } from "@/lib/shot-commentary-utils";
+import { getAbsoluteSector } from "@/lib/sector-utils";
+
+// Minimum sample sizes for statistical significance
+const MIN_SHOT_ATTEMPTS = 5; // Minimum shots for shot weakness analysis
+const MIN_ZONE_SHOTS = 3; // Minimum shots per zone for zone analysis
+const MIN_SERVE_ATTEMPTS = 3; // Minimum serves for serve analysis
+const MIN_RECEIVE_ATTEMPTS = 3; // Minimum receives for receive analysis
 
 /**
  * Core algorithm: Determine point winners from shot sequences
  *
- * Strategy: Track score progression through the game
- * - Group shots by point (rally)
- * - Determine who won each point based on score changes
- * - The last shot in a rally belongs to the point winner
+ * CRITICAL: Based on the data model, when a score increments, a shot MUST be provided.
+ * This shot represents the winning shot of that point. However, the system may store
+ * all shots in a rally, not just the winning shot.
+ *
+ * Strategy:
+ * - Group shots by rally (points between score changes)
+ * - The last shot before a score change is the winning shot
+ * - For opponent pattern analysis, track opponent's last stroke in each rally
  */
 export function determinePointOutcomes(game: any): PointOutcome[] {
   const outcomes: PointOutcome[] = [];
+  
+  // Validate game data
+  if (!game) return outcomes;
   const shots = game.shots || [];
-
   if (shots.length === 0) return outcomes;
 
-  // Track current scores as we iterate through shots
-  let currentSide1Score = 0;
-  let currentSide2Score = 0;
-  let currentRallyShots: any[] = [];
+  // Get final scores to determine total points
+  const finalSide1Score = game.side1Score ?? game.team1Score ?? 0;
+  const finalSide2Score = game.side2Score ?? game.team2Score ?? 0;
+  const totalPoints = finalSide1Score + finalSide2Score;
 
-  shots.forEach((shot: any, index: number) => {
-    currentRallyShots.push({ shot, index });
+  // If we have fewer shots than points, it means only winning shots are stored
+  // If we have more shots, it means all rally shots are stored
+  const onlyWinningShotsStored = shots.length <= totalPoints;
 
-    // Check if score changed after this shot
-    // In the database, shots are stored in order, and the score is cumulative
-    const nextShot = shots[index + 1];
-    const gameEnded = index === shots.length - 1;
-
-    // Determine if point ended (score increased)
-    let pointEnded = false;
-    let winningSide: "side1" | "side2" | null = null;
-
-    if (gameEnded) {
-      // Last shot of the game - check final scores
-      const finalSide1 = game.side1Score ?? game.team1Score ?? 0;
-      const finalSide2 = game.side2Score ?? game.team2Score ?? 0;
-
-      if (finalSide1 > currentSide1Score) {
-        pointEnded = true;
-        winningSide = "side1";
-        currentSide1Score = finalSide1;
-      } else if (finalSide2 > currentSide2Score) {
-        pointEnded = true;
-        winningSide = "side2";
-        currentSide2Score = finalSide2;
-      }
-    } else {
-      // Check if next shot indicates score change
-      // We infer score change by rally reset patterns or explicit tracking if available
-      // For now, assume each shot that ends a sequence (validated by winnerSide) won the point
-      // This is a simplified approach - in production, explicit point tracking would be better
-
-      // Use a heuristic: if server changes or significant time gap, point likely ended
-      const serverChanged = nextShot && shot.server?.toString() !== nextShot.server?.toString();
-
-      if (serverChanged) {
-        // Server changed = point ended
-        pointEnded = true;
-        // Determine winner by shot side
-        winningSide = shot.side as "side1" | "side2";
-
-        if (winningSide === "side1") {
-          currentSide1Score++;
-        } else if (winningSide === "side2") {
-          currentSide2Score++;
-        }
-      }
-    }
-
-    if (pointEnded && winningSide && currentRallyShots.length > 0) {
-      // Process all shots in this rally
-      currentRallyShots.forEach(({ shot: rallyShot, index: rallyIndex }) => {
-        const playerId = rallyShot.player?._id?.toString() || rallyShot.player?.toString();
-        const shotSide = rallyShot.side;
-        const wonPoint = shotSide === winningSide;
-
-        // Get opponent's last stroke in this rally (for opponent pattern analysis)
-        const opponentShots = currentRallyShots
-          .filter(({ shot: s }) => s.side !== shotSide)
-          .map(({ shot: s }) => s.stroke)
-          .filter(Boolean);
-        const opponentStroke = opponentShots[opponentShots.length - 1] || null;
-
-        outcomes.push({
-          shotIndex: rallyIndex,
-          playerId,
-          stroke: rallyShot.stroke,
-          landingX: rallyShot.landingX,
-          landingY: rallyShot.landingY,
-          server: rallyShot.server?.toString() || null,
-          won: wonPoint,
-          opponentStroke,
-        });
+  if (onlyWinningShotsStored) {
+    // Simple case: Each shot = one point won by that shot's player
+    // Note: We can't track opponent strokes or losing shots in this case
+    shots.forEach((shot: any, index: number) => {
+      const playerId = shot.player?._id?.toString() || shot.player?.toString();
+      if (!playerId) return;
+      
+      // Since only winning shots are stored, this shot won the point
+      outcomes.push({
+        shotIndex: index,
+        playerId,
+        stroke: shot.stroke || null,
+        landingX: shot.landingX ?? null,
+        landingY: shot.landingY ?? null,
+        server: shot.server?.toString() || null,
+        won: true, // This player won the point
+        opponentStroke: null, // Can't determine opponent stroke if only winning shots stored
       });
+    });
+  } else {
+    // Complex case: All rally shots are stored, need to group by rally
+    // Group shots by rally - a rally ends when the server changes (new point starts)
+    let currentRallyShots: Array<{ shot: any; index: number }> = [];
+    let previousServer: string | null = null;
 
-      // Reset for next rally
-      currentRallyShots = [];
+    shots.forEach((shot: any, index: number) => {
+      const currentServer = shot.server?.toString() || null;
+      const serverChanged = previousServer !== null && currentServer !== previousServer;
+
+      if (serverChanged && currentRallyShots.length > 0) {
+        // Server changed = new point started, previous rally ended
+        // Process the previous rally
+        processRally(currentRallyShots, outcomes);
+        currentRallyShots = [];
+      }
+
+      currentRallyShots.push({ shot, index });
+      previousServer = currentServer;
+    });
+
+    // Process the last rally
+    if (currentRallyShots.length > 0) {
+      processRally(currentRallyShots, outcomes);
     }
-  });
+  }
 
   return outcomes;
+}
+
+/**
+ * Helper function to process a rally and determine outcomes
+ */
+function processRally(
+  rallyShots: Array<{ shot: any; index: number }>,
+  outcomes: PointOutcome[]
+): void {
+  if (rallyShots.length === 0) return;
+
+  // The last shot in the rally is the winning shot
+  const winningShot = rallyShots[rallyShots.length - 1];
+  const winningSide = winningShot.shot.side;
+  const winningPlayerId = winningShot.shot.player?._id?.toString() || winningShot.shot.player?.toString();
+
+  // Get opponent's last stroke in this rally (for pattern analysis)
+  const opponentShots = rallyShots
+    .filter(({ shot }) => shot.side !== winningSide)
+    .map(({ shot }) => shot.stroke)
+    .filter(Boolean);
+  const opponentStroke = opponentShots[opponentShots.length - 1] || null;
+
+  // Process all shots in the rally
+  rallyShots.forEach(({ shot, index }) => {
+    const playerId = shot.player?._id?.toString() || shot.player?.toString();
+    if (!playerId) return;
+
+    const wonPoint = playerId === winningPlayerId;
+
+    outcomes.push({
+      shotIndex: index,
+      playerId,
+      stroke: shot.stroke || null,
+      landingX: shot.landingX ?? null,
+      landingY: shot.landingY ?? null,
+      server: shot.server?.toString() || null,
+      won: wonPoint,
+      opponentStroke: wonPoint ? opponentStroke : null, // Only track opponent stroke for winning shots
+    });
+  });
 }
 
 /**
@@ -177,9 +201,10 @@ export function calculateShotWeaknesses(
     });
   });
 
-  // Convert to ShotWeaknessData array
-  const weaknesses: ShotWeaknessData[] = Object.entries(strokeStats).map(
-    ([stroke, stats]) => {
+  // Convert to ShotWeaknessData array, filter by minimum sample size
+  const weaknesses: ShotWeaknessData[] = Object.entries(strokeStats)
+    .filter(([_, stats]) => stats.attempts >= MIN_SHOT_ATTEMPTS) // Only include shots with sufficient data
+    .map(([stroke, stats]) => {
       const winRate = stats.attempts > 0 ? (stats.wins / stats.attempts) * 100 : 0;
       const lossRate = 100 - winRate;
 
@@ -203,8 +228,7 @@ export function calculateShotWeaknesses(
         avgLandingZone,
         recommendation,
       };
-    }
-  );
+    });
 
   return weaknesses.sort((a, b) => a.winRate - b.winRate); // Sort by win rate ascending (weakest first)
 }
@@ -212,9 +236,9 @@ export function calculateShotWeaknesses(
 /**
  * Calculate zone-based weaknesses (10x10 grid)
  * 
- * Since only winning shots are recorded:
- * - If shot.player === userId: user won the point (win)
- * - If shot.player !== userId: opponent won the point (loss for user)
+ * Uses determinePointOutcomes to correctly handle both cases:
+ * - If only winning shots are stored: each shot = one point
+ * - If all rally shots are stored: need to determine which shots won points
  */
 export function calculateZoneWeaknesses(
   allGames: any[],
@@ -233,18 +257,18 @@ export function calculateZoneWeaknesses(
     }
   > = {};
 
-  // Process all games
+  // Process all games using determinePointOutcomes for consistency
   allGames.forEach((game) => {
-    const shots = game.shots || [];
+    const outcomes = determinePointOutcomes(game);
     
-    shots.forEach((shot: any) => {
-      // Only winning shots are recorded, so check if this shot belongs to the user
-      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
-      if (!shotPlayerId) return;
-      if (shot.landingX == null || shot.landingY == null) return;
+    outcomes.forEach((outcome) => {
+      // Only count shots that won points (won = true) for zone analysis
+      // This ensures we're tracking where points were actually won/lost
+      if (!outcome.won) return; // Skip losing shots in rally
+      if (outcome.landingX == null || outcome.landingY == null) return;
 
-      const zoneX = Math.min(9, Math.floor(shot.landingX / 10));
-      const zoneY = Math.min(9, Math.floor(shot.landingY / 10));
+      const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
+      const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
       const zoneKey = `${zoneX},${zoneY}`;
 
       if (!grid[zoneKey]) {
@@ -261,15 +285,15 @@ export function calculateZoneWeaknesses(
       const zone = grid[zoneKey];
       zone.totalShots++;
 
-      // If shot is from user, they won the point. If from opponent, user lost the point.
-      if (shotPlayerId === userId) {
+      // Track if user won or lost the point in this zone
+      if (outcome.playerId === userId) {
         zone.wins++;
       } else {
         zone.losses++;
       }
 
-      if (shot.stroke) {
-        zone.strokes[shot.stroke] = (zone.strokes[shot.stroke] || 0) + 1;
+      if (outcome.stroke) {
+        zone.strokes[outcome.stroke] = (zone.strokes[outcome.stroke] || 0) + 1;
       }
     });
   });
@@ -327,12 +351,18 @@ export function calculateZoneWeaknesses(
 
     heatmapGrid.forEach((row) => {
       row.forEach((cell) => {
-        if (cell.totalShots >= 3) {
-          if (cell.winRate < avgWinRate - stdDev / 2) {
-            cell.vulnerability = "high";
-          } else if (cell.winRate > avgWinRate + stdDev / 2) {
-            cell.vulnerability = "low";
+        if (cell.totalShots > 0) {
+          // Only calculate vulnerability if we have minimum sample size
+          if (cell.totalShots >= MIN_ZONE_SHOTS) {
+            if (cell.winRate < avgWinRate - stdDev / 2) {
+              cell.vulnerability = "high";
+            } else if (cell.winRate > avgWinRate + stdDev / 2) {
+              cell.vulnerability = "low";
+            } else {
+              cell.vulnerability = "medium";
+            }
           } else {
+            // Insufficient data - mark as medium (neutral) to avoid false positives
             cell.vulnerability = "medium";
           }
         }
@@ -340,8 +370,8 @@ export function calculateZoneWeaknesses(
     });
   }
 
-  // Identify top vulnerable and safe zones
-  const flatZones = heatmapGrid.flat().filter((z) => z.totalShots >= 5);
+  // Identify top vulnerable and safe zones (only include zones with sufficient data)
+  const flatZones = heatmapGrid.flat().filter((z) => z.totalShots >= MIN_ZONE_SHOTS);
   const vulnerableZones: VulnerableZone[] = flatZones
     .filter((z) => z.vulnerability === "high")
     .sort((a, b) => a.winRate - b.winRate)
@@ -414,15 +444,23 @@ export function analyzeServeReceivePatterns(
     });
   });
 
-  const serveWinRate = totalServes > 0 ? (servesWon / totalServes) * 100 : 0;
-  const receiveWinRate = totalReceives > 0 ? (receivesWon / totalReceives) * 100 : 0;
+  // Only calculate rates if we have minimum sample size
+  const serveWinRate = totalServes >= MIN_SERVE_ATTEMPTS 
+    ? (servesWon / totalServes) * 100 
+    : 0;
+  const receiveWinRate = totalReceives >= MIN_RECEIVE_ATTEMPTS
+    ? (receivesWon / totalReceives) * 100
+    : 0;
 
   const vsStrokeType: Record<string, { received: number; won: number; winRate: number }> = {};
   Object.entries(receiveVsStroke).forEach(([stroke, stats]) => {
-    vsStrokeType[stroke] = {
-      ...stats,
-      winRate: stats.received > 0 ? (stats.won / stats.received) * 100 : 0,
-    };
+    // Only include stroke types with sufficient data
+    if (stats.received >= MIN_RECEIVE_ATTEMPTS) {
+      vsStrokeType[stroke] = {
+        ...stats,
+        winRate: stats.received > 0 ? (stats.won / stats.received) * 100 : 0,
+      };
+    }
   });
 
   return {
@@ -432,7 +470,9 @@ export function analyzeServeReceivePatterns(
       servesLost: totalServes - servesWon,
       serveWinRate: Math.round(serveWinRate * 10) / 10,
       patternAnalysis: {}, // Could be enhanced with serve type analysis
-      recommendation: generateServeRecommendation(serveWinRate, totalServes),
+      recommendation: totalServes >= MIN_SERVE_ATTEMPTS
+        ? generateServeRecommendation(serveWinRate, totalServes)
+        : "Need more serve data for analysis",
     },
     receive: {
       totalReceives,
@@ -440,7 +480,9 @@ export function analyzeServeReceivePatterns(
       receivesLost: totalReceives - receivesWon,
       receiveWinRate: Math.round(receiveWinRate * 10) / 10,
       vsStrokeType,
-      recommendation: generateReceiveRecommendation(receiveWinRate, totalReceives, vsStrokeType),
+      recommendation: totalReceives >= MIN_RECEIVE_ATTEMPTS
+        ? generateReceiveRecommendation(receiveWinRate, totalReceives, vsStrokeType)
+        : "Need more receive data for analysis",
     },
   };
 }
@@ -461,14 +503,31 @@ export function analyzeOpponentPatterns(
     const outcomes = determinePointOutcomes(game);
 
     outcomes.forEach((outcome) => {
-      // We want to track what opponents did when they WON points against this user
-      if (outcome.playerId === userId && !outcome.won && outcome.opponentStroke) {
-        const stroke = outcome.opponentStroke;
+      // Track what opponents did when they WON points (user lost)
+      // If opponentStroke is available, use it (means all rally shots were stored)
+      // Otherwise, if the outcome is from opponent winning, track their stroke directly
+      if (outcome.opponentStroke) {
+        // Case: All rally shots stored, opponentStroke was captured
+        if (outcome.playerId === userId && !outcome.won) {
+          const stroke = outcome.opponentStroke;
+          if (!opponentStrokes[stroke]) {
+            opponentStrokes[stroke] = { timesUsed: 0, pointsWonByOpponent: 0, zones: [] };
+          }
+          opponentStrokes[stroke].timesUsed++;
+          opponentStrokes[stroke].pointsWonByOpponent++;
 
+          if (outcome.landingX != null && outcome.landingY != null) {
+            const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
+            const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
+            opponentStrokes[stroke].zones.push(getZoneDescription(zoneX, zoneY));
+          }
+        }
+      } else if (outcome.won && outcome.playerId !== userId && outcome.stroke) {
+        // Case: Only winning shots stored - opponent won, track their winning stroke
+        const stroke = outcome.stroke;
         if (!opponentStrokes[stroke]) {
           opponentStrokes[stroke] = { timesUsed: 0, pointsWonByOpponent: 0, zones: [] };
         }
-
         opponentStrokes[stroke].timesUsed++;
         opponentStrokes[stroke].pointsWonByOpponent++;
 
@@ -504,7 +563,7 @@ export function analyzeOpponentPatterns(
         recommendation: `Opponents exploit this with ${formatStrokeName(stroke)} (${Math.round(effectivenessRate)}% success)`,
       };
     })
-    .filter((p) => p.timesUsed >= 5) // Only include patterns with sufficient data
+    .filter((p) => p.timesUsed > 0) // Include all patterns with data
     .sort((a, b) => b.effectivenessRate - a.effectivenessRate)
     .slice(0, 5); // Top 5
 
@@ -547,7 +606,7 @@ export function generateOverallInsights(
   }
 
   // Find strength
-  const strongShots = shotWeaknesses.filter((s) => s.winRate > 60 && s.totalAttempts >= 10);
+  const strongShots = shotWeaknesses.filter((s) => s.winRate > 60 && s.totalAttempts > 0);
   const strengthToMaintain = strongShots[strongShots.length - 1] // Strongest shot
     ? `${formatStrokeName(strongShots[strongShots.length - 1].stroke)} (${strongShots[strongShots.length - 1].winRate}% win rate)`
     : "Consistent performance";
@@ -587,7 +646,7 @@ export function generateOverallInsights(
 
   // Check for line weaknesses
   const vulnerableLine = semanticZones.lineWeaknesses
-    .filter(l => l.totalShots >= 10)
+    .filter(l => l.totalShots > 0)
     .sort((a, b) => a.winRate - b.winRate)[0];
 
   if (vulnerableLine && vulnerableLine.winRate < 45) {
@@ -596,7 +655,7 @@ export function generateOverallInsights(
 
   // Check for distance weaknesses
   const vulnerableDistance = semanticZones.originDistanceWeaknesses
-    .filter(d => d.totalShots >= 10)
+    .filter(d => d.totalShots > 0)
     .sort((a, b) => a.winRate - b.winRate)[0];
 
   if (vulnerableDistance && vulnerableDistance.winRate < 45) {
@@ -633,7 +692,8 @@ export function calculateZoneSectorWeaknesses(
 
   // Initialize all 9 combinations
   const zones: Array<"short" | "mid" | "deep"> = ["short", "mid", "deep"];
-  const sectors: Array<"backhand" | "crossover" | "forehand"> = ["backhand", "crossover", "forehand"];
+  // ABSOLUTE SECTORS (perspective-independent table locations)
+  const sectors: Array<"top" | "middle" | "bottom"> = ["top", "middle", "bottom"];
 
   zones.forEach(zone => {
     sectors.forEach(sector => {
@@ -654,9 +714,10 @@ export function calculateZoneSectorWeaknesses(
       if (!shotPlayerId) return;
       if (shot.landingX == null || shot.landingY == null) return;
 
-      // Use getZone and getSector directly (they only need landing coordinates)
+      // Use getZone and getAbsoluteSector directly (they only need landing coordinates)
+      // IMPORTANT: Use getAbsoluteSector for stats to ensure consistency across side swaps
       const zone = getZone(shot.landingX);
-      const sector = getSector(shot.landingY);
+      const sector = getAbsoluteSector(shot.landingY);
 
       if (!zone || !sector) return; // Skip if null
 
@@ -681,7 +742,7 @@ export function calculateZoneSectorWeaknesses(
   // Calculate win rates and vulnerability
   const allWinRates: number[] = [];
   Object.values(zoneSectorStats).forEach(stats => {
-    if (stats.totalShots >= 3) {
+    if (stats.totalShots > 0) {
       const winRate = (stats.wins / stats.totalShots) * 100;
       allWinRates.push(winRate);
     }
@@ -706,7 +767,7 @@ export function calculateZoneSectorWeaknesses(
 
       // Determine vulnerability
       let vulnerability: "high" | "medium" | "low" = "medium";
-      if (stats.totalShots >= 3) {
+      if (stats.totalShots > 0) {
         if (winRate < avgWinRate - stdDev / 2) {
           vulnerability = "high";
         } else if (winRate > avgWinRate + stdDev / 2) {
@@ -722,9 +783,7 @@ export function calculateZoneSectorWeaknesses(
       // Generate recommendation
       const zoneName = `${zone} ${sector}`;
       let recommendation = "";
-      if (stats.totalShots < 3) {
-        recommendation = `Insufficient data for ${zoneName} zone. Play more matches to analyze.`;
-      } else if (vulnerability === "high") {
+      if (vulnerability === "high") {
         recommendation = `${zoneName.charAt(0).toUpperCase() + zoneName.slice(1)} zone is vulnerable (${winRate.toFixed(0)}% win rate). Practice defending this area.`;
       } else if (vulnerability === "low") {
         recommendation = `${zoneName.charAt(0).toUpperCase() + zoneName.slice(1)} zone is a strength (${winRate.toFixed(0)}% win rate). Use this advantage.`;
@@ -782,15 +841,28 @@ export function calculateLineWeaknesses(
       if (!outcome.stroke) return;
 
       // Build shot object - need origin and landing for line analysis
+      // Try to get side from the original shot in the game
+      const originalShot = game.shots?.[outcome.shotIndex];
+      const shotSide = originalShot?.side || null;
+      
       const shot: any = {
         landingX: outcome.landingX || 50,
         landingY: outcome.landingY || 50,
         originX: null, // Would need from previous shot
         originY: null,
-        side: null,
+        side: shotSide,
       };
 
-      const receivingSide: "side2" | "side1" = "side2";
+      // Determine receiving side - handle both individual (side1/side2) and team (team1/team2) matches
+      let receivingSide: "side1" | "side2" | "team1" | "team2";
+      if (shotSide === "side1" || shotSide === "team1") {
+        receivingSide = shotSide === "side1" ? "side2" : "team2";
+      } else if (shotSide === "side2" || shotSide === "team2") {
+        receivingSide = shotSide === "side2" ? "side1" : "team1";
+      } else {
+        // Fallback: default to side2 for individual matches
+        receivingSide = "side2";
+      }
       const placement = analyzeShotPlacement(shot, receivingSide);
 
       if (!placement.line) return;
@@ -818,11 +890,9 @@ export function calculateLineWeaknesses(
       : 0;
 
     let recommendation = "";
-    if (stats.totalShots < 5) {
-      recommendation = `Limited data for ${line} shots. Play more to analyze.`;
-    } else if (winRate < 45) {
+    if (winRate < 45) {
       recommendation = `Your ${line} shots are weak (${winRate.toFixed(0)}% win rate). Work on accuracy and placement.`;
-    } else if (averageOpponentWinRate > 60 && stats.opponentTotal >= 5) {
+    } else if (averageOpponentWinRate > 60 && stats.opponentTotal > 0) {
       recommendation = `Opponents exploit ${line} shots against you (${averageOpponentWinRate.toFixed(0)}% success). Improve positioning and anticipation.`;
     } else if (winRate > 60) {
       recommendation = `Your ${line} shots are effective (${winRate.toFixed(0)}% win rate). Use them strategically.`;
@@ -891,8 +961,16 @@ export function calculateOriginDistanceWeaknesses(
         side: shot.side,
       };
 
-      // Determine receiving side based on shot side
-      const receivingSide: "side2" | "side1" = shot.side === "side1" ? "side2" : "side1";
+      // Determine receiving side based on shot side - handle both individual and team matches
+      let receivingSide: "side1" | "side2" | "team1" | "team2";
+      if (shot.side === "side1" || shot.side === "team1") {
+        receivingSide = shot.side === "side1" ? "side2" : "team2";
+      } else if (shot.side === "side2" || shot.side === "team2") {
+        receivingSide = shot.side === "side2" ? "side1" : "team1";
+      } else {
+        // Fallback: default to side2 for individual matches
+        receivingSide = "side2";
+      }
       const placement = analyzeShotPlacement(shotForAnalysis, receivingSide);
 
       // If originZone is null, categorize as "on-table"
@@ -926,9 +1004,7 @@ export function calculateOriginDistanceWeaknesses(
 
     let recommendation = "";
     const zoneName = originZone.replace("-", " ");
-    if (stats.totalShots < 3) {
-      recommendation = `Limited data for ${zoneName} position.`;
-    } else if (winRate < 45) {
+    if (winRate < 45) {
       const topStroke = commonStrokes[0]?.stroke || "shots";
       recommendation = `Your ${zoneName} game is weak (${winRate.toFixed(0)}% win rate). Primary stroke: ${formatStrokeName(topStroke)} - work on consistency from this position.`;
     } else if (winRate > 60) {
@@ -964,13 +1040,13 @@ export function analyzeSemanticZones(
 
   // Identify top 3 vulnerable zone-sectors
   const topVulnerableZoneSectors = zoneSectorWeaknesses
-    .filter(z => z.totalShots >= 5)
+    .filter(z => z.totalShots > 0)
     .sort((a, b) => a.winRate - b.winRate)
     .slice(0, 3);
 
   // Identify top 3 safe zone-sectors
   const topSafeZoneSectors = zoneSectorWeaknesses
-    .filter(z => z.totalShots >= 5)
+    .filter(z => z.totalShots > 0)
     .sort((a, b) => b.winRate - a.winRate)
     .slice(0, 3);
 
@@ -1030,10 +1106,6 @@ function getZoneDescription(x: number, y: number): string {
 }
 
 function generateShotRecommendation(stroke: string, winRate: number, attempts: number): string {
-  if (attempts < 10) {
-    return `Limited data for ${formatStrokeName(stroke)}. Play more to analyze.`;
-  }
-
   if (winRate < 40) {
     return `${formatStrokeName(stroke)} is a critical weakness (${winRate.toFixed(1)}% win rate). Focus practice here.`;
   } else if (winRate < 50) {
@@ -1046,10 +1118,6 @@ function generateShotRecommendation(stroke: string, winRate: number, attempts: n
 }
 
 function generateServeRecommendation(winRate: number, totalServes: number): string {
-  if (totalServes < 10) {
-    return "Limited serve data available. Play more matches to analyze.";
-  }
-
   if (winRate < 45) {
     return `Your serve win rate is low (${winRate.toFixed(1)}%). Focus on serve placement and variation.`;
   } else if (winRate < 55) {
@@ -1064,13 +1132,9 @@ function generateReceiveRecommendation(
   totalReceives: number,
   vsStrokeType: Record<string, { received: number; won: number; winRate: number }>
 ): string {
-  if (totalReceives < 10) {
-    return "Limited receive data available. Play more matches to analyze.";
-  }
-
   // Find weakest receive type
   const weakestReceive = Object.entries(vsStrokeType)
-    .filter(([_, stats]) => stats.received >= 5)
+    .filter(([_, stats]) => stats.received > 0)
     .sort((a, b) => a[1].winRate - b[1].winRate)[0];
 
   if (winRate < 40) {
@@ -1089,21 +1153,21 @@ function generateReceiveRecommendation(
  * Check if zone-sector analysis has sufficient data to display
  */
 export function hasZoneSectorData(zoneSectorWeaknesses: ZoneSectorWeakness[]): boolean {
-  return zoneSectorWeaknesses.some(w => w.totalShots >= 3);
+  return zoneSectorWeaknesses.length > 0;
 }
 
 /**
  * Check if line analysis has sufficient data to display
  */
 export function hasLineData(lineWeaknesses: LineWeakness[]): boolean {
-  return lineWeaknesses.some(l => l.totalShots >= 5);
+  return lineWeaknesses.length > 0;
 }
 
 /**
  * Check if origin distance analysis has sufficient data to display
  */
 export function hasOriginDistanceData(distanceWeaknesses: OriginDistanceWeakness[]): boolean {
-  return distanceWeaknesses.some(d => d.totalShots >= 3);
+  return distanceWeaknesses.length > 0;
 }
 
 /**

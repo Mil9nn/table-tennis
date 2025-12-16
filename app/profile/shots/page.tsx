@@ -15,6 +15,7 @@ import {
   Cell,
 } from "recharts";
 import { SHOT_TYPE_COLORS } from "@/constants/constants";
+import WagonWheel from "@/components/WagonWheel";
 
 const ShotAnalysisPage = () => {
   const router = useRouter();
@@ -38,8 +39,20 @@ const ShotAnalysisPage = () => {
   }, []);
 
   const shotDistribution = shotData?.shotDistribution || [];
-  const heatmapGrid: { count: number; dominantStroke: string | null; shotTypes: Record<string, number> }[][] = 
+  const serveTypeDistribution: Record<string, number> = shotData?.serveTypeDistribution || { side_spin: 0, top_spin: 0, back_spin: 0, mix_spin: 0, no_spin: 0 };
+  const heatmapGrid: { count: number; dominantStroke: string | null; shotTypes: Record<string, number> }[][] =
     shotData?.heatmapGrid || [];
+  const allShots = shotData?.allShots || [];
+  const opponentShots = shotData?.opponentShots || [];
+
+  // Zone/Sector/Line statistics
+  const userZoneStats = shotData?.userZoneStats || {};
+  const userSectorStats = shotData?.userSectorStats || {};
+  const userLineStats = shotData?.userLineStats || {};
+  const userOriginZoneStats = shotData?.userOriginZoneStats || {};
+  const opponentZoneStats = shotData?.opponentZoneStats || {};
+  const opponentSectorStats = shotData?.opponentSectorStats || {};
+  const opponentLineStats = shotData?.opponentLineStats || {};
 
   // Calculate max value for intensity scaling
   const maxHeatmapValue = heatmapGrid
@@ -176,7 +189,7 @@ const ShotAnalysisPage = () => {
 
             {/* Heatmap */}
             {heatmapGrid.length > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+              <div className="bg-white rounded-xl p-6 border border-gray-100  shadow-sm">
                 <h3 className="text-lg font-bold text-gray-800 mb-6">
                   Shot Landing Heatmap
                 </h3>
@@ -185,17 +198,18 @@ const ShotAnalysisPage = () => {
                 </p>
 
                 <div className="flex justify-center">
-                  <div className="inline-block border-4 border-gray-800 rounded-lg overflow-hidden">
-                    <div className="relative">
+                  <div className="inline-block border-2 border-gray-800 overflow-hidden w-full max-w-4xl">
+                    {/* Container with correct table aspect ratio (274cm:152.5cm ≈ 1.8:1) */}
+                    <div className="relative aspect-[274/152.5] w-full">
                       {/* Net line - vertical, dividing left/right */}
-                      <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-gray-800 z-10 -translate-x-1/2"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-800 z-10 -translate-x-1/2"></div>
 
-                      <div className="grid grid-cols-10">
+                      <div className="grid grid-cols-10 grid-rows-10 h-full w-full">
                         {heatmapGrid.map((row, r: number) =>
                           row.map((cell, c: number) => (
                             <div
                               key={`${r}-${c}`}
-                              className="w-12 h-8 border border-gray-300/50 flex items-center justify-center relative group cursor-pointer"
+                              className="border border-gray-300/50 flex items-center justify-center relative group cursor-pointer"
                               style={getHeatmapStyle(cell)}
                             >
                               {/* Tooltip on hover */}
@@ -230,26 +244,305 @@ const ShotAnalysisPage = () => {
                         )}
                       </div>
                     </div>
-
-                    <div className="bg-gray-100 py-1 text-center">
-                      <p className="text-[10px] font-semibold text-gray-700">
-                        Your Side ← | → Opponent Side
-                      </p>
-                    </div>
                   </div>
                 </div>
 
                 {/* Legend */}
-                <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  {shotDistribution.slice(0, 6).map((shot: any) => (
-                    <div key={shot.stroke} className="flex items-center gap-1.5">
-                      <div 
-                        className="w-3 h-3 rounded-sm" 
-                        style={{ backgroundColor: SHOT_TYPE_COLORS[shot.stroke] || "#3b82f6" }}
-                      />
-                      <span className="text-[10px] text-gray-600">{shot.name}</span>
+                <div className="mt-6 space-y-3">
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-gray-700">
+                      Left Side ← | → Right Side
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      (All shots normalized to consistent perspective)
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {shotDistribution.slice(0, 6).map((shot: any) => (
+                      <div key={shot.stroke} className="flex items-center gap-1.5">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: SHOT_TYPE_COLORS[shot.stroke] || "#3b82f6" }}
+                        />
+                        <span className="text-[10px] text-gray-600">{shot.name}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Serve Type Distribution */}
+                  <div className="mt-4 text-center">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Serve Types that fetched points</h4>
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      {Object.entries(serveTypeDistribution).map(([k, v]) => (
+                        <div key={k} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SHOT_TYPE_COLORS[k] || '#6B7280' }} />
+                          <div className="text-[12px] text-gray-600">{k.replace(/_/g, ' ')}: <span className="font-bold text-gray-800">{v}</span></div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Shot Trajectories - Wagon Wheel */}
+            {allShots.length > 0 && (
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Your Shot Trajectories
+                </h3>
+                <p className="text-xs text-gray-500 mb-6">
+                  Detailed view of your shot placement and trajectories across all matches. Filter by shot type to see patterns.
+                </p>
+                <WagonWheel shots={allShots} />
+              </div>
+            )}
+
+            {/* Opponent Shot Trajectories */}
+            {opponentShots.length > 0 && (
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Opponent Shot Trajectories
+                </h3>
+                <p className="text-xs text-gray-500 mb-6">
+                  Where your opponents&apos; shots land when they score against you. Identify defensive weaknesses and vulnerable zones.
+                </p>
+                <WagonWheel shots={opponentShots} />
+              </div>
+            )}
+
+            {/* Zone/Sector/Line Analysis */}
+            {totalShots > 0 && (
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Targeting Analysis
+                </h3>
+                <p className="text-xs text-gray-500 mb-6">
+                  Breakdown of zones, sectors, and lines you target, plus where opponents exploit you defensively.
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Your Offensive Patterns */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-blue-600 border-b pb-2">
+                      Your Offensive Patterns
+                    </h4>
+
+                    {/* Zones Targeted */}
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 mb-2">Zones Targeted</p>
+                      <div className="space-y-1">
+                        {Object.entries(userZoneStats)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .map(([zone, count]) => {
+                            const total = (Object.values(userZoneStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                            const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                            return (
+                              <div key={zone} className="flex items-center justify-between text-xs">
+                                <span className="capitalize text-gray-600">{zone}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="font-medium text-gray-800 w-12 text-right">
+                                    {percentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Sectors Targeted */}
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 mb-2">Sectors Targeted</p>
+                      <div className="space-y-1">
+                        {Object.entries(userSectorStats)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .map(([sector, count]) => {
+                            const total = (Object.values(userSectorStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                            const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                            return (
+                              <div key={sector} className="flex items-center justify-between text-xs">
+                                <span className="capitalize text-gray-600">{sector}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="font-medium text-gray-800 w-12 text-right">
+                                    {percentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Lines Used */}
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 mb-2">Lines of Play</p>
+                      <div className="space-y-1">
+                        {Object.entries(userLineStats)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .filter(([, count]) => (count as number) > 0)
+                          .map(([line, count]) => {
+                            const total = (Object.values(userLineStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                            const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                            return (
+                              <div key={line} className="flex items-center justify-between text-xs">
+                                <span className="capitalize text-gray-600">{line}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="font-medium text-gray-800 w-12 text-right">
+                                    {percentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Playing Position */}
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 mb-2">Playing Position</p>
+                      <div className="space-y-1">
+                        {Object.entries(userOriginZoneStats)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .filter(([, count]) => (count as number) > 0)
+                          .map(([zone, count]) => {
+                            const total = (Object.values(userOriginZoneStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                            const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                            return (
+                              <div key={zone} className="flex items-center justify-between text-xs">
+                                <span className="text-gray-600">{zone.replace(/-/g, " ")}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="font-medium text-gray-800 w-12 text-right">
+                                    {percentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Defensive Weaknesses */}
+                  {opponentShots.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-red-600 border-b pb-2">
+                        Your Defensive Weaknesses
+                      </h4>
+
+                      {/* Zones Exploited */}
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-2">Zones Where You&apos;re Scored On</p>
+                        <div className="space-y-1">
+                          {Object.entries(opponentZoneStats)
+                            .sort(([, a], [, b]) => (b as number) - (a as number))
+                            .map(([zone, count]) => {
+                              const total = (Object.values(opponentZoneStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                              const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                              return (
+                                <div key={zone} className="flex items-center justify-between text-xs">
+                                  <span className="capitalize text-gray-600">{zone}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-red-500"
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-medium text-gray-800 w-12 text-right">
+                                      {percentage}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Sectors Exploited */}
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-2">Sectors Where You&apos;re Vulnerable</p>
+                        <div className="space-y-1">
+                          {Object.entries(opponentSectorStats)
+                            .sort(([, a], [, b]) => (b as number) - (a as number))
+                            .map(([sector, count]) => {
+                              const total = (Object.values(opponentSectorStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                              const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                              return (
+                                <div key={sector} className="flex items-center justify-between text-xs">
+                                  <span className="capitalize text-gray-600">{sector}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-red-500"
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-medium text-gray-800 w-12 text-right">
+                                      {percentage}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Lines Exploited */}
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 mb-2">Lines Opponents Use Against You</p>
+                        <div className="space-y-1">
+                          {Object.entries(opponentLineStats)
+                            .sort(([, a], [, b]) => (b as number) - (a as number))
+                            .filter(([, count]) => (count as number) > 0)
+                            .map(([line, count]) => {
+                              const total = (Object.values(opponentLineStats) as number[]).reduce((a: number, b: number) => a + b, 0);
+                              const percentage = total > 0 ? ((count as number / total) * 100).toFixed(1) : 0;
+                              return (
+                                <div key={line} className="flex items-center justify-between text-xs">
+                                  <span className="capitalize text-gray-600">{line}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-red-500"
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-medium text-gray-800 w-12 text-right">
+                                      {percentage}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

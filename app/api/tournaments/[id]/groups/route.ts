@@ -274,90 +274,94 @@ export async function PUT(
       };
     });
 
-    // If matches were already generated, regenerate matches for all groups
-    if (matchesGenerated) {
-      const seeding = tournament.seeding || [];
+    // Always generate matches when saving groups (auto-generate draw)
+    // This handles both first-time generation and regeneration after modifications
+    const seeding = tournament.seeding || [];
 
-      // Now generate new matches for updated groups
-      for (const group of tournament.groups) {
-        const groupParticipantIds = group.participants.map((p: any) => p.toString());
-        
-        if (groupParticipantIds.length < 2) {
-          // Skip groups with less than 2 participants
-          continue;
-        }
-
-        // Generate round-robin schedule for this group
-        const groupSeeding = seeding.filter((s: any) =>
-          groupParticipantIds.includes(s.participant.toString())
-        );
-
-        const schedule =
-          groupSeeding.length > 0
-            ? generateSeededRoundRobinSchedule(
-                groupParticipantIds,
-                groupSeeding,
-                1, // courtsAvailable
-                tournament.startDate,
-                60 // matchDuration
-              )
-            : generateRoundRobinSchedule(
-                groupParticipantIds,
-                1, // courtsAvailable
-                tournament.startDate,
-                60 // matchDuration
-              );
-
-        // Create new matches for this group
-        const groupRounds = [];
-        for (const round of schedule) {
-          const roundMatches = [];
-
-          for (const pairing of round.matches) {
-            const matchParticipants = getMatchParticipants(
-              pairing,
-              isDoubles,
-              groupParticipantIds
-            );
-            const match = await createScheduledMatch(
-              matchParticipants,
-              tournament,
-              decoded.userId
-            );
-            roundMatches.push(match._id);
-          }
-
-          groupRounds.push({
-            roundNumber: round.roundNumber,
-            matches: roundMatches,
-            completed: false,
-            scheduledDate: round.scheduledDate,
-          });
-        }
-
-        // Initialize group standings
-        const groupStandings = groupParticipantIds.map((pId: string) => ({
-          participant: pId,
-          played: 0,
-          won: 0,
-          lost: 0,
-          drawn: 0,
-          setsWon: 0,
-          setsLost: 0,
-          setsDiff: 0,
-          pointsScored: 0,
-          pointsConceded: 0,
-          pointsDiff: 0,
-          points: 0,
-          rank: 0,
-          form: [],
-          headToHead: new Map(),
-        }));
-
-        group.rounds = groupRounds;
-        group.standings = groupStandings;
+    // Generate matches for all groups that have at least 2 participants
+    for (const group of tournament.groups) {
+      const groupParticipantIds = group.participants.map((p: any) => p.toString());
+      
+      if (groupParticipantIds.length < 2) {
+        // Skip groups with less than 2 participants - clear any existing rounds/standings
+        group.rounds = [];
+        group.standings = [];
+        continue;
       }
+
+      // Generate round-robin schedule for this group
+      const groupSeeding = seeding.filter((s: any) =>
+        groupParticipantIds.includes(s.participant.toString())
+      );
+
+      const schedule =
+        groupSeeding.length > 0
+          ? generateSeededRoundRobinSchedule(
+              groupParticipantIds,
+              groupSeeding,
+              1, // courtsAvailable
+              tournament.startDate,
+              60 // matchDuration
+            )
+          : generateRoundRobinSchedule(
+              groupParticipantIds,
+              1, // courtsAvailable
+              tournament.startDate,
+              60 // matchDuration
+            );
+
+      // Create new matches for this group
+      const groupRounds = [];
+      for (const round of schedule) {
+        const roundMatches = [];
+
+        for (const pairing of round.matches) {
+          const matchParticipants = getMatchParticipants(
+            pairing,
+            isDoubles,
+            groupParticipantIds
+          );
+          const match = await createScheduledMatch(
+            matchParticipants,
+            tournament,
+            decoded.userId
+          );
+          roundMatches.push(match._id);
+        }
+
+        groupRounds.push({
+          roundNumber: round.roundNumber,
+          matches: roundMatches,
+          completed: false,
+          scheduledDate: round.scheduledDate,
+        });
+      }
+
+      // Initialize group standings
+      const groupStandings = groupParticipantIds.map((pId: string) => ({
+        participant: pId,
+        played: 0,
+        won: 0,
+        lost: 0,
+        drawn: 0,
+        setsWon: 0,
+        setsLost: 0,
+        setsDiff: 0,
+        pointsScored: 0,
+        pointsConceded: 0,
+        pointsDiff: 0,
+        points: 0,
+        rank: 0,
+        form: [],
+        headToHead: new Map(),
+      }));
+
+      group.rounds = groupRounds;
+      group.standings = groupStandings;
     }
+
+    // Mark draw as generated since we've created matches
+    tournament.drawGenerated = true;
 
     await tournament.save();
 
