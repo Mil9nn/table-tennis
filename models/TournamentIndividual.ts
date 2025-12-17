@@ -7,6 +7,7 @@ import {
   roundSchema,
   groupSchema
 } from "./TournamentBase";
+import type { KnockoutStatistics } from "@/types/knockoutStatistics.type";
 
 /**
  * Individual Tournament Model
@@ -103,6 +104,9 @@ export interface ITournamentIndividual extends Document {
 
   // Virtual property (populated from BracketState)
   bracket?: any;
+
+  // Knockout statistics (generated after tournament completion)
+  knockoutStatistics?: KnockoutStatistics;
 
   // All base fields from TournamentBase
   name: string;

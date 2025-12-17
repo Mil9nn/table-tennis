@@ -81,15 +81,15 @@ export async function generateKnockoutStatistics(
   const participants = await fetchParticipants(tournament, tournament.category);
 
   // Calculate all statistics categories
-  const outcome = extractTournamentOutcome(bracket, matches, participants, tournament.category);
-  const participantProgression = calculateParticipantProgression(
-    bracket,
-    matches,
-    participants,
-    tournament.category
-  );
-  const participantStats = calculateParticipantStats(matches, participants, tournament.category);
-  const performanceMetrics = calculatePerformanceMetrics(matches, participants, tournament.category);
+   const outcome = extractTournamentOutcome(bracket, matches as unknown as MatchData[], participants, tournament.category);
+   const participantProgression = calculateParticipantProgression(
+     bracket,
+     matches as unknown as MatchData[],
+     participants,
+     tournament.category
+   );
+   const participantStats = calculateParticipantStats(matches as unknown as MatchData[], participants, tournament.category);
+   const performanceMetrics = calculatePerformanceMetrics(matches as unknown as MatchData[], participants, tournament.category);
 
   return {
     generatedAt: new Date(),
@@ -115,43 +115,43 @@ async function fetchTournament(tournamentId: string) {
  * Fetch participants with name and seeding information
  */
 async function fetchParticipants(
-  tournament: any,
-  category: "individual" | "team"
-): Promise<ParticipantInfo[]> {
-  const participants: ParticipantInfo[] = [];
-
-  for (const participantId of tournament.participants) {
-    const idStr = participantId.toString();
-
-    if (category === "individual") {
-      const user = await User.findById(participantId).lean();
-      if (user) {
-        const seedingInfo = tournament.seeding?.find(
-          (s: any) => s.participant.toString() === idStr
-        );
-        participants.push({
-          id: idStr,
-          name: user.fullName || user.username || "Unknown",
-          seedNumber: seedingInfo?.seedNumber,
-        });
-      }
-    } else {
-      const team = await Team.findById(participantId).lean();
-      if (team) {
-        const seedingInfo = tournament.seeding?.find(
-          (s: any) => s.participant.toString() === idStr
-        );
-        participants.push({
-          id: idStr,
-          name: team.name || "Unknown Team",
-          seedNumber: seedingInfo?.seedNumber,
-        });
-      }
-    }
-  }
-
-  return participants;
-}
+   tournament: any,
+   category: "individual" | "team"
+ ): Promise<ParticipantInfo[]> {
+   const participants: ParticipantInfo[] = [];
+ 
+   for (const participantId of tournament.participants) {
+     const idStr = participantId.toString();
+ 
+     if (category === "individual") {
+       const user = await User.findById(participantId).lean() as any;
+       if (user) {
+         const seedingInfo = tournament.seeding?.find(
+           (s: any) => s.participant.toString() === idStr
+         );
+         participants.push({
+           id: idStr,
+           name: user.fullName || user.username || "Unknown",
+           seedNumber: seedingInfo?.seedNumber,
+         });
+       }
+     } else {
+       const team = await Team.findById(participantId).lean() as any;
+       if (team) {
+         const seedingInfo = tournament.seeding?.find(
+           (s: any) => s.participant.toString() === idStr
+         );
+         participants.push({
+           id: idStr,
+           name: team.name || "Unknown Team",
+           seedNumber: seedingInfo?.seedNumber,
+         });
+       }
+     }
+   }
+ 
+   return participants;
+ }
 
 /**
  * Extract tournament outcome (Champion, Runner-up, Third Place, Final Scores)
@@ -172,8 +172,8 @@ function extractTournamentOutcome(
   const finalMatchDoc = matches.find((m) => m._id.toString() === finalMatch.matchId);
 
   let championId: string | null = null;
-  let runnerUpId: string | null = null;
-  let finalMatchScore: MatchScore | undefined;
+   let runnerUpId: string | null = null;
+   let finalMatchScore: MatchScore | undefined = undefined;
 
   // Case 1: Final match exists and is completed (normal case)
   if (finalMatchDoc && finalMatch.winner) {
@@ -232,12 +232,16 @@ function extractTournamentOutcome(
   }
 
   return {
-    champion,
-    runnerUp,
-    thirdPlace,
-    finalMatchScore,
-    thirdPlaceMatchScore,
-  };
+     champion,
+     runnerUp,
+     thirdPlace,
+     finalMatchScore: finalMatchScore || {
+       side1Sets: 0,
+       side2Sets: 0,
+       setsBreakdown: [],
+     },
+     thirdPlaceMatchScore,
+   };
 }
 
 /**
