@@ -175,6 +175,8 @@ export async function GET(
       );
     }
 
+
+
     // For knockout/hybrid tournaments, load bracket from BracketState if not in tournament document
     if (tournament.format === "knockout" || tournament.format === "hybrid") {
       // If bracket is not in tournament document, try to load from BracketState
@@ -224,7 +226,10 @@ export async function GET(
             .populate("subMatches.playerTeam2", "username fullName profileImage");
         } else {
           bracketMatchesQuery = IndividualMatch.find({ _id: { $in: matchIds } })
-            .populate("participants", "username fullName profileImage");
+            .populate({
+              path: "participants",
+              select: "username fullName profileImage _id"
+            });
         }
 
         const bracketMatches = await bracketMatchesQuery;

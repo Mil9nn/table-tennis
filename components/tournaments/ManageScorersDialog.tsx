@@ -213,11 +213,10 @@ export function ManageScorersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="size-5 text-indigo-500" />
+          <DialogTitle className="flex gap-2">
             <span className="text-indigo-500">Manage Scorers</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left">
             Add users who can score matches in this tournament.
           </DialogDescription>
         </DialogHeader>
@@ -225,8 +224,7 @@ export function ManageScorersDialog({
         <div className="space-y-4">
           {/* Admin section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Admin</label>
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg border">
+            <div className="flex items-center justify-between px-3 py-2 border-b-2">
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
@@ -248,9 +246,9 @@ export function ManageScorersDialog({
               </div>
               <Badge
                 variant="secondary"
-                className="bg-indigo-100 text-indigo-700"
+                className="bg-indigo-100 rounded-full text-indigo-700"
               >
-                <Shield className="w-3 h-3 mr-1" />
+                <Shield className="size-3" />
                 Admin
               </Badge>
             </div>
@@ -260,7 +258,7 @@ export function ManageScorersDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-slate-700">
-                Scorers ({localScorers.length}/{MAX_SCORERS})
+                Add Scorers ({localScorers.length}/{MAX_SCORERS})
               </label>
             </div>
             {canAddMore ? (
@@ -342,13 +340,9 @@ export function ManageScorersDialog({
 
           {/* Current scorers list */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              Scorers ({localScorers.length}/{MAX_SCORERS})
-            </label>
-            <ScrollArea className="h-[200px] border rounded-lg">
+            <ScrollArea className="h-50 border rounded-lg">
               {localScorers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-slate-500">
-                  <UserPlus className="size-6 mb-2" />
                   <p className="text-sm">No scorers added yet</p>
                   <p className="text-xs text-slate-400 mt-1">
                     Only the admin can score matches
@@ -427,7 +421,7 @@ export function ManageScorersDialog({
           <Button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="min-w-[100px]"
+            className="min-w-25"
           >
             {saving ? (
               <>

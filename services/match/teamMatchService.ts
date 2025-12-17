@@ -521,6 +521,25 @@ export class TeamMatchService {
       (subMatch as any).currentServer = serverResult.server;
     }
 
+    // Add shot data if provided (before checking game completion)
+    if (input.shotData?.player) {
+      const shot = {
+        shotNumber: (currentGame.shots?.length || 0) + 1,
+        side: input.shotData.side,
+        player: input.shotData.player,
+        stroke: input.shotData.stroke || null,
+        serveType: input.shotData.serveType || null,
+        server: input.shotData.server || null,
+        originX: input.shotData.originX,
+        originY: input.shotData.originY,
+        landingX: input.shotData.landingX,
+        landingY: input.shotData.landingY,
+        timestamp: new Date(),
+      };
+      currentGame.shots = currentGame.shots || [];
+      currentGame.shots.push(shot);
+    }
+
     const gameWon = isGameWon(currentGame.team1Score, currentGame.team2Score);
 
     if (gameWon && !currentGame.winnerSide) {
@@ -602,26 +621,6 @@ export class TeamMatchService {
         );
         (subMatch as any).currentServer = serverResult.server;
       }
-    }
-
-    if (input.shotData?.player) {
-      if (input.shotData?.player) {
-      const shot = {
-        shotNumber: (currentGame.shots?.length || 0) + 1,
-        side: input.shotData.side,
-        player: input.shotData.player,
-        stroke: input.shotData.stroke || null,
-        serveType: input.shotData.serveType || null,
-        server: input.shotData.server || null,
-        originX: input.shotData.originX,
-        originY: input.shotData.originY,
-        landingX: input.shotData.landingX,
-        landingY: input.shotData.landingY,
-        timestamp: new Date(),
-      };
-      currentGame.shots = currentGame.shots || [];
-      currentGame.shots.push(shot);
-    }
     }
 
     match.markModified("subMatches");

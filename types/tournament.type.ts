@@ -1,5 +1,6 @@
 // types/tournament.type.ts
 import { KnockoutBracket, KnockoutConfig } from "./tournamentDraw";
+import { KnockoutStatistics } from "./knockoutStatistics.type";
 
 // ============================================
 // Participant Types (Users and Teams)
@@ -107,6 +108,30 @@ export function getParticipantLink(participant: Participant, category: "individu
 }
 
 // ============================================
+// Doubles Pair (for doubles/mixed_doubles tournaments)
+// ============================================
+
+/**
+ * Represents a doubles pair in a tournament
+ * Used for knockout brackets where pairs compete against each other
+ */
+export interface DoublesPair {
+  _id: string; // Unique pair ID
+  player1: UserParticipant; // First player in the pair
+  player2: UserParticipant; // Second player in the pair
+}
+
+/**
+ * Get display name for a doubles pair
+ */
+export function getDoublesPairDisplayName(pair: DoublesPair | null | undefined): string {
+  if (!pair) return "TBD";
+  const p1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+  const p2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+  return `${p1Name} & ${p2Name}`;
+}
+
+// ============================================
 // Team Config (for team tournaments)
 // ============================================
 
@@ -150,6 +175,9 @@ export interface Tournament {
   // Knockout specific
   knockoutConfig?: KnockoutConfig;
   bracket?: KnockoutBracket;
+
+  // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+  doublesPairs?: DoublesPair[];
 
   // Team tournament specific
   teamConfig?: TeamConfig;
@@ -196,6 +224,9 @@ export interface Tournament {
   city: string;
   maxParticipants?: number;
   minParticipants?: number;
+
+  // Knockout tournament statistics (cached on completion)
+  knockoutStatistics?: KnockoutStatistics;
 
   createdAt: Date;
   updatedAt: Date;

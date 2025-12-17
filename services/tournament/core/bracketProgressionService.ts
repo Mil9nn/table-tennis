@@ -10,6 +10,7 @@ import { ClientSession } from "mongoose";
 import { TransactionManager } from "@/services/database/TransactionManager";
 import { matchRepository } from "../repositories/MatchRepository";
 import { tournamentRepository } from "../repositories/TournamentRepository";
+import { isBracketCompleted } from "./bracketGenerationService";
 
 /**
  * Bracket Progression Service
@@ -318,6 +319,12 @@ export function updateBracketAfterMatch(
     foundMatch = bracket.thirdPlaceMatch;
     foundMatch.winner = winnerId;
     foundMatch.completed = true;
+
+    // Check if the entire bracket is now completed
+    if (isBracketCompleted(bracket)) {
+      bracket.completed = true;
+    }
+
     return bracket;
   }
 

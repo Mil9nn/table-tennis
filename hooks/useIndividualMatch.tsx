@@ -522,6 +522,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
         if (data?.match) {
           useMatchStore.getState().setMatch(data.match);
+          // Update local state to reflect the swapped server
+          get().setInitialMatch(data.match as IndividualMatch);
           toast.success("Players swapped!");
         }
       } catch (err: any) {

@@ -28,6 +28,7 @@ interface TeamInfo {
 interface IndividualMatch {
   _id: string;
   matchCategory?: "individual";
+  matchType?: "singles" | "doubles" | "mixed_doubles";
   participants: Participant[];
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
   finalScore?: { side1Sets: number; side2Sets: number };
@@ -51,7 +52,11 @@ interface TeamMatch {
 type Match = IndividualMatch | TeamMatch;
 
 interface TournamentScheduleProps {
-  rounds: (Round & { groupName?: string; groupId?: string; roundName?: string })[];
+  rounds: (Round & {
+    groupName?: string;
+    groupId?: string;
+    roundName?: string;
+  })[];
   matches: Match[];
   onMatchClick?: (id: string) => void;
   showDate?: boolean;
@@ -74,12 +79,19 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
     matches.find((m) => String(m._id) === String(id)) ?? null;
 
   const isTeamMatch = (match: Match): match is TeamMatch => {
-    return (match as TeamMatch).team1 !== undefined && (match as TeamMatch).team2 !== undefined;
+    return (
+      (match as TeamMatch).team1 !== undefined &&
+      (match as TeamMatch).team2 !== undefined
+    );
   };
 
   const initials = (p?: Participant | TeamInfo) => {
     if (!p) return "?";
-    const displayName = (p as TeamInfo).name || (p as Participant).fullName || (p as Participant).username || "?";
+    const displayName =
+      (p as TeamInfo).name ||
+      (p as Participant).fullName ||
+      (p as Participant).username ||
+      "?";
     return displayName
       .split(" ")
       .map((s) => s[0])
@@ -90,7 +102,12 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
   const getDisplayName = (p?: Participant | TeamInfo) => {
     if (!p) return "?";
-    return (p as TeamInfo).name || (p as Participant).fullName || (p as Participant).username || "?";
+    return (
+      (p as TeamInfo).name ||
+      (p as Participant).fullName ||
+      (p as Participant).username ||
+      "?"
+    );
   };
 
   const getImage = (p?: Participant | TeamInfo) => {
@@ -100,7 +117,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
   const isWinner = (match: Match, index: number) => {
     if (match.status !== "completed") return false;
-    
+
     if (isTeamMatch(match)) {
       if (!match.winnerTeam) return false;
       return (
@@ -118,7 +135,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
   const getMatchScore = (match: Match) => {
     if (match.status !== "completed") return null;
-    
+
     if (isTeamMatch(match) && match.finalScore) {
       return `${match.finalScore.team1Matches}-${match.finalScore.team2Matches}`;
     } else if (!isTeamMatch(match) && match.finalScore) {
@@ -127,16 +144,37 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
     return null;
   };
 
-  const getParticipant1 = (match: Match): Participant | TeamInfo | undefined => {
+  const getMatchType = (
+    match: Match
+  ): "singles" | "doubles" | "mixed_doubles" => {
+    if (isTeamMatch(match)) return "singles";
+    const indMatch = match as IndividualMatch;
+    return indMatch.matchType || "singles";
+  };
+
+  const isDoubles = (match: Match): boolean => {
+    const type = getMatchType(match);
+    return type === "doubles" || type === "mixed_doubles";
+  };
+
+  const getParticipant1 = (
+    match: Match
+  ): Participant | TeamInfo | undefined => {
     if (isTeamMatch(match)) {
       return match.team1;
     }
     return match.participants?.[0];
   };
 
-  const getParticipant2 = (match: Match): Participant | TeamInfo | undefined => {
+  const getParticipant2 = (
+    match: Match
+  ): Participant | TeamInfo | undefined => {
     if (isTeamMatch(match)) {
       return match.team2;
+    }
+    // For doubles: participants[0,1] are team 1, participants[2,3] are team 2
+    if (isDoubles(match)) {
+      return match.participants?.[2];
     }
     return match.participants?.[1];
   };
@@ -160,14 +198,13 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
             .filter(Boolean) as Match[];
 
           // Check if this is the first round of a new group
-          const isNewGroup = round.groupName && (
-            index === 0 || 
-            rounds[index - 1].groupName !== round.groupName
-          );
+          const isNewGroup =
+            round.groupName &&
+            (index === 0 || rounds[index - 1].groupName !== round.groupName);
 
           return (
-            <section 
-              key={`${round.groupId || 'main'}-${round.roundNumber}`} 
+            <section
+              key={`${round.groupId || "main"}-${round.roundNumber}`}
               className="space-y-2"
             >
               {/* Group Header (only show for grouped tournaments) */}
@@ -211,34 +248,82 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                     const participant1 = getParticipant1(match);
                     const participant2 = getParticipant2(match);
                     const score = getMatchScore(match);
+                    const matchIsDoubles = isDoubles(match);
+                    const indMatch = match as IndividualMatch;
 
                     return (
-                    <div
-                      key={match._id}
-                      onClick={() => onMatchClick?.(match._id)}
-                      className="
+                      <div
+                        key={match._id}
+                        onClick={() => onMatchClick?.(match._id)}
+                        className="
                         flex items-center justify-between p-2.5
                         border-b border-black/5 cursor-pointer 
                         transition hover:bg-neutral-50
                       "
-                    >
-                      {/* LEFT SIDE — players/teams */}
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          {getImage(participant1) ? (
-                            <AvatarImage src={getImage(participant1)} />
-                          ) : (
-                            <AvatarFallback className="bg-blue-400 text-white text-xs">
-                              {initials(participant1)}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
+                      >
+                        {/* LEFT SIDE — players/teams */}
                         <div
-                          className={`text-sm truncate min-w-0 ${
-                            isWinner(match, 0) ? "text-green-500" : "text-neutral-700"
+                          className={`flex flex-1 min-w-0 ${
+                            matchIsDoubles
+                              ? "flex-col gap-1"
+                              : "items-center gap-2"
                           }`}
                         >
-                          {getDisplayName(participant1)}
+                          {matchIsDoubles ? (
+                            // Doubles: show 2 players for side1
+                            <>
+                              {[0, 1].map((idx) => {
+                                const p = indMatch.participants?.[idx];
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5"
+                                  >
+                                    <Avatar className="h-6 w-6 shrink-0">
+                                      {getImage(p) ? (
+                                        <AvatarImage src={getImage(p)} />
+                                      ) : (
+                                        <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                          {initials(p)}
+                                        </AvatarFallback>
+                                      )}
+                                    </Avatar>
+                                    <div
+                                      className={`text-xs truncate min-w-0 ${
+                                        isWinner(match, 0)
+                                          ? "text-green-500"
+                                          : "text-neutral-700"
+                                      }`}
+                                    >
+                                      {getDisplayName(p)}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          ) : (
+                            // Singles: show single player
+                            <>
+                              <Avatar className="h-7 w-7 shrink-0">
+                                {getImage(participant1) ? (
+                                  <AvatarImage src={getImage(participant1)} />
+                                ) : (
+                                  <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                    {initials(participant1)}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                              <div
+                                className={`text-sm truncate min-w-0 ${
+                                  isWinner(match, 0)
+                                    ? "text-green-500"
+                                    : "text-neutral-700"
+                                }`}
+                              >
+                                {getDisplayName(participant1)}
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         {/* VS */}
@@ -246,40 +331,86 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                           vs
                         </div>
 
+                        {/* RIGHT SIDE — players/teams */}
                         <div
-                          className={`text-sm truncate min-w-0 ${
-                            isWinner(match, 1) ? "text-green-600" : "text-neutral-700"
+                          className={`flex flex-1 min-w-0 ${
+                            matchIsDoubles
+                              ? "flex-col gap-1"
+                              : "items-center gap-2"
                           }`}
                         >
-                          {getDisplayName(participant2)}
-                        </div>
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          {getImage(participant2) ? (
-                            <AvatarImage src={getImage(participant2)} />
+                          {matchIsDoubles ? (
+                            // Doubles: show 2 players for side2
+                            <>
+                              {[2, 3].map((idx) => {
+                                const p = indMatch.participants?.[idx];
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5"
+                                  >
+                                    <Avatar className="h-6 w-6 shrink-0">
+                                      {getImage(p) ? (
+                                        <AvatarImage src={getImage(p)} />
+                                      ) : (
+                                        <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                          {initials(p)}
+                                        </AvatarFallback>
+                                      )}
+                                    </Avatar>
+                                    <div
+                                      className={`text-xs truncate min-w-0 ${
+                                        isWinner(match, 1)
+                                          ? "text-green-600"
+                                          : "text-neutral-700"
+                                      }`}
+                                    >
+                                      {getDisplayName(p)}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
                           ) : (
-                            <AvatarFallback className="text-xs bg-blue-400 text-white">
-                              {initials(participant2)}
-                            </AvatarFallback>
+                            // Singles: show single player
+                            <>
+                              <div
+                                className={`text-sm truncate min-w-0 ${
+                                  isWinner(match, 1)
+                                    ? "text-green-600"
+                                    : "text-neutral-700"
+                                }`}
+                              >
+                                {getDisplayName(participant2)}
+                                </div>
+                                <Avatar className="h-7 w-7 shrink-0">
+                                {getImage(participant2) ? (
+                                  <AvatarImage src={getImage(participant2)} />
+                                ) : (
+                                  <AvatarFallback className="text-xs bg-blue-400 text-white">
+                                    {initials(participant2)}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                            </>
                           )}
-                        </Avatar>
-                      </div>
+                        </div>
 
-                      {/* RIGHT SIDE — score + time */}
-                      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                        {score && (
-                          <div className="text-sm font-semibold">
-                            {score}
-                          </div>
-                        )}
+                        {/* RIGHT SIDE — score + time */}
+                        <div className="flex items-center gap-2 ml-2 shrink-0">
+                          {score && (
+                            <div className="text-sm font-semibold">{score}</div>
+                          )}
 
-                        {showTime && match.time && (
-                          <div className="text-[11px] text-muted-foreground">
-                            {match.time}
-                          </div>
-                        )}
+                          {showTime && match.time && (
+                            <div className="text-[11px] text-muted-foreground">
+                              {match.time}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )})
+                    );
+                  })
                 )}
               </div>
             </section>

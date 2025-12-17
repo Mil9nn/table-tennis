@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { Loader2, X, Users2 } from "lucide-react";
+import { Loader2, X, Users2, ChevronUp, ChevronDown, AlertCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@/types/user";
 import { 
@@ -50,6 +50,7 @@ interface ManageParticipantsDialogProps {
   tournamentId: string;
   participants: Participant[];
   category: "individual" | "team";
+  matchType?: "singles" | "doubles" | "mixed_doubles";
   onUpdate: (participants: Participant[]) => void;
 }
 
@@ -59,6 +60,7 @@ export function ManageParticipantsDialog({
   tournamentId,
   participants,
   category,
+  matchType = "singles",
   onUpdate,
 }: ManageParticipantsDialogProps) {
   const [query, setQuery] = useState("");
@@ -75,6 +77,7 @@ export function ManageParticipantsDialog({
   const [localParticipants, setLocalParticipants] = useState<Participant[]>([]);
 
   const isTeamTournament = category === "team";
+  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
   // Initialize local participants when dialog opens or participants change
   useEffect(() => {
@@ -269,6 +272,71 @@ export function ManageParticipantsDialog({
 
   const getInitial = (name: string) => name?.charAt(0)?.toUpperCase() || "?";
 
+  // Group participants into pairs for doubles tournaments
+  const getPairs = () => {
+    const pairs: Array<{ players: Participant[]; index: number }> = [];
+    for (let i = 0; i < localParticipants.length; i += 2) {
+      if (localParticipants[i + 1]) {
+        pairs.push({
+          players: [localParticipants[i], localParticipants[i + 1]],
+          index: i,
+        });
+      } else {
+        // Single player without partner
+        pairs.push({
+          players: [localParticipants[i]],
+          index: i,
+        });
+      }
+    }
+    return pairs;
+  };
+
+  // Move a pair up
+  const movePairUp = (pairIndex: number) => {
+    if (pairIndex === 0) return;
+    const newParticipants = [...localParticipants];
+    const arrayIndex = pairIndex * 2;
+
+    // Swap with previous pair (4 elements total)
+    [
+      newParticipants[arrayIndex - 2],
+      newParticipants[arrayIndex - 1],
+      newParticipants[arrayIndex],
+      newParticipants[arrayIndex + 1],
+    ] = [
+      newParticipants[arrayIndex],
+      newParticipants[arrayIndex + 1],
+      newParticipants[arrayIndex - 2],
+      newParticipants[arrayIndex - 1],
+    ];
+
+    setLocalParticipants(newParticipants.filter(Boolean));
+  };
+
+  // Move a pair down
+  const movePairDown = (pairIndex: number) => {
+    const pairs = getPairs();
+    if (pairIndex >= pairs.length - 1) return;
+    const newParticipants = [...localParticipants];
+    const arrayIndex = pairIndex * 2;
+
+    // Swap with next pair (4 elements total)
+    [
+      newParticipants[arrayIndex],
+      newParticipants[arrayIndex + 1],
+      newParticipants[arrayIndex + 2],
+      newParticipants[arrayIndex + 3],
+    ] = [
+      newParticipants[arrayIndex + 2],
+      newParticipants[arrayIndex + 3],
+      newParticipants[arrayIndex],
+      newParticipants[arrayIndex + 1],
+    ];
+
+    setLocalParticipants(newParticipants.filter(Boolean));
+  };
+
   // Helper to get display info for a suggestion item
   const getSuggestionDisplay = (item: User | TeamSearchResult) => {
     if (isTeamTournament) {
@@ -328,7 +396,9 @@ export function ManageParticipantsDialog({
             </span>
           </DialogTitle>
           <DialogDescription>
-            Add or remove {isTeamTournament ? "teams" : "participants"} before generating the draw.
+            {isDoubles && !isTeamTournament
+              ? "Add or remove players. Players are organized into pairs for doubles matches."
+              : `Add or remove ${isTeamTournament ? "teams" : "participants"} before generating the draw.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -409,9 +479,20 @@ export function ManageParticipantsDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-slate-700">
-                {isTeamTournament ? "Teams" : "Participants"} ({localParticipants.length})
+                {isDoubles && !isTeamTournament ? "Pairs" : isTeamTournament ? "Teams" : "Participants"}
+                {isDoubles && !isTeamTournament ? ` (${Math.floor(localParticipants.length / 2)} pairs, ${localParticipants.length} players)` : ` (${localParticipants.length})`}
               </label>
             </div>
+
+            {/* Warning for odd number of participants in doubles */}
+            {isDoubles && !isTeamTournament && localParticipants.length % 2 !== 0 && (
+              <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-700">
+                  <strong>Incomplete pair:</strong> You have an odd number of players. Add one more player to complete the pair.
+                </div>
+              </div>
+            )}
 
             <ScrollArea className="h-[240px] border rounded-lg">
               {localParticipants.length === 0 ? (
@@ -423,7 +504,103 @@ export function ManageParticipantsDialog({
                   )}
                   <p className="text-sm">No {isTeamTournament ? "teams" : "participants"} yet</p>
                 </div>
+              ) : isDoubles && !isTeamTournament ? (
+                // Doubles: Show pairs
+                <div className="divide-y">
+                  {getPairs().map((pair, pairIndex) => (
+                    <div key={pair.index} className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-slate-500">
+                          Pair {pairIndex + 1}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => movePairUp(pairIndex)}
+                            disabled={pairIndex === 0}
+                            className="h-6 w-6 p-0"
+                            title="Move pair up"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => movePairDown(pairIndex)}
+                            disabled={pairIndex >= getPairs().length - 1}
+                            className="h-6 w-6 p-0"
+                            title="Move pair down"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        {pair.players.map((p, idx) => {
+                          const participantId = p._id || (p as any).id || String(p);
+                          const isPendingAdd = pendingAdds.some(
+                            (item) => (item._id || (item as any).id) === participantId
+                          );
+                          const isPendingRemove = pendingRemoves.includes(participantId);
+                          const display = getParticipantDisplay(p);
+
+                          return (
+                            <div
+                              key={participantId}
+                              className={`flex items-center justify-between px-2 py-1.5 rounded ${
+                                isPendingAdd
+                                  ? "bg-green-50"
+                                  : isPendingRemove
+                                  ? "bg-red-50 opacity-60"
+                                  : "bg-slate-50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={display.image} alt={display.name} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {getInitial(display.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col leading-tight">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-medium text-slate-800">
+                                      {display.name}
+                                    </span>
+                                    {isPendingAdd && (
+                                      <span className="text-[10px] text-green-600 font-medium">
+                                        (new)
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-500">
+                                    {display.subtext}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeParticipant(p)}
+                                className="h-5 w-5 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {pair.players.length === 1 && (
+                        <div className="text-[10px] text-amber-600 mt-1 ml-2">
+                          ⚠️ Missing partner
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
+                // Singles or Teams: Show regular list
                 <div className="divide-y">
                   {localParticipants
                     .filter((p) => p && typeof p === 'object')

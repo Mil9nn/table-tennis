@@ -244,7 +244,7 @@ export default function CustomBracketMatcher({
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Match Number */}
-                  <div className="flex-shrink-0 flex items-center justify-center sm:justify-start">
+                  <div className="shrink-0 flex items-center justify-center sm:justify-start">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm">
                       {index + 1}
                     </div>
@@ -262,7 +262,7 @@ export default function CustomBracketMatcher({
                         <SelectValue placeholder="Select player">
                           {p1 ? (
                             <div className="flex items-center gap-2 ">
-                              <Avatar className="w-6 h-6 flex-shrink-0">
+                              <Avatar className="w-6 h-6 shrink-0">
                                 <AvatarImage src={p1.profileImage} />
                                 <AvatarFallback className="text-xs">
                                   {(p1.fullName || p1.username)
@@ -294,7 +294,7 @@ export default function CustomBracketMatcher({
                               value={participant._id}
                             >
                               <div className="flex items-center gap-2 ">
-                                <Avatar className="w-6 h-6 flex-shrink-0">
+                                <Avatar className="w-6 h-6 shrink-0">
                                   <AvatarImage src={participant.profileImage} />
                                   <AvatarFallback className="text-xs">
                                     {(
@@ -328,7 +328,7 @@ export default function CustomBracketMatcher({
                   </div>
 
                   {/* VS Divider */}
-                  <div className="flex-shrink-0 flex items-center justify-center">
+                  <div className="shrink-0 flex items-center justify-center">
                     <span className="text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
                       VS
                     </span>
@@ -346,7 +346,7 @@ export default function CustomBracketMatcher({
                         <SelectValue placeholder="Select player">
                           {p2 ? (
                             <div className="flex items-center gap-2 ">
-                              <Avatar className="w-6 h-6 flex-shrink-0">
+                              <Avatar className="w-6 h-6 shrink-0">
                                 <AvatarImage src={p2.profileImage} />
                                 <AvatarFallback className="text-xs">
                                   {(p2.fullName || p2.username)
@@ -378,7 +378,7 @@ export default function CustomBracketMatcher({
                               value={participant._id}
                             >
                               <div className="flex items-center gap-2 ">
-                                <Avatar className="w-6 h-6 flex-shrink-0">
+                                <Avatar className="w-6 h-6 shrink-0">
                                   <AvatarImage src={participant.profileImage} />
                                   <AvatarFallback className="text-xs">
                                     {(
@@ -412,7 +412,7 @@ export default function CustomBracketMatcher({
                   </div>
 
                   {/* Remove Button */}
-                  <div className="flex-shrink-0 flex items-center justify-center sm:justify-end">
+                  <div className="shrink-0 flex items-center justify-center sm:justify-end">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -456,7 +456,7 @@ export default function CustomBracketMatcher({
           className="border rounded-lg p-4"
         >
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="text-sm font-semibold mb-2">
                 Unmatched Participants ({unmatchedParticipants.length})

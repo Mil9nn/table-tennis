@@ -74,8 +74,42 @@ export async function POST(
       const [p0, p1, p2, p3] = match.participants;
       match.participants = [p2, p3, p0, p1];
 
-      // serverConfig.serverOrder stays the same (keys unchanged)
-      // currentServer key stays the same (now refers to swapped player)
+      // Update currentServer to follow the actual serving player
+      if (match.currentServer) {
+        if (match.currentServer === "side1_main") {
+          match.currentServer = "side2_main";
+        } else if (match.currentServer === "side2_main") {
+          match.currentServer = "side1_main";
+        } else if (match.currentServer === "side1_partner") {
+          match.currentServer = "side2_partner";
+        } else if (match.currentServer === "side2_partner") {
+          match.currentServer = "side1_partner";
+        }
+      }
+
+      // Update serverConfig.firstServer to follow the actual player
+      if (match.serverConfig?.firstServer) {
+        if (match.serverConfig.firstServer === "side1_main") {
+          match.serverConfig.firstServer = "side2_main";
+        } else if (match.serverConfig.firstServer === "side2_main") {
+          match.serverConfig.firstServer = "side1_main";
+        } else if (match.serverConfig.firstServer === "side1_partner") {
+          match.serverConfig.firstServer = "side2_partner";
+        } else if (match.serverConfig.firstServer === "side2_partner") {
+          match.serverConfig.firstServer = "side1_partner";
+        }
+      }
+
+      // Update serverConfig.serverOrder to follow actual players
+      if (match.serverConfig?.serverOrder && Array.isArray(match.serverConfig.serverOrder)) {
+        match.serverConfig.serverOrder = match.serverConfig.serverOrder.map((key: string) => {
+          if (key === "side1_main") return "side2_main";
+          if (key === "side2_main") return "side1_main";
+          if (key === "side1_partner") return "side2_partner";
+          if (key === "side2_partner") return "side1_partner";
+          return key;
+        });
+      }
     } else {
       // Singles: swap participants[0] ↔ participants[1]
       if (match.participants.length !== 2) {

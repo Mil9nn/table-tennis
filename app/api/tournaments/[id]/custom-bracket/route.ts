@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit/middleware";
 import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
 import { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
 import { scheduleRound } from "@/services/tournament/core/bracketSchedulingService";
+import { createBracketMatch, createBracketTeamMatch } from "@/services/tournament/core/matchGenerationService";
 
 // CRITICAL: Import models in correct order to ensure discriminators are registered
 // 1. Import base Match model first
@@ -172,7 +173,7 @@ export async function POST(
 
     const { id } = await context.params;
     const body = await req.json();
-    const { roundNumber, matches } = body;
+    const { roundNumber, matches, doublesPairs } = body;
 
     // Validate request body
     if (roundNumber === undefined || !matches || !Array.isArray(matches)) {
@@ -290,29 +291,98 @@ export async function POST(
       );
     }
 
-    // Verify all participants are in the tournament
-    const tournamentParticipantIds = tournament.participants.map((p: any) =>
-      p.toString()
-    );
+    // Check if this is a doubles tournament
+    const matchType = tournament.matchType;
+    const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
+    // Create a mapping from temporary pair IDs to their ObjectId counterparts
+    // This is needed because the frontend sends temporary 'pair-id-id' IDs that will be converted to ObjectIds
+    const tempPairIdMap = new Map<string, string>();
+
+    // For doubles Round 1, save pairs to tournament if provided
+    if (isDoubles && roundNumber === 1 && doublesPairs && Array.isArray(doublesPairs)) {
+      // Validate pairs structure
+      for (const pair of doublesPairs) {
+        if (!pair._id || !pair.player1 || !pair.player2) {
+          return NextResponse.json(
+            { error: "Each pair must have _id, player1, and player2" },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Save pairs to tournament
+      // For new pairs (with temporary 'pair-' prefix), generate actual ObjectIds
+      // For existing pairs (already have ObjectId), keep their IDs
+      tournament.doublesPairs = doublesPairs.map((p: any) => {
+        const tempId = p._id.toString();
+        const pairId = tempId.startsWith('pair-')
+          ? new mongoose.Types.ObjectId() // Generate new ObjectId for temp IDs
+          : new mongoose.Types.ObjectId(p._id); // Use existing ObjectId
+        
+        // Map temp ID to actual ObjectId for validation
+        tempPairIdMap.set(tempId, pairId.toString());
+        
+        return {
+          _id: pairId,
+          player1: new mongoose.Types.ObjectId(p.player1),
+          player2: new mongoose.Types.ObjectId(p.player2),
+        };
+      });
+      tournament.markModified('doublesPairs');
+    }
+
+    // Get the set of valid entry IDs for validation
+    // For singles: player IDs
+    // For doubles: pair IDs (from tournament.doublesPairs or temp IDs mapping)
+    let validEntryIds: Set<string>;
+    
+    if (isDoubles) {
+      // For doubles, use pair IDs
+      // Include both the stored pair IDs and the temporary IDs mapping
+      const pairIds = (tournament.doublesPairs || []).map((p: any) => p._id.toString());
+      validEntryIds = new Set(pairIds);
+      
+      // Also include the temporary IDs that will be converted to the above
+      tempPairIdMap.forEach((actualId, tempId) => {
+        validEntryIds.add(tempId); // Allow matching by temp ID
+      });
+    } else {
+      // For singles, use tournament participant IDs
+      const tournamentParticipantIds = tournament.participants.map((p: any) =>
+        p.toString()
+      );
+      validEntryIds = new Set(tournamentParticipantIds);
+    }
+
+    // Validate match entries exist
     for (const match of matches) {
-      if (!tournamentParticipantIds.includes(match.participant1)) {
+      if (!validEntryIds.has(match.participant1)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant1} not found in tournament`,
+            error: isDoubles
+              ? `Pair ${match.participant1} not found. Please create pairs first.`
+              : `Participant ${match.participant1} not found in tournament`,
           },
           { status: 400 }
         );
       }
-      if (!tournamentParticipantIds.includes(match.participant2)) {
+      if (!validEntryIds.has(match.participant2)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant2} not found in tournament`,
+            error: isDoubles
+              ? `Pair ${match.participant2} not found. Please create pairs first.`
+              : `Participant ${match.participant2} not found in tournament`,
           },
           { status: 400 }
         );
       }
     }
+    
+    // Keep tournamentParticipantIds for eligibility checks (backward compat)
+    const tournamentParticipantIds = tournament.participants.map((p: any) =>
+      p.toString()
+    );
 
     // Verify no duplicate participants within the same round
     const participantsInRound = new Set<string>();
@@ -337,26 +407,37 @@ export async function POST(
       participantsInRound.add(match.participant2);
     }
 
-    // Verify participants are eligible (haven't been eliminated)
-    const eligibleParticipants = getEligibleParticipants(
-      bracket,
-      roundNumber,
-      tournamentParticipantIds
-    );
+    // Verify entries are eligible (haven't been eliminated)
+    // For doubles, use pair IDs; for singles, use player IDs
+    const eligibleEntryIds = isDoubles
+      ? getEligibleParticipants(
+          bracket,
+          roundNumber,
+          Array.from(validEntryIds) // Use pair IDs for doubles
+        )
+      : getEligibleParticipants(
+          bracket,
+          roundNumber,
+          tournamentParticipantIds
+        );
 
     for (const match of matches) {
-      if (!eligibleParticipants.has(match.participant1)) {
+      if (!eligibleEntryIds.has(match.participant1)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant1} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
+            error: isDoubles
+              ? `Pair is not eligible for round ${roundNumber} (may have been eliminated)`
+              : `Participant ${match.participant1} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
           },
           { status: 400 }
         );
       }
-      if (!eligibleParticipants.has(match.participant2)) {
+      if (!eligibleEntryIds.has(match.participant2)) {
         return NextResponse.json(
           {
-            error: `Participant ${match.participant2} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
+            error: isDoubles
+              ? `Pair is not eligible for round ${roundNumber} (may have been eliminated)`
+              : `Participant ${match.participant2} is not eligible for round ${roundNumber} (may have been eliminated in a previous round)`,
           },
           { status: 400 }
         );
@@ -384,7 +465,7 @@ export async function POST(
       .filter((id) => id);
 
     if (existingMatchIds.length > 0) {
-      const existingMatches = await IndividualMatch.find({
+      const existingMatches = await (IndividualMatchModel as any).find({
         _id: { $in: existingMatchIds },
       });
 
@@ -403,7 +484,7 @@ export async function POST(
       }
 
       // Delete the old matches if they exist
-      await IndividualMatch.deleteMany({
+      await (IndividualMatchModel as any).deleteMany({
         _id: { $in: existingMatchIds },
       });
     }
@@ -417,8 +498,21 @@ export async function POST(
       if (!bracketMatch) continue;
 
       // Update bracket match participants
-      bracketMatch.participant1 = customMatch.participant1;
-      bracketMatch.participant2 = customMatch.participant2;
+      // If using temp pair IDs for doubles, convert to actual ObjectIds
+      let participant1 = customMatch.participant1;
+      let participant2 = customMatch.participant2;
+      
+      if (isDoubles && tempPairIdMap.size > 0) {
+        if (tempPairIdMap.has(customMatch.participant1)) {
+          participant1 = tempPairIdMap.get(customMatch.participant1)!;
+        }
+        if (tempPairIdMap.has(customMatch.participant2)) {
+          participant2 = tempPairIdMap.get(customMatch.participant2)!;
+        }
+      }
+      
+      bracketMatch.participant1 = participant1;
+      bracketMatch.participant2 = participant2;
       bracketMatch.completed = false;
       bracketMatch.winner = undefined;
     }
@@ -446,8 +540,9 @@ export async function POST(
       }
     }
 
-    // Create IndividualMatch documents with scheduling info
+    // Create match documents with scheduling info
     const createdMatches: any[] = [];
+    const isTeamCategory = tournament.category === "team";
 
     for (const customMatch of matches) {
       const bracketMatch = round.matches.find(
@@ -456,57 +551,40 @@ export async function POST(
 
       if (!bracketMatch) continue;
 
-      // Create IndividualMatch document - use model directly to ensure it's registered
-      const IndividualMatchModel =
-        Match.discriminators?.["individual"] || IndividualMatch;
-      const newMatch = new IndividualMatchModel({
-        tournament: new mongoose.Types.ObjectId(id),
-        matchCategory: "individual",
-        matchType: tournament.matchType,
-        numberOfSets: tournament.rules.setsPerMatch || 3,
-        participants: [
-          new mongoose.Types.ObjectId(customMatch.participant1),
-          new mongoose.Types.ObjectId(customMatch.participant2),
-        ],
-        scorer: new mongoose.Types.ObjectId(decoded.userId),
-        status: "scheduled",
-        bracketPosition: {
-          round: roundNumber,
-          matchNumber: customMatch.matchNumber,
-          nextMatchNumber: bracketMatch.bracketPosition.nextMatchNumber,
-        },
-        roundName: round.roundName,
-        city: tournament.city,
-        venue: tournament.venue,
-        courtNumber: bracketMatch.courtNumber,
-        scheduledDate: bracketMatch.scheduledDate,
-      });
-      await newMatch.save();
+      // Use the appropriate helper function to create the match
+      // This ensures doubles matches get 4 participants, team matches are handled correctly, etc.
+      const newMatch = isTeamCategory
+        ? await createBracketTeamMatch(bracketMatch, tournament, decoded.userId)
+        : await createBracketMatch(bracketMatch, tournament, decoded.userId);
 
-      createdMatches.push(newMatch);
-
-      // Update bracket with matchId
-      bracketMatch.matchId = (newMatch._id as any).toString();
+      if (newMatch) {
+        createdMatches.push(newMatch);
+        // Update bracket with matchId
+        bracketMatch.matchId = (newMatch._id as any).toString();
+      }
     }
 
     // SPECIAL HANDLING FOR ROUND 1: Auto-advance bye recipients
-    // When Round 1 is configured in custom matching, identify participants who didn't play
+    // When Round 1 is configured in custom matching, identify entries who didn't play
     // and automatically advance them to Round 2 as bye winners
     if (roundNumber === 1) {
-      // Get all tournament participants
-      const allParticipantIds = tournament.participants.map((p: any) =>
-        p.toString()
-      );
+      // Get all entry IDs (for doubles: pair IDs, for singles: player IDs)
+      let allEntryIds: string[];
+      if (isDoubles) {
+        allEntryIds = (tournament.doublesPairs || []).map((p: any) => p._id.toString());
+      } else {
+        allEntryIds = tournament.participants.map((p: any) => p.toString());
+      }
 
-      // Get participants used in Round 1 matches
+      // Get entries used in Round 1 matches
       const usedInRound1 = new Set<string>();
       matches.forEach((match) => {
         usedInRound1.add(match.participant1);
         usedInRound1.add(match.participant2);
       });
 
-      // Calculate bye recipients (participants NOT in Round 1)
-      const byeWinners = allParticipantIds.filter(
+      // Calculate bye recipients (entries NOT in Round 1)
+      const byeWinners = allEntryIds.filter(
         (p: any) => !usedInRound1.has(p)
       );
 
@@ -588,47 +666,18 @@ export async function POST(
     }
 
     if (newlyReadyMatches.length > 0) {
+      const isTeamCategory = tournament.category === "team";
+
       for (const bracketMatch of newlyReadyMatches) {
         try {
-          const isTeamCategory = tournament.category === "team";
+          // Use the appropriate helper function to create the match
+          // This ensures doubles matches get 4 participants, team matches are handled correctly, etc.
+          const match = isTeamCategory
+            ? await createBracketTeamMatch(bracketMatch, tournament, decoded.userId)
+            : await createBracketMatch(bracketMatch, tournament, decoded.userId);
 
-          if (isTeamCategory) {
-            // Import team match creation helper
-            const { createBracketTeamMatch } = await import(
-              "@/services/tournament/core/matchGenerationService"
-            );
-            const match = await createBracketTeamMatch(
-              bracketMatch,
-              tournament,
-              decoded.userId
-            );
-
-            if (match) {
-              bracketMatch.matchId = (match._id as any).toString();
-            }
-          } else {
-            // Use model directly to ensure it's registered
-            const IndividualMatchModel =
-              Match.discriminators?.["individual"] || IndividualMatch;
-            const newMatch = new IndividualMatchModel({
-              tournament: new mongoose.Types.ObjectId(id),
-              matchCategory: "individual",
-              matchType: tournament.matchType,
-              numberOfSets: tournament.rules.setsPerMatch || 3,
-              participants: [
-                new mongoose.Types.ObjectId(bracketMatch.participant1),
-                new mongoose.Types.ObjectId(bracketMatch.participant2),
-              ],
-              scorer: new mongoose.Types.ObjectId(decoded.userId),
-              status: "scheduled",
-              bracketPosition: bracketMatch.bracketPosition,
-              roundName: bracketMatch.roundName,
-              city: tournament.city,
-              venue: tournament.venue,
-            });
-            await newMatch.save();
-
-            bracketMatch.matchId = (newMatch._id as any).toString();
+          if (match) {
+            bracketMatch.matchId = (match._id as any).toString();
           }
         } catch (err) {
           console.error(`[Custom Bracket] Error creating match document:`, err);
@@ -680,7 +729,7 @@ export async function POST(
       .populate("participants", "username fullName profileImage")
       .populate({
         path: "rounds.matches",
-        model: "IndividualMatch",
+        model: Match,
         populate: {
           path: "participants",
           select: "username fullName profileImage",
@@ -688,7 +737,7 @@ export async function POST(
       });
 
     // Populate created matches
-    const populatedMatches = await IndividualMatch.find({
+    const populatedMatches = await (IndividualMatchModel as any).find({
       _id: { $in: createdMatches.map((m) => m._id) },
     }).populate("participants", "username fullName profileImage");
 

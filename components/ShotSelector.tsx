@@ -326,7 +326,7 @@ const ShotSelector = () => {
                 }}
                 className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
               >
-                Mix/Variable-spin Serve
+                Mix-spin Serve
               </button>
 
               <button
@@ -365,6 +365,7 @@ const ShotSelector = () => {
               label="Ball Landing"
               restrictToSide={getCourtSides().landingSide}
               mode="landing"
+              startScaled={true}
             />
           </div>
         )}

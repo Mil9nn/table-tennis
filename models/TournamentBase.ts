@@ -153,6 +153,9 @@ export const baseTournamentFields = {
   city: { type: String, required: true },
   maxParticipants: { type: Number },
   minParticipants: { type: Number, default: 2 },
+
+  // Knockout tournament statistics (cached on completion)
+  knockoutStatistics: { type: Schema.Types.Mixed, default: undefined },
 };
 
 /**

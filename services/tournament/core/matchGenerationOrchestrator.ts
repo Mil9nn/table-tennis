@@ -602,8 +602,13 @@ export class MatchGenerationOrchestrator {
   ): Promise<KnockoutBracket> {
     const allowCustomMatching =
       (tournament as any).knockoutConfig?.allowCustomMatching === true;
+    
+    // Check if this is a doubles tournament
+    const matchType = (tournament as any).matchType;
+    const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
     // Generate bracket structure
+    // For doubles with custom matching, the bracket size should be based on pair count (players / 2)
     const bracket = generateKnockoutBracket(
       participantIds,
       seeding.map((s) => ({
@@ -615,6 +620,7 @@ export class MatchGenerationOrchestrator {
           (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
         scheduledDate: tournament.startDate,
         skipByeAdvancement: allowCustomMatching,
+        isDoubles: isDoubles && allowCustomMatching, // Only use pair-based sizing for doubles with custom matching
       }
     );
 

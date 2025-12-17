@@ -889,7 +889,7 @@ export function generateFullCommentary(
   
   // Server and receiver info - "serves to" instead of "serving"
   if (serverInfo && receiverInfo) {
-    fullCommentary = `<strong>${serverInfo.name}</strong> serves to <strong>${receiverInfo.name}</strong>. `;
+    fullCommentary = `<strong>${serverInfo.name}</strong> serves to <strong>${receiverInfo.name}</strong>.<br />`;
   } else if (serverInfo) {
     fullCommentary = `<strong>${serverInfo.name}</strong> serves. `;
   }

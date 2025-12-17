@@ -507,6 +507,26 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       // Save with optimistic locking protection
       await freshTournament.save();
 
+      // Sync bracket state to BracketState model
+      try {
+        const BracketState = (await import("@/models/BracketState")).default;
+        const bracketState = await BracketState.findOne({ tournament: tournament._id });
+
+        if (bracketState) {
+          bracketState.rounds = updatedBracket.rounds;
+          bracketState.currentRound = updatedBracket.currentRound;
+          bracketState.completed = updatedBracket.completed;
+          bracketState.thirdPlaceMatch = updatedBracket.thirdPlaceMatch;
+          await bracketState.save();
+        }
+      } catch (bracketStateErr) {
+        console.error(
+          "[updateKnockoutBracket] Warning: Failed to sync BracketState:",
+          bracketStateErr
+        );
+        // Continue - Tournament.bracket is the source of truth
+      }
+
       return; // Success, exit retry loop
     } catch (error: any) {
       retryCount++;

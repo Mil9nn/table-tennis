@@ -81,7 +81,7 @@ export default function CustomMatchingPage() {
     currentRound?.matches?.some((m: any) => m.completed);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50">
+    <div className="min-h-screen bg-linear-to-b from-white to-zinc-50">
       {/* Header */}
       <header className="sticky top-0 z-20 backdrop-blur-md bg-white/70 border-b border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-4">
@@ -155,6 +155,8 @@ export default function CustomMatchingPage() {
           participants={tournament.participants.filter(isUserParticipant)}
           currentRound={selectedRound}
           onSuccess={handleSuccess}
+          matchType={tournament.matchType}
+          existingPairs={tournament.doublesPairs}
         />
       </main>
     </div>

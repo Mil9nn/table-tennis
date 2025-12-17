@@ -161,7 +161,7 @@ export function HybridTournamentManager({
   };
 
   return (
-    <Card className="rounded-none bg-gradient-to-br from-blue-50 to-purple-50">
+    <Card className="rounded-none bg-linear-to-br from-blue-50 to-purple-50">
       <CardContent className="space-y-4">
         {/* Phase Progress Indicator */}
         <div className="flex items-center gap-4">
@@ -316,7 +316,7 @@ export function HybridTournamentManager({
               <Button
                 onClick={handleTransition}
                 disabled={transitioning}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="w-full bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 {transitioning ? (
                   <>

@@ -127,6 +127,8 @@ export function distributeByes(
  * @param seeding - Seeding information
  * @param totalRounds - Total number of rounds
  * @param scheduledDate - Optional scheduled date for the round
+ * @param skipParticipantAssignment - For custom matching: create empty bracket
+ * @param entryCount - Number of entries (for doubles, this is pair count, not player count)
  * @returns First round with matches
  */
 export function generateFirstRound(
@@ -134,19 +136,22 @@ export function generateFirstRound(
   seeding: SeedingInfo[],
   totalRounds: number,
   scheduledDate?: Date,
-  skipParticipantAssignment?: boolean // For custom matching: create empty bracket
+  skipParticipantAssignment?: boolean, // For custom matching: create empty bracket
+  entryCount?: number // For doubles: number of pairs; for singles: number of players
 ): BracketRound {
-  const bracketSize = nextPowerOf2(participants.length);
+  // Use entryCount if provided (for doubles), otherwise use participants.length
+  const effectiveEntryCount = entryCount ?? participants.length;
+  const bracketSize = nextPowerOf2(effectiveEntryCount);
   const firstRoundMatches = bracketSize / 2;
   const matches: BracketMatch[] = [];
 
   // If custom matching, create empty bracket structure (no participants assigned)
   if (skipParticipantAssignment) {
     // Calculate actual matches needed for Round 1
-    // Only create matches for participants who will actually play (not byes)
-    const byesNeeded = bracketSize - participants.length;
-    const participantsPlaying = participants.length - byesNeeded;
-    const actualFirstRoundMatches = Math.max(1, participantsPlaying / 2);
+    // Only create matches for entries who will actually play (not byes)
+    const byesNeeded = bracketSize - effectiveEntryCount;
+    const entriesPlaying = effectiveEntryCount - byesNeeded;
+    const actualFirstRoundMatches = Math.max(1, entriesPlaying / 2);
 
     
 
@@ -321,9 +326,9 @@ function advanceByeWinners(bracket: KnockoutBracket): void {
 
 /**
  * Main function to generate complete knockout bracket
- * @param participants - Array of participant IDs
+ * @param participants - Array of participant IDs (individual players)
  * @param seeding - Seeding information
- * @param options - Optional configuration (thirdPlaceMatch, scheduledDate)
+ * @param options - Optional configuration (thirdPlaceMatch, scheduledDate, isDoubles)
  * @returns Complete knockout bracket
  */
 export function generateKnockoutBracket(
@@ -333,23 +338,39 @@ export function generateKnockoutBracket(
     thirdPlaceMatch?: boolean;
     scheduledDate?: Date;
     skipByeAdvancement?: boolean; // When true, don't auto-advance bye winners (for custom matching)
+    isDoubles?: boolean; // When true, treat participants as players to be paired (entry count = players / 2)
   }
 ): KnockoutBracket {
   if (participants.length < 2) {
     throw new Error("At least 2 participants are required for a knockout tournament");
   }
 
-  const totalRounds = calculateTotalRounds(participants.length);
-  const bracketSize = nextPowerOf2(participants.length);
+  // For doubles tournaments, entry count is number of pairs (players / 2)
+  // For singles, entry count is number of players
+  const entryCount = options?.isDoubles 
+    ? Math.floor(participants.length / 2) 
+    : participants.length;
+
+  if (entryCount < 2) {
+    throw new Error(options?.isDoubles 
+      ? "At least 4 players (2 pairs) are required for a doubles knockout tournament"
+      : "At least 2 participants are required for a knockout tournament"
+    );
+  }
+
+  const totalRounds = calculateTotalRounds(entryCount);
+  const bracketSize = nextPowerOf2(entryCount);
 
   // Generate first round
   // If skipByeAdvancement is true (custom matching mode), create empty bracket structure
+  // For doubles, pass entryCount (number of pairs) to generate correct bracket size
   const firstRound = generateFirstRound(
     participants,
     seeding,
     totalRounds,
     options?.scheduledDate,
-    options?.skipByeAdvancement // Pass through to skip participant assignment
+    options?.skipByeAdvancement, // Pass through to skip participant assignment
+    entryCount // Pass entry count for correct bracket sizing
   );
 
   // Generate subsequent rounds
@@ -362,9 +383,9 @@ export function generateKnockoutBracket(
   );
 
   // Create third place match if requested
-  // Only create third place match if there are at least 4 participants (creates semi-finals)
+  // Only create third place match if there are at least 4 entries (creates semi-finals)
   let thirdPlaceMatch: BracketMatch | undefined;
-  if (options?.thirdPlaceMatch && participants.length >= 4 && totalRounds >= 2) {
+  if (options?.thirdPlaceMatch && entryCount >= 4 && totalRounds >= 2) {
     thirdPlaceMatch = {
       participant1: null,
       participant2: null,

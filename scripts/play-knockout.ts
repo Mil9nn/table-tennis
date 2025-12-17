@@ -20,11 +20,36 @@ import IndividualMatch from "../models/IndividualMatch";
 import { User } from "../models/User";
 import { generateKnockoutMatches } from "../services/tournament/core/matchGenerationService";
 import { advanceWinner } from "../services/tournament/core/bracketProgressionService";
-import type { KnockoutBracket, BracketMatch } from "../types/tournamentDraw";
+import type { KnockoutBracket } from "../types/tournamentDraw";
 
 // Configuration
 const MIN_PLAYERS = 2;
 const NUM_PLAYERS = 8; // Default to 8 players (power of 2, no byes needed)
+
+/**
+ * Helpers for working with tournament participants which may be:
+ * - strings (ids),
+ * - ObjectId instances, or
+ * - populated User documents ({ _id, username, fullName })
+ */
+function getParticipantId(p: any): string | undefined {
+  if (!p) return undefined;
+  if (typeof p === "string") return p;
+  if (p instanceof mongoose.Types.ObjectId) return p.toString();
+  if (p._id?.toString) return p._id.toString();
+  return undefined;
+}
+
+function findParticipant(participants: any[] = [], id?: any) {
+  if (!id) return undefined;
+  const target = id?.toString();
+  return participants.find((p: any) => getParticipantId(p) === target);
+}
+
+function participantName(p: any) {
+  const obj = typeof p === "string" ? null : p;
+  return obj?.username || obj?.fullName || "Unknown";
+}
 
 interface MatchScore {
   side1Sets: number;
@@ -222,16 +247,12 @@ async function playRound(
       continue;
     }
 
-    // Get participant names for display
-    const participant1 = tournament.participants.find(
-      (p: any) => p._id.toString() === bracketMatch.participant1?.toString()
-    ) as any;
-    const participant2 = tournament.participants.find(
-      (p: any) => p._id.toString() === bracketMatch.participant2?.toString()
-    ) as any;
+    // Get participant names for display using shared helpers
+    const participant1 = findParticipant(tournament.participants, bracketMatch.participant1) as any;
+    const participant2 = findParticipant(tournament.participants, bracketMatch.participant2) as any;
 
-    const player1Name = participant1?.username || participant1?.fullName || "Unknown";
-    const player2Name = participant2?.username || participant2?.fullName || "Unknown";
+    const player1Name = participantName(participant1);
+    const player2Name = participantName(participant2);
 
     console.log(`   🎾 ${player1Name} vs ${player2Name}`);
 
@@ -249,7 +270,7 @@ async function playRound(
     }
 
     const winner = winnerSide === "side1" ? participant1 : participant2;
-    const winnerName = winner?.username || winner?.fullName || "Unknown";
+    const winnerName = participantName(winner);
 
     console.log(`      ✅ Winner: ${winnerName}`);
 
@@ -272,7 +293,7 @@ async function playRound(
  */
 async function displayBracket(tournamentId: string): Promise<void> {
   const tournament = await Tournament.findById(tournamentId)
-    .populate("participants", "username fullName")
+    .populate({ path: "participants", model: "User", select: "username fullName" })
     .populate("organizer", "username fullName");
 
   if (!tournament || !tournament.bracket) {
@@ -290,32 +311,24 @@ async function displayBracket(tournamentId: string): Promise<void> {
     console.log("-".repeat(60));
 
     for (const match of round.matches) {
-      const p1 = tournament.participants.find(
-        (p: any) => p._id.toString() === match.participant1?.toString()
-      ) as any;
-      const p2 = tournament.participants.find(
-        (p: any) => p._id.toString() === match.participant2?.toString()
-      ) as any;
+      const p1 = findParticipant(tournament.participants, match.participant1) as any;
+      const p2 = findParticipant(tournament.participants, match.participant2) as any;
 
       const p1Name = p1
-        ? p1.username || p1.fullName || "Unknown"
+        ? participantName(p1)
         : match.participant1
         ? "Bye"
         : "TBD";
       const p2Name = p2
-        ? p2.username || p2.fullName || "Unknown"
+        ? participantName(p2)
         : match.participant2
         ? "Bye"
         : "TBD";
 
       const winner = match.completed
-        ? tournament.participants.find(
-            (p: any) => p._id.toString() === match.winner?.toString()
-          )
+        ? findParticipant(tournament.participants, match.winner)
         : null;
-      const winnerName = winner
-        ? (winner as any).username || (winner as any).fullName || "Unknown"
-        : "";
+      const winnerName = winner ? participantName(winner) : "";
 
       if (match.completed) {
         console.log(`   ✅ ${p1Name} vs ${p2Name} → Winner: ${winnerName}`);
@@ -331,10 +344,8 @@ async function displayBracket(tournamentId: string): Promise<void> {
     const finalRound = bracket.rounds[bracket.rounds.length - 1];
     const finalMatch = finalRound?.matches[0];
     if (finalMatch?.winner) {
-      const champion = tournament.participants.find(
-        (p: any) => p._id.toString() === finalMatch.winner?.toString()
-      ) as any;
-      const championName = champion?.username || champion?.fullName || "Unknown";
+      const champion = findParticipant(tournament.participants, finalMatch.winner) as any;
+      const championName = participantName(champion);
 
       console.log("\n" + "=".repeat(60));
       console.log(`👑 CHAMPION: ${championName}`);
@@ -384,8 +395,12 @@ async function main() {
 
     console.log(`\n✅ Tournament created: ${tournamentId}`);
 
-    // Load tournament
-    const tournament = await Tournament.findById(tournamentId);
+    // Load tournament (populate participants so we can display names)
+    const tournament = await Tournament.findById(tournamentId).populate({
+      path: "participants",
+      model: "User",
+      select: "username fullName",
+    });
     if (!tournament) {
       throw new Error("Tournament not found after creation");
     }
@@ -406,11 +421,12 @@ async function main() {
     // Save tournament after bracket generation
     await tournament.save();
 
-    // Reload tournament to get updated bracket
-    const updatedTournament = await Tournament.findById(tournamentId).populate(
-      "participants",
-      "username fullName"
-    );
+    // Reload tournament to get updated bracket and populated participants
+    const updatedTournament = await Tournament.findById(tournamentId).populate({
+      path: "participants",
+      model: "User",
+      select: "username fullName",
+    });
     if (!updatedTournament) {
       throw new Error("Tournament not found after bracket generation");
     }
@@ -432,10 +448,11 @@ async function main() {
 
     // Play each round
     for (let roundNum = 1; roundNum <= bracket.rounds.length; roundNum++) {
-      const currentTournament = await Tournament.findById(tournamentId).populate(
-        "participants",
-        "username fullName"
-      );
+      const currentTournament = await Tournament.findById(tournamentId).populate({
+        path: "participants",
+        model: "User",
+        select: "username fullName",
+      });
       if (!currentTournament) {
         throw new Error("Tournament not found");
       }

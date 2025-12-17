@@ -535,26 +535,47 @@ export async function createBracketMatch(
   let matchParticipants: mongoose.Types.ObjectId[];
 
   if (isDoubles) {
-    // For doubles, we need to get the pairs
-    // The bracket stores participant IDs (first player of each pair)
-    // We need to find their partners using the same logic as getMatchParticipants
-
-    // Always use the original tournament participants list to find partners
-    // because pairs are stored there. For hybrid knockout phase, qualifiedParticipants
-    // only contains the first player of each qualifying pair, but we need the full
-    // participants list to find partners.
-    const participantIds = tournament.participants.map((p: any) =>
-      p.toString()
-    );
-
-    // Create a pairing object similar to what's used in round-robin
-    const pairing = {
-      player1: bracketMatch.participant1,
-      player2: bracketMatch.participant2,
-    };
-
-    // Use the same logic as getMatchParticipants to get all 4 participants
-    matchParticipants = getMatchParticipants(pairing, true, participantIds);
+    // For doubles, we need to get all 4 players from the pairs
+    // The bracket stores pair IDs (from tournament.doublesPairs)
+    
+    // First, try to get pairs from tournament.doublesPairs (new approach)
+    const doublesPairs = (tournament as any).doublesPairs;
+    
+    if (doublesPairs && doublesPairs.length > 0) {
+      // Find pairs by ID
+      const pair1 = doublesPairs.find((p: any) => 
+        p._id.toString() === bracketMatch.participant1
+      );
+      const pair2 = doublesPairs.find((p: any) => 
+        p._id.toString() === bracketMatch.participant2
+      );
+      
+      if (pair1 && pair2) {
+        matchParticipants = [
+          new mongoose.Types.ObjectId(pair1.player1.toString()),
+          new mongoose.Types.ObjectId(pair1.player2.toString()),
+          new mongoose.Types.ObjectId(pair2.player1.toString()),
+          new mongoose.Types.ObjectId(pair2.player2.toString()),
+        ];
+      } else {
+        // Fallback to legacy behavior if pairs not found
+        console.warn("[createBracketMatch] Pairs not found in doublesPairs, using legacy method");
+        const participantIds = tournament.participants.map((p: any) => p.toString());
+        const pairing = {
+          player1: bracketMatch.participant1,
+          player2: bracketMatch.participant2,
+        };
+        matchParticipants = getMatchParticipants(pairing, true, participantIds);
+      }
+    } else {
+      // Fallback to legacy consecutive array indexing
+      const participantIds = tournament.participants.map((p: any) => p.toString());
+      const pairing = {
+        player1: bracketMatch.participant1,
+        player2: bracketMatch.participant2,
+      };
+      matchParticipants = getMatchParticipants(pairing, true, participantIds);
+    }
   } else {
     // Singles - just 2 participants
     matchParticipants = [

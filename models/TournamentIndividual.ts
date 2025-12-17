@@ -60,6 +60,13 @@ export interface IGroup {
   standings: IStanding[];
 }
 
+// Doubles pair for knockout tournaments
+export interface IDoublesPair {
+  _id: mongoose.Types.ObjectId;
+  player1: mongoose.Types.ObjectId; // User
+  player2: mongoose.Types.ObjectId; // User
+}
+
 export interface ITournamentIndividual extends Document {
   // Category (fixed as 'individual')
   category: 'individual';
@@ -69,6 +76,9 @@ export interface ITournamentIndividual extends Document {
 
   // Participants (Users)
   participants: mongoose.Types.ObjectId[];
+
+  // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+  doublesPairs?: IDoublesPair[];
 
   // Seeding (Users)
   seeding: ISeeding[];
@@ -180,6 +190,13 @@ const tournamentIndividualSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
+    }],
+
+    // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+    doublesPairs: [{
+      _id: { type: Schema.Types.ObjectId, auto: true },
+      player1: { type: Schema.Types.ObjectId, ref: "User", required: true },
+      player2: { type: Schema.Types.ObjectId, ref: "User", required: true },
     }],
 
     // Seeding (Users only)

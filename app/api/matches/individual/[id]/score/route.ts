@@ -309,10 +309,10 @@ export async function POST(
       match.markModified("statistics");
     }
 
-    // Save match if not already saved (when match completes, it's saved earlier to trigger tournament updates)
-    if (match.status !== "completed") {
-      await match.save();
-    }
+    // Save match to persist shot data and score updates
+    // Note: Even if match was completed and saved earlier (line 196),
+    // we need to save again to persist the shot data that was added after
+    await match.save();
 
     // Emit score update event (for both completed and in-progress matches)
     emitToMatchRoom(id, "score:update", {
