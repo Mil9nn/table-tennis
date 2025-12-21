@@ -1,5 +1,4 @@
-import { Flame } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Flame, TrendingDown } from "lucide-react";
 
 interface StreakBadgeProps {
   streak: number;
@@ -12,12 +11,17 @@ export function StreakBadge({ streak }: StreakBadgeProps) {
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center gap-0.5 text-xs font-medium",
-        isWin ? "text-emerald-600" : "text-rose-600"
-      )}
+      className="lb-font-primary inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold"
+      style={{
+        backgroundColor: isWin ? 'rgba(24, 195, 248, 0.15)' : 'rgba(50, 49, 57, 0.1)',
+        color: isWin ? '#18c3f8' : '#ef4444',
+      }}
     >
-      <Flame className="w-3 h-3" />
+      {isWin ? (
+        <Flame className="w-3 h-3" style={{ color: '#18c3f8' }} />
+      ) : (
+        <TrendingDown className="w-3 h-3" style={{ color: '#ef4444' }} />
+      )}
       {Math.abs(streak)}
     </span>
   );

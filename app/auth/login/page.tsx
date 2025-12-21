@@ -13,10 +13,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const LoginPage = () => {
 
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const login = useAuthStore((state: any) => state.login);
   const authLoading = useAuthStore((state) => state.authLoading);
@@ -97,12 +100,25 @@ const LoginPage = () => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Password"
-                        type="password"
-                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Password"
+                          type={showPassword ? "text" : "password"}
+                          className="border-gray-200 focus:ring-2 focus:ring-indigo-500 pr-12"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((p) => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? (
+                            <VisibilityOff fontSize="small" />
+                          ) : (
+                            <Visibility fontSize="small" />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

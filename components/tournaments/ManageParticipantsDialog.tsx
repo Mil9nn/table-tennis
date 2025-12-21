@@ -25,6 +25,7 @@ import {
 } from "@/types/tournament.type";
 import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getAvatarFallbackStyle, getInitial } from "@/lib/utils";
 
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PersonIcon from "@mui/icons-material/Person";
@@ -445,7 +446,7 @@ export function ManageParticipantsDialog({
                               src={display.image}
                               alt={display.name}
                             />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(item._id)}>
                               {getInitial(display.name)}
                             </AvatarFallback>
                           </Avatar>
@@ -559,7 +560,7 @@ export function ManageParticipantsDialog({
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage src={display.image} alt={display.name} />
-                                  <AvatarFallback className="text-[10px]">
+                                  <AvatarFallback className="text-[10px]" style={getAvatarFallbackStyle((p as any)._id)}>
                                     {getInitial(display.name)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -629,7 +630,7 @@ export function ManageParticipantsDialog({
                               src={display.image}
                               alt={display.name}
                             />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-xs" style={getAvatarFallbackStyle((p as any)._id)}>
                               {getInitial(display.name)}
                             </AvatarFallback>
                           </Avatar>

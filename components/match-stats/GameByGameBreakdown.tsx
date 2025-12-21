@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -26,7 +27,8 @@ import {
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
 import { generateShortCommentary, generateFullCommentary } from "@/lib/shot-commentary-utils";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 function formatShotType(stroke?: string | null) {
   if (!stroke) return "—";
@@ -59,21 +61,36 @@ export function GameByGameBreakdown({
   participants,
   finalScore,
 }: GameByGameBreakdownProps) {
+  const [expandedGames, setExpandedGames] = useState<Set<number>>(new Set());
+
+  const toggleGameExpanded = (gameIndex: number) => {
+    setExpandedGames((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(gameIndex)) {
+        newSet.delete(gameIndex);
+      } else {
+        newSet.add(gameIndex);
+      }
+      return newSet;
+    });
+  };
+
   return (
-    <Card className="shadow-sm border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 backdrop-blur">
-      <CardHeader className="space-y-1">
+    <section>
+      <header className="space-y-1 mb-4">
         <CardTitle className="text-lg sm:text-xl font-semibold tracking-tight">
           Game-by-Game Analysis
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Detailed breakdown of each individual game
         </p>
-      </CardHeader>
+      </header>
 
-      <CardContent className="space-y-6">
+      <div className="space-y-4">
         {games.map((game, idx) => {
           const gameShots = game.shots || [];
           const stats = computeStats(gameShots);
+          const isExpanded = expandedGames.has(idx);
 
           const strokeData = Object.entries(stats.shotTypes).map(
             ([type, value]) => ({
@@ -85,7 +102,7 @@ export function GameByGameBreakdown({
           return (
             <div
               key={idx}
-              className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/40 p-4 space-y-6"
+              className=""
             >
               {/* HEADER */}
               <div className="flex justify-between items-center">
@@ -114,48 +131,32 @@ export function GameByGameBreakdown({
 
               {/* CHART */}
               {strokeData.length > 0 && (
-                <div className="space-y-2 bg-black rounded-xl shadow-sm p-3">
-                  <h4 className="text-sm font-semibold">
-                    Shot Type Frequency
-                  </h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={strokeData}>
-                        <XAxis dataKey="name" style={{ fontSize: "11px" }} />
-                        <YAxis width={25} />
-                        <Tooltip />
-                        <Bar 
-                          dataKey="value" 
-                          radius={[4, 4, 0, 0]}
-                          isAnimationActive={true}
-                          animationBegin={idx * 100}
-                          animationDuration={800}
-                          animationEasing="ease-out"
-                        >
-                          {strokeData.map((entry, i) => (
-                            <Cell key={i} fill={getShotColor(entry.name)} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+                <GameStrokeChart strokeData={strokeData} />
               )}
 
               {/* SHOT FEED */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleGameExpanded(idx)}
+                  className="flex items-center gap-2 w-full hover:bg-gray-50 dark:hover:bg-zinc-800/40 p-2 rounded-lg transition-colors"
+                >
                   <h4 className="text-sm font-semibold">
                     Shot Feed (This Game)
                   </h4>
                   <Badge variant="secondary" className="text-xs">
                     {gameShots.length} winning shots
                   </Badge>
-                </div>
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4 ml-auto text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-auto text-gray-500" />
+                  )}
+                </button>
 
-                <ul className="divide-y divide-gray-200 dark:divide-zinc-800 rounded-lg bg-white dark:bg-zinc-900/50 overflow-hidden">
-                  {gameShots.length ? (
-                    gameShots.map((shot, i) => {
+                {isExpanded && (
+                  <ul className="divide-y divide-gray-200">
+                    {gameShots.length ? (
+                      gameShots.map((shot, i) => {
                       const playerName =
                         shot.player.fullName ||
                         shot.player.username ||
@@ -221,7 +222,7 @@ export function GameByGameBreakdown({
                       return (
                         <li
                           key={i}
-                          className="flex flex-col gap-1.5 text-xs sm:text-sm px-3 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg"
+                          className="flex flex-col gap-1.5 text-xs sm:text-sm py-2 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg"
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-gray-400 dark:text-zinc-600 font-mono text-xs">
@@ -244,7 +245,7 @@ export function GameByGameBreakdown({
                           {/* Advanced Commentary */}
                           {commentary && (
                             <div className="flex items-start gap-2 ml-8 text-xs">
-                              <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                              <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
                               <span 
                                 className="text-gray-600 dark:text-zinc-400 italic leading-relaxed"
                                 dangerouslySetInnerHTML={{ 
@@ -259,18 +260,52 @@ export function GameByGameBreakdown({
                         </li>
                       );
                     })
-                  ) : (
-                    <li className="px-3 py-3 text-sm text-gray-500 dark:text-zinc-500 italic">
-                      No shots recorded…
-                    </li>
-                  )}
-                </ul>
+                    ) : (
+                      <li className="px-3 py-3 text-sm text-gray-500 dark:text-zinc-500 italic">
+                        No shots recorded…
+                      </li>
+                    )}
+                  </ul>
+                )}
               </div>
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
+  );
+}
+
+function GameStrokeChart({ strokeData }: { strokeData: Array<{ name: string; value: number }> }) {
+  const { ref, isInView } = useInView({ threshold: 0.2 });
+
+  return (
+    <div className="space-y-2 p-2" ref={ref}>
+      <h4 className="text-sm font-semibold">
+        Shot Type Frequency
+      </h4>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={strokeData}>
+            <XAxis dataKey="name" style={{ fontSize: "11px" }} />
+            <YAxis width={25} />
+            <Tooltip />
+            <Bar
+              dataKey="value"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={isInView}
+              animationBegin={0}
+              animationDuration={800}
+              animationEasing="ease-out"
+            >
+              {strokeData.map((entry, i) => (
+                <Cell key={i} fill={getShotColor(entry.name)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 

@@ -180,3 +180,277 @@ export const renderCustomLabel = ({
     </text>
   );
 };
+
+// Achievement detection
+export interface Achievement {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export function detectAchievements(
+  games: any[],
+  finalScore: any,
+  winnerSide?: string
+): Achievement[] {
+  const achievements: Achievement[] = [];
+
+  if (!games || games.length === 0) return achievements;
+
+  const side1Sets = finalScore?.side1Sets || finalScore?.team1Matches || 0;
+  const side2Sets = finalScore?.side2Sets || finalScore?.team2Matches || 0;
+  const totalGames = games.length;
+
+  // Perfect Victory - Won all games
+  if (side1Sets === totalGames || side2Sets === totalGames) {
+    achievements.push({
+      id: "perfect-game",
+      icon: "🏆",
+      title: "Perfect Victory",
+      description: "Won the match without dropping a single game",
+    });
+  }
+
+  // Epic Comeback - Lost first 2 games but won match
+  if (games.length >= 3) {
+    const game1Winner =
+      games[0].side1Score > games[0].side2Score ? "side1" : "side2";
+    const game2Winner =
+      games[1].side1Score > games[1].side2Score ? "side1" : "side2";
+
+    const winner = side1Sets > side2Sets ? "side1" : "side2";
+
+    if (
+      game1Winner !== winner &&
+      game2Winner !== winner &&
+      ((winner === "side1" && side1Sets > side2Sets) ||
+        (winner === "side2" && side2Sets > side1Sets))
+    ) {
+      achievements.push({
+        id: "comeback",
+        icon: "🔥",
+        title: "Epic Comeback",
+        description: "Won the match after losing the first two games",
+      });
+    }
+  }
+
+  // Clean Sweep - Won all games by 5+ points
+  const allGamesWonBy5Plus = games.every((game: any) => {
+    const diff = Math.abs(game.side1Score - game.side2Score);
+    return diff >= 5;
+  });
+
+  if (
+    allGamesWonBy5Plus &&
+    games.length >= 3 &&
+    (side1Sets === totalGames || side2Sets === totalGames)
+  ) {
+    achievements.push({
+      id: "clean-sweep",
+      icon: "💪",
+      title: "Dominant Performance",
+      description: "Won every game by 5 or more points",
+    });
+  }
+
+  // Close Match - Every game decided by 3 or fewer points
+  const allGamesClose = games.every((game: any) => {
+    const diff = Math.abs(game.side1Score - game.side2Score);
+    return diff <= 3;
+  });
+
+  if (allGamesClose && games.length >= 3) {
+    achievements.push({
+      id: "close-match",
+      icon: "⚔️",
+      title: "Nail Biter",
+      description: "Every game was decided by 3 points or fewer",
+    });
+  }
+
+  return achievements;
+}
+
+// Insight generation
+export interface Insight {
+  type: "success" | "info" | "warning" | "highlight";
+  headline: string;
+  description: string;
+  metric?: { label: string; value: string | number };
+}
+
+export function generatePerformanceInsights(
+  shotTypes: Record<string, number>,
+  serveStats: Record<string, any>,
+  totalShots: number,
+  playerNames: string[]
+): Insight[] {
+  const insights: Insight[] = [];
+
+  // Dominant shot type
+  const sortedShots = Object.entries(shotTypes).sort((a, b) => b[1] - a[1]);
+  if (sortedShots.length > 0 && sortedShots[0][1] > totalShots * 0.2) {
+    const [shotType, count] = sortedShots[0];
+    const percentage = Math.round((count / totalShots) * 100);
+    const formatStrokeName = (stroke: string) =>
+      stroke
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+    insights.push({
+      type: "success",
+      headline: `${formatStrokeName(shotType)} Dominance`,
+      description: `This shot type accounted for ${percentage}% of all shots played, making it the most frequently used technique in the match.`,
+      metric: { label: "Usage Rate", value: `${percentage}%` },
+    });
+  }
+
+  // Serve performance
+  const serveStatsArray = Object.entries(serveStats);
+  if (serveStatsArray.length > 0) {
+    const bestServer = serveStatsArray.reduce((best, current) => {
+      const currentRate =
+        current[1].totalServes > 0
+          ? current[1].servePoints / current[1].totalServes
+          : 0;
+      const bestRate =
+        best[1].totalServes > 0 ? best[1].servePoints / best[1].totalServes : 0;
+      return currentRate > bestRate ? current : best;
+    });
+
+    if (bestServer[1].totalServes > 0) {
+      const winRate = Math.round(
+        (bestServer[1].servePoints / bestServer[1].totalServes) * 100
+      );
+      if (winRate >= 60) {
+        insights.push({
+          type: "highlight",
+          headline: "Strong Service Game",
+          description: `The server won ${winRate}% of service points, demonstrating excellent serve effectiveness and control.`,
+          metric: { label: "Serve Win Rate", value: `${winRate}%` },
+        });
+      }
+    }
+  }
+
+  // Shot variety
+  const uniqueShotTypes = Object.keys(shotTypes).length;
+  if (uniqueShotTypes >= 8) {
+    insights.push({
+      type: "info",
+      headline: "Diverse Shot Selection",
+      description: `The match featured ${uniqueShotTypes} different shot types, showcasing tactical variety and adaptability.`,
+    });
+  }
+
+  return insights;
+}
+
+// Performance commentary generation
+export function generatePerformanceCommentary(
+  shotTypes: Record<string, number>,
+  serveStats: Record<string, any>,
+  games: any[],
+  totalShots: number
+): string[] {
+  const commentary: string[] = [];
+  const formatStrokeName = (stroke: string) =>
+    stroke
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+  // Shot analysis
+  const sortedShots = Object.entries(shotTypes).sort((a, b) => b[1] - a[1]);
+  if (sortedShots.length > 0) {
+    const top3 = sortedShots.slice(0, 3);
+    const shotDescriptions = top3
+      .map(
+        ([type, count]) =>
+          `${formatStrokeName(type)} (${Math.round((count / totalShots) * 100)}%)`
+      )
+      .join(", ");
+
+    commentary.push(
+      `The match featured a total of ${totalShots} shots across ${games.length} games. The most frequently used shots were ${shotDescriptions}, indicating the primary tactical approaches employed during the match.`
+    );
+  }
+
+  // Serve analysis
+  const serveStatsArray = Object.entries(serveStats);
+  if (serveStatsArray.length > 0) {
+    const avgServeWinRate =
+      serveStatsArray.reduce((sum, [_, stats]) => {
+        return (
+          sum +
+          (stats.totalServes > 0 ? stats.servePoints / stats.totalServes : 0)
+        );
+      }, 0) / serveStatsArray.length;
+
+    const serveWinPct = Math.round(avgServeWinRate * 100);
+
+    if (serveWinPct >= 65) {
+      commentary.push(
+        `Serve performance was exceptional with an average ${serveWinPct}% win rate on service points. This strong serving gave players a significant advantage in controlling rally tempo and dictating play.`
+      );
+    } else if (serveWinPct >= 50) {
+      commentary.push(
+        `Service points were won at a ${serveWinPct}% rate, showing balanced serve and receive capabilities from both sides.`
+      );
+    } else {
+      commentary.push(
+        `With a ${serveWinPct}% serve win rate, receivers had the advantage in this match, indicating strong return game and defensive skills.`
+      );
+    }
+  }
+
+  // Game progression analysis
+  if (games.length > 2) {
+    const closeGames = games.filter(
+      (g: any) => Math.abs(g.side1Score - g.side2Score) <= 2
+    ).length;
+
+    if (closeGames >= games.length * 0.6) {
+      commentary.push(
+        `The match was highly competitive with ${closeGames} out of ${games.length} games decided by 2 points or fewer, showcasing evenly matched opponents and intense rallies throughout.`
+      );
+    }
+  }
+
+  return commentary;
+}
+
+// Calculate longest rally
+export function calculateLongestRally(games: any[]): number {
+  let maxRally = 0;
+
+  games.forEach((game) => {
+    if (game.shots && Array.isArray(game.shots)) {
+      // Group shots by rally
+      const rallies: any[][] = [];
+      let currentRally: any[] = [];
+
+      game.shots.forEach((shot: any) => {
+        currentRally.push(shot);
+        // A rally ends when a point is won (you can adjust this logic based on your data structure)
+        // For now, we'll count continuous shots
+      });
+
+      if (currentRally.length > 0) {
+        rallies.push(currentRally);
+      }
+
+      // Find max rally length in this game
+      rallies.forEach((rally) => {
+        if (rally.length > maxRally) {
+          maxRally = rally.length;
+        }
+      });
+    }
+  });
+
+  return maxRally;
+}

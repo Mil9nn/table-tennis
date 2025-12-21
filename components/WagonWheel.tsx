@@ -131,9 +131,9 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
             y="0"
             width="548"
             height="305"
-            fill="#000"
-            stroke="#fff"
-            strokeWidth={5}
+            fill="#E5E7EB"
+            stroke="#D1D5DB"
+            strokeWidth={3}
             rx="8"
           />
 
@@ -143,10 +143,10 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
             y="101.67"
             width="182.67"
             height="101.67"
-            fill="url(#tableGradient)"
-            stroke="#1E3A8A"
-            strokeWidth="2"
-            opacity="0.95"
+            fill="#1a4d8f"
+            stroke="#ffffff"
+            strokeWidth="3"
+            opacity="1"
           />
 
           {/* Table texture overlay */}
@@ -177,26 +177,26 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
             y1="101.67"
             x2="274"
             y2="203.34"
-            stroke="#fff"
+            stroke="#000000"
             strokeWidth="4"
-            opacity="0.7"
+            opacity="1"
           />
 
           {/* Net posts */}
           <circle
             cx="274"
             cy="76.25"
-            r="6"
-            fill="#1F2937"
-            stroke="#374151"
+            r="5"
+            fill="#374151"
+            stroke="#4B5563"
             strokeWidth="1"
           />
           <circle
             cx="274"
             cy="228.75"
-            r="6"
-            fill="#1F2937"
-            stroke="#374151"
+            r="5"
+            fill="#374151"
+            stroke="#4B5563"
             strokeWidth="1"
           />
 
@@ -212,7 +212,7 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
           />
 
           {/* Reference grid (subtle visual guides) */}
-          <g opacity="0.1">
+          <g opacity="0.15">
             {/* Vertical lines */}
             {[0, 137, 274, 411, 548].map((x) => (
               <line
@@ -221,7 +221,7 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                 y1="0"
                 x2={x}
                 y2="305"
-                stroke="#6B7280"
+                stroke="#9CA3AF"
                 strokeWidth="0.5"
               />
             ))}
@@ -233,7 +233,7 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                 y1={y}
                 x2="548"
                 y2={y}
-                stroke="#6B7280"
+                stroke="#9CA3AF"
                 strokeWidth="0.5"
               />
             ))}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X, LogIn, LogOut } from "lucide-react";
+import { X, LogIn, LogOut, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import HouseIcon from "@mui/icons-material/House";
 import JoinRightIcon from "@mui/icons-material/JoinRight";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -24,6 +25,8 @@ export default function Navbar() {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const quickActionsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -44,23 +47,81 @@ export default function Navbar() {
 
   const fallbackInitial = user?.fullName?.charAt(0).toUpperCase() || "?";
 
+  // Handle click outside and escape key for quick actions panel
+  useEffect(() => {
+    if (!quickActionsOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        quickActionsRef.current &&
+        !quickActionsRef.current.contains(event.target as Node)
+      ) {
+        setQuickActionsOpen(false);
+      }
+    }
+
+    function handleEscapeKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setQuickActionsOpen(false);
+      }
+    }
+
+    setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscapeKey);
+    }, 0);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [quickActionsOpen]);
+
+  // Auto-close quick actions panel on route change
+  useEffect(() => {
+    setQuickActionsOpen(false);
+  }, [pathname]);
+
   return (
     <header className="w-full fixed top-0 left-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-        {/* Left: Brand */}
-        <Link href="/" className="items-center hidden sm:flex">
-          <Image
-            src="/imgs/logo.png"
-            alt="logo"
-            width={48}
-            height={48}
-            className="w-12 h-12"
-            priority
-          />
-          <span className="font-semibold text-gray-800 text-lg italic">
-            TTPro
-          </span>
-        </Link>
+        {/* Left: Brand & Quick Actions */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="items-center hidden sm:flex">
+            <Image
+              src="/imgs/logo.png"
+              alt="logo"
+              width={48}
+              height={48}
+              className="w-12 h-12"
+              priority
+            />
+            <span className="font-semibold text-gray-800 text-lg italic">
+              TTPro
+            </span>
+          </Link>
+
+          {/* Quick Actions Toggle (Desktop Only) */}
+          <button
+            onClick={() => setQuickActionsOpen(!quickActionsOpen)}
+            className={cn(
+              "hidden sm:flex size-9 rounded-full items-center justify-center transition-all duration-200",
+              quickActionsOpen
+                ? "bg-indigo-600 text-white shadow-md"
+                : "bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+            )}
+            aria-label="Quick Actions"
+            aria-expanded={quickActionsOpen}
+            aria-controls="quick-actions-panel"
+          >
+            <Plus
+              className={cn(
+                "size-5 transition-transform duration-200",
+                quickActionsOpen && "rotate-45"
+              )}
+            />
+          </button>
+        </div>
 
         <div className="flex items-center max-sm:justify-between max-sm:w-full gap-6">
           {/* Desktop Nav */}
@@ -165,6 +226,69 @@ export default function Navbar() {
         </div>
       </nav>
 
+      {/* Quick Actions Panel (Desktop Only) */}
+      {quickActionsOpen && (
+        <div
+          ref={quickActionsRef}
+          id="quick-actions-panel"
+          role="region"
+          aria-label="Quick Actions Menu"
+          className="hidden sm:block absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-40 animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex gap-3 justify-start max-w-md">
+              {/* Create Match */}
+              <Link
+                href="/match/create"
+                onClick={() => setQuickActionsOpen(false)}
+                className="
+                  flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+                  font-medium text-sm transition-all
+                  bg-black text-white
+                  hover:bg-black/90 active:scale-95
+                  shadow-sm hover:shadow-md
+                "
+              >
+                <JoinRightIcon sx={{ fontSize: 20 }} />
+                <span>Create Match</span>
+              </Link>
+
+              {/* Create Team */}
+              <Link
+                href="/teams/create"
+                onClick={() => setQuickActionsOpen(false)}
+                className="
+                  flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+                  font-medium text-sm transition-all
+                  bg-indigo-600 text-white
+                  hover:bg-indigo-700 active:scale-95
+                  shadow-sm hover:shadow-md
+                "
+              >
+                <GroupWorkIcon sx={{ fontSize: 20 }} />
+                <span>Create Team</span>
+              </Link>
+
+              {/* Create Tournament */}
+              <Link
+                href="/tournaments/create"
+                onClick={() => setQuickActionsOpen(false)}
+                className="
+                  flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+                  font-medium text-sm transition-all
+                  bg-gray-200 text-gray-900
+                  hover:bg-gray-300 active:scale-95
+                  shadow-sm hover:shadow-md
+                "
+              >
+                <EmojiEventsIcon sx={{ fontSize: 20 }} />
+                <span>Create Tournament</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Sidebar */}
       <div
         className={`fixed top-0 left-0 h-screen w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out sm:hidden z-40 ${
@@ -192,9 +316,9 @@ export default function Navbar() {
             href="/match/create"
             onClick={() => setOpen(false)}
             className="
-            flex items-center justify-center gap-2 w-full py-4 
+            flex items-center justify-center gap-2 w-full py-4
             font-medium text-sm transition-all
-            bg-black text-white 
+            bg-black text-white
             hover:bg-black/80 active:bg-black/90
             "
           >
@@ -202,14 +326,29 @@ export default function Navbar() {
             Create a Match
           </Link>
 
+          {/* Create Team */}
+          <Link
+            href="/teams/create"
+            onClick={() => setOpen(false)}
+            className="
+              flex items-center justify-center gap-2 w-full py-4
+              font-medium text-sm transition-all
+              bg-indigo-600 text-white
+              hover:bg-indigo-700 active:bg-indigo-800
+            "
+          >
+            <GroupWorkIcon sx={{ fontSize: 20 }} />
+            Create a Team
+          </Link>
+
           {/* Create Tournament */}
           <Link
             href="/tournaments/create"
             onClick={() => setOpen(false)}
             className="
-              flex items-center justify-center gap-2 w-full py-4 
+              flex items-center justify-center gap-2 w-full py-4
               font-medium text-sm transition-all
-              bg-gray-200 text-gray-900 
+              bg-gray-200 text-gray-900
               hover:bg-gray-300 active:bg-gray-400
             "
           >

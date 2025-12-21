@@ -137,7 +137,7 @@ export type TeamMatchFormValues = z.infer<typeof teamMatchCreateSchema>;
 // ============================================
 
 export const teamMatchFormats = [
-  { value: "five_singles", label: "Swaythling Format (5 Singles)" },
-  { value: "single_double_single", label: "Single-Double-Single (3 Matches)" },
-  { value: "custom", label: "Custom Format" },
+  { value: "five_singles", label: "5 singles" },
+  { value: "single_double_single", label: "S-D-S" },
+  { value: "custom", label: "Custom" },
 ] as const;

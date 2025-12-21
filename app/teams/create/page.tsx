@@ -127,48 +127,53 @@ export default function CreateTeamPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#6C6FD5] p-6">
-      {/* HEADER */}
-      <header className="flex items-center gap-3 mb-8">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-full hover:bg-blue-500 bg-gray-100 transition"
-        >
-          <ChevronLeft className="w-5 h-5 text-[#808996]" />
-        </button>
-
-        <div className="flex flex-col items-center mx-auto gap-2">
-          <h1 className="sm:text-5xl text-3xl font-semibold text-white tracking-tight">
-            Create New Team
-          </h1>
-          <p className="text-white/89">
-            Build your dream team and start competing today
-          </p>
+    <div className="min-h-screen bg-white">
+      {/* HEADER: Precise & Architectural */}
+      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
+                Team Creation
+              </h1>
+              <p></p>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <main className="mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto border border-slate-100 rounded-lg p-1 sm:p-2 bg-slate-50/30">
+          <div className="bg-white rounded-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* IMAGE UPLOAD */}
-            <div>
-              <FormLabel className="text-sm font-medium text-[#1a202c]">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
+            {/* ═══════════════════════════════════════════
+                SECTION 1: TEAM LOGO
+            ═══════════════════════════════════════════ */}
+            <div className="p-4 space-y-3 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
                 Team Logo
-              </FormLabel>
+              </h2>
 
               {!imagePreview ? (
                 <div
                   {...getRootProps()}
-                  className="mt-2 flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-xl p-6 cursor-pointer bg-[#f7fafc] hover:bg-gray-50 transition"
+                  className="flex flex-col items-center justify-center border border-dashed border-slate-200 rounded p-6 cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
                 >
                   <input {...getInputProps()} />
-                  <Upload className="w-8 h-8 text-[#667eea] mb-2" />
-                  <p className="text-[#808996] text-sm">
+                  <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                  <p className="text-slate-600 text-sm">
                     {isDragActive
                       ? "Drop the image here"
                       : "Drag & drop or click to upload"}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-400">
                     PNG, JPG, GIF (max 5MB)
                   </p>
                 </div>
@@ -179,12 +184,12 @@ export default function CreateTeamPage() {
                     alt="Preview"
                     width={160}
                     height={160}
-                    className="rounded-xl border border-gray-200 shadow-sm"
+                    className="rounded border border-slate-200 shadow-sm"
                   />
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -192,144 +197,155 @@ export default function CreateTeamPage() {
               )}
             </div>
 
-            {/* TEAM NAME */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-[#1a202c]">
-                    Team Name
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter team name"
-                      {...field}
-                      className="bg-[#f7f7fc] border border-gray-200 text-[#1a202c] placeholder:text-[#808996]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* ═══════════════════════════════════════════
+                SECTION 2: BASIC INFORMATION
+            ═══════════════════════════════════════════ */}
+            <div className="p-4 space-y-3 border-b border-gray-100">
+              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+                Basic Information
+              </h2>
 
-            {/* CITY */}
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-[#1a202c]">
-                    City
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter city"
-                      {...field}
-                      className="bg-[#f7f7fc] border border-gray-200 text-[#1a202c] placeholder:text-[#808996]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* TEAM NAME */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      Team Name
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter team name"
+                        {...field}
+                        className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            {/* PLAYERS */}
-            <FormField
-              control={form.control}
-              name="players"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-[#1a202c]">
-                    Players
-                  </FormLabel>
+              {/* CITY */}
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      City
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter city"
+                        {...field}
+                        className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-                  <UserSearchInput
-                    placeholder="Search player..."
-                    clearAfterSelect
-                    onSelect={(u) => {
-                      addPlayer(u);
-                      field.onChange(players.map((p) => p._id));
-                    }}
-                  />
+            {/* ═══════════════════════════════════════════
+                SECTION 3: PLAYERS
+            ═══════════════════════════════════════════ */}
+            <div className="p-4 space-y-4">
+              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+                Players
+              </h2>
 
-                  {/* PLAYER LIST */}
-                  <div className="mt-4 space-y-3">
-                    {players.length > 0 ? (
-                      players.map((p) => (
-                        <div
-                          key={p._id}
-                          className="flex items-center justify-between bg-[#f7fafc] p-3 rounded-xl border border-gray-200"
-                        >
-                          <div className="flex items-center gap-3">
-                            {p.profileImage ? (
-                              <Image
-                                src={p.profileImage}
-                                alt={p.fullName || p.username}
-                                width={36}
-                                height={36}
-                                className="rounded-full"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 bg-[#667eea] text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                {(
-                                  p.fullName?.[0] ||
-                                  p.username?.[0] ||
-                                  "?"
-                                ).toUpperCase()}
-                              </div>
-                            )}
-                            <span className="text-[#1a202c] font-medium">
-                              {p.fullName || p.username}
-                            </span>
-                          </div>
+              <FormField
+                control={form.control}
+                name="players"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <UserSearchInput
+                        placeholder="Search and add players..."
+                        clearAfterSelect
+                        onSelect={(u) => {
+                          addPlayer(u);
+                          field.onChange(players.map((p) => p._id));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                          <button
-                            type="button"
-                            onClick={() => removePlayer(p._id)}
-                            className="text-sm text-red-500 hover:text-red-600"
-                          >
-                            Remove
-                          </button>
+              {/* PLAYER LIST */}
+              {players.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {players.map((p, idx) => (
+                    <div
+                      key={p._id}
+                      className="flex items-center justify-between p-3 border border-slate-200 rounded bg-white hover:bg-slate-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                          {idx + 1}
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-[#808996] text-sm">
-                        No players added yet.
-                      </p>
-                    )}
-
-                    <div className="flex items-start gap-2 text-xs text-[#808996]">
-                      <Info className="w-4 h-4 text-[#667eea] mt-0.5" />
-                      <p>
-                        You will be automatically assigned as the team captain.
-                      </p>
+                        <div>
+                          <p className="font-medium text-sm text-slate-900">
+                            {p.fullName || p.username}
+                          </p>
+                          <p className="text-xs text-slate-500">@{p.username}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removePlayer(p._id)}
+                        className="text-slate-400 hover:text-red-600 transition p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-
-                  <FormMessage />
-                </FormItem>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400 border border-slate-200 rounded border-dashed">
+                  <p className="text-sm">No players added yet</p>
+                  <p className="text-xs mt-1">Search and add at least 2</p>
+                </div>
               )}
-            />
+
+              <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-200">
+                <Info className="w-4 h-4 text-slate-600 mt-0.5" />
+                <p>
+                  You will be automatically assigned as the team captain.
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-500 text-center">
+                {players.length} / 2 minimum players
+              </p>
+            </div>
 
             {/* SUBMIT BUTTON */}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              className="w-full py-3 rounded-xl bg-[#667eea] hover:bg-[#5a6fe0] text-white text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Team...
-                </>
-              ) : (
-                "Create Team"
-              )}
-            </Button>
+            <div className="p-4 pt-6">
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full py-6 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Team...
+                  </>
+                ) : (
+                  "Create Team"
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,13 +1,27 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { Loader2, BarChart3, Target, Map, Sparkles } from "lucide-react";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
-import { MatchHeader } from "@/components/match-stats/MatchHeader";
-import { MatchScoreSummary } from "@/components/match-stats/MatchScoreSummary";
+
+// New Components
+import {
+  MatchSummary,
+} from "@/components/match-stats/MatchSummary";
+import {
+  SectionNavigation,
+  Section,
+} from "@/components/match-stats/SectionNavigation";
+import { StatsSectionContainer } from "@/components/match-stats/StatsSectionContainer";
+import { InsightCard } from "@/components/match-stats/InsightCard";
+import { AchievementBadges } from "@/components/match-stats/AchievementBadges";
+import { MatchTimeline } from "@/components/match-stats/MatchTimeline";
+import { PerformanceCommentary } from "@/components/match-stats/PerformanceCommentary";
+
+// Existing Components
 import { ServeReceiveChart } from "@/components/match-stats/ServeReceiveChart";
 import { ServeTypeChart } from "@/components/match-stats/ServeTypeChart";
 import { ShotTypeChart } from "@/components/match-stats/ShotTypeChart";
@@ -15,20 +29,90 @@ import { GameProgressionChart } from "@/components/match-stats/GameProgressionCh
 import { GameByGameBreakdown } from "@/components/match-stats/GameByGameBreakdown";
 import { PlayerShotAnalysis } from "@/components/match-stats/PlayerShotAnalysis";
 import { WagonWheelSection } from "@/components/match-stats/WagonWheelSection";
-import { MatchWeaknessesSection } from "@/components/weaknesses-analysis/MatchWeaknessesSection";
+
+// Lazy loaded heavy components
+const MatchWeaknessesSection = dynamic(
+  () =>
+    import("@/components/weaknesses-analysis/MatchWeaknessesSection").then(
+      (mod) => ({ default: mod.MatchWeaknessesSection })
+    ),
+  {
+    loading: () => (
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="animate-spin h-6 w-6" />
+      </div>
+    ),
+  }
+);
+
 import {
   computeStats,
   computePlayerStats,
   computeServeStats,
   computeServeTypeStats,
+  detectAchievements,
+  generatePerformanceInsights,
+  generatePerformanceCommentary,
+  calculateLongestRally,
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Share } from "@mui/icons-material";
+import { toast } from "sonner";
+
+const SECTIONS: Section[] = [
+  { id: "overview", label: "Overview", icon: <Sparkles className="h-4 w-4" /> },
+  {
+    id: "performance",
+    label: "Performance",
+    icon: <BarChart3 className="h-4 w-4" />,
+  },
+  {
+    id: "details",
+    label: "Game Details",
+    icon: <Target className="h-4 w-4" />,
+  },
+  { id: "maps", label: "Shot Maps", icon: <Map className="h-4 w-4" /> },
+];
 
 export default function MatchStatsPage() {
   const params = useParams();
+  const router = useRouter();
   const matchId = params.id as string;
   const { match, fetchingMatch, fetchMatch } = useMatchStore();
 
+  // Section tracking
+  const [activeSection, setActiveSection] = useState("overview");
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Intersection Observer for active section tracking
+  useEffect(() => {
+    const observerOptions = {
+      rootMargin: "-110px 0px -66%", // Account for sticky headers height
+      threshold: 0,
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      observerCallback,
+      observerOptions
+    );
+
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [match]);
+
+  // Fetch match data
   useEffect(() => {
     if (!matchId) return;
     const searchParams = new URLSearchParams(window.location.search);
@@ -37,22 +121,25 @@ export default function MatchStatsPage() {
     fetchMatch(matchId, category);
   }, [matchId, fetchMatch]);
 
-  if (fetchingMatch) {
-    return (
-      <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
-        <Loader2 className="animate-spin size-4" />
-        <span className="text-sm">Loading stats...</span>
-      </div>
-    );
-  }
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const element = sectionRefs.current[sectionId];
+    if (element) {
+      const offset = 110; // Account for sticky headers (top actions ~49px + navigation ~61px)
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
 
-  if (!match) {
-    return (
-      <div className="container mx-auto py-8 text-center">Match not found</div>
-    );
-  }
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
 
-  if (isIndividualMatch(match)) {
+  // Process Individual Match Data (moved before conditional returns)
+  const individualMatchData = useMemo(() => {
+    if (!match || !isIndividualMatch(match)) return null;
+
     const isSingles = match.matchType === "singles";
     const isDoubles =
       match.matchType === "doubles" || match.matchType === "mixed_doubles";
@@ -66,7 +153,9 @@ export default function MatchStatsPage() {
       : "Player 1";
 
     const side2Name = isSingles
-      ? match.participants?.[1]?.fullName || "Player 2"
+      ? match.participants?.[1]?.fullName ||
+        match.participants?.[1]?.username ||
+        "Player 2"
       : isDoubles
       ? "Side 2"
       : "Player 2";
@@ -78,6 +167,7 @@ export default function MatchStatsPage() {
     const { shotTypes } = computeStats(shots);
     const playerStats = computePlayerStats(shots);
     const serveStats = computeServeStats(allGames, match.matchCategory);
+    const serveTypeStats = computeServeTypeStats(allGames);
 
     const serveData = Object.entries(serveStats).map(([playerId, s]) => {
       const player = allParticipants.find((p) => p._id.toString() === playerId);
@@ -88,20 +178,23 @@ export default function MatchStatsPage() {
       };
     });
 
-    const serveTypeStats = computeServeTypeStats(allGames);
-    const serveTypeData = Object.entries(serveTypeStats).map(([playerId, s]) => {
-      const player = allParticipants.find((p) => p._id.toString() === playerId);
-      const playerName = player?.fullName || player?.username || "Unknown";
-      return {
-        player: playerName,
-        type: "Serve" as const,
-        side_spin: s.serve.side_spin || 0,
-        top_spin: s.serve.top_spin || 0,
-        back_spin: s.serve.back_spin || 0,
-        mix_spin: s.serve.mix_spin || 0,
-        no_spin: s.serve.no_spin || 0,
-      };
-    });
+    const serveTypeData = Object.entries(serveTypeStats).map(
+      ([playerId, s]) => {
+        const player = allParticipants.find(
+          (p) => p._id.toString() === playerId
+        );
+        const playerName = player?.fullName || player?.username || "Unknown";
+        return {
+          player: playerName,
+          type: "Serve" as const,
+          side_spin: s.serve.side_spin || 0,
+          top_spin: s.serve.top_spin || 0,
+          back_spin: s.serve.back_spin || 0,
+          mix_spin: s.serve.mix_spin || 0,
+          no_spin: s.serve.no_spin || 0,
+        };
+      }
+    );
 
     const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
       name: formatStrokeName(type),
@@ -109,10 +202,10 @@ export default function MatchStatsPage() {
     }));
 
     const playerPieData = Object.entries(playerStats).map(
-      ([playerId, stats]) => ({
+      ([playerId, pStats]) => ({
         playerId,
-        playerName: stats.name,
-        data: Object.entries(stats.strokes).map(([stroke, count]) => ({
+        playerName: pStats.name,
+        data: Object.entries(pStats.strokes).map(([stroke, count]) => ({
           name: formatStrokeName(stroke),
           value: count,
         })),
@@ -125,119 +218,57 @@ export default function MatchStatsPage() {
       [side2Name]: game.side2Score,
     }));
 
-    return (
-      <div>
-        <MatchHeader
-          matchId={matchId}
-          matchCategory={match.matchCategory}
-          side1Name={side1Name}
-          side2Name={side2Name}
-        />
-
-        <Tabs defaultValue="overall" className="w-full">
-          <TabsList className="w-full h-auto flex flex-wrap rounded-none px-4 p-0 bg-muted gap-2">
-            <TabsTrigger
-              value="overall"
-              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Match Summary
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="games"
-              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Game Breakdown
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="players"
-              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Per-player Stats
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="wagon-wheel"
-              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Shot Maps
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="weaknesses"
-              className="rounded-none font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Weaknesses
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overall" className="space-y-6 mt-6">
-            <div className="grid md:grid-cols-3 gap-6 p-6">
-              <MatchScoreSummary
-                side1Name={side1Name}
-                side2Name={side2Name}
-                side1Sets={match.finalScore.side1Sets}
-                side2Sets={match.finalScore.side2Sets}
-                totalPoints={shots.length}
-                totalGames={allGames.length}
-              />
-              <ServeReceiveChart data={serveData} />
-              <ServeTypeChart data={serveTypeData} />
-              <ShotTypeChart data={strokeData} />
-              {allGames.length > 1 && (
-                <GameProgressionChart
-                  data={gameProgressionData}
-                  side1Name={side1Name}
-                  side2Name={side2Name}
-                />
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="games" className="space-y-4 mt-6">
-            <GameByGameBreakdown
-              games={allGames}
-              side1Name={side1Name}
-              side2Name={side2Name}
-              participants={allParticipants}
-              finalScore={match.finalScore}
-            />
-          </TabsContent>
-
-          <TabsContent value="players" className="space-y-6 mt-6">
-            <PlayerShotAnalysis playerPieData={playerPieData} />
-          </TabsContent>
-
-          <TabsContent value="wagon-wheel" className="space-y-6 mt-6">
-            <WagonWheelSection
-              participants={allParticipants}
-              allShots={shots}
-              games={allGames}
-              hideByGame={allGames.length <= 1}
-            />
-          </TabsContent>
-
-          <TabsContent value="weaknesses" className="space-y-6 mt-6 p-6">
-            <MatchWeaknessesSection
-              matchId={matchId}
-              category="individual"
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+    const achievements = detectAchievements(
+      allGames,
+      match.finalScore,
+      match.winnerSide || undefined
     );
-  }
+    const insights = generatePerformanceInsights(
+      shotTypes,
+      serveStats,
+      shots.length,
+      [side1Name, side2Name]
+    );
+    const commentary = generatePerformanceCommentary(
+      shotTypes,
+      serveStats,
+      allGames,
+      shots.length
+    );
+    const longestRally = calculateLongestRally(allGames);
 
-  if (isTeamMatch(match)) {
+    return {
+      side1Name,
+      side2Name,
+      allGames,
+      shots,
+      allParticipants,
+      stats: {
+        shotTypes,
+        serveData,
+        serveTypeData,
+        strokeData,
+        playerPieData,
+        gameProgressionData,
+        achievements,
+        insights,
+        commentary,
+        longestRally,
+      },
+    };
+  }, [match]);
+
+  // Process Team Match Data (moved before conditional returns)
+  const teamMatchData = useMemo(() => {
+    if (!match || !isTeamMatch(match)) return null;
+
     const team1Name = match.team1?.name || "Team 1";
     const team2Name = match.team2?.name || "Team 2";
 
-    // Aggregate all games from all subMatches
-    const allSubMatchGames = match.subMatches?.flatMap((sm) => sm.games || []) || [];
+    const allSubMatchGames =
+      match.subMatches?.flatMap((sm) => sm.games || []) || [];
     const allShots = allSubMatchGames.flatMap((g) => g.shots || []);
 
-    // Get all participants from both teams
     const team1Players = match.team1?.players?.map((p) => p.user) || [];
     const team2Players = match.team2?.players?.map((p) => p.user) || [];
     const allParticipants = [...team1Players, ...team2Players];
@@ -245,9 +276,12 @@ export default function MatchStatsPage() {
     const { shotTypes } = computeStats(allShots);
     const playerStats = computePlayerStats(allShots);
     const serveStats = computeServeStats(allSubMatchGames, match.matchCategory);
+    const serveTypeStats = computeServeTypeStats(allSubMatchGames);
 
     const serveData = Object.entries(serveStats).map(([playerId, s]) => {
-      const player = allParticipants.find((p) => p._id?.toString() === playerId);
+      const player = allParticipants.find(
+        (p) => p._id?.toString() === playerId
+      );
       return {
         player: player?.fullName || player?.username || "Unknown",
         Serve: s.servePoints,
@@ -255,20 +289,23 @@ export default function MatchStatsPage() {
       };
     });
 
-    const serveTypeStats = computeServeTypeStats(allSubMatchGames);
-    const serveTypeData = Object.entries(serveTypeStats).map(([playerId, s]) => {
-      const player = allParticipants.find((p) => p._id?.toString() === playerId);
-      const playerName = player?.fullName || player?.username || "Unknown";
-      return {
-        player: playerName,
-        type: "Serve" as const,
-        side_spin: s.serve.side_spin || 0,
-        top_spin: s.serve.top_spin || 0,
-        back_spin: s.serve.back_spin || 0,
-        mix_spin: s.serve.mix_spin || 0,
-        no_spin: s.serve.no_spin || 0,
-      };
-    });
+    const serveTypeData = Object.entries(serveTypeStats).map(
+      ([playerId, s]) => {
+        const player = allParticipants.find(
+          (p) => p._id?.toString() === playerId
+        );
+        const playerName = player?.fullName || player?.username || "Unknown";
+        return {
+          player: playerName,
+          type: "Serve" as const,
+          side_spin: s.serve.side_spin || 0,
+          top_spin: s.serve.top_spin || 0,
+          back_spin: s.serve.back_spin || 0,
+          mix_spin: s.serve.mix_spin || 0,
+          no_spin: s.serve.no_spin || 0,
+        };
+      }
+    );
 
     const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
       name: formatStrokeName(type),
@@ -276,118 +313,448 @@ export default function MatchStatsPage() {
     }));
 
     const playerPieData = Object.entries(playerStats).map(
-      ([playerId, stats]) => ({
+      ([playerId, pStats]) => ({
         playerId,
-        playerName: stats.name,
-        data: Object.entries(stats.strokes).map(([stroke, count]) => ({
+        playerName: pStats.name,
+        data: Object.entries(pStats.strokes).map(([stroke, count]) => ({
           name: formatStrokeName(stroke),
           value: count,
         })),
       })
     );
 
-    // SubMatch progression (how many submatches each team won)
-    const subMatchProgressionData = match.subMatches?.map((sm, idx) => ({
-      game: `M${idx + 1}`,
-      [team1Name]: sm.finalScore?.team1Sets || 0,
-      [team2Name]: sm.finalScore?.team2Sets || 0,
-    })) || [];
+    const subMatchProgressionData =
+      match.subMatches?.map((sm, idx) => ({
+        game: `M${idx + 1}`,
+        [team1Name]: sm.finalScore?.team1Sets || 0,
+        [team2Name]: sm.finalScore?.team2Sets || 0,
+      })) || [];
+
+    const achievements = detectAchievements(
+      allSubMatchGames,
+      match.finalScore,
+      undefined
+    );
+    const insights = generatePerformanceInsights(
+      shotTypes,
+      serveStats,
+      allShots.length,
+      [team1Name, team2Name]
+    );
+    const commentary = generatePerformanceCommentary(
+      shotTypes,
+      serveStats,
+      allSubMatchGames,
+      allShots.length
+    );
+    const longestRally = calculateLongestRally(allSubMatchGames);
+
+    return {
+      team1Name,
+      team2Name,
+      allSubMatchGames,
+      allShots,
+      allParticipants,
+      stats: {
+        shotTypes,
+        serveData,
+        serveTypeData,
+        strokeData,
+        playerPieData,
+        subMatchProgressionData,
+        achievements,
+        insights,
+        commentary,
+        longestRally,
+      },
+    };
+  }, [match]);
+
+  // Loading state
+  if (fetchingMatch) {
+    return (
+      <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2">
+        <Loader2 className="animate-spin size-4" />
+        <span className="text-sm">Loading stats...</span>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (!match) {
+    return (
+      <div className="container mx-auto py-8 text-center">Match not found</div>
+    );
+  }
+
+  const handleShare = async () => {
+    const matchCategory = match.matchCategory;
+    const side1Name = individualMatchData?.side1Name || teamMatchData?.team1Name || 'Team 1';
+    const side2Name = individualMatchData?.side2Name || teamMatchData?.team2Name || 'Team 2';
+
+    const shareUrl = `${window.location.origin}/matches/${match._id}/stats?category=${matchCategory}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: `Match Stats - ${side1Name} vs ${side2Name}`,
+        url: shareUrl,
+      });
+      toast.success("Match shared!");
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard!");
+    }
+  };
+
+  // Render for Individual Match
+  if (individualMatchData) {
+    const { side1Name, side2Name, allGames, shots, allParticipants, stats } =
+      individualMatchData;
 
     return (
-      <div>
-        <MatchHeader
-          matchId={matchId}
-          matchCategory={match.matchCategory}
-          side1Name={team1Name}
-          side2Name={team2Name}
+      <div className="min-h-screen">
+        {/* Top Actions */}
+        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            size="sm"
+            className="text-black hover:bg-white/10 rounded-full gap-2 shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="inline">Back</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="bg-white border-white text-black hover:bg-white rounded-full gap-2"
+          >
+            <Share fontSize="small" className="" />
+            <span className="">Share</span>
+          </Button>
+        </div>
+
+        {/* Section Navigation */}
+        <SectionNavigation
+          sections={SECTIONS}
+          activeSection={activeSection}
+          onNavigate={scrollToSection}
         />
 
-        <Tabs defaultValue="overall" className="w-full">
-          <TabsList className="w-full flex flex-wrap gap-2 p-1">
-            <TabsTrigger
-              value="overall"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Match Summary
-            </TabsTrigger>
+        {/* Main Content */}
+        <main className="pb-20">
+          {/* Persistent Summary */}
+          <MatchSummary
+            match={match}
+            matchCategory={match.matchCategory}
+            side1Name={side1Name}
+            side2Name={side2Name}
+            side1Sets={'side1Sets' in match.finalScore ? match.finalScore.side1Sets : 0}
+            side2Sets={'side2Sets' in match.finalScore ? match.finalScore.side2Sets : 0}
+          />
+          {/* SECTION 1: MATCH OVERVIEW */}
+          <StatsSectionContainer
+            id="overview"
+            title="Match Overview"
+            description="Key insights and highlights from the match"
+            ref={(el) => {
+              sectionRefs.current.overview = el;
+            }}
+          >
+            {/* Achievement Badges */}
+            {stats.achievements.length > 0 && (
+              <AchievementBadges achievements={stats.achievements} />
+            )}
 
-            <TabsTrigger
-              value="submatches"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              SubMatch Breakdown
-            </TabsTrigger>
+            {/* Key Insights Grid */}
+            {stats.insights.length > 0 && (
+              <div className="grid md:grid-cols-2">
+                {stats.insights.map((insight, idx) => (
+                  <InsightCard
+                    key={idx}
+                    type={insight.type}
+                    icon={<BarChart3 className="h-5 w-5" />}
+                    headline={insight.headline}
+                    description={insight.description}
+                    metric={insight.metric}
+                    delay={idx * 0.1}
+                  />
+                ))}
+              </div>
+            )}
 
-            <TabsTrigger
-              value="players"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Per-player Stats
-            </TabsTrigger>
+            {/* Match Timeline */}
+            <MatchTimeline
+              games={allGames as any}
+              side1Name={side1Name}
+              side2Name={side2Name}
+              winnerSide={'winnerSide' in match ? match.winnerSide || undefined : undefined}
+            />
+          </StatsSectionContainer>
 
-            <TabsTrigger
-              value="wagon-wheel"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Shot Maps
-            </TabsTrigger>
+          {/* SECTION 2: PERFORMANCE BREAKDOWN */}
+          <StatsSectionContainer
+            id="performance"
+            title="Performance Analysis"
+            description="Detailed breakdown of shots, serves, and gameplay"
+            icon={<BarChart3 className="h-6 w-6" />}
+            ref={(el) => {
+              sectionRefs.current.performance = el;
+            }}
+          >
+            {/* Written Commentary */}
+            {stats.commentary.length > 0 && (
+              <PerformanceCommentary commentary={stats.commentary} />
+            )}
 
-            <TabsTrigger
-              value="weaknesses"
-              className="font-semibold sm:text-sm text-xs whitespace-nowrap px-2 py-1"
-            >
-              Weaknesses
-            </TabsTrigger>
-          </TabsList>
+            {/* Charts Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <ServeReceiveChart data={stats.serveData} />
+              <ServeTypeChart data={stats.serveTypeData} />
+              <ShotTypeChart data={stats.strokeData} />
+            </div>
 
-          <TabsContent value="overall" className="space-y-6 mt-6">
-            <div className="grid md:grid-cols-3 gap-6 p-6">
-              <MatchScoreSummary
+            {/* Game Progression */}
+            {allGames.length > 1 && (
+              <GameProgressionChart
+                data={stats.gameProgressionData}
+                side1Name={side1Name}
+                side2Name={side2Name}
+              />
+            )}
+          </StatsSectionContainer>
+
+          {/* SECTION 3: GAME DETAILS */}
+          <StatsSectionContainer
+            title=""
+            id="details"
+            ref={(el) => {
+              sectionRefs.current.details = el;
+            }}
+          >
+            <GameByGameBreakdown
+              games={allGames}
+              side1Name={side1Name}
+              side2Name={side2Name}
+              participants={allParticipants}
+              finalScore={'side1Sets' in match.finalScore ? match.finalScore : undefined}
+            />
+
+            {/* Per-Player Analysis */}
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold mb-4">
+                Player Shot Distribution
+              </h3>
+              <PlayerShotAnalysis playerPieData={stats.playerPieData} />
+            </div>
+          </StatsSectionContainer>
+
+          {/* SECTION 4: SHOT MAPS & WEAKNESSES */}
+          <StatsSectionContainer
+            id="maps"
+            title="Shot Maps & Weakness Analysis"
+            description="Visualize shot placement and identify areas for improvement"
+            icon={<Map className="h-6 w-6" />}
+            ref={(el) => {
+              sectionRefs.current.maps = el;
+            }}
+          >
+            {/* Wagon Wheels */}
+            <WagonWheelSection
+              participants={allParticipants}
+              allShots={shots}
+              games={allGames}
+              hideByGame={allGames.length <= 1}
+            />
+
+            {/* Weaknesses Section */}
+            <div className="mt-8">
+              <MatchWeaknessesSection matchId={matchId} category="individual" />
+            </div>
+          </StatsSectionContainer>
+        </main>
+      </div>
+    );
+  }
+
+  // Render for Team Match
+  if (teamMatchData) {
+    const {
+      team1Name,
+      team2Name,
+      allSubMatchGames,
+      allShots,
+      allParticipants,
+      stats,
+    } = teamMatchData;
+
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        {/* Top Actions */}
+        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            size="sm"
+            className="text-black hover:bg-white/10 rounded-full gap-2 shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="inline">Back</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="bg-white border-white text-black hover:bg-white rounded-full gap-2"
+          >
+            <Share fontSize="small" className="" />
+            <span className="">Share</span>
+          </Button>
+        </div>
+
+        {/* Section Navigation */}
+        <SectionNavigation
+          sections={SECTIONS}
+          activeSection={activeSection}
+          onNavigate={scrollToSection}
+        />
+
+        {/* Main Content */}
+        <main className="pb-20">
+          {/* Persistent Summary */}
+          <MatchSummary
+            match={match}
+            matchCategory={match.matchCategory}
+            side1Name={team1Name}
+            side2Name={team2Name}
+            side1Sets={'team1Matches' in match.finalScore ? match.finalScore.team1Matches : 0}
+            side2Sets={'team2Matches' in match.finalScore ? match.finalScore.team2Matches : 0}
+          />
+          {/* SECTION 1: MATCH OVERVIEW */}
+          <StatsSectionContainer
+            id="overview"
+            title="Match Overview"
+            description="Key insights and highlights from the match"
+            ref={(el) => {
+              sectionRefs.current.overview = el;
+            }}
+          >
+            {/* Achievement Badges */}
+            {stats.achievements.length > 0 && (
+              <AchievementBadges achievements={stats.achievements} />
+            )}
+
+            {/* Key Insights Grid */}
+            {stats.insights.length > 0 && (
+              <div className="grid md:grid-cols-2 gap-4">
+                {stats.insights.map((insight, idx) => (
+                  <InsightCard
+                    key={idx}
+                    type={insight.type}
+                    icon={<BarChart3 className="h-5 w-5" />}
+                    headline={insight.headline}
+                    description={insight.description}
+                    metric={insight.metric}
+                    delay={idx * 0.1}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Match Timeline */}
+            <MatchTimeline
+              games={allSubMatchGames as any}
+              side1Name={team1Name}
+              side2Name={team2Name}
+              winnerSide={undefined}
+            />
+          </StatsSectionContainer>
+
+          {/* SECTION 2: PERFORMANCE BREAKDOWN */}
+          <StatsSectionContainer
+            id="performance"
+            title="Performance Analysis"
+            description="Detailed breakdown of shots, serves, and gameplay"
+            icon={<BarChart3 className="h-6 w-6" />}
+            ref={(el) => {
+              sectionRefs.current.performance = el;
+            }}
+          >
+            {/* Written Commentary */}
+            {stats.commentary.length > 0 && (
+              <PerformanceCommentary commentary={stats.commentary} />
+            )}
+
+            {/* Charts Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <ServeReceiveChart data={stats.serveData} />
+              <ServeTypeChart data={stats.serveTypeData} />
+              <ShotTypeChart data={stats.strokeData} />
+            </div>
+
+            {/* SubMatch Progression */}
+            {isTeamMatch(match) && (match.subMatches?.length || 0) > 1 && (
+              <GameProgressionChart
+                data={stats.subMatchProgressionData}
                 side1Name={team1Name}
                 side2Name={team2Name}
-                side1Sets={match.finalScore.team1Matches}
-                side2Sets={match.finalScore.team2Matches}
-                totalPoints={allShots.length}
-                totalGames={allSubMatchGames.length}
               />
-              <ServeReceiveChart data={serveData} />
-              <ServeTypeChart data={serveTypeData} />
-              <ShotTypeChart data={strokeData} />
-              {(match.subMatches?.length || 0) > 1 && (
-                <GameProgressionChart
-                  data={subMatchProgressionData}
-                  side1Name={team1Name}
-                  side2Name={team2Name}
-                />
-              )}
-            </div>
-          </TabsContent>
+            )}
+          </StatsSectionContainer>
 
-          <TabsContent value="submatches" className="space-y-4 mt-6">
-            {match.subMatches?.map((subMatch, smIdx) => {
+          {/* SECTION 3: GAME DETAILS */}
+          <StatsSectionContainer
+            id="details"
+            title="SubMatch Breakdown"
+            description="Detailed analysis of each submatch"
+            icon={<Target className="h-6 w-6" />}
+            ref={(el) => {
+              sectionRefs.current.details = el;
+            }}
+          >
+            {isTeamMatch(match) && match.subMatches?.map((subMatch, smIdx) => {
               const smGames = subMatch.games || [];
               const player1 = Array.isArray(subMatch.playerTeam1)
-                ? subMatch.playerTeam1.map((p: any) => p?.fullName || p?.username).join(" & ")
+                ? subMatch.playerTeam1
+                    .map((p: any) => p?.fullName || p?.username)
+                    .join(" & ")
                 : (subMatch.playerTeam1 as any)?.fullName ||
                   (subMatch.playerTeam1 as any)?.username ||
                   "TBD";
               const player2 = Array.isArray(subMatch.playerTeam2)
-                ? subMatch.playerTeam2.map((p: any) => p?.fullName || p?.username).join(" & ")
+                ? subMatch.playerTeam2
+                    .map((p: any) => p?.fullName || p?.username)
+                    .join(" & ")
                 : (subMatch.playerTeam2 as any)?.fullName ||
                   (subMatch.playerTeam2 as any)?.username ||
                   "TBD";
 
               return (
-                <div key={smIdx} className="border rounded-lg p-4 space-y-4">
+                <div
+                  key={smIdx}
+                  className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 space-y-4 bg-white dark:bg-zinc-900"
+                >
                   <div className="flex flex-col justify-between">
-                    <h3 className="flex items-center gap-4 font-semibold text-sm">
-                      <span>Match{subMatch.matchNumber}: {player1} vs {player2}</span>
-                      <span>{subMatch.finalScore?.team1Sets || 0} - {subMatch.finalScore?.team2Sets || 0}</span>
+                    <h3 className="flex items-center gap-4 font-semibold text-base">
+                      <span>
+                        Match {subMatch.matchNumber}: {player1} vs {player2}
+                      </span>
+                      <span className="text-zinc-500">
+                        {subMatch.finalScore?.team1Sets || 0} -{" "}
+                        {subMatch.finalScore?.team2Sets || 0}
+                      </span>
                     </h3>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
                       {subMatch.winnerSide && (
                         <span className="ml-2 text-emerald-500">
-                          ({subMatch.winnerSide === "team1" ? team1Name : team2Name} won)
+                          (
+                          {subMatch.winnerSide === "team1"
+                            ? team1Name
+                            : team2Name}{" "}
+                          won)
                         </span>
                       )}
                     </span>
@@ -397,41 +764,62 @@ export default function MatchStatsPage() {
                     side1Name={player1}
                     side2Name={player2}
                     participants={[
-                      ...(Array.isArray(subMatch.playerTeam1) ? subMatch.playerTeam1 : [subMatch.playerTeam1]),
-                      ...(Array.isArray(subMatch.playerTeam2) ? subMatch.playerTeam2 : [subMatch.playerTeam2]),
-                    ].filter((p): p is import("@/types/match.type").Participant => 
-                      p != null && typeof p === "object" && "username" in p
+                      ...(Array.isArray(subMatch.playerTeam1)
+                        ? subMatch.playerTeam1
+                        : [subMatch.playerTeam1]),
+                      ...(Array.isArray(subMatch.playerTeam2)
+                        ? subMatch.playerTeam2
+                        : [subMatch.playerTeam2]),
+                    ].filter(
+                      (p): p is import("@/types/match.type").Participant =>
+                        p != null && typeof p === "object" && "username" in p
                     )}
-                    finalScore={subMatch.finalScore ? {
-                      side1Sets: subMatch.finalScore.team1Sets ?? 0,
-                      side2Sets: subMatch.finalScore.team2Sets ?? 0,
-                    } : undefined}
+                    finalScore={
+                      subMatch.finalScore
+                        ? {
+                            side1Sets: subMatch.finalScore.team1Sets ?? 0,
+                            side2Sets: subMatch.finalScore.team2Sets ?? 0,
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               );
             })}
-          </TabsContent>
 
-          <TabsContent value="players" className="space-y-6 mt-6">
-            <PlayerShotAnalysis playerPieData={playerPieData} />
-          </TabsContent>
+            {/* Per-Player Analysis */}
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold mb-4">
+                Player Shot Distribution
+              </h3>
+              <PlayerShotAnalysis playerPieData={stats.playerPieData} />
+            </div>
+          </StatsSectionContainer>
 
-          <TabsContent value="wagon-wheel" className="space-y-6 mt-6">
+          {/* SECTION 4: SHOT MAPS & WEAKNESSES */}
+          <StatsSectionContainer
+            id="maps"
+            title="Shot Maps & Weakness Analysis"
+            description="Visualize shot placement and identify areas for improvement"
+            icon={<Map className="h-6 w-6" />}
+            ref={(el) => {
+              sectionRefs.current.maps = el;
+            }}
+          >
+            {/* Wagon Wheels */}
             <WagonWheelSection
               participants={allParticipants}
               allShots={allShots}
               games={allSubMatchGames}
               hideByGame={allSubMatchGames.length <= 1}
             />
-          </TabsContent>
 
-          <TabsContent value="weaknesses" className="space-y-6 mt-6 p-6">
-            <MatchWeaknessesSection
-              matchId={matchId}
-              category="team"
-            />
-          </TabsContent>
-        </Tabs>
+            {/* Weaknesses Section */}
+            <div className="mt-8">
+              <MatchWeaknessesSection matchId={matchId} category="team" />
+            </div>
+          </StatsSectionContainer>
+        </main>
       </div>
     );
   }

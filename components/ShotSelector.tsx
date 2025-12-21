@@ -39,7 +39,9 @@ const ShotSelector = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [selectedServeType, setSelectedServeType] = useState<string | null>(null);
+  const [selectedServeType, setSelectedServeType] = useState<string | null>(
+    null
+  );
 
   const updateScoreIndividual = useIndividualMatch(
     (state) => state.updateScore
@@ -223,14 +225,15 @@ const ShotSelector = () => {
               </Button>
             )}
             <div>
-              
               <DialogDescription className="text-xs text-gray-600/80">
                 {currentStep === "player" && "Select the player who scored"}
                 {currentStep === "shot" && "Choose the type of shot played"}
-                {currentStep === "origin" &&
-                  "Click on the table where the shot originated"}
-                {currentStep === "landing" &&
-                  "Click on the table where the ball landed"}
+                {currentStep === "origin" && (
+                  <>Click where the <strong>shot originated</strong></>
+                )}
+                {currentStep === "landing" && (
+                  <>Click on the table where the <strong>ball landed</strong></>
+                )}
               </DialogDescription>
             </div>
           </div>
@@ -287,7 +290,9 @@ const ShotSelector = () => {
         {/* Step 2.5: Serve Type Selection (only for serve_point) */}
         {currentStep === "serveType" && (
           <div className="space-y-3">
-            <h3 className="font-medium text-sm text-gray-700">Select Serve Type</h3>
+            <h3 className="font-medium text-sm text-gray-700">
+              Select Serve Type
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
@@ -344,30 +349,26 @@ const ShotSelector = () => {
 
         {/* Step 3: Origin Point Selection */}
         {currentStep === "origin" && (
-          <div className="space-y-4">
-            <TableCourt
-              onCourtClick={handleOriginSelect}
-              selectedPoint={originPoint}
-              label="Shot Origin"
-              restrictToSide={getCourtSides().originSide}
-              mode="origin"
-            />
-          </div>
+          <TableCourt
+            onCourtClick={handleOriginSelect}
+            selectedPoint={originPoint}
+            label="Shot Origin"
+            restrictToSide={getCourtSides().originSide}
+            mode="origin"
+          />
         )}
 
         {/* Step 4: Landing Point Selection */}
         {currentStep === "landing" && (
-          <div className="space-y-4">
-            <TableCourt
-              onCourtClick={handleLandingSelect}
-              selectedPoint={landingPoint}
-              originPoint={originPoint}
-              label="Ball Landing"
-              restrictToSide={getCourtSides().landingSide}
-              mode="landing"
-              startScaled={true}
-            />
-          </div>
+          <TableCourt
+            onCourtClick={handleLandingSelect}
+            selectedPoint={landingPoint}
+            originPoint={originPoint}
+            label="Ball Landing"
+            restrictToSide={getCourtSides().landingSide}
+            mode="landing"
+            startScaled={true}
+          />
         )}
       </DialogContent>
     </Dialog>

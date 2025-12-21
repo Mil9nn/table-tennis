@@ -8,7 +8,7 @@ interface Props {
 
 export default function MatchInfo({ match }: Props) {
   return (
-    <div className="p-5">
+    <div className="p-5 border-b border-zinc-100">
       <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
         Match Information
       </h3>
@@ -29,7 +29,7 @@ function InfoItem({ icon: Icon, label, value, iconColor = "text-zinc-400" }: {
   iconColor?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+    <div className="flex items-center gap-2">
       <div className={`p-2 rounded-lg bg-white dark:bg-zinc-800 ${iconColor}`}>
         <Icon className="w-4 h-4" />
       </div>

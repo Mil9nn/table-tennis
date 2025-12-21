@@ -13,9 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getAvatarFallbackStyle } from "@/lib/utils";
 import type { TeamStats } from "../types";
-import { LeaderboardEmpty, LeaderboardLoading } from "./shared";
+import { LeaderboardEmpty, LeaderboardLoading, StreakBadge } from "./shared";
 import { getDisplayName, getInitials } from "../utils";
 
 import GroupWorkIcon from '@mui/icons-material/GroupWork';
@@ -23,73 +23,193 @@ import GroupWorkIcon from '@mui/icons-material/GroupWork';
 interface TeamLeaderboardProps {
   data: TeamStats[];
   loading: boolean;
+  currentUserId?: string;
 }
 
 const rankChip = (rank: number) => {
-  if (rank <= 3)
-    return (
-      <div className="text-indigo-600 font-semibold text-[12px]">
-        {rank}
-      </div>
-    );
-
-  return <div className="text-slate-400 text-[12px]">{rank}</div>;
-};
-
-const streakBadge = (streak: number) => {
-  if (streak === 0) return null;
-
-  const isWinning = streak > 0;
-  const absStreak = Math.abs(streak);
-
   return (
-    <Badge
-      className={cn(
-        "text-[10px] px-1.5 py-0 rounded-md font-medium",
-        isWinning
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      )}
+    <div
+      className="lb-font-mono font-semibold text-sm"
+      style={{ color: rank <= 3 ? '#18c3f8' : 'rgba(50, 49, 57, 0.5)' }}
     >
-      {isWinning ? "W" : "L"}{absStreak}
-    </Badge>
+      {rank}
+    </div>
   );
 };
 
-export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
+export function TeamLeaderboard({ data, loading, currentUserId }: TeamLeaderboardProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   if (loading) return <LeaderboardLoading />;
   if (data.length === 0) return <LeaderboardEmpty message="No team matches yet" icon={<GroupWorkIcon className="size-10 text-muted-foreground" />} />;
 
+  // Find teams where current user is a member
+  const currentUserTeams = currentUserId
+    ? data.filter((entry) =>
+        entry.playerStats.some((ps) => ps.player._id === currentUserId)
+      )
+    : [];
+
+  // Separate current user teams that are not in top 3
+  const currentUserTeamsNotInTop3 = currentUserTeams.filter(
+    (team) => team.rank > 3
+  );
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <Table className="text-[12px]">
+    <div className="lb-font-primary">
+      {/* CURRENT USER TEAMS - shown at top if user teams are not in top 3 */}
+      {currentUserTeamsNotInTop3.length > 0 && (
+        <div
+          className="mb-4 px-4 py-3 rounded-lg"
+          style={{
+            backgroundColor: 'rgba(24, 195, 248, 0.05)',
+            border: '2px solid rgba(24, 195, 248, 0.2)',
+          }}
+        >
+          <p
+            className="text-xs font-semibold uppercase tracking-wide mb-2"
+            style={{ color: '#18c3f8' }}
+          >
+            Your Teams
+          </p>
+          <div className="space-y-2">
+            {currentUserTeamsNotInTop3.map((team) => (
+              <div
+                key={team.team._id}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg"
+                style={{
+                  backgroundColor: 'rgba(24, 195, 248, 0.08)',
+                  border: '1px solid rgba(24, 195, 248, 0.2)',
+                }}
+              >
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #18c3f8, #323139)',
+                  }}
+                >
+                  <span className="font-bold text-sm" style={{ color: '#ffffff' }}>
+                    {team.team.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold" style={{ color: '#323139' }}>
+                      {team.team.name}
+                    </span>
+                    <Badge
+                      className="text-xs font-semibold px-2 py-0.5"
+                      style={{
+                        backgroundColor: 'rgba(24, 195, 248, 0.15)',
+                        color: '#18c3f8',
+                        border: '1px solid rgba(24, 195, 248, 0.3)',
+                      }}
+                    >
+                      You
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs mt-1">
+                    <span style={{ color: '#323139' }}>
+                      <strong className="lb-font-mono">{team.stats.wins}</strong>W
+                    </span>
+                    <span style={{ color: 'rgba(50, 49, 57, 0.7)' }}>
+                      <strong className="lb-font-mono">{team.stats.losses}</strong>L
+                    </span>
+                    <span style={{ color: '#18c3f8' }}>
+                      <strong className="lb-font-mono">{team.stats.winRate}%</strong>
+                    </span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs" style={{ color: '#ccbcbc' }}>Rank</div>
+                  <div
+                    className="text-lg font-bold lb-font-mono"
+                    style={{ color: '#18c3f8' }}
+                  >
+                    #{team.rank}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid rgba(204, 188, 188, 0.25)',
+          boxShadow: '0 4px 16px rgba(50, 49, 57, 0.06)'
+        }}
+      >
+        <div className="overflow-x-auto">
+          <Table className="text-sm">
           <TableHeader>
-            <TableRow className="bg-slate-50/80 border-b border-slate-200">
-              <TableHead className="text-center font-medium text-[11px] text-slate-600">
+            <TableRow
+              style={{
+                backgroundColor: 'rgba(204, 188, 188, 0.08)',
+                borderBottom: '2px solid rgba(204, 188, 188, 0.3)'
+              }}
+            >
+              <TableHead
+                className="text-center font-semibold text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 Rank
               </TableHead>
-              <TableHead className="font-medium text-[11px] text-slate-600">
+              <TableHead
+                className="font-semibold text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 Team
               </TableHead>
-              <TableHead className="text-center font-medium text-[11px] text-slate-600">
+              <TableHead
+                className="text-center font-semibold text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 MP
               </TableHead>
-              <TableHead className="text-center text-[11px] font-medium text-slate-600">
+              <TableHead
+                className="text-center text-[0.6875rem] font-semibold uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 W
               </TableHead>
-              <TableHead className="text-center text-[11px] font-medium text-slate-600">
+              <TableHead
+                className="text-center text-[0.6875rem] font-semibold uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 L
               </TableHead>
-              <TableHead className="text-center text-[11px] text-slate-600">T</TableHead>
-              <TableHead className="text-center text-[11px] text-slate-600">SM.W</TableHead>
-              <TableHead className="text-center text-[11px] text-slate-600">SM.L</TableHead>
-              <TableHead className="text-center font-semibold text-[11px] text-slate-700">
+              <TableHead
+                className="text-center text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
+                T
+              </TableHead>
+              <TableHead
+                className="text-center text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
+                SM.W
+              </TableHead>
+              <TableHead
+                className="text-center text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
+                SM.L
+              </TableHead>
+              <TableHead
+                className="text-center font-semibold text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 Win%
               </TableHead>
-              <TableHead className="text-center text-[11px] text-slate-600">
+              <TableHead
+                className="text-center text-[0.6875rem] uppercase"
+                style={{ color: 'rgba(50, 49, 57, 0.7)' }}
+              >
                 Streak
               </TableHead>
               <TableHead className="w-8"></TableHead>
@@ -100,69 +220,128 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
             {data.map((entry) => {
               const highlight = entry.rank <= 3;
               const isExpanded = expandedTeam === entry.team._id;
+              const isCurrentUserTeam = currentUserTeams.some(
+                (team) => team.team._id === entry.team._id
+              );
 
               return (
                 <>
                   <TableRow
                     key={entry.team._id}
-                    className={cn(
-                      "transition-all",
-                      highlight ? "bg-indigo-50/60" : "hover:bg-slate-50"
-                    )}
+                    className="transition-all duration-250 cursor-pointer"
+                    style={{
+                      backgroundColor: isCurrentUserTeam
+                        ? 'rgba(24, 195, 248, 0.08)'
+                        : highlight
+                        ? 'rgba(24, 195, 248, 0.04)'
+                        : '#ffffff',
+                      borderBottom: '1px solid rgba(204, 188, 188, 0.15)',
+                      borderLeft: isCurrentUserTeam
+                        ? '3px solid #18c3f8'
+                        : highlight
+                        ? '3px solid #18c3f8'
+                        : '3px solid transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(204, 188, 188, 0.05)';
+                      e.currentTarget.style.borderLeftColor = '#18c3f8';
+                      e.currentTarget.style.transform = 'translateX(2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      const originalBg = isCurrentUserTeam
+                        ? 'rgba(24, 195, 248, 0.08)'
+                        : highlight
+                        ? 'rgba(24, 195, 248, 0.04)'
+                        : '#ffffff';
+                      const originalBorderLeft = isCurrentUserTeam || highlight ? '#18c3f8' : 'transparent';
+                      e.currentTarget.style.backgroundColor = originalBg;
+                      e.currentTarget.style.borderLeftColor = originalBorderLeft;
+                      e.currentTarget.style.transform = 'translateX(0)';
+                    }}
                   >
                     {/* Rank */}
                     <TableCell className="text-center">{rankChip(entry.rank)}</TableCell>
 
                     {/* Team */}
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-semibold text-xs">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: 'linear-gradient(135deg, #18c3f8, #323139)',
+                          }}
+                        >
+                          <span className="font-bold text-sm" style={{ color: '#ffffff' }}>
                             {entry.team.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className="text-[13px] font-medium text-slate-700">
-                          {entry.team.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold" style={{ color: '#323139' }}>
+                            {entry.team.name}
+                          </span>
+                          {isCurrentUserTeam && (
+                            <Badge
+                              className="text-xs font-semibold px-2 py-0.5"
+                              style={{
+                                backgroundColor: 'rgba(24, 195, 248, 0.15)',
+                                color: '#18c3f8',
+                                border: '1px solid rgba(24, 195, 248, 0.3)',
+                              }}
+                            >
+                              You
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
 
                     {/* MP */}
-                    <TableCell className="text-center text-slate-700">
+                    <TableCell className="text-center lb-font-mono" style={{ color: '#323139' }}>
                       {entry.stats.totalMatches}
                     </TableCell>
 
                     {/* W */}
-                    <TableCell className="text-center text-green-600 font-medium">
+                    <TableCell className="text-center lb-font-mono font-semibold" style={{ color: '#18c3f8' }}>
                       {entry.stats.wins}
                     </TableCell>
 
                     {/* L */}
-                    <TableCell className="text-center text-red-600 font-medium">
+                    <TableCell className="text-center lb-font-mono font-semibold" style={{ color: '#ef4444' }}>
                       {entry.stats.losses}
                     </TableCell>
 
                     {/* T (Ties) */}
-                    <TableCell className="text-center text-slate-500">
+                    <TableCell className="text-center lb-font-mono" style={{ color: 'rgba(50, 49, 57, 0.6)' }}>
                       {entry.stats.ties}
                     </TableCell>
 
                     {/* SM.W (SubMatches Won) */}
-                    <TableCell className="text-center">{entry.stats.subMatchesWon}</TableCell>
+                    <TableCell className="text-center lb-font-mono" style={{ color: 'rgba(50, 49, 57, 0.7)' }}>
+                      {entry.stats.subMatchesWon}
+                    </TableCell>
 
                     {/* SM.L (SubMatches Lost) */}
-                    <TableCell className="text-center">{entry.stats.subMatchesLost}</TableCell>
+                    <TableCell className="text-center lb-font-mono" style={{ color: 'rgba(50, 49, 57, 0.7)' }}>
+                      {entry.stats.subMatchesLost}
+                    </TableCell>
 
                     {/* Win% */}
                     <TableCell className="text-center">
-                      <Badge className="bg-indigo-100 text-indigo-700 font-semibold text-[11px] px-2 py-0.5 rounded-md">
+                      <Badge
+                        className="font-bold text-xs px-2.5 py-1 rounded-full"
+                        style={{
+                          backgroundColor: 'rgba(24, 195, 248, 0.12)',
+                          border: '1px solid rgba(24, 195, 248, 0.3)',
+                          color: '#18c3f8',
+                        }}
+                      >
                         {entry.stats.winRate}%
                       </Badge>
                     </TableCell>
 
                     {/* Streak */}
                     <TableCell className="text-center">
-                      {streakBadge(entry.stats.currentStreak)}
+                      <StreakBadge streak={entry.stats.currentStreak} />
                     </TableCell>
 
                     {/* Expand button */}
@@ -170,13 +349,21 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
                       {entry.playerStats.length > 0 && (
                         <button
                           onClick={() => setExpandedTeam(isExpanded ? null : entry.team._id)}
-                          className="p-1 hover:bg-slate-200 rounded transition-colors"
+                          className="p-1.5 rounded-full transition-all duration-250"
+                          style={{ backgroundColor: 'transparent' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(24, 195, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
                         >
                           <ChevronDown
                             className={cn(
-                              "w-4 h-4 text-slate-500 transition-transform",
+                              "w-4 h-4 transition-transform duration-250",
                               isExpanded && "rotate-180"
                             )}
+                            style={{ color: isExpanded ? '#18c3f8' : 'rgba(50, 49, 57, 0.6)' }}
                           />
                         </button>
                       )}
@@ -200,7 +387,7 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
                               >
                                 <Avatar className="h-6 w-6 ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
                                   <AvatarImage src={ps.player.profileImage} />
-                                  <AvatarFallback className="text-[10px] bg-muted">
+                                  <AvatarFallback style={getAvatarFallbackStyle(ps.player._id)} className="text-[10px]">
                                     {getInitials(getDisplayName(ps.player))}
                                   </AvatarFallback>
                                 </Avatar>
@@ -225,6 +412,7 @@ export function TeamLeaderboard({ data, loading }: TeamLeaderboardProps) {
             })}
           </TableBody>
         </Table>
+      </div>
       </div>
     </div>
   );

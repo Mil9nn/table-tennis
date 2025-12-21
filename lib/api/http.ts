@@ -5,7 +5,7 @@
  * Replaces scattered error handling patterns with a consistent approach.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 /**
  * Custom API Error class for throwing typed errors
@@ -54,6 +54,10 @@ export class ApiError extends Error {
 
   static internal(message: string = "Internal server error", details?: string) {
     return new ApiError(500, message, { code: "INTERNAL_ERROR", details });
+  }
+
+  static serviceUnavailable(message: string = "Service temporarily unavailable") {
+    return new ApiError(503, message, { code: "SERVICE_UNAVAILABLE" });
   }
 }
 
@@ -120,3 +124,27 @@ export function createErrorResponse(
 
   return NextResponse.json(body, { status });
 }
+
+/**
+ * Error handling wrapper for API routes
+ * Automatically catches errors and returns standardized error responses
+ *
+ * @example
+ * export const POST = withErrorHandling(async (req) => {
+ *   const { userId } = await requireAuth(req);
+ *   // ... route logic
+ *   return NextResponse.json({ success: true });
+ * });
+ */
+export function withErrorHandling(
+  handler: (req: NextRequest, context?: any) => Promise<NextResponse>
+) {
+  return async (req: NextRequest, context?: any): Promise<NextResponse> => {
+    try {
+      return await handler(req, context);
+    } catch (error) {
+      return jsonError(error);
+    }
+  };
+}
+

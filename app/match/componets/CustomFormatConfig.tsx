@@ -164,7 +164,7 @@ export default function CustomFormatConfig({
           const availableTeam2 = getAvailablePlayers(team2Players, index, 'team2');
 
           return (
-            <div key={index} className={`border-2 ${isComplete ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+            <div key={index} className="">
               <div className="p-4 space-y-4">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -185,7 +185,7 @@ export default function CustomFormatConfig({
                       variant="ghost"
                       className="h-8 w-8"
                     >
-                      <MoveUp className="w-4 h-4" />
+                      <MoveUp className="w-4 h-4" strokeWidth={5} />
                     </Button>
                     <Button
                       onClick={() => moveMatch(index, "down")}
