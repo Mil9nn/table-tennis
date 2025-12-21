@@ -9,20 +9,17 @@ import {
   Cell,
 } from "recharts";
 import { getShotColor } from "@/lib/match-stats-utils";
-import { useInView } from "@/hooks/useInView";
 
 interface ShotTypeChartProps {
   data: Array<{ name: string; value: number }>;
 }
 
 export function ShotTypeChart({ data }: ShotTypeChartProps) {
-  const { ref, isInView } = useInView({ threshold: 0.2 });
-
   if (data.length === 0) return null;
 
   return (
-    <section ref={ref}>
-      <header className="pb-2">
+    <Card className="rounded-2xl border border-gray-800 bg-black text-white shadow-lg">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg font-semibold tracking-tight">
@@ -33,53 +30,53 @@ export function ShotTypeChart({ data }: ShotTypeChartProps) {
             </p>
           </div>
         </div>
-      </header>
+      </CardHeader>
 
+      <CardContent>
         {/* Reduced height for modern compact look */}
         <div className="h-56 w-full">
-          {isInView && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data}
-                barGap={6}
-                barCategoryGap="18%"
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              barGap={6}
+              barCategoryGap="18%"
+            >
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+              />
+              <YAxis
+                width={28}
+                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+              />
+
+              <Tooltip
+                contentStyle={{
+                  background: "#111",
+                  border: "1px solid #333",
+                  borderRadius: "10px",
+                }}
+                labelStyle={{ color: "#aaa" }}
+                itemStyle={{ color: "#fff" }}
+                formatter={(value?: number) => [`${value ?? 0}`, "Count"]}
+              />
+
+              <Bar
+                dataKey="value"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1200}
+                animationEasing="ease-out"
               >
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                />
-                <YAxis
-                  width={28}
-                  tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                />
-
-                <Tooltip
-                  contentStyle={{
-                    background: "#111",
-                    border: "1px solid #333",
-                    borderRadius: "10px",
-                  }}
-                  labelStyle={{ color: "#aaa" }}
-                  itemStyle={{ color: "#fff" }}
-                  formatter={(value?: number) => [`${value ?? 0}`, "Count"]}
-                />
-
-                <Bar
-                  dataKey="value"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={0}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                >
-                  {data.map((entry, i) => (
-                    <Cell key={i} fill={getShotColor(entry.name)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+                {data.map((entry, i) => (
+                  <Cell key={i} fill={getShotColor(entry.name)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

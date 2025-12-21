@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Form,
   FormField,
@@ -319,10 +318,9 @@ export default function CreateTournamentPage() {
         rules: {
           // For team tournaments, set setsPerMatch to match setsPerSubMatch for consistency
           // The actual match generation uses teamConfig.setsPerSubMatch
-          setsPerMatch:
-            data.category === "team"
-              ? Number(data.teamConfig?.setsPerSubMatch) || 3
-              : Number(data.setsPerMatch),
+          setsPerMatch: data.category === "team" 
+            ? Number(data.teamConfig?.setsPerSubMatch) || 3
+            : Number(data.setsPerMatch),
           pointsPerSet: 11,
           pointsForWin: 2,
           advanceTop: 0,
@@ -419,140 +417,75 @@ export default function CreateTournamentPage() {
   // RENDER
   // ═══════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-white">
-      {/* HEADER: Precise & Architectural */}
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
-            </button>
-            <div>
-              <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
-                Tournament Creation
-              </h1>
-              <p></p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2]">
+      {/* Header */}
+      <header className="flex items-center gap-3 p-4 text-white">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold">Create Tournament</h1>
+          <p className="text-sm text-white/70">Setup your competition</p>
         </div>
       </header>
 
-      <main className="mx-auto px-4 py-8">
-        <Form {...form}>
-          {/* FORMAT SELECTOR: High Density Toggle */}
-          <div className="mb-10">
-            <div className="mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600 px-2">
-                Select Format
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="mx-auto bg-white shadow-xl overflow-hidden"
+        >
+          <div className="">
+            {/* ═══════════════════════════════════════════
+                SECTION 1: BASIC INFO
+            ═══════════════════════════════════════════ */}
+            <div className="p-4 space-y-3 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-[#667eea]">
+                Basic Information
               </h2>
-              <div className="h-px bg-slate-100 flex-1" />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="format"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      {
-                        type: "round_robin" as const,
-                        title: "Round Robin",
-                        description: "All vs All",
-                        icon: AdjustIcon,
-                      },
-                      {
-                        type: "knockout" as const,
-                        title: "Knockout",
-                        description: "Elimination",
-                        icon: DonutLargeIcon,
-                      },
-                      {
-                        type: "hybrid" as const,
-                        title: "Hybrid",
-                        description: "RR + Knockout",
-                        icon: MultipleStopIcon,
-                      },
-                    ].map((formatOption) => {
-                      const isActive = field.value === formatOption.type;
-                      const Icon = formatOption.icon;
+              {/* Tournament Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Tournament Name
+                    </FormLabel>
 
-                      return (
-                        <button
-                          key={formatOption.type}
-                          type="button"
-                          onClick={() => field.onChange(formatOption.type)}
-                          className={cn(
-                            "relative group p-4 rounded border transition-all duration-200 text-left overflow-hidden",
-                            isActive
-                              ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                              : "border-slate-200 bg-white hover:border-slate-400"
-                          )}
-                        >
-                          <div className="flex flex-col h-full justify-between gap-4">
-                            <div className="flex justify-between items-start">
-                              <Icon
-                                className={cn(
-                                  "w-5 h-5",
-                                  isActive ? "text-slate-300" : "text-slate-600"
-                                )}
-                              />
-                            </div>
-                            <div>
-                              <h3 className="text-xs font-bold uppercase tracking-widest leading-none mb-1">
-                                {formatOption.title}
-                              </h3>
-                              <p
-                                className={cn(
-                                  "text-xs tracking-tight",
-                                  isActive ? "text-slate-400" : "text-slate-500"
-                                )}
-                              >
-                                {formatOption.description}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                    <FormControl>
+                      <Input
+                        className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                       placeholder:text-gray-400 placeholder:opacity-70"
+                        placeholder="Spring Championship 2025"
+                        {...field}
+                      />
+                    </FormControl>
 
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="border border-slate-100 rounded-lg p-1 sm:p-2 bg-slate-50/30"
-          >
-            <div className="bg-white rounded-md">
-              {/* ═══════════════════════════════════════════
-                  SECTION 1: BASIC INFO
-              ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-3 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
-                  Basic Information
-                </h2>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-                {/* Tournament Name */}
+              {/* City + Venue */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                        Tournament Name
+                      <FormLabel className="text-sm font-medium text-gray-700">
+                        City
                       </FormLabel>
 
                       <FormControl>
                         <Input
-                          className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                       placeholder:text-slate-400 placeholder:opacity-70"
-                          placeholder="Spring Championship 2025"
+                          className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                         placeholder:text-gray-400 placeholder:opacity-70"
+                          placeholder="New York"
                           {...field}
                         />
                       </FormControl>
@@ -562,101 +495,23 @@ export default function CreateTournamentPage() {
                   )}
                 />
 
-                {/* City + Venue */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                          City
-                        </FormLabel>
-
-                        <FormControl>
-                          <Input
-                            className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                         placeholder:text-slate-400 placeholder:opacity-70"
-                            placeholder="New York"
-                            {...field}
-                          />
-                        </FormControl>
-
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="venue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                          Venue
-                        </FormLabel>
-
-                        <FormControl>
-                          <Input
-                            className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                         placeholder:text-slate-400 placeholder:opacity-70"
-                            placeholder="Sports Center"
-                            {...field}
-                          />
-                        </FormControl>
-
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Start Date */}
                 <FormField
                   control={form.control}
-                  name="startDate"
+                  name="venue"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                        Start Date
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-gray-700">
+                        Venue
                       </FormLabel>
 
-                      <Popover
-                        open={startDateOpen}
-                        onOpenChange={setStartDateOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal text-sm bg-slate-50 h-10 rounded border-slate-200",
-                                !field.value && "text-slate-400"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={(date) => {
-                              field.onChange(date);
-                              setStartDateOpen(false);
-                            }}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                        <Input
+                          className="bg-gray-50 border-gray-200 rounded-lg h-10 text-sm
+                         placeholder:text-gray-400 placeholder:opacity-70"
+                          placeholder="Sports Center"
+                          {...field}
+                        />
+                      </FormControl>
 
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -664,78 +519,164 @@ export default function CreateTournamentPage() {
                 />
               </div>
 
-              {/* ═══════════════════════════════════════════
-                SECTION 2: CATEGORY
+              {/* Start Date */}
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Start Date
+                    </FormLabel>
+
+                    <Popover
+                      open={startDateOpen}
+                      onOpenChange={setStartDateOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "pl-3 text-left font-normal text-sm bg-gray-50 h-10 rounded-lg border-gray-200",
+                              !field.value && "text-gray-400"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setStartDateOpen(false);
+                          }}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* ═══════════════════════════════════════════
+                SECTION 2: TOURNAMENT TYPE
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
-                  Category
-                </h2>
+            <div className="p-4 space-y-4 border-b">
+              <h2 className="text-lg font-semibold text-[#667eea]">
+                Tournament Type
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="format"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700">Format</FormLabel>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {[
+                          {
+                            label: "Round Robin",
+                            value: "round_robin",
+                            Icon: AdjustIcon,
+                          },
+                          {
+                            label: "Knockout",
+                            value: "knockout",
+                            Icon: DonutLargeIcon,
+                          },
+                          {
+                            label: "Hybrid",
+                            value: "hybrid",
+                            Icon: MultipleStopIcon,
+                          },
+                        ].map((opt) => {
+                          const isActive = field.value === opt.value;
+                          const IconComponent = opt.Icon;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => field.onChange(opt.value)}
+                              className={cn(
+                                "w-fit p-1 px-4 text-xs rounded-xl border-2 transition-all flex flex-row items-center gap-2",
+                                isActive
+                                  ? "bg-[#667eea] text-white border-[#667eea] shadow-lg scale-105"
+                                  : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#667eea]/50"
+                              )}
+                            >
+                              <IconComponent
+                                sx={{ fontSize: 16 }}
+                                className={cn(
+                                  "flex-shrink-0",
+                                  isActive ? "text-white" : "text-gray-500"
+                                )}
+                              />
+                              <span className="whitespace-nowrap">
+                                {opt.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="grid grid-cols-2 gap-3">
+                      <FormLabel className="text-gray-700">Category</FormLabel>
+                      <div className="flex items-center gap-2 flex-wrap">
                         {[
                           {
-                            type: "individual" as const,
-                            title: "Individual",
-                            description: "Singles / Doubles / Mixed",
-                            icon: PersonIcon,
+                            label: "Individual",
+                            value: "individual",
+                            Icon: PersonIcon,
                           },
-                          {
-                            type: "team" as const,
-                            title: "Team",
-                            description: "Club vs Club / Group",
-                            icon: GroupsIcon,
-                          },
-                        ].map((categoryOption) => {
-                          const isActive = field.value === categoryOption.type;
-                          const Icon = categoryOption.icon;
-
+                          { label: "Team", value: "team", Icon: GroupsIcon },
+                        ].map((opt) => {
+                          const isActive = field.value === opt.value;
+                          const IconComponent = opt.Icon;
                           return (
                             <button
-                              key={categoryOption.type}
+                              key={opt.value}
                               type="button"
-                              onClick={() =>
-                                field.onChange(categoryOption.type)
-                              }
+                              onClick={() => field.onChange(opt.value)}
                               className={cn(
-                                "relative group p-4 rounded border transition-all duration-200 text-left overflow-hidden",
+                                "p-2 px-4 text-xs rounded-xl border-2 transition-all flex flex-row items-center justify-center gap-2",
                                 isActive
-                                  ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                                  : "border-slate-200 bg-white hover:border-slate-400"
+                                  ? "bg-[#667eea] text-white border-[#667eea] shadow-lg scale-105"
+                                  : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#667eea]/50"
                               )}
                             >
-                              <div className="flex flex-col h-full justify-between gap-4">
-                                <div className="flex justify-between items-start">
-                                  <Icon
-                                    className={cn(
-                                      "w-5 h-5",
-                                      isActive
-                                        ? "text-slate-300"
-                                        : "text-slate-600"
-                                    )}
-                                  />
-                                </div>
-                                <div>
-                                  <h3 className="text-xs font-bold uppercase tracking-widest leading-none mb-1">
-                                    {categoryOption.title}
-                                  </h3>
-                                  <p
-                                    className={cn(
-                                      "text-xs tracking-tight",
-                                      isActive
-                                        ? "text-slate-400"
-                                        : "text-slate-500"
-                                    )}
-                                  >
-                                    {categoryOption.description}
-                                  </p>
-                                </div>
-                              </div>
+                              <IconComponent
+                                sx={{ fontSize: 16 }}
+                                className={cn(
+                                  "flex-shrink-0",
+                                  isActive ? "text-white" : "text-gray-500"
+                                )}
+                              />
+                              <span className="whitespace-nowrap">
+                                {opt.label}
+                              </span>
                             </button>
                           );
                         })}
@@ -745,275 +686,276 @@ export default function CreateTournamentPage() {
                   )}
                 />
               </div>
+            </div>
 
-              {/* ═══════════════════════════════════════════
+            {/* ═══════════════════════════════════════════
                 SECTION 3: MATCH SETTINGS
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
-                  {watchCategory === "team"
-                    ? "Team Match Format"
-                    : "Match Settings"}
-                </h2>
+            <div className="p-5 space-y-4 border-b">
+              <h2 className="text-lg font-semibold text-[#667eea]">
+                {watchCategory === "team"
+                  ? "Team Match Format"
+                  : "Match Settings"}
+              </h2>
 
-                {/* Individual tournament: Show match type & sets */}
-                {watchCategory === "individual" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="matchType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                            Match Type
-                          </FormLabel>
-                          <div className="flex gap-2 flex-wrap">
-                            {[
-                              { label: "Singles", value: "singles" },
-                              { label: "Doubles", value: "doubles" },
-                              { label: "Mixed", value: "mixed_doubles" },
-                            ].map((opt) => {
-                              const isActive = field.value === opt.value;
-                              return (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => field.onChange(opt.value)}
-                                  className={cn(
-                                    "px-4 py-2 text-xs rounded border transition-all",
-                                    isActive
-                                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
-                                  )}
-                                >
-                                  {opt.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {/* Individual tournament: Show match type & sets */}
+              {watchCategory === "individual" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="matchType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">
+                          Match Type
+                        </FormLabel>
+                        <div className="flex gap-2 flex-wrap">
+                          {[
+                            { label: "Singles", value: "singles" },
+                            { label: "Doubles", value: "doubles" },
+                            { label: "Mixed", value: "mixed_doubles" },
+                          ].map((opt) => {
+                            const isActive = field.value === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => field.onChange(opt.value)}
+                                className={cn(
+                                  "px-4 py-2 text-xs rounded-lg border transition-all",
+                                  isActive
+                                    ? "bg-[#667eea] text-white shadow"
+                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={form.control}
-                      name="setsPerMatch"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-                            Sets Per Match
-                          </FormLabel>
-                          <div className="flex gap-2">
-                            {["1", "3", "5", "7", "9"].map((n) => {
-                              const isActive = field.value === n;
-                              return (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  onClick={() => field.onChange(n)}
-                                  className={cn(
-                                    "w-10 h-10 text-sm rounded border transition-all",
-                                    isActive
-                                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
-                                  )}
-                                >
-                                  {n}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
+                  <FormField
+                    control={form.control}
+                    name="setsPerMatch"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">
+                          Sets Per Match
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          {["1", "3", "5", "7", "9"].map((n) => {
+                            const isActive = field.value === n;
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => field.onChange(n)}
+                                className={cn(
+                                  "w-10 h-10 text-sm rounded-lg border transition-all",
+                                  isActive
+                                    ? "bg-[#667eea] text-white shadow"
+                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                                )}
+                              >
+                                {n}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-                {/* Team tournament: Show team config (match structure + sets per submatch) */}
-                {watchCategory === "team" && <TeamConfig form={form} />}
-              </div>
+              {/* Team tournament: Show team config (match structure + sets per submatch) */}
+              {watchCategory === "team" && <TeamConfig form={form} />}
+            </div>
 
-              {/* ═══════════════════════════════════════════
+            {/* ═══════════════════════════════════════════
                 SECTION 4: FORMAT-SPECIFIC OPTIONS
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
-                  {watchFormat === "knockout" && "Knockout Settings"}
-                  {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
-                </h2>
+            <div className="p-5 space-y-4 border-b">
+              <h2 className="text-lg font-semibold text-[#667eea]">
+                {watchFormat === "knockout" && "Knockout Settings"}
+                {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
+                {watchFormat === "round_robin" && "Round Robin Settings"}
+              </h2>
 
-                {/* KNOCKOUT FORMAT */}
-                {watchFormat === "knockout" && (
+              {/* ROUND ROBIN FORMAT */}
+              {watchFormat === "round_robin" && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-600">
+                    Pure round-robin tournaments play all participants against each other without groups or knockout phases.
+                  </p>
+                </div>
+              )}
+
+              {/* KNOCKOUT FORMAT */}
+              {watchFormat === "knockout" && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                   <KnockoutConfig form={form} prefix="knockout" />
-                )}
+                </div>
+              )}
 
-                {/* HYBRID FORMAT */}
-                {watchFormat === "hybrid" && (
-                  <div className="space-y-4">
-                    {/* Phase 1: Round Robin */}
-                    <div className="rounded-xl  p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-slate-600 bg-black/10 px-2 py-1 rounded">
-                          PHASE 1
-                        </span>
-                        <span className="text-sm font-medium text-blue-800">
-                          Round Robin
-                        </span>
-                      </div>
-                      <RoundRobinConfig
-                        form={form}
-                        prefix="hybridRoundRobin"
-                        title=""
-                        showAdvancePerGroup={false}
-                      />
+              {/* HYBRID FORMAT */}
+              {watchFormat === "hybrid" && (
+                <div className="space-y-4">
+                  {/* Phase 1: Round Robin */}
+                  <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                        PHASE 1
+                      </span>
+                      <span className="text-sm font-medium text-blue-800">
+                        Round Robin
+                      </span>
                     </div>
-
-                    {/* Qualification */}
-                    <div>
-                      {watchQualMethod === "top_n_per_group" &&
-                        !watchHybridUseGroups && (
-                          <div className="mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-300">
-                            <p className="text-xs text-yellow-800">
-                              <span className="font-semibold">Note:</span> "Top
-                              N Per Group" requires groups to be enabled in
-                              Phase 1. Reverting to "Top N Overall".
-                            </p>
-                          </div>
-                        )}
-                      <QualificationConfig
-                        form={form}
-                        useGroups={watchHybridUseGroups ?? false}
-                      />
-                    </div>
-
-                    {/* Phase 2: Knockout */}
-                    <div className="">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-slate-600 bg-black/10 px-2 py-1 rounded">
-                          PHASE 2
-                        </span>
-                        <span className="text-sm font-medium text-gray-800">
-                          Knockout
-                        </span>
-                      </div>
-                      <KnockoutConfig form={form} prefix="hybridKnockout" />
-                    </div>
+                    <RoundRobinConfig
+                      form={form}
+                      prefix="hybridRoundRobin"
+                      title=""
+                      showAdvancePerGroup={false}
+                    />
                   </div>
-                )}
-              </div>
 
-              {/* ═══════════════════════════════════════════
+                  {/* Qualification */}
+                  <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4">
+                    {watchQualMethod === "top_n_per_group" && !watchHybridUseGroups && (
+                      <div className="mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-300">
+                        <p className="text-xs text-yellow-800">
+                          <span className="font-semibold">Note:</span> "Top N Per Group" requires groups to be enabled in Phase 1. Reverting to "Top N Overall".
+                        </p>
+                      </div>
+                    )}
+                    <QualificationConfig
+                      form={form}
+                      useGroups={watchHybridUseGroups ?? false}
+                    />
+                  </div>
+
+                  {/* Phase 2: Knockout */}
+                  <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded">
+                        PHASE 2
+                      </span>
+                      <span className="text-sm font-medium text-amber-800">
+                        Knockout
+                      </span>
+                    </div>
+                    <KnockoutConfig form={form} prefix="hybridKnockout" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ═══════════════════════════════════════════
                 SECTION 5: PARTICIPANTS
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
-                  {watchCategory === "team" ? "Teams" : "Participants"}
-                </h2>
+            <div className="p-5 space-y-4">
+              <h2 className="text-lg font-semibold text-[#667eea]">
+                {watchCategory === "team" ? "Teams" : "Participants"}
+              </h2>
 
-                <FormField
-                  control={form.control}
-                  name="participants"
-                  render={() => (
-                    <FormItem>
-                      <FormControl>
-                        {watchCategory === "team" ? (
-                          <TeamSearchInput
-                            placeholder="Search and add teams..."
-                            onSelect={addParticipant}
-                            clearAfterSelect
-                          />
-                        ) : (
-                          <UserSearchInput
-                            placeholder="Search and add participants..."
-                            onSelect={addParticipant}
-                            clearAfterSelect
-                          />
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {participants.length > 0 ? (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    <AnimatePresence>
-                      {participants.map((p, idx) => (
-                        <motion.div
-                          key={p._id}
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.2 }}
-                          className="flex items-center justify-between p-3 border border-slate-200 rounded bg-white hover:bg-slate-50 transition"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
-                              {idx + 1}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm text-slate-900">
-                                {watchCategory === "team"
-                                  ? p.name
-                                  : p.fullName || p.username}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {watchCategory === "team"
-                                  ? `${p.players?.length || 0} players`
-                                  : `@${p.username}`}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeParticipant(p._id)}
-                            className="text-slate-400 hover:text-red-600 transition p-1"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-slate-400 border border-slate-200 rounded border-dashed">
-                    <p className="text-sm">
-                      No {watchCategory === "team" ? "teams" : "participants"}{" "}
-                      added yet
-                    </p>
-                    <p className="text-xs mt-1">Search and add at least 2</p>
-                  </div>
+              <FormField
+                control={form.control}
+                name="participants"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      {watchCategory === "team" ? (
+                        <TeamSearchInput
+                          placeholder="Search and add teams..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
+                      ) : (
+                        <UserSearchInput
+                          placeholder="Search and add participants..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
 
-                <p className="text-xs text-slate-500 text-center">
-                  {participants.length} / 2 minimum{" "}
-                  {watchCategory === "team" ? "teams" : "participants"}
-                </p>
-              </div>
-            </div>
+              {participants.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {participants.map((p, idx) => (
+                    <div
+                      key={p._id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#667eea] to-[#764ba2] text-white flex items-center justify-center font-bold text-sm">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-gray-800">
+                            {watchCategory === "team"
+                              ? p.name
+                              : p.fullName || p.username}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {watchCategory === "team"
+                              ? `${p.players?.length || 0} players`
+                              : `@${p.username}`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeParticipant(p._id)}
+                        className="text-red-400 hover:text-red-600 transition p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p className="text-sm">
+                    No {watchCategory === "team" ? "teams" : "participants"}{" "}
+                    added yet
+                  </p>
+                  <p className="text-xs mt-1">Search and add at least 2</p>
+                </div>
+              )}
 
-            {/* Submit Button */}
-            <div className="p-4 pt-6">
-              <Button
-                type="submit"
-                className="w-full py-6 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating Tournament...
-                  </>
-                ) : (
-                  "Create Tournament"
-                )}
-              </Button>
+              <p className="text-xs text-gray-500 text-center">
+                {participants.length} / 2 minimum{" "}
+                {watchCategory === "team" ? "teams" : "participants"}
+              </p>
             </div>
-          </form>
-        </Form>
-      </main>
+          </div>
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full py-6 rounded-none bg-blue-500 text-white font-semibold text-base shadow-lg"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Creating Tournament...
+              </>
+            ) : (
+              "Create Tournament"
+            )}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }

@@ -19,29 +19,6 @@ const userSchema = new mongoose.Schema(
 
     // Profile completion tracking
     isProfileComplete: { type: Boolean, default: false },
-
-    // Subscription fields
-    subscription: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Subscription",
-    },
-    subscriptionTier: {
-      type: String,
-      enum: ["free", "pro", "premium", "enterprise"],
-      default: "free",
-    },
-
-    // Quick access cache (denormalized for performance)
-    subscriptionStatus: {
-      type: String,
-      enum: ["active", "trial", "expired", "cancelled"],
-      default: "active",
-    },
-    subscriptionExpiresAt: { type: Date },
-
-    // Feature flags (computed from subscription)
-    hasAdvancedAnalytics: { type: Boolean, default: false },
-    canExportData: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

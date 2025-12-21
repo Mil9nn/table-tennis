@@ -16,7 +16,7 @@ import { IndividualMatch } from "@/types/match.type";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDate, getAvatarFallbackStyle } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import ShotFeed from "../live-scorer/common/ShotFeed";
 import { useSearchParams } from "next/navigation";
 
@@ -94,7 +94,7 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
                     >
                       <Avatar className="h-12 w-12 border-2 border-yellow-400">
                         <AvatarImage src={p.profileImage} alt={p.fullName} />
-                        <AvatarFallback className="font-semibold" style={getAvatarFallbackStyle(p._id)}>
+                        <AvatarFallback className="bg-yellow-100 text-yellow-700 font-semibold">
                           {getInitial(p.fullName || p.username)}
                         </AvatarFallback>
                       </Avatar>
@@ -238,7 +238,7 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
                         className="h-10 w-10 ring-1 ring-slate-700"
                       >
                         <AvatarImage src={p.profileImage} alt={p.fullName} />
-                        <AvatarFallback style={getAvatarFallbackStyle(p._id)}>
+                        <AvatarFallback className="bg-slate-700 text-white">
                           {getInitial(p.fullName || p.username)}
                         </AvatarFallback>
                       </Avatar>
@@ -257,7 +257,7 @@ export default function LiveMatchDetails({ matchId }: { matchId: string }) {
                           className="h-10 w-10 ring-1 ring-slate-700"
                         >
                           <AvatarImage src={p.profileImage} alt={p.fullName} />
-                          <AvatarFallback style={getAvatarFallbackStyle(p._id)}>
+                          <AvatarFallback className="bg-slate-700 text-white">
                             {getInitial(p.fullName || p.username)}
                           </AvatarFallback>
                         </Avatar>

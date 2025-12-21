@@ -8,7 +8,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { useInView } from "@/hooks/useInView";
 
 const COLORS = {
   serve: "#F4A261", // warm amber — NOT green
@@ -24,13 +23,11 @@ interface ServeReceiveChartProps {
 }
 
 export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
-  const { ref, isInView } = useInView({ threshold: 0.2 });
-
   if (data.length === 0) return null;
 
   return (
-    <section ref={ref}>
-      <header className="pb-2">
+    <Card className="rounded-2xl border border-gray-800 bg-black text-white shadow-lg">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg font-semibold tracking-tight">
@@ -41,14 +38,17 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
             </p>
           </div>
         </div>
-      </header>
+      </CardHeader>
 
-      {/* Smaller + sleek chart height */}
-      <div className="h-56 w-full">
-        {isInView && (
+      <CardContent>
+        {/* Smaller + sleek chart height */}
+        <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} barGap={6} barCategoryGap="20%">
-              <XAxis dataKey="player" tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+              <XAxis
+                dataKey="player"
+                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+              />
               <YAxis
                 width={28}
                 allowDecimals={false}
@@ -90,8 +90,8 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
               />
             </BarChart>
           </ResponsiveContainer>
-        )}
-      </div>
-    </section>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

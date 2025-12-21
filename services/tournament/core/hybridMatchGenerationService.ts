@@ -270,13 +270,6 @@ export async function transitionToKnockoutPhase(
   // Complete transition
   completeTransitionToKnockout(tournament);
 
-  // Save tournament with bracket and knockout phase data
-  if (options.session) {
-    await tournament.save({ session: options.session });
-  } else {
-    await tournament.save();
-  }
-
   return {
     success: true,
     phase: "knockout",

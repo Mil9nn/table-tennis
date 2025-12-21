@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { ChevronLeft, Loader2, Info } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isIndividualMatch } from "@/types/match.type";
 import { useMatchStore } from "@/hooks/useMatchStore";
@@ -29,8 +29,9 @@ export default function MatchDetailsPage() {
 
   useEffect(() => {
     fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
-  }, [matchId, categoryParam, fetchMatch]);
+  }, [matchId, categoryParam]);
 
+  // Ensure user is loaded
   useEffect(() => {
     if (!authLoading && !user) {
       fetchUser().catch(() => {});
@@ -39,104 +40,93 @@ export default function MatchDetailsPage() {
 
   if (fetchingMatch) {
     return (
-      <div className="w-full h-[calc(100vh-110px)] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin size-6 text-zinc-500" />
-        <span className="text-sm font-medium text-zinc-600">
-          Retrieving Match Data...
-        </span>
+      <div className="w-full h-[calc(100vh-110px)] flex items-center justify-center gap-2 px-4">
+        <Loader2 className="animate-spin size-5 text-blue-600" />
+        <span className="text-sm font-medium">Loading match...</span>
       </div>
     );
   }
 
   if (!match) {
     return (
-      <div className="container mx-auto py-24 px-4 text-center">
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-          Match Not Found
-        </h2>
-        <p className="text-zinc-500 mt-2">
-          The record you are looking for does not exist or has been moved.
-        </p>
+      <div className="container mx-auto py-12 px-4 text-center text-lg font-semibold">
+        Match not found
       </div>
     );
   }
 
+  // Handle scorer comparison - scorer can be string, ObjectId, or populated object
   const getScorerId = (scorer: any): string | null => {
     if (!scorer) return null;
     if (typeof scorer === "string") return scorer;
-    return scorer._id ? String(scorer._id) : null;
+    if (scorer._id) return String(scorer._id);
+    if (scorer.toString) return String(scorer);
+    return null;
   };
 
-  const isScorer = !!(
-    getScorerId(match.scorer) &&
-    user?._id &&
-    getScorerId(match.scorer) === String(user._id)
-  );
+  const scorerId = getScorerId(match.scorer);
+  const userId = user?._id ? String(user._id) : null;
+  
+  // Compare scorer ID with user ID (normalize both to strings for comparison)
+  // Also check if user is the tournament organizer (fallback for matches without scorer)
+  const isScorer = !!(scorerId && userId && scorerId === userId);
+  
+  const isSingles = isIndividualMatch(match) && match.matchType === "singles";
+
   const router = useRouter();
 
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Header - Professional Slim Design */}
-      <header className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 rounded border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              aria-label="Go back"
-            >
-              <ChevronLeft className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-            </button>
-            <div className="ml-2">
-              <h1 className="text-sm font-bold tracking-tight uppercase">
-                {isIndividualMatch(match) ? match.matchType : "Team"} Match
-                Details
-              </h1>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 -ml-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+          </button>
+          <div className="flex-1 flex items-center justify-between">
+            <div>
+              <p className="capitalize font-semibold text-zinc-900 dark:text-zinc-100">
+                {isIndividualMatch(match) ? `${match.matchType} Match` : "Team Match"}
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Match Details</p>
             </div>
+            <MatchStatusBadge status={match.status} />
           </div>
-          <MatchStatusBadge status={match.status} />
         </div>
       </header>
 
-      {/* Content Layout - Split View for Desktop, Single Column for Mobile */}
-      <main className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 1. Score Highlight Card */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <MatchScore match={match} />
+      {/* Content */}
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* Score Card */}
+        <MatchScore match={match} />
 
-              {/* 2. Team Rosters / Formats */}
-              {!isIndividualMatch(match) && (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                      Squad & Lineup
-                    </h3>
-                  </div>
-                  <TeamMatchFormat match={match} />
-                  <TeamMatchLineup match={match} />
-                </div>
-              )}
+        {/* Team Participants (Team matches only) */}
+        {!isIndividualMatch(match) && (
+          <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <TeamMatchFormat match={match} />
+            <TeamMatchLineup match={match} />
+          </section>
+        )}
 
-              {/* 3. Game-by-Game Breakdown */}
-              {isIndividualMatch(match) && match.games?.length > 0 && (
-                <GamesHistory match={match} />
-              )}
+        {/* Match Info */}
+        <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <MatchInfo match={match} />
+        </section>
 
-              {/* 4. Sidebar Area */}
-              <div className="">
-                <MatchInfo match={match} />
-                <MatchActions
-                  match={match}
-                  matchId={matchId}
-                  isScorer={isScorer}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Games History (Individual only) */}
+        {isIndividualMatch(match) && match.games?.length > 0 && (
+          <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <GamesHistory match={match} />
+          </section>
+        )}
+
+        {/* Actions */}
+        <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <MatchActions match={match} matchId={matchId} isScorer={isScorer} />
+        </section>
       </main>
     </div>
   );

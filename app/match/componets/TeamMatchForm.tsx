@@ -13,15 +13,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings2, Users2, MapPin, Trophy } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
 import CustomFormatConfig from "./CustomFormatConfig";
 import PositionAssignment from "./PositionAssignment";
-import { cn } from "@/lib/utils";
 import {
   teamMatchCreateSchema,
   TeamMatchFormValues,
@@ -29,8 +34,6 @@ import {
   getTeam2Positions,
   teamMatchFormats,
 } from "@/shared/match/teamMatchSchemas";
-
-import WorkspacesIcon from '@mui/icons-material/Workspaces';
 
 export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,10 +49,13 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
     defaultValues: {
       matchFormat: "five_singles",
       setsPerTie: "3",
+      team1Id: "",
+      team2Id: "",
       city: "",
       venue: "",
       team1Assignments: {},
       team2Assignments: {},
+      customConfig: undefined,
     },
   });
 
@@ -57,14 +63,24 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
   const team1Id = form.watch("team1Id");
   const team2Id = form.watch("team2Id");
 
+  // Fetch team details when team is selected
   useEffect(() => {
     if (team1Id) {
       axiosInstance.get(`/teams/${team1Id}`).then((res) => {
         const team = res.data.team;
         setTeam1Data(team);
-        const assignments = team.assignments || {};
-        setTeam1Assignments(assignments);
-        form.setValue("team1Assignments", assignments);
+        // Initialize assignments from existing team data if available
+        if (team.assignments) {
+          const assignmentsObj: Record<string, string> = {};
+          for (const [key, value] of Object.entries(team.assignments)) {
+            assignmentsObj[key] = value as string;
+          }
+          setTeam1Assignments(assignmentsObj);
+          form.setValue("team1Assignments", assignmentsObj);
+        } else {
+          setTeam1Assignments({});
+          form.setValue("team1Assignments", {});
+        }
       });
     }
   }, [team1Id, form]);
@@ -74,207 +90,310 @@ export default function TeamMatchForm({ endpoint }: { endpoint: string }) {
       axiosInstance.get(`/teams/${team2Id}`).then((res) => {
         const team = res.data.team;
         setTeam2Data(team);
-        const assignments = team.assignments || {};
-        setTeam2Assignments(assignments);
-        form.setValue("team2Assignments", assignments);
+        // Initialize assignments from existing team data if available
+        if (team.assignments) {
+          const assignmentsObj: Record<string, string> = {};
+          for (const [key, value] of Object.entries(team.assignments)) {
+            assignmentsObj[key] = value as string;
+          }
+          setTeam2Assignments(assignmentsObj);
+          form.setValue("team2Assignments", assignmentsObj);
+        } else {
+          setTeam2Assignments({});
+          form.setValue("team2Assignments", {});
+        }
       });
     }
   }, [team2Id, form]);
 
-  const handleAssignmentChange = (teamNum: 1 | 2, playerId: string, position: string | null) => {
-    const setter = teamNum === 1 ? setTeam1Assignments : setTeam2Assignments;
-    const fieldName = teamNum === 1 ? "team1Assignments" : "team2Assignments";
 
-    setter((prev) => {
-      const next = { ...prev };
-      if (position === null) delete next[playerId];
-      else next[playerId] = position;
-      form.setValue(fieldName, next, { shouldValidate: true });
-      return next;
+
+  const handleTeam1AssignmentChange = (playerId: string, position: string | null) => {
+    setTeam1Assignments((prev) => {
+      const newAssignments = { ...prev };
+      if (position === null) {
+        delete newAssignments[playerId];
+      } else {
+        newAssignments[playerId] = position;
+      }
+      // Update form value for validation
+      form.setValue("team1Assignments", newAssignments, { shouldValidate: true });
+      return newAssignments;
+    });
+  };
+
+  const handleTeam2AssignmentChange = (playerId: string, position: string | null) => {
+    setTeam2Assignments((prev) => {
+      const newAssignments = { ...prev };
+      if (position === null) {
+        delete newAssignments[playerId];
+      } else {
+        newAssignments[playerId] = position;
+      }
+      // Update form value for validation
+      form.setValue("team2Assignments", newAssignments, { shouldValidate: true });
+      return newAssignments;
     });
   };
 
   const handleSubmit = async (data: TeamMatchFormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = {
-        ...data,
+      // All validation is now handled by zod schema
+      const matchData: any = {
+        matchFormat: data.matchFormat,
         setsPerTie: Number(data.setsPerTie),
-        customConfig: data.matchFormat === "custom" ? (data.customConfig || customConfig) : undefined,
+        city: data.city,
+        venue: data.venue,
+        team1Id: data.team1Id,
+        team2Id: data.team2Id,
+        team1Assignments: data.team1Assignments || team1Assignments,
+        team2Assignments: data.team2Assignments || team2Assignments,
       };
-      const res = await axiosInstance.post(endpoint, payload);
-      router.push(`/matches/${res.data.match._id}?category=team`);
-      toast.success("Team Match Created");
+
+      // Add custom config if custom format
+      if (data.matchFormat === "custom") {
+        matchData.customConfig = data.customConfig || customConfig;
+      }
+
+      const response = await axiosInstance.post(endpoint, matchData);
+      toast.success("Team match created successfully!");
+      router.push(`/matches/${response.data.match._id}?category=team`);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Submission failed");
+      console.error(err);
+      toast.error(err.response?.data?.error || "Failed to create team match");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="py-4 px-4">
+    <div className="p-6">
+      <div className="flex items-center gap-2 mb-6">
+        <h2 className="font-semibold text-lg text-foreground tracking-tight">
+          Team Match Setup
+        </h2>
+      </div>
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          
-          {/* FORMAT CONFIGURATION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-              <Settings2 className="w-3.5 h-3.5 text-slate-600" />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Tournament Format</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                 control={form.control}
-                 name="matchFormat"
-                 render={({ field }) => (
-                   <FormItem className="space-y-1.5">
-                     <FormLabel className="text-sm font-medium text-slate-500">Tie Structure</FormLabel>
-                     <div className="grid grid-cols-3 gap-2">
-                       {teamMatchFormats.map((format) => {
-                         const active = field.value === format.value;
-                         return (
-                           <button
-                             key={format.value}
-                             type="button"
-                             onClick={() => field.onChange(format.value)}
-                             className={cn(
-                               "py-2 text-xs font-bold uppercase rounded-md border-2 transition-all",
-                               active
-                                 ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                                 : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                             )}
-                           >
-                             {format.label}
-                           </button>
-                         );
-                       })}
-                     </div>
-                   </FormItem>
-                 )}
-               />
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          {/* Match Format */}
+          <FormField
+            control={form.control}
+            name="matchFormat"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Team Match Format</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {teamMatchFormats.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Sets Per Tie */}
+          {/* Sets Per Tie (Buttons) */}
+          <FormField
+            control={form.control}
+            name="setsPerTie"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sets Per Tie</FormLabel>
+
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {["1", "3", "5", "7"].map((n) => {
+                    const selected = field.value === n;
+
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => field.onChange(n)}
+                        className={`px-4 py-2 rounded-xl text-sm border transition-all
+                ${
+                  selected
+                    ? "bg-[#667EEA] text-white border-transparent shadow"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }
+              `}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Teams */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="team1Id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team 1</FormLabel>
+                  <FormControl>
+                    <TeamSearchInput
+                      placeholder="Search Team 1"
+                      onSelect={(team) => field.onChange(team._id)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="team2Id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team 2</FormLabel>
+                  <FormControl>
+                    <TeamSearchInput
+                      placeholder="Search Team 2"
+                      onSelect={(team) => field.onChange(team._id)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Position Assignment for non-custom formats */}
+          {matchFormat !== "custom" &&
+           getTeam1Positions(matchFormat).length > 0 &&
+           team1Data &&
+           team2Data && (
+            <div className="space-y-4">
+              <div className="">
+                <h3 className="text-sm font-medium">Assign Player Positions</h3>
+              </div>
 
               <FormField
                 control={form.control}
-                name="setsPerTie"
-                render={({ field }) => (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel className="text-sm font-medium text-slate-500">Sets (Best Of)</FormLabel>
-                    <div className="flex gap-2">
-                      {["1", "3", "5", "7"].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => field.onChange(n)}
-                          className={cn(
-                            "px-4 py-2 text-xs font-bold rounded-md border-2 transition-all",
-                            field.value === n
-                              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                          )}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
+                name="team1Assignments"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <PositionAssignment
+                        teamName={team1Data.name}
+                        players={team1Data.players || []}
+                        positions={getTeam1Positions(matchFormat)}
+                        assignments={team1Assignments}
+                        onAssignmentChange={handleTeam1AssignmentChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="team2Assignments"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <PositionAssignment
+                        teamName={team2Data.name}
+                        players={team2Data.players || []}
+                        positions={getTeam2Positions(matchFormat)}
+                        assignments={team2Assignments}
+                        onAssignmentChange={handleTeam2AssignmentChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-          </section>
-
-          {/* TEAM SELECTION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-              <WorkspacesIcon fontSize="small" className="text-slate-600" />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Competing Teams</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField control={form.control} name="team1Id" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-bold uppercase text-slate-600">Team A</FormLabel>
-                  <FormControl>
-                    <TeamSearchInput onSelect={(team) => field.onChange(team._id)} />
-                  </FormControl>
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="team2Id" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-bold uppercase text-slate-600">Team B</FormLabel>
-                  <FormControl>
-                    <TeamSearchInput onSelect={(team) => field.onChange(team._id)} />
-                  </FormControl>
-                </FormItem>
-              )} />
-            </div>
-          </section>
-
-          {/* DYNAMIC ASSIGNMENTS */}
-          {matchFormat !== "custom" && team1Data && team2Data && (
-            <section className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                <Users2 className="w-3.5 h-3.5 text-slate-600" />
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Roster Assignment</h2>
-              </div>
-              <div className="space-y-6">
-                <PositionAssignment
-                  teamName={team1Data.name}
-                  players={team1Data.players || []}
-                  positions={getTeam1Positions(matchFormat)}
-                  assignments={team1Assignments}
-                  onAssignmentChange={(p, pos) => handleAssignmentChange(1, p, pos)}
-                />
-                <PositionAssignment
-                  teamName={team2Data.name}
-                  players={team2Data.players || []}
-                  positions={getTeam2Positions(matchFormat)}
-                  assignments={team2Assignments}
-                  onAssignmentChange={(p, pos) => handleAssignmentChange(2, p, pos)}
-                />
-              </div>
-            </section>
           )}
 
-          {/* CUSTOM CONFIG */}
+          {/* Custom Format Configuration */}
           {matchFormat === "custom" && team1Data && team2Data && (
-               <CustomFormatConfig
-                  team1Players={team1Data.players || []}
-                  team2Players={team2Data.players || []}
-                  team1Name={team1Data.name}
-                  team2Name={team2Data.name}
-                  onChange={(config) => form.setValue("customConfig", config, { shouldValidate: true })}
-                />
+            <FormField
+              control={form.control}
+              name="customConfig"
+              render={() => (
+                <FormItem>
+                  <FormControl>
+                    <CustomFormatConfig
+                      team1Players={team1Data.players || []}
+                      team2Players={team2Data.players || []}
+                      team1Name={team1Data.name}
+                      team2Name={team2Data.name}
+                      onChange={(config) => {
+                        setCustomConfig(config);
+                        form.setValue("customConfig", config, { shouldValidate: true });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
 
-          {/* LOCATION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-              <MapPin className="w-3.5 h-3.5 text-slate-600" />
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Venue Details</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="city" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-slate-500">City</FormLabel>
-                  <FormControl><Input className="h-8 text-xs border-slate-200" {...field} /></FormControl>
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="venue" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-slate-500">Venue</FormLabel>
-                  <FormControl><Input className="h-8 text-xs border-slate-200" {...field} /></FormControl>
-                </FormItem>
-              )} />
-            </div>
-          </section>
+          {/* City */}
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter city" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <Button 
-            type="submit" 
+          {/* Venue */}
+          <FormField
+            control={form.control}
+            name="venue"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Venue</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter venue" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full py-6 rounded-xl bg-[#667eea] hover:bg-[#5a6fe0] text-white text-sm font-medium shadow-md"
             disabled={isSubmitting}
-            className="w-full h-10 bg-slate-900 hover:bg-black text-white text-sm font-bold uppercase tracking-[0.2em] transition-all"
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Finalize Team Match"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin size-5" />
+                Creating...
+              </>
+            ) : (
+              "Create Team Match"
+            )}
           </Button>
         </form>
       </Form>

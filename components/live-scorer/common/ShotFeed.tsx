@@ -102,7 +102,7 @@ export default function ShotFeed({
             {isExpanded && (
               <ul className="divide-y divide-gray-200 dark:divide-zinc-800 px-4 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                 {shots.length ? (
-                  [...shots].reverse().map((shot, i) => {
+                  shots.map((shot, i) => {
                     const player = participants.find(
                       (p) => p._id === shot.player._id
                     );
@@ -125,11 +125,9 @@ export default function ShotFeed({
                     // Calculate game score at the time of this shot
                     // Count shots by side up to and including this shot
                     // Support both individual (side1/side2) and team (team1/team2) matches
-                    // Since array is reversed, calculate the original index
-                    const originalIndex = shots.length - 1 - i;
                     let gameScoreSide1 = 0;
                     let gameScoreSide2 = 0;
-                    for (let j = 0; j <= originalIndex; j++) {
+                    for (let j = 0; j <= i; j++) {
                       const shotSide = shots[j].side;
                       if (shotSide === "side1" || shotSide === "team1") {
                         gameScoreSide1++;
@@ -185,7 +183,7 @@ export default function ShotFeed({
                       >
                         {/* Shot number */}
                         <span className="text-gray-400 dark:text-zinc-500 font-mono text-xs pt-0.5">
-                          {shots.length - i}.
+                          {i + 1}.
                         </span>
 
                         {/* Shot commentary with color accent */}

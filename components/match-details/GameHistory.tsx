@@ -9,9 +9,9 @@ export default function GamesHistory({ match }: Props) {
   if (!match.games?.length) return null;
 
   return (
-    <div className="p-4 border-b border-zinc-100">
-      <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
-        Set Scores
+    <div className="p-4">
+      <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+        Game Scores
       </h3>
       <div className="space-y-2 p-2">
         {match.games.map((g: any) => {
@@ -21,10 +21,10 @@ export default function GamesHistory({ match }: Props) {
           return (
             <div
               key={g.gameNumber}
-              className="flex items-center justify-between"
+              className="flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-zinc-800/50"
             >
               <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                Set {g.gameNumber}
+                Game {g.gameNumber}
               </span>
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-semibold tabular-nums ${

@@ -1,5 +1,5 @@
-"use client";
-
+import { Badge } from "@/components/ui/badge";
+import { Trophy } from "lucide-react";
 import { isIndividualMatch, Match } from "@/types/match.type";
 
 interface Props {
@@ -7,116 +7,134 @@ interface Props {
 }
 
 export default function MatchScore({ match }: Props) {
-  const isIndividual = isIndividualMatch(match);
+  if (isIndividualMatch(match)) {
+    return <IndividualMatchScore match={match} />;
+  }
+  return <TeamMatchScore match={match} />;
+}
+
+function IndividualMatchScore({ match }: { match: any }) {
+  if (!match.finalScore) return null;
+
+  const isDoubles = match.matchType === "doubles";
+  const side1Won = match.winnerSide === "side1";
+  const side2Won = match.winnerSide === "side2";
   const isCompleted = match.status === "completed";
 
+  // For singles: show single player names
+  // For doubles: show both players on each side
+  const side1Players = isDoubles
+    ? [
+        match.participants?.[0]?.fullName || "Player 1",
+        match.participants?.[1]?.fullName || "Player 2"
+      ]
+    : [match.participants?.[0]?.fullName || "Player 1"];
+
+  const side2Players = isDoubles
+    ? [
+        match.participants?.[2]?.fullName || "Player 3",
+        match.participants?.[3]?.fullName || "Player 4"
+      ]
+    : [match.participants?.[1]?.fullName || "Player 2"];
+
   return (
-    <div className="p-6 border-b border-zinc-100">
-      <div className="max-w-md mx-auto space-y-4">
-        {/* Header Label */}
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-            {isIndividual ? "Individual Match" : "Team Match"}
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-            {isIndividual ? "Sets" : "Matches"}
+    <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-6 text-center">
+      <div className="flex items-center justify-center gap-8">
+        {/* Side 1 */}
+        <div className="flex-1 text-right">
+          <div className={`text-sm font-medium mb-2 ${
+            side1Won ? "text-emerald-400" : "text-zinc-400"
+          }`}>
+            {side1Players.map((name, idx) => (
+              <p key={idx} className="truncate">
+                {name}
+              </p>
+            ))}
+          </div>
+          <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
+            side1Won ? "text-emerald-400" : "text-white"
+          }`}>
+            {match.finalScore.side1Sets}
           </span>
         </div>
 
-        {/* Competitors List */}
-        <div className="space-y-3">
-          {isIndividual ? (
-            <IndividualRows match={match} />
-          ) : (
-            <TeamRows match={match} />
-          )}
+        {/* Divider */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-2xl text-zinc-500 font-light">:</span>
         </div>
 
-        {/* Status / Footer */}
-        <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex justify-center">
-          <p className="text-[11px] font-medium text-zinc-500 italic">
-            {isCompleted ? "Result" : "Match in Progress"}
-          </p>
+        {/* Side 2 */}
+        <div className="flex-1 text-left">
+          <div className={`text-sm font-medium mb-2 ${
+            side2Won ? "text-emerald-400" : "text-zinc-400"
+          }`}>
+            {side2Players.map((name, idx) => (
+              <p key={idx} className="truncate">
+                {name}
+              </p>
+            ))}
+          </div>
+          <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
+            side2Won ? "text-emerald-400" : "text-white"
+          }`}>
+            {match.finalScore.side2Sets}
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-function IndividualRows({ match }: { match: any }) {
-  const isDoubles = match.matchType === "doubles";
-
-  const side1Players = isDoubles
-    ? `${match.participants?.[0]?.fullName || "P1"} / ${
-        match.participants?.[1]?.fullName || "P2"
-      }`
-    : match.participants?.[0]?.fullName || "Player 1";
-
-  const side2Players = isDoubles
-    ? `${match.participants?.[2]?.fullName || "P3"} / ${
-        match.participants?.[3]?.fullName || "P4"
-      }`
-    : match.participants?.[1]?.fullName || "Player 2";
+function TeamMatchScore({ match }: { match: any }) {
+  const team1Won = match.winnerTeam === "team1";
+  const team2Won = match.winnerTeam === "team2";
+  const isCompleted = match.status === "completed";
 
   return (
-    <div>
-      <ScoreRow
-        name={side1Players}
-        score={match.finalScore?.side1Sets || 0}
-        isWinner={match.winnerSide === "side1"}
-      />
-      <ScoreRow
-        name={side2Players}
-        score={match.finalScore?.side2Sets || 0}
-        isWinner={match.winnerSide === "side2"}
-      />
-    </div>
-  );
-}
+    <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-6 text-center">
+      <div className="flex items-center justify-center gap-6">
+        {/* Team 1 */}
+        <div className="flex-1 text-right">
+          <p className={`text-sm font-medium mb-2 truncate ${
+            team1Won ? "text-emerald-400" : "text-zinc-400"
+          }`}>
+            {match.team1.name}
+          </p>
+          <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
+            team1Won ? "text-emerald-400" : "text-white"
+          }`}>
+            {match.finalScore.team1Matches}
+          </span>
+        </div>
 
-function TeamRows({ match }: { match: any }) {
-  return (
-    <div>
-      <ScoreRow
-        name={match.team1.name}
-        score={match.finalScore?.team1Matches || 0}
-        isWinner={match.winnerTeam === "team1"}
-      />
-      <ScoreRow
-        name={match.team2.name}
-        score={match.finalScore?.team2Matches || 0}
-        isWinner={match.winnerTeam === "team2"}
-      />
-    </div>
-  );
-}
+        {/* Divider */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-2xl text-zinc-500 font-light">:</span>
+        </div>
 
-function ScoreRow({
-  name,
-  score,
-  isWinner,
-}: {
-  name: string;
-  score: number;
-  isWinner: boolean;
-}) {
-  return (
-    <div className={`flex items-center justify-between gap-4`}>
-      <p
-        className={`text-sm font-semibold truncate ${
-          isWinner ? "text-emerald-600 dark:text-white" : "text-zinc-500"
-        }`}
-      >
-        {name}
-      </p>
+        {/* Team 2 */}
+        <div className="flex-1 text-left">
+          <p className={`text-sm font-medium mb-2 truncate ${
+            team2Won ? "text-emerald-400" : "text-zinc-400"
+          }`}>
+            {match.team2.name}
+          </p>
+          <span className={`text-4xl sm:text-5xl font-bold tabular-nums ${
+            team2Won ? "text-emerald-400" : "text-white"
+          }`}>
+            {match.finalScore.team2Matches}
+          </span>
+        </div>
+      </div>
 
-      <span
-        className={`text-xl font-black tabular-nums ${
-          isWinner ? "text-emerald-600 dark:text-white" : "text-zinc-400"
-        }`}
-      >
-        {score}
-      </span>
+      {isCompleted && match.winnerTeam && (
+        <div className="mt-4 pt-4 border-t border-zinc-700">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-medium">
+            <Trophy className="w-4 h-4" />
+            {match.winnerTeam === "team1" ? match.team1.name : match.team2.name} wins
+          </div>
+        </div>
+      )}
     </div>
   );
 }

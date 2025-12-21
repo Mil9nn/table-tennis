@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import MatchesList from "@/components/MatchesList";
 import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Plus, Search, Loader2, Filter, X } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,9 +48,6 @@ export default function MatchesPage() {
   const [teamSearch, setTeamSearch] = useState("");
   const [teamFilterFormat, setTeamFilterFormat] = useState("all");
   const [teamFilterStatus, setTeamFilterStatus] = useState("all");
-
-  // Show/hide filters
-  const [showFilters, setShowFilters] = useState(false);
 
   // Intersection Observer refs
   const individualObserverTarget = useRef<HTMLDivElement>(null);
@@ -240,112 +237,96 @@ export default function MatchesPage() {
 
   return (
     <div>
-      <div className="p-4 space-y-4" style={{ backgroundColor: '#323139' }}>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Matches</h1>
-          <p className= "text-sm text-zinc-400 mt-1">Track and manage your table tennis competitions</p>
-        </div>
+      {/* HEADER AREA — same as before */}
+      <div className="p-4 bg-white border-b space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tight text-neutral-900">Matches</h1>
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-zinc-400 size-4" />
-            <Input
-              placeholder={activeTab === "individual" ? "Search by player name..." : "Search by team name..."}
-              value={activeTab === "individual" ? individualSearch : teamSearch}
-              onChange={(e) => activeTab === "individual" ? setIndividualSearch(e.target.value) : setTeamSearch(e.target.value)}
-              className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-sm rounded-lg focus:ring-2 focus:ring-zinc-700"
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowFilters(!showFilters)}
-            className="shrink-0 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
-          >
-            <Filter className="size-4" />
+          <Button asChild className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition">
+            <Link href="/match/create">
+              <Plus className="w-4 h-4" />
+              New Match
+            </Link>
           </Button>
         </div>
 
-        {/* Filter Panel */}
-        {showFilters && (
-          <div className="bg-zinc-900 rounded-lg p-4 space-y-3 border border-zinc-800">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-white">Filters</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFilters(false)}
-                className="size-6 hover:bg-zinc-800 text-zinc-400"
-              >
-                <X className="size-4" />
-              </Button>
+        {/* Filters */}
+        {activeTab === "individual" && (
+          <div className="space-y-2 mb-6 flex items-center justify-between gap-4 flex-wrap">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
+              <Input
+                placeholder="Search by player name..."
+                value={individualSearch}
+                onChange={(e) => setIndividualSearch(e.target.value)}
+                className="pl-8 bg-white h-10 text-sm rounded-full"
+              />
             </div>
 
-            {activeTab === "individual" ? (
-              <>
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Type</label>
-                  <Select value={individualFilterType} onValueChange={setIndividualFilterType}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="singles">Singles</SelectItem>
-                      <SelectItem value="doubles">Doubles</SelectItem>
-                      <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="flex gap-3 flex-wrap">
+              <Select value={individualFilterType} onValueChange={setIndividualFilterType}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="singles">Singles</SelectItem>
+                  <SelectItem value="doubles">Doubles</SelectItem>
+                  <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
+                </SelectContent>
+              </Select>
 
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Status</label>
-                  <Select value={individualFilterStatus} onValueChange={setIndividualFilterStatus}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="in_progress">Live</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Format</label>
-                  <Select value={teamFilterFormat} onValueChange={setTeamFilterFormat}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Formats</SelectItem>
-                      <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
-                      <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <Select value={individualFilterStatus} onValueChange={setIndividualFilterStatus}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Status</label>
-                  <Select value={teamFilterStatus} onValueChange={setTeamFilterStatus}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="in_progress">Live</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
+        {activeTab === "team" && (
+          <div className="space-y-2 mb-6 flex items-center justify-between gap-4 flex-wrap">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
+              <Input
+                placeholder="Search by team name..."
+                value={teamSearch}
+                onChange={(e) => setTeamSearch(e.target.value)}
+                className="pl-8 bg-white h-10 text-sm rounded-full"
+              />
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
+              <Select value={teamFilterFormat} onValueChange={setTeamFilterFormat}>
+                <SelectTrigger className="w-48 bg-white h-10 text-sm rounded-lg">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Formats</SelectItem>
+                  <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
+                  <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={teamFilterStatus} onValueChange={setTeamFilterStatus}>
+                <SelectTrigger className="w-40 bg-white h-10 text-sm rounded-lg">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">Live</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </div>

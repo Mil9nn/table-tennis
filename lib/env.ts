@@ -82,28 +82,6 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .default("false"),
-
-  // Stripe Payment Processing (optional - for subscription features)
-  STRIPE_SECRET_KEY: z
-    .string()
-    .min(1, "STRIPE_SECRET_KEY is required for subscription features")
-    .optional(),
-  STRIPE_WEBHOOK_SECRET: z
-    .string()
-    .min(1, "STRIPE_WEBHOOK_SECRET is required for webhook verification")
-    .optional(),
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
-    .string()
-    .min(1, "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is required for client-side Stripe")
-    .optional(),
-  STRIPE_PRICE_PRO_YEARLY: z
-    .string()
-    .optional()
-    .describe("Stripe Price ID for Pro yearly subscription"),
-  STRIPE_PRICE_PREMIUM_YEARLY: z
-    .string()
-    .optional()
-    .describe("Stripe Price ID for Premium yearly subscription"),
 });
 
 export const env = (() => {

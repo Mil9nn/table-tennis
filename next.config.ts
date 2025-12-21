@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   /* config options here */
 
   images: {
-    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -16,18 +15,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "api.dicebear.com",
         port: "",
         pathname: "/**",
       },
@@ -74,7 +61,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://res.cloudinary.com https://randomuser.me https://images.unsplash.com https://api.dicebear.com",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://randomuser.me",
               "font-src 'self' data:",
               "connect-src 'self' https://vitals.vercel-insights.com https://*.upstash.io https://app.glitchtip.com wss://*.pusher.com wss://ws-*.pusher.com ws://localhost:* http://localhost:*",
               "frame-ancestors 'none'",
