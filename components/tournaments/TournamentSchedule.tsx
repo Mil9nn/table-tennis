@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Users } from "lucide-react";
+import { getAvatarFallbackStyle } from "@/lib/utils";
 
 interface Participant {
   _id: string;
@@ -283,7 +284,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                       {getImage(p) ? (
                                         <AvatarImage src={getImage(p)} />
                                       ) : (
-                                        <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                        <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(p?._id)}>
                                           {initials(p)}
                                         </AvatarFallback>
                                       )}
@@ -308,7 +309,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                 {getImage(participant1) ? (
                                   <AvatarImage src={getImage(participant1)} />
                                 ) : (
-                                  <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                  <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(participant1?._id)}>
                                     {initials(participant1)}
                                   </AvatarFallback>
                                 )}
@@ -353,7 +354,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                       {getImage(p) ? (
                                         <AvatarImage src={getImage(p)} />
                                       ) : (
-                                        <AvatarFallback className="bg-blue-400 text-white text-xs">
+                                        <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(p?._id)}>
                                           {initials(p)}
                                         </AvatarFallback>
                                       )}
@@ -387,7 +388,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                 {getImage(participant2) ? (
                                   <AvatarImage src={getImage(participant2)} />
                                 ) : (
-                                  <AvatarFallback className="text-xs bg-blue-400 text-white">
+                                  <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(participant2?._id)}>
                                     {initials(participant2)}
                                   </AvatarFallback>
                                 )}

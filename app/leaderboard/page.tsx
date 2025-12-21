@@ -6,11 +6,13 @@ import { Loader2 } from "lucide-react";
 import { useLeaderboard } from "./hooks/useLeaderboard";
 import { PlayerLeaderboard, TeamLeaderboard, TournamentLeaderboard } from "./components";
 import type { LeaderboardType } from "./types";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 export default function LeaderboardPage() {
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<LeaderboardType>("singles");
   const {
     leaderboard,
@@ -74,10 +76,28 @@ export default function LeaderboardPage() {
       {/* -------------------------------------------------- */}
       {/*  HERO HEADER */}
       {/* -------------------------------------------------- */}
-      <header className="px-4 py-10 rounded-b-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 shadow-lg">
-        <div className="text-white">
-          <h1 className="text-3xl font-bold tracking-tight">Leaderboards</h1>
-          <p className="text-sm opacity-80 mt-1">
+      <header
+        className="px-6 p-4 flex flex-col justify-center"
+        style={{
+          backgroundColor: '#323139',
+          boxShadow: '0 4px 20px rgba(50, 49, 57, 0.08)'
+        }}
+      >
+        <div className="lb-font-primary">
+          <h1
+            className="text-[2.5rem] md:text-[2.5rem] font-bold tracking-tight"
+            style={{ color: '#ffffff' }}
+          >
+            Leaderboards
+          </h1>
+          <div
+            className="w-15 h-1 mt-3 mb-4"
+            style={{ backgroundColor: '#18c3f8' }}
+          />
+          <p
+            className="text-[0.9375rem]"
+            style={{ color: '#ccbcbc' }}
+          >
             Rankings across all match categories and tournaments
           </p>
         </div>
@@ -86,25 +106,40 @@ export default function LeaderboardPage() {
       {/* -------------------------------------------------- */}
       {/*  TABS */}
       {/* -------------------------------------------------- */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md mt-6">
+      <div
+        className="sticky top-0 z-20"
+        style={{
+          backgroundColor: '#ffffff',
+          boxShadow: '0 2px 16px rgba(50, 49, 57, 0.08)'
+        }}
+      >
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as LeaderboardType)}
           className="w-full"
         >
           <TabsList
-            className="
-              flex flex-wrap w-full h-auto
-              rounded-none p-0 border-b border-slate-200/50
-            "
+            className="flex flex-wrap w-full h-auto rounded-none p-0"
+            style={{
+              borderBottom: '2px solid rgba(204, 188, 188, 0.3)',
+              backgroundColor: 'transparent'
+            }}
           >
               <TabsTrigger
                 value="singles"
                 className="
-                  flex-1 px-4 py-2 text-sm rounded-none
-                  data-[state=active]:bg-white data-[state=active]:shadow
-                  transition-all
+                  lb-font-primary
+                  flex-1 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
+                  transition-all duration-250
+                  data-[state=inactive]:opacity-60
+                  data-[state=active]:font-semibold
+                  data-[state=active]:opacity-100
+                  hover:bg-[rgba(204,188,188,0.08)]
                 "
+                style={{
+                  color: '#323139',
+                  borderBottom: activeTab === 'singles' ? '3px solid #18c3f8' : '3px solid transparent'
+                }}
               >
                 Singles
               </TabsTrigger>
@@ -112,10 +147,18 @@ export default function LeaderboardPage() {
               <TabsTrigger
                 value="doubles"
                 className="
-                  flex-1 px-4 py-2 text-sm rounded-none
-                  data-[state=active]:bg-white data-[state=active]:shadow
-                  transition-all
+                  lb-font-primary
+                  flex-1 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
+                  transition-all duration-250
+                  data-[state=inactive]:opacity-60
+                  data-[state=active]:font-semibold
+                  data-[state=active]:opacity-100
+                  hover:bg-[rgba(204,188,188,0.08)]
                 "
+                style={{
+                  color: '#323139',
+                  borderBottom: activeTab === 'doubles' ? '3px solid #18c3f8' : '3px solid transparent'
+                }}
               >
                 Doubles
               </TabsTrigger>
@@ -123,10 +166,18 @@ export default function LeaderboardPage() {
               <TabsTrigger
                 value="mixed_doubles"
                 className="
-                  flex-1 px-4 py-2 text-sm rounded-none
-                  data-[state=active]:bg-white data-[state=active]:shadow
-                  transition-all
+                  lb-font-primary
+                  flex-1 px-4 py-3 text-xs font-medium uppercase tracking-wide rounded-none
+                  transition-all duration-250
+                  data-[state=inactive]:opacity-60
+                  data-[state=active]:font-semibold
+                  data-[state=active]:opacity-100
+                  hover:bg-[rgba(204,188,188,0.08)]
                 "
+                style={{
+                  color: '#323139',
+                  borderBottom: activeTab === 'mixed_doubles' ? '3px solid #18c3f8' : '3px solid transparent'
+                }}
               >
                 Mixed Doubles
               </TabsTrigger>
@@ -134,24 +185,46 @@ export default function LeaderboardPage() {
               <TabsTrigger
                 value="teams"
                 className="
-                  flex-1 flex items-center justify-center gap-1 px-4 py-2 text-sm rounded-none
-                  data-[state=active]:bg-white data-[state=active]:shadow
-                  transition-all
+                  lb-font-primary
+                  flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
+                  transition-all duration-250
+                  data-[state=inactive]:opacity-60
+                  data-[state=active]:font-semibold
+                  data-[state=active]:opacity-100
+                  hover:bg-[rgba(204,188,188,0.08)]
                 "
+                style={{
+                  color: '#323139',
+                  borderBottom: activeTab === 'teams' ? '3px solid #18c3f8' : '3px solid transparent'
+                }}
               >
-                <GroupWorkIcon className="size-4 text-gray-700" />
+                <GroupWorkIcon
+                  className="size-4"
+                  style={{ color: '#323139' }}
+                />
                 Teams
               </TabsTrigger>
 
               <TabsTrigger
                 value="tournaments"
                 className="
-                  flex-1 flex items-center justify-center gap-1 px-4 py-2 text-sm rounded-none
-                  data-[state=active]:bg-white data-[state=active]:shadow
-                  transition-all
+                  lb-font-primary
+                  flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
+                  transition-all duration-250
+                  data-[state=inactive]:opacity-60
+                  data-[state=active]:font-semibold
+                  data-[state=active]:opacity-100
+                  hover:bg-[rgba(204,188,188,0.08)]
                 "
+                style={{
+                  color: '#323139',
+                  borderBottom: activeTab === 'tournaments' ? '3px solid #18c3f8' : '3px solid transparent'
+                }}
               >
-                <EmojiEventsIcon className="size-4 text-yellow-600" />
+                <EmojiEventsIcon
+                  className="size-4"
+                  style={{ color: '#18c3f8' }}
+                />
                 Tournaments
               </TabsTrigger>
             </TabsList>
@@ -172,6 +245,7 @@ export default function LeaderboardPage() {
               loading={loading}
               emptyMessage="No singles matches yet"
               matchType="singles"
+              currentUserId={user?._id}
             />
           </LeaderboardTabPanel>
 
@@ -187,6 +261,7 @@ export default function LeaderboardPage() {
               loading={loading}
               emptyMessage="No doubles matches yet"
               matchType="doubles"
+              currentUserId={user?._id}
             />
           </LeaderboardTabPanel>
 
@@ -202,6 +277,7 @@ export default function LeaderboardPage() {
               loading={loading}
               emptyMessage="No mixed doubles matches yet"
               matchType="mixed_doubles"
+              currentUserId={user?._id}
             />
           </LeaderboardTabPanel>
 
@@ -215,6 +291,7 @@ export default function LeaderboardPage() {
             <TeamLeaderboard
               data={teamLeaderboard}
               loading={loading}
+              currentUserId={user?._id}
             />
           </LeaderboardTabPanel>
 
@@ -228,6 +305,7 @@ export default function LeaderboardPage() {
             <TournamentLeaderboard
               data={tournamentLeaderboard}
               loading={loading}
+              currentUserId={user?._id}
             />
           </LeaderboardTabPanel>
 
@@ -260,17 +338,31 @@ function LeaderboardTabPanel({
         {!loading && (
           <div
             ref={observerRef}
-            className="h-20 flex items-center justify-center"
+            className="h-20 flex items-center justify-center lb-font-primary"
           >
             {loadingMore && (
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Loader2 className="animate-spin" size={20} />
-                <span className="text-sm">Loading more…</span>
+              <div className="flex items-center gap-2">
+                <Loader2
+                  className="animate-spin"
+                  size={24}
+                  style={{ color: '#18c3f8' }}
+                />
+                <span
+                  className="text-[0.875rem]"
+                  style={{ color: '#ccbcbc' }}
+                >
+                  Loading more…
+                </span>
               </div>
             )}
 
             {!hasMore && (
-              <p className="text-sm text-slate-500">End of leaderboard</p>
+              <p
+                className="text-[0.875rem] italic"
+                style={{ color: 'rgba(204, 188, 188, 0.7)' }}
+              >
+                End of leaderboard
+              </p>
             )}
           </div>
         )}

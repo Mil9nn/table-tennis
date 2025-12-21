@@ -44,17 +44,15 @@ export function WagonWheelSection({
           if (!playerShots.length) return null;
 
           return (
-            <Card
+            <section
               key={player._id}
-              className="rounded-2xl border border-gray-800 bg-black text-white shadow-lg"
             >
-              <div className="px-4">
+              <div className="mb-2">
                 <p className="text-lg font-semibold tracking-tight">
                   {player.fullName || player.username}'s shot placement points
                 </p>
               </div>
 
-              <CardContent>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={JSON.stringify(playerShots)}
@@ -66,8 +64,7 @@ export function WagonWheelSection({
                     <WagonWheel key={`${player._id}-wagonwheel`} shots={playerShots} animateOnce />
                   </motion.div>
                 </AnimatePresence>
-              </CardContent>
-            </Card>
+            </section>
           );
         })}
       </div>
@@ -112,14 +109,14 @@ export function WagonWheelSection({
                 {playerGames.map((game) => (
                   <Card
                     key={`${player._id}-game-${game.gameNumber}`}
-                    className="rounded-2xl border border-gray-800 bg-black text-white shadow-lg"
+                    className="rounded-2xl border border-gray-200 shadow-lg"
                   >
                     <CardHeader className="pb-2 flex items-center justify-between">
                       <CardTitle className="text-sm">
                         Game {game.gameNumber}
                       </CardTitle>
 
-                      <Badge variant="outline" className="text-xs bg-white">
+                      <Badge variant="outline" className="text-xs">
                         {game.shots.length} points
                       </Badge>
                     </CardHeader>

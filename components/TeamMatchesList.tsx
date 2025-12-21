@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { TeamMatch } from "@/types/match.type";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getAvatarFallbackStyle } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface TeamMatchesListProps {
@@ -39,7 +39,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                 <div className="flex items-center gap-1.5">
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={match.team1?.logo} alt={match.team1?.name} />
-                    <AvatarFallback className="text-[10px] bg-gray-100 text-gray-600">
+                    <AvatarFallback className="text-[10px]" style={getAvatarFallbackStyle(match.team1?._id)}>
                       {match.team1?.name?.charAt(0)?.toUpperCase() || "T"}
                     </AvatarFallback>
                   </Avatar>
@@ -65,7 +65,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                 <div className="flex items-center gap-1.5">
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={match.team2?.logo} alt={match.team2?.name} />
-                    <AvatarFallback className="text-[10px] bg-gray-100 text-gray-600">
+                    <AvatarFallback className="text-[10px]" style={getAvatarFallbackStyle(match.team2?._id)}>
                       {match.team2?.name?.charAt(0)?.toUpperCase() || "T"}
                     </AvatarFallback>
                   </Avatar>

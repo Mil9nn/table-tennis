@@ -89,6 +89,15 @@ export interface ITournament extends Document {
   organizer: mongoose.Types.ObjectId;
   scorers: mongoose.Types.ObjectId[]; // Users who can score matches (max 10)
 
+  // Subscription tracking
+  createdWithTier: "free" | "pro" | "premium" | "enterprise";
+  customBranding?: {
+    logo?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+  };
+  maxScorersAllowed: number; // Computed from organizer's tier at creation
+
   // Seeding system
   seeding: ISeeding[];
   seedingMethod: "manual" | "ranking" | "random" | "none";
@@ -216,6 +225,24 @@ const tournamentSchema = new Schema<ITournament>(
     // Scorers - users who can score matches in this tournament (max 10)
     // Organizer is implicitly a scorer and doesn't need to be in this array
     scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+
+    // Subscription tracking
+    createdWithTier: {
+      type: String,
+      enum: ["free", "pro", "premium", "enterprise"],
+      required: true,
+      default: "free",
+    },
+    customBranding: {
+      logo: { type: String },
+      primaryColor: { type: String },
+      secondaryColor: { type: String },
+    },
+    maxScorersAllowed: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
 
     // Seeding
     seeding: [

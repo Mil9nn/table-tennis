@@ -445,251 +445,245 @@ export default function TournamentDetailPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="min-h-screen bg-slate-50">
-        {/* Modern Header */}
-        <div className="bg-linear-to-r from-blue-600 to-indigo-600 border-b border-blue-700/20">
-          <div className="max-w-7xl mx-auto">
-            <div className="px-6 py-4">
-              {/* Header Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex-1 space-y-1">
-                  {/* Title + Status */}
-                  <div className="flex items-center justify-between gap-2">
-                    <h1 className="text-xl font-bold text-white tracking-tight">
-                      {tournament.name}
-                    </h1>
+      <div className="min-h-screen bg-white">
+        {/* Clean Header */}
+        <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+          <div className="mx-auto px-4 py-3">
+            {/* Header Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1 space-y-1">
+                {/* Title + Status */}
+                <div className="flex items-center gap-3">
+                  <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
+                    {tournament.name}
+                  </h1>
 
-                    <Badge
-                      variant="outline"
-                      className={`${getStatusColor(
-                        tournament.status
-                      )} text-xs font-semibold px-2 py-0.5 rounded-full border`}
-                    >
-                      {tournament.status?.replace("_", " ").toUpperCase() ||
-                        "DRAFT"}
-                    </Badge>
-                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`${getStatusColor(
+                      tournament.status
+                    )} text-xs font-semibold px-2 py-0.5 rounded-full border`}
+                  >
+                    {tournament.status?.replace("_", " ").toUpperCase() ||
+                      "DRAFT"}
+                  </Badge>
                 </div>
+              </div>
 
-                {/* Action Buttons - Compact */}
-                {isOrganizer && (
-                  <div className="flex items-center gap-2">
-                    {/* Primary Action */}
-                    {canGenerateMatches && !isCustomMatchingTournament && (
-                      <Button
-                        onClick={generateMatches}
-                        disabled={generating}
-                        size="sm"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                      >
-                        {generating ? (
-                          <>
-                            <Loader2 className="w-4 h-4  animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 " />
-                            Generate Draw
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    {canGenerateMatches && isCustomMatchingTournament && (
-                      <Button
-                        onClick={generateMatches}
-                        disabled={generating}
-                        size="sm"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                      >
-                        {generating ? (
-                          <>
-                            <Loader2 className="w-4 h-4  animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 " />
-                            Generate Bracket
-                          </>
-                        )}
-                      </Button>
-                    )}
+              {/* Action Buttons - Compact */}
+              {isOrganizer && (
+                <div className="flex items-center gap-2">
+                  {/* Primary Action */}
+                  {canGenerateMatches && !isCustomMatchingTournament && (
+                    <Button
+                      onClick={generateMatches}
+                      disabled={generating}
+                      size="sm"
+                      className="bg-slate-900 hover:bg-slate-800 text-white"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4" />
+                          Generate Draw
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {canGenerateMatches && isCustomMatchingTournament && (
+                    <Button
+                      onClick={generateMatches}
+                      disabled={generating}
+                      size="sm"
+                      className="bg-slate-900 hover:bg-slate-800 text-white"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4" />
+                          Generate Bracket
+                        </>
+                      )}
+                    </Button>
+                  )}
 
-                    {/* Settings Dropdown */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="border-slate-300 border-2 text-white shadow-sm"
+                  {/* Settings Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-slate-200 hover:bg-slate-50"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>
+                        Tournament Settings
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      {!tournament.drawGenerated && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => setManageParticipantsOpen(true)}
+                          >
+                            <PersonIcon className="w-4 h-4" />
+                            Manage {isTeamTournament ? "Teams" : "Players"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setSeedingManagerOpen(true)}
+                          >
+                            <EmojiEventsIcon className="w-4 h-4" />
+                            Manage Seeding
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setJoinCodeDialogOpen(true)}
+                          >
+                            <QrCodeIcon className="w-4 h-4" />
+                            Join Code
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+
+                      {/* Manage Scorers - available anytime for organizer */}
+                      <DropdownMenuItem
+                        onClick={() => setManageScorersOpen(true)}
+                      >
+                        <Users2 className="w-4 h-4" />
+                        Manage Scorers
+                      </DropdownMenuItem>
+                      {/* Show Manage Groups if groups are enabled and can be managed (outside drawGenerated check for hybrid tournaments) */}
+                      {canManageGroups() && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (hasPlayedMatches) {
+                              toast.error(
+                                "Cannot modify groups after matches have been played."
+                              );
+                            } else {
+                              setManageGroupsOpen(true);
+                            }
+                          }}
+                          disabled={hasPlayedMatches}
                         >
-                          <Settings className="w-4 h-4" />
-                          Settings
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel>
-                          Tournament Settings
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
+                          <GroupsIcon className="w-4 h-4" />
+                          Manage Groups
+                          {hasPlayedMatches && (
+                            <span className="ml-auto text-xs">🔒</span>
+                          )}
+                        </DropdownMenuItem>
+                      )}
 
-                        {!tournament.drawGenerated && (
+                      {tournament.drawGenerated &&
+                        tournament.status !== "completed" &&
+                        tournament.status !== "cancelled" && (
                           <>
                             <DropdownMenuItem
-                              onClick={() => setManageParticipantsOpen(true)}
+                              onClick={handleReset}
+                              disabled={resetting || hasPlayedMatches}
+                              variant="destructive"
                             >
-                              <PersonIcon className="w-4 h-4 " />
-                              Manage {isTeamTournament ? "Teams" : "Players"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setSeedingManagerOpen(true)}
-                            >
-                              <EmojiEventsIcon className="w-4 h-4 " />
-                              Manage Seeding
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setJoinCodeDialogOpen(true)}
-                            >
-                              <QrCodeIcon className="w-4 h-4 " />
-                              Join Code
+                              <RestartAltIcon className="size-4" />
+                              Reset Tournament
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                           </>
                         )}
 
-                        {/* Manage Scorers - available anytime for organizer */}
-                        <DropdownMenuItem
-                          onClick={() => setManageScorersOpen(true)}
-                        >
-                          <Users2 className="w-4 h-4" />
-                          Manage Scorers
-                        </DropdownMenuItem>
-                        {/* Show Manage Groups if groups are enabled and can be managed (outside drawGenerated check for hybrid tournaments) */}
-                        {canManageGroups() && (
+                      {tournament.status !== "completed" &&
+                        tournament.status !== "cancelled" && (
                           <DropdownMenuItem
-                            onClick={() => {
-                              if (hasPlayedMatches) {
-                                toast.error(
-                                  "Cannot modify groups after matches have been played."
-                                );
-                              } else {
-                                setManageGroupsOpen(true);
-                              }
-                            }}
-                            disabled={hasPlayedMatches}
+                            onClick={handleCancel}
+                            disabled={cancelling}
+                            variant="destructive"
                           >
-                            <GroupsIcon className="w-4 h-4 " />
-                            Manage Groups
-                            {hasPlayedMatches && (
-                              <span className="ml-auto text-xs">🔒</span>
-                            )}
+                            <CancelIcon sx={{ fontSize: 16 }} />
+                            {cancelling
+                              ? "Cancelling..."
+                              : "Cancel Tournament"}
                           </DropdownMenuItem>
                         )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+            </div>
 
-                        {tournament.drawGenerated &&
-                          tournament.status !== "completed" &&
-                          tournament.status !== "cancelled" && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={handleReset}
-                                disabled={resetting || hasPlayedMatches}
-                                variant="destructive"
-                              >
-                                <RestartAltIcon className="size-4" />
-                                Reset Tournament
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-
-                        {tournament.status !== "completed" &&
-                          tournament.status !== "cancelled" && (
-                            <DropdownMenuItem
-                              onClick={handleCancel}
-                              disabled={cancelling}
-                              variant="destructive"
-                            >
-                              <CancelIcon sx={{ fontSize: 16 }} />
-                              {cancelling
-                                ? "Cancelling..."
-                                : "Cancel Tournament"}
-                            </DropdownMenuItem>
-                          )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
+            {/* Stats Row */}
+            <div className="flex items-center gap-4 justify-between flex-wrap pt-3 mt-3 border-t border-slate-100">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="size-3.5 text-slate-500" />
+                <p className="text-xs font-medium text-slate-700">
+                  {tournament.startDate
+                    ? formatDateShort(tournament.startDate)
+                    : "N/A"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="size-3.5 text-slate-500" />
+                <p className="text-xs font-medium text-slate-700">
+                  {tournament.city || "N/A"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Users2 className="size-3.5 text-slate-500" />
+                <p className="text-xs font-medium text-slate-700">
+                  {tournament.participants?.length || 0}
+                  {hasGroups() && (
+                    <span className="text-xs font-normal text-slate-500">
+                      {" "}
+                      (
+                      {tournament.format === "hybrid"
+                        ? tournament.hybridConfig?.roundRobinNumberOfGroups ||
+                          0
+                        : tournament.numberOfGroups || 0}
+                      G)
+                    </span>
+                  )}{" "}
+                  {isTeamTournament ? "Teams" : "Participants"}
+                </p>
               </div>
 
-              {/* Stats Row */}
-              <div className="flex items-center gap-2 justify-between flex-wrap pt-2 mt-2 border-t border-blue-400/20">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-white flex items-center gap-1">
-                    <Calendar className="size-3" />
-                    {tournament.startDate
-                      ? formatDateShort(tournament.startDate)
-                      : "N/A"}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-white flex items-center gap-1">
-                    <MapPin className="size-3" />
-                    {tournament.city || "N/A"}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-white flex items-center gap-1">
-                    <Users2 className="size-3" />
-                    {tournament.participants?.length || 0}
-                    {hasGroups() && (
-                      <span className="text-xs font-normal text-blue-100">
-                        (
-                        {tournament.format === "hybrid"
-                          ? tournament.hybridConfig?.roundRobinNumberOfGroups ||
-                            0
-                          : tournament.numberOfGroups || 0}
-                        G)
-                      </span>
-                    )}
-                    <p className="text-xs font-medium text-blue-100">
-                      {isTeamTournament ? "Teams" : "Participants"}
+              {tournament.status !== "draft" && totalMatches > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <BarChart3 className="size-3.5 text-slate-500" />
+                    <p className="text-xs font-medium text-slate-700">
+                      Progress: {completedMatches}/{totalMatches}
                     </p>
-                  </p>
-                </div>
-
-                {tournament.status !== "draft" && totalMatches > 0 && (
-                  <div className="space-y-0.5">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-white flex items-center gap-1">
-                        <BarChart3 className="size-3" />
-                        <p className="text-xs font-medium text-blue-100">
-                          Progress
-                        </p>
-                        {completedMatches}/{totalMatches}
-                      </p>
-                      <div className="h-1 bg-blue-400/30 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{
-                            width: `${
-                              (completedMatches / totalMatches) * 100
-                            }%`,
-                          }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
-                          className="h-full bg-white/80"
-                        />
-                      </div>
-                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${
+                          (completedMatches / totalMatches) * 100
+                        }%`,
+                      }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="h-full bg-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Content Area */}
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto px-4 py-6">
           {/* Error Recovery - Draw generated but no matches (only show if NOT custom matching) */}
           {isOrganizer &&
             tournament.drawGenerated &&
@@ -701,43 +695,42 @@ export default function TournamentDetailPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
               >
-                <Card className="border-red-200 rounded-none bg-linear-to-r from-red-50 to-orange-50">
-                  <CardContent className="">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="font-semibold text-red-900 mb-1">
-                          No Matches Generated
-                        </h3>
-                        <p className="text-sm text-red-700">
-                          The draw was generated but no matches were created.
-                          Please reset and try again, or check your tournament
-                          configuration.
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleReset}
-                          disabled={resetting}
-                          variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50"
-                        >
-                          {resetting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Resetting...
-                            </>
-                          ) : (
-                            <>
-                              <RestartAltIcon className="w-4 h-4" />
-                              Reset & Retry
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                <div className="border border-red-200 rounded-lg bg-red-50/50 p-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-red-900 mb-1">
+                        No Matches Generated
+                      </h3>
+                      <p className="text-sm text-red-700">
+                        The draw was generated but no matches were created.
+                        Please reset and try again, or check your tournament
+                        configuration.
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleReset}
+                        disabled={resetting}
+                        variant="outline"
+                        className="border-red-300 text-red-700 hover:bg-red-50"
+                      >
+                        {resetting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Resetting...
+                          </>
+                        ) : (
+                          <>
+                            <RestartAltIcon className="w-4 h-4" />
+                            Reset & Retry
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
 
@@ -746,36 +739,35 @@ export default function TournamentDetailPage() {
             tournament.format === "knockout" &&
             tournament.knockoutConfig?.allowCustomMatching === true &&
             tournament.drawGenerated === true && (
-              <section className={`rounded-none`}>
-                <div className="p-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-1">
-                        {totalMatches === 0
-                          ? "Action Required: Configure Custom Matchups"
-                          : "Custom Matching"}
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        {totalMatches === 0
-                          ? "The bracket has been created. Click below to assign participants and create matches."
-                          : "Manually configure matchups for knockout rounds"}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() =>
-                        router.push(
-                          `/tournaments/${tournamentId}/custom-matching`
-                        )
-                      }
-                      variant="outline"
-                    >
+              <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50 p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-900 mb-1">
                       {totalMatches === 0
-                        ? "Configure Matchups Now"
-                        : "Configure Matchups"}
-                    </Button>
+                        ? "Action Required: Configure Custom Matchups"
+                        : "Custom Matching"}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {totalMatches === 0
+                        ? "The bracket has been created. Click below to assign participants and create matches."
+                        : "Manually configure matchups for knockout rounds"}
+                    </p>
                   </div>
+                  <Button
+                    onClick={() =>
+                      router.push(
+                        `/tournaments/${tournamentId}/custom-matching`
+                      )
+                    }
+                    variant="outline"
+                    className="border-slate-300 hover:bg-slate-50"
+                  >
+                    {totalMatches === 0
+                      ? "Configure Matchups Now"
+                      : "Configure Matchups"}
+                  </Button>
                 </div>
-              </section>
+              </div>
             )}
 
           {/* Hybrid Tournament Manager */}
@@ -793,15 +785,15 @@ export default function TournamentDetailPage() {
             </motion.div>
           )}
 
-          {/* Main Tabs */}
+          {/* Main Tabs */} 
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="flex w-full rounded-none p-0 h-auto justify-between flex-wrap">
+            <TabsList className="flex w-full rounded-sm p-1 h-auto justify-start gap-1 bg-slate-100 border border-slate-200">
               {/* Info Tab */}
               <TabsTrigger
                 value="info"
                 className="
-                  rounded-none text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:shadow-sm
+                  rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -814,8 +806,8 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="groups"
                   className="
-                    rounded-none text-sm font-medium px-4 py-2
-                    data-[state=active]:bg-white data-[state=active]:shadow-sm
+                    rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                    data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                     data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                     transition-all
                   "
@@ -829,8 +821,8 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="standings"
                   className="
-                    rounded-none text-sm font-medium px-4 py-2
-                    data-[state=active]:bg-white data-[state=active]:shadow-sm
+                    rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                    data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                     data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                     transition-all
                   "
@@ -843,8 +835,8 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="schedule"
                 className="
-                  rounded-none text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:shadow-sm
+                  rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -855,8 +847,8 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="participants"
                 className="
-                  rounded-none text-sm font-medium px-4 py-2
-                  data-[state=active]:bg-white data-[state=active]:shadow-sm
+                  rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                  data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                   data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                   transition-all
                 "
@@ -870,8 +862,8 @@ export default function TournamentDetailPage() {
                   <TabsTrigger
                     value="statistics"
                     className="
-                      rounded-none text-sm font-medium px-4 py-2
-                      data-[state=active]:bg-white data-[state=active]:shadow-sm
+                      rounded text-xs font-medium px-3 py-1.5 uppercase tracking-wide
+                      data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900
                       data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:text-slate-900
                       transition-all
                     "
@@ -883,34 +875,32 @@ export default function TournamentDetailPage() {
 
             {/* Groups Tab */}
             {hasGroups() && (
-              <TabsContent value="groups" className="">
-                <div>
-                  <div className="">
-                    {tournament.groups && tournament.groups.length > 0 ? (
-                      <GroupsView
-                        groups={tournament.groups}
-                        advancePerGroup={tournament.advancePerGroup}
-                        showDetailedStats={true}
-                        category={tournament.category}
-                      />
-                    ) : (
-                      <div className="py-12 text-center text-muted-foreground">
-                        <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p>No groups generated yet</p>
-                      </div>
-                    )}
-                  </div>
+              <TabsContent value="groups" className="mt-4">
+                <div className="border border-slate-200 rounded-lg bg-white">
+                  {tournament.groups && tournament.groups.length > 0 ? (
+                    <GroupsView
+                      groups={tournament.groups}
+                      advancePerGroup={tournament.advancePerGroup}
+                      showDetailedStats={true}
+                      category={tournament.category}
+                    />
+                  ) : (
+                    <div className="py-12 text-center text-slate-500">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-sm">No groups generated yet</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             )}
 
             {/* Standings Tab */}
-            <TabsContent value="standings" className="">
-              <section className="rounded-none p-0">
-                <div className="flex items-center gap-2 p-2 px-4">
-                  <EmojiEventsIcon className="size-5 text-slate-600" />
+            <TabsContent value="standings" className="mt-4">
+              <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2 p-4 border-b border-slate-100">
+                  <EmojiEventsIcon className="size-4 text-slate-600" />
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-900">
                       Tournament Standings
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -918,7 +908,7 @@ export default function TournamentDetailPage() {
                     </p>
                   </div>
                 </div>
-                <div className="">
+                <div>
                   {tournament.standings && tournament.standings.length > 0 ? (
                     <EnhancedStandingsTable
                       standings={tournament.standings}
@@ -928,100 +918,98 @@ export default function TournamentDetailPage() {
                       category={tournament.category}
                     />
                   ) : (
-                    <div className="py-12 text-center text-muted-foreground">
-                      <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>No standings available yet</p>
-                      <p className="text-sm mt-2">
+                    <div className="py-12 text-center text-slate-500">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-sm">No standings available yet</p>
+                      <p className="text-xs mt-2 text-slate-400">
                         Generate matches to create standings
                       </p>
                     </div>
                   )}
                 </div>
-              </section>
+              </div>
             </TabsContent>
 
             {/* Schedule Tab */}
-            <TabsContent value="schedule" className="p-0">
-              <section className="rounded-none p-0">
-                <div className="p-4">
-                  {tournament.format === "knockout" && tournament.bracket ? (
-                    <KnockoutBracketView
-                      bracket={tournament.bracket}
-                      participants={tournament.participants}
-                      matches={allMatchObjects as any}
-                      onMatchClick={(matchId) =>
-                        router.push(
-                          `/matches/${matchId}?category=${
-                            isTeamTournament ? "team" : "individual"
-                          }`
-                        )
-                      }
-                      showThirdPlace={
-                        tournament.knockoutConfig?.thirdPlaceMatch
-                      }
-                      category={tournament.category}
-                    />
-                  ) : roundsWithIds && roundsWithIds.length > 0 ? (
-                    <TournamentSchedule
-                      rounds={roundsWithIds as any}
-                      matches={allMatchObjects as any}
-                      onMatchClick={(id) =>
-                        router.push(
-                          `/matches/${id}?category=${
-                            isTeamTournament ? "team" : "individual"
-                          }`
-                        )
-                      }
-                      showDate={false}
-                      showTime={false}
-                      venue={tournament.venue}
-                      isTeamTournament={isTeamTournament}
-                    />
-                  ) : isCustomMatchingTournament && tournament.drawGenerated ? (
-                    <div className="py-12 text-center text-muted-foreground">
-                      <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>Bracket structure created</p>
-                      <p className="text-sm mt-2">
-                        Use the Custom Matching interface to configure matchups
-                        and create matches
-                      </p>
-                      {isOrganizer && (
-                        <Button
-                          onClick={() =>
-                            router.push(
-                              `/tournaments/${tournamentId}/custom-matching`
-                            )
-                          }
-                          className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
-                        >
-                          Configure Matchups
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground">
-                      <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>No schedule available yet</p>
-                      <p className="text-sm mt-2">
-                        {isCustomMatchingTournament
-                          ? "Generate bracket to get started"
-                          : "Generate matches to create the schedule"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </section>
+            <TabsContent value="schedule" className="mt-4">
+              <div className="border border-slate-200 rounded-lg bg-white p-4">
+                {tournament.format === "knockout" && tournament.bracket ? (
+                  <KnockoutBracketView
+                    bracket={tournament.bracket}
+                    participants={tournament.participants}
+                    matches={allMatchObjects as any}
+                    onMatchClick={(matchId) =>
+                      router.push(
+                        `/matches/${matchId}?category=${
+                          isTeamTournament ? "team" : "individual"
+                        }`
+                      )
+                    }
+                    showThirdPlace={
+                      tournament.knockoutConfig?.thirdPlaceMatch
+                    }
+                    category={tournament.category}
+                  />
+                ) : roundsWithIds && roundsWithIds.length > 0 ? (
+                  <TournamentSchedule
+                    rounds={roundsWithIds as any}
+                    matches={allMatchObjects as any}
+                    onMatchClick={(id) =>
+                      router.push(
+                        `/matches/${id}?category=${
+                          isTeamTournament ? "team" : "individual"
+                        }`
+                      )
+                    }
+                    showDate={false}
+                    showTime={false}
+                    venue={tournament.venue}
+                    isTeamTournament={isTeamTournament}
+                  />
+                ) : isCustomMatchingTournament && tournament.drawGenerated ? (
+                  <div className="py-12 text-center text-slate-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <p className="text-sm">Bracket structure created</p>
+                    <p className="text-xs mt-2 text-slate-400">
+                      Use the Custom Matching interface to configure matchups
+                      and create matches
+                    </p>
+                    {isOrganizer && (
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/tournaments/${tournamentId}/custom-matching`
+                          )
+                        }
+                        className="mt-4 bg-slate-900 hover:bg-slate-800 text-white"
+                      >
+                        Configure Matchups
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-slate-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <p className="text-sm">No schedule available yet</p>
+                    <p className="text-xs mt-2 text-slate-400">
+                      {isCustomMatchingTournament
+                        ? "Generate bracket to get started"
+                        : "Generate matches to create the schedule"}
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             {/* Participants Tab */}
-            <TabsContent value="participants">
-              <section className="rounded-none p-0">
-                <div className="p-2">
-                  <p className="text-base font-semibold text-slate-900">
+            <TabsContent value="participants" className="mt-4">
+              <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-900">
                     {isTeamTournament
                       ? "Tournament Teams"
                       : "Tournament Participants"}
-                  </p>
+                  </h3>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
@@ -1106,51 +1094,51 @@ export default function TournamentDetailPage() {
                     })}
                   </div>
                 </div>
-              </section>
+              </div>
             </TabsContent>
 
             {/* Info Tab */}
-            <TabsContent value="info" className="mt-0">
-              <section className="rounded-none p-0">
-                <div className="p-2">
-                  <p className="text-base font-semibold text-neutral-800">
+            <TabsContent value="info" className="mt-4">
+              <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-900">
                     Tournament Information
-                  </p>
+                  </h3>
                 </div>
 
-                <div className="space-y-4 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* DETAILS */}
                     <div>
-                      <h3 className="font-medium text-sm text-neutral-700 mb-2 tracking-wide">
+                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600 mb-3">
                         Details
-                      </h3>
+                      </h4>
 
-                      <dl className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">Format</dt>
-                          <dd className="font-medium text-neutral-700 capitalize">
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                          <dt className="text-slate-600 text-xs">Format</dt>
+                          <dd className="font-medium text-slate-900 capitalize text-xs">
                             {tournament.format?.replace("_", " ") || "N/A"}
                           </dd>
                         </div>
 
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">Category</dt>
-                          <dd className="font-medium text-neutral-700">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                          <dt className="text-slate-600 text-xs">Category</dt>
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.category || "N/A"}
                           </dd>
                         </div>
 
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">Match Type</dt>
-                          <dd className="font-medium text-neutral-700">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                          <dt className="text-slate-600 text-xs">Match Type</dt>
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.matchType?.replace("_", " ") || "N/A"}
                           </dd>
                         </div>
 
-                        <div className="flex justify-between items-center py-1">
-                          <dt className="text-muted-foreground">Seeding</dt>
-                          <dd className="font-medium text-neutral-700">
+                        <div className="flex justify-between items-center py-2">
+                          <dt className="text-slate-600 text-xs">Seeding</dt>
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.seedingMethod || "none"}
                           </dd>
                         </div>
@@ -1159,18 +1147,18 @@ export default function TournamentDetailPage() {
 
                     {/* RULES */}
                     <div>
-                      <h3 className="font-medium text-sm text-neutral-700 mb-2 tracking-wide">
+                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600 mb-3">
                         Rules
-                      </h3>
+                      </h4>
 
-                      <dl className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                          <dt className="text-slate-600 text-xs">
                             {tournament.category === "team"
                               ? "Sets per submatch"
                               : "Sets per match"}
                           </dt>
-                          <dd className="font-medium text-neutral-700">
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.category === "team"
                               ? (tournament as any).teamConfig
                                   ?.setsPerSubMatch || "N/A"
@@ -1178,18 +1166,18 @@ export default function TournamentDetailPage() {
                           </dd>
                         </div>
 
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                          <dt className="text-slate-600 text-xs">
                             Points per set
                           </dt>
-                          <dd className="font-medium text-neutral-700">
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.rules?.pointsPerSet || "N/A"}
                           </dd>
                         </div>
 
-                        <div className="flex justify-between items-center py-1 border-b border-black/5">
-                          <dt className="text-muted-foreground">Win / Loss</dt>
-                          <dd className="font-medium text-neutral-700">
+                        <div className="flex justify-between items-center py-2">
+                          <dt className="text-slate-600 text-xs">Win / Loss</dt>
+                          <dd className="font-medium text-slate-900 text-xs">
                             {tournament.rules?.pointsForWin || 0}/
                             {tournament.rules?.pointsForLoss || 0}
                           </dd>
@@ -1198,19 +1186,19 @@ export default function TournamentDetailPage() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </div>
             </TabsContent>
 
             {/* Statistics Tab */}
             {tournament.format === "knockout" &&
               tournament.knockoutStatistics && (
-                <TabsContent value="statistics" className="mt-0">
-                  <section className="rounded-none p-0">
+                <TabsContent value="statistics" className="mt-4">
+                  <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
                     <KnockoutStatisticsComponent
                       statistics={tournament.knockoutStatistics}
                       category={tournament.category as "individual" | "team"}
                     />
-                  </section>
+                  </div>
                 </TabsContent>
               )}
           </Tabs>

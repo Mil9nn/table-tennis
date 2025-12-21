@@ -7,7 +7,7 @@ import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { User } from "@/types/user";
 import { X } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { getInitial } from "@/lib/utils";
+import { getInitial, getAvatarFallbackStyle } from "@/lib/utils";
 
 function UserSearchInput({
   placeholder,
@@ -68,7 +68,7 @@ function UserSearchInput({
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
               <AvatarImage src={selectedUser.profileImage} alt={selectedUser.username} />
-              <AvatarFallback>{getInitial(selectedUser.username)}</AvatarFallback>
+              <AvatarFallback style={getAvatarFallbackStyle(selectedUser._id)}>{getInitial(selectedUser.username)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-medium text-foreground">
@@ -117,7 +117,7 @@ function UserSearchInput({
                 >
                   <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
                     <AvatarImage src={u.profileImage} alt={displayName} />
-                    <AvatarFallback>{getInitial(displayName)}</AvatarFallback>
+                    <AvatarFallback style={getAvatarFallbackStyle(u._id)}>{getInitial(displayName)}</AvatarFallback>
                   </Avatar>
 
                   <div className="flex flex-col leading-tight">

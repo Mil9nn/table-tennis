@@ -4,15 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
+import { getAvatarFallbackStyle } from "@/lib/utils";
 
 function PlayerAvatar({
   name,
   profileImage,
+  playerId,
 }: {
   name?: string;
   profileImage?: string;
+  playerId?: string;
 }) {
   const fallbackInitial = name?.charAt(0).toUpperCase() || "?";
+  const fallbackStyle = getAvatarFallbackStyle(playerId);
 
   return profileImage ? (
     <Image
@@ -23,7 +27,10 @@ function PlayerAvatar({
       className="w-6 h-6 rounded-full object-cover bg-white border shrink-0"
     />
   ) : (
-    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold border shrink-0">
+    <div
+      className="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border shrink-0"
+      style={fallbackStyle}
+    >
       {fallbackInitial}
     </div>
   );
@@ -66,18 +73,20 @@ export default function MatchesList({
             className="block px-4 py-3 hover:bg-gray-50 transition-colors"
           >
             {/* Line 1: Players & Score */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center justify-between gap-2">
               {/* Side 1: Avatars + Name */}
               <div className={`flex items-center gap-1.5`}>
                 <div className="flex items-center -space-x-1 shrink-0">
                   <PlayerAvatar
                     name={match.participants?.[0]?.fullName}
                     profileImage={match.participants?.[0]?.profileImage}
+                    playerId={match.participants?.[0]?._id}
                   />
                   {isDoubles && (
                     <PlayerAvatar
                       name={match.participants?.[1]?.fullName}
                       profileImage={match.participants?.[1]?.profileImage}
+                      playerId={match.participants?.[1]?._id}
                     />
                   )}
                 </div>
@@ -92,34 +101,15 @@ export default function MatchesList({
 
               {/* Score */}
               {isCompleted && match.finalScore ? (
-                <span className="text-xs font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded">
                   {match.finalScore.side1Sets} - {match.finalScore.side2Sets}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400">vs</span>
               )}
 
-              {/* Side 2: Avatars + Name */}
+              {/* Side 2: Name + Avatars */}
               <div className={`flex items-center gap-1.5`}>
-                <div className="flex items-center -space-x-1 shrink-0">
-                  {isDoubles ? (
-                    <>
-                      <PlayerAvatar
-                        name={match.participants?.[2]?.fullName}
-                        profileImage={match.participants?.[2]?.profileImage}
-                      />
-                      <PlayerAvatar
-                        name={match.participants?.[3]?.fullName}
-                        profileImage={match.participants?.[3]?.profileImage}
-                      />
-                    </>
-                  ) : (
-                    <PlayerAvatar
-                      name={match.participants?.[1]?.fullName}
-                      profileImage={match.participants?.[1]?.profileImage}
-                    />
-                  )}
-                </div>
                 <span
                   className={`font-medium text-sm truncate ${
                     side2Won ? "text-green-600" : "text-gray-800"
@@ -127,38 +117,45 @@ export default function MatchesList({
                 >
                   {side2Name}
                 </span>
+                <div className="flex items-center -space-x-1 shrink-0">
+                  {isDoubles ? (
+                    <>
+                      <PlayerAvatar
+                        name={match.participants?.[2]?.fullName}
+                        profileImage={match.participants?.[2]?.profileImage}
+                        playerId={match.participants?.[2]?._id}
+                      />
+                      <PlayerAvatar
+                        name={match.participants?.[3]?.fullName}
+                        profileImage={match.participants?.[3]?.profileImage}
+                        playerId={match.participants?.[3]?._id}
+                      />
+                    </>
+                  ) : (
+                    <PlayerAvatar
+                      name={match.participants?.[1]?.fullName}
+                      profileImage={match.participants?.[1]?.profileImage}
+                      playerId={match.participants?.[1]?._id}
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Line 2: Meta info + Status */}
-            <div className="flex items-center justify-between mt-1">
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-400 capitalize">
-                  {match.matchType?.replace("_", " ")}
-                </span>
-                <span className="text-xs text-gray-300">•</span>
-                <span className="text-xs text-gray-400">
-                  {match.createdAt ? format(new Date(match.createdAt), "dd MMM yyyy") : "—"}
-                </span>
-                {match.city && (
-                  <>
-                    <span className="text-xs text-gray-300">•</span>
-                    <span className="text-xs text-gray-400">{match.city}</span>
-                  </>
-                )}
-              </div>
-              {/* Minimal status dot - only show for non-completed matches */}
-              {match.status !== "completed" && (
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    match.status === "scheduled"
-                      ? "bg-yellow-500"
-                      : match.status === "in_progress"
-                      ? "bg-blue-500"
-                      : "bg-red-500"
-                  }`}
-                  title={match.status}
-                />
+            {/* Line 2: Meta info */}
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-xs text-gray-400 capitalize">
+                {match.matchType?.replace("_", " ")}
+              </span>
+              <span className="text-xs text-gray-300">•</span>
+              <span className="text-xs text-gray-400">
+                {match.createdAt ? format(new Date(match.createdAt), "dd MMM yyyy") : "—"}
+              </span>
+              {match.city && (
+                <>
+                  <span className="text-xs text-gray-300">•</span>
+                  <span className="text-xs text-gray-400">{match.city}</span>
+                </>
               )}
             </div>
           </Link>

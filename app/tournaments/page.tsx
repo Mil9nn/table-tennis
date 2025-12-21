@@ -3,8 +3,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import TournamentsSkeleton from "@/components/skeletons/TournamentsSkeleton";
-import HeaderHero from "./components/HeaderHero";
-import FiltersBar, { type FilterState } from "./components/FiltersBar";
+import HeaderHero, { type FilterState } from "./components/HeaderHero";
 import TournamentCard from "./components/TournamentCard";
 import EmptyState from "./components/EmptyState";
 import { Loader2 } from "lucide-react";
@@ -150,20 +149,20 @@ export default function TournamentsPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="space-y-4">
-      <HeaderHero />
-
-      <FiltersBar value={filters} onChange={setFilters} />
+      <div>
+      <HeaderHero filters={filters} onFiltersChange={setFilters} />
 
       {loading ? (
         <div className="py-4">
           <TournamentsSkeleton />
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState hasFilters={hasFilters} />
+        <div className="py-4">
+          <EmptyState hasFilters={hasFilters} />
+        </div>
       ) : (
         <>
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
             {filtered.map((t) => (
               <TournamentCard key={t._id} tournament={t} />
             ))}

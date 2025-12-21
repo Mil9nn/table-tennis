@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import {
-  Award,
-  Calendar,
-  ChevronRight,
-  MapPin,
-  Timer,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { formatDateShort } from "@/lib/utils";
 
 export type TournamentCardProps = {
@@ -31,10 +23,6 @@ export type TournamentCardProps = {
   };
 };
 
-import ModeIcon from '@mui/icons-material/Mode';
-import DonutLargeIcon from '@mui/icons-material/DonutLarge';
-import TimelapseIcon from '@mui/icons-material/Timelapse';
-
 export function TournamentCard({ tournament }: TournamentCardProps) {
   const status = tournament.status;
   const statusCfg = getStatusConfig(status);
@@ -46,7 +34,9 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
     >
       <div className="w-full flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span>{statusCfg.icon}</span>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusCfg.badge}`}>
+            {statusCfg.label}
+          </span>
           <h3 className="truncate text-base font-semibold text-zinc-900">
             {tournament.name}
           </h3>
@@ -54,22 +44,10 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
 
         {/* Format type */}
         <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${
-              tournament.format === "hybrid"
-                ? "bg-gradient-to-r from-blue-50 to-purple-50 text-purple-700 ring-purple-300"
-                : "bg-purple-50 text-purple-700 ring-purple-200"
-            }`}
-          >
-            {tournament.format === "hybrid" ? (
-              <div className="text-xs">
-                <span className="text-blue-600">RR</span>
-                <span className="mx-0.5">→</span>
-                <span className="text-purple-600">KO</span>
-              </div>
-            ) : (
-              tournament.format.replace(/_/g, " ")
-            )}
+          <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700">
+            {tournament.format === "hybrid"
+              ? "Hybrid"
+              : tournament.format.replace(/_/g, " ")}
           </span>
 
           <ChevronRight className="size-4 text-zinc-400 transition group-hover:translate-x-0.5" />
@@ -104,37 +82,27 @@ function getStatusConfig(status: string) {
     case "completed":
       return {
         label: "Completed",
-        icon: <Award className="size-4 text-emerald-600" />,
-        badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-        iconRing: "ring-emerald-200 bg-emerald-50",
+        badge: "bg-emerald-50 text-emerald-700",
       };
     case "in_progress":
       return {
         label: "In Progress",
-        icon: <DonutLargeIcon className="size-4 text-blue-600" />,
-        badge: "bg-blue-50 text-blue-700 ring-blue-200",
-        iconRing: "ring-blue-200 bg-blue-50",
+        badge: "bg-blue-50 text-blue-700",
       };
     case "upcoming":
       return {
         label: "Upcoming",
-        icon: <TimelapseIcon className="size-4 text-orange-600" />,
-        badge: "bg-orange-50 text-orange-700 ring-orange-200",
-        iconRing: "ring-orange-200 bg-orange-50",
+        badge: "bg-orange-50 text-orange-700",
       };
     case "draft":
       return {
         label: "Draft",
-        icon: <ModeIcon className="size-4 text-zinc-500" />,
-        badge: "bg-zinc-50 text-zinc-700 ring-zinc-200",
-        iconRing: "ring-zinc-200 bg-zinc-50",
+        badge: "bg-zinc-50 text-zinc-700",
       };
     default:
       return {
         label: status.replace(/_/g, " "),
-        icon: <Trophy className="size-4 text-zinc-500" />,
-        badge: "bg-zinc-50 text-zinc-700 ring-zinc-200",
-        iconRing: "ring-zinc-200 bg-zinc-50",
+        badge: "bg-zinc-50 text-zinc-700",
       };
   }
 }

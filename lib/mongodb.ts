@@ -33,6 +33,8 @@ async function ensureModelsRegistered() {
         await import('@/models/User');
         await import('@/models/Team');
         await import('@/models/BracketState');
+        await import('@/models/Subscription');
+        await import('@/models/Payment');
 
         cached.modelsRegistered = true;
         

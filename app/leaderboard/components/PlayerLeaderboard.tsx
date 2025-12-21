@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { cn, getAvatarFallbackStyle } from "@/lib/utils";
 import type { PlayerStats, FormatSpecificStats } from "../types";
-import { LeaderboardEmpty, LeaderboardLoading } from "./shared";
+import { LeaderboardEmpty, LeaderboardLoading, RankBadge, StreakBadge } from "./shared";
 import { getDisplayName, getInitials } from "../utils";
 import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
@@ -22,49 +22,146 @@ interface PlayerLeaderboardProps {
   loading: boolean;
   emptyMessage: string;
   matchType: "singles" | "doubles" | "mixed_doubles";
+  currentUserId?: string;
 }
 
-const RankMedal = ({ rank }: { rank: number }) => {
-  const styles = {
-    1: "bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900",
-    2: "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900",
-    3: "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-900",
-  };
+// Using shared RankBadge and StreakBadge components
 
-  if (rank > 3)
-    return (
-      <div className="h-5 w-5 flex items-center justify-center text-slate-700 text-xs font-semibold">
-        {rank}
-      </div>
-    );
+const PlayerRow = ({
+  entry,
+  isTopThree,
+  isCurrentUser,
+  onClick,
+}: {
+  entry: PlayerStats;
+  isTopThree: boolean;
+  isCurrentUser: boolean;
+  onClick: () => void;
+}) => {
+  const isRank1 = entry.rank === 1;
 
   return (
     <div
-      className={cn(
-        "h-8 w-8 flex items-center justify-center rounded-full text-xs font-bold shadow",
-        styles[rank as 1 | 2 | 3]
-      )}
+      onClick={onClick}
+      className="group cursor-pointer transition-all duration-250"
+      style={{
+        backgroundColor: isCurrentUser
+          ? 'rgba(24, 195, 248, 0.08)'
+          : isRank1
+          ? 'rgba(24, 195, 248, 0.04)'
+          : '#ffffff',
+        borderLeft: isCurrentUser
+          ? '0px solid #18c3f8'
+          : isRank1
+          ? '4px solid #18c3f8'
+          : entry.rank === 2 || entry.rank === 3
+          ? '4px solid #ccbcbc'
+          : '4px solid transparent',
+        paddingTop: '16px',
+        paddingBottom: '16px',
+        paddingLeft: '20px',
+        paddingRight: '20px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderLeftColor = '#18c3f8';
+        e.currentTarget.style.backgroundColor = 'rgba(204, 188, 188, 0.03)';
+        e.currentTarget.style.transform = 'translateX(4px)';
+      }}
+      onMouseLeave={(e) => {
+        const originalBorderColor = isCurrentUser || isRank1
+          ? '#18c3f8'
+          : entry.rank === 2 || entry.rank === 3
+          ? '#ccbcbc'
+          : 'transparent';
+        const originalBgColor = isCurrentUser
+          ? 'rgba(24, 195, 248, 0.08)'
+          : isRank1
+          ? 'rgba(24, 195, 248, 0.04)'
+          : '#ffffff';
+        e.currentTarget.style.borderLeftColor = originalBorderColor;
+        e.currentTarget.style.backgroundColor = originalBgColor;
+        e.currentTarget.style.transform = 'translateX(0)';
+      }}
     >
-      {rank}
+      <div className="flex items-center gap-4">
+        <RankBadge rank={entry.rank} variant="list" />
+
+        <Link
+          href={`/profile/${entry.player._id}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Avatar
+            className="h-12 w-12 transition-all"
+            style={{
+              borderWidth: isTopThree
+                ? (isRank1 ? '2.5px' : '1.5px')
+                : '0px',
+              borderColor: isTopThree
+                ? (isRank1 ? '#18c3f8' : '#ccbcbc')
+                : 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              if (isTopThree) {
+                e.currentTarget.style.borderWidth = '2px';
+                e.currentTarget.style.borderColor = '#18c3f8';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (isTopThree) {
+                e.currentTarget.style.borderWidth = isRank1 ? '2.5px' : '1.5px';
+                e.currentTarget.style.borderColor = isRank1 ? '#18c3f8' : '#ccbcbc';
+              }
+            }}
+          >
+            <AvatarImage src={entry.player.profileImage} />
+            <AvatarFallback style={getAvatarFallbackStyle(entry.player._id)}>
+              {getInitials(getDisplayName(entry.player))}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-[0.9375rem]" style={{ color: '#323139' }}>
+              {getDisplayName(entry.player)}
+            </p>
+            {isCurrentUser && (
+              <Badge
+                className="text-xs font-semibold px-2 py-0.5"
+                style={{
+                  backgroundColor: 'rgba(24, 195, 248, 0.15)',
+                  color: '#18c3f8',
+                  border: '1px solid rgba(24, 195, 248, 0.3)',
+                }}
+              >
+                You
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-[0.75rem] mt-1">
+            <span style={{ color: '#323139' }}>
+              <strong className="lb-font-mono">{entry.stats.wins}</strong> wins
+            </span>
+            <span style={{ color: 'rgba(50, 49, 57, 0.7)' }}>
+              <strong className="lb-font-mono">{entry.stats.losses}</strong> losses
+            </span>
+            {entry.stats.currentStreak !== 0 && (
+              <StreakBadge streak={entry.stats.currentStreak} />
+            )}
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-xs" style={{ color: '#ccbcbc' }}>Win Rate</div>
+          <div
+            className="text-lg font-bold lb-font-mono"
+            style={{ color: '#18c3f8' }}
+          >
+            {entry.stats.winRate}%
+          </div>
+        </div>
+      </div>
     </div>
-  );
-};
-
-const StreakBadge = ({ streak }: { streak: number }) => {
-  if (streak === 0) return null;
-  const isWinning = streak > 0;
-
-  return (
-    <Badge
-     variant={"outline"}
-      className={cn(
-        "text-[10px] px-2 py-0.5 rounded-md font-medium",
-        isWinning ? "text-green-700" : "text-red-700"
-      )}
-    >
-      {isWinning ? "W" : "L"}
-      {Math.abs(streak)}
-    </Badge>
   );
 };
 
@@ -130,43 +227,82 @@ const PlayerStatsModal = ({
 
   return (
     <Dialog open={!!player} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto leaderboard-modal-content lb-font-primary"
+        style={{
+          backgroundColor: '#ffffff',
+          border: '2px solid rgba(204, 188, 188, 0.2)',
+          borderRadius: '24px',
+          boxShadow: '0 24px 48px rgba(50, 49, 57, 0.2)'
+        }}
+      >
         {/* Header Section */}
-        <DialogHeader className="border-b border-slate-200 pb-4">
-          <div className="flex items-center gap-4 justify-between">
-            <div className="flex items-center gap-4">
+        <DialogHeader
+          className="pb-6"
+          style={{
+            background: 'linear-gradient(to bottom, #ffffff, rgba(204, 188, 188, 0.05))',
+            borderBottom: '1px solid rgba(204, 188, 188, 0.2)',
+            marginBottom: '20px'
+          }}
+        >
+          <div className="flex items-center gap-6 justify-between">
+            <div className="flex items-center gap-6">
               <div className="relative">
-                <Avatar className="h-16 w-16 ring-2 ring-slate-300/50 shadow-lg">
+                <Avatar
+                  className="h-20 w-20 shadow-lg"
+                  style={{
+                    borderWidth: '3px',
+                    borderColor: '#18c3f8'
+                  }}
+                >
                   <AvatarImage
                     src={player.player.profileImage}
                     alt={getDisplayName(player.player)}
                   />
-                  <AvatarFallback className="bg-slate-200 text-slate-700 text-lg font-semibold">
+                  <AvatarFallback
+                    className="text-xl font-bold"
+                    style={getAvatarFallbackStyle(player.player._id)}
+                  >
                     {getInitials(getDisplayName(player.player))}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex items-center justify-center bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-full p-1.5 px-2 shadow-sm">
-                  <span className="text-xs font-bold text-yellow-900">
+                <div
+                  className="absolute bottom-0 -right-1 flex items-center justify-center rounded-full px-2 py-1 shadow-md"
+                  style={{ backgroundColor: '#18c3f8' }}
+                >
+                  <span className="text-xs font-bold" style={{ color: '#ffffff' }}>
                     #{player.rank}
                   </span>
                 </div>
               </div>
 
               <div className="flex-1">
-                <DialogTitle className="text-xl font-bold text-slate-900 mb-1">
+                <DialogTitle
+                  className="text-xl font-bold mb-1"
+                  style={{ color: '#323139' }}
+                >
                   {getDisplayName(player.player)}
                 </DialogTitle>
-                <p className="text-sm text-slate-500">
+                <p
+                  className="text-sm"
+                  style={{ color: '#ccbcbc' }}
+                >
                   @{player.player.username}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col items-end gap-1">
-              <div className="text-xs text-slate-500 uppercase tracking-wider">
+              <div
+                className="text-xs uppercase tracking-wider"
+                style={{ color: '#ccbcbc' }}
+              >
                 Win Rate
               </div>
-              <div className="text-2xl font-bold text-slate-900">
+              <div
+                className="text-2xl font-bold lb-font-mono"
+                style={{ color: '#18c3f8' }}
+              >
                 {stats.winRate}%
               </div>
             </div>
@@ -176,59 +312,121 @@ const PlayerStatsModal = ({
         <div className="space-y-5 py-4">
           {/* Performance Overview */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            <h3
+              className="text-xs font-semibold uppercase tracking-wider mb-4"
+              style={{ color: '#ccbcbc' }}
+            >
               Performance Overview
             </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-2xl font-bold text-slate-900">
+            <div className="grid grid-cols-3 gap-4">
+              <div
+                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(204, 188, 188, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-xl font-bold lb-font-mono"
+                    style={{ color: '#323139' }}
+                  >
                     {stats.wins}
                   </span>
-                  <span className="text-xs text-slate-500">wins</span>
+                  <span
+                    className="text-xs uppercase"
+                    style={{ color: '#ccbcbc' }}
+                  >
+                    wins
+                  </span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
                   <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width:
-                        totalGames > 0
-                          ? `${(stats.wins / totalGames) * 100}%`
-                          : "0%",
+                      backgroundColor: '#18c3f8',
+                      width: totalGames > 0 ? `${(stats.wins / totalGames) * 100}%` : "0%",
                     }}
                   />
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-2xl font-bold text-slate-900">
+              <div
+                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(204, 188, 188, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-xl font-bold lb-font-mono"
+                    style={{ color: '#323139' }}
+                  >
                     {stats.losses}
                   </span>
-                  <span className="text-xs text-slate-500">losses</span>
+                  <span
+                    className="text-xs uppercase"
+                    style={{ color: '#ccbcbc' }}
+                  >
+                    losses
+                  </span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
                   <div
-                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width:
-                        totalGames > 0
-                          ? `${(stats.losses / totalGames) * 100}%`
-                          : "0%",
+                      backgroundColor: '#ef4444',
+                      width: totalGames > 0 ? `${(stats.losses / totalGames) * 100}%` : "0%",
                     }}
                   />
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-2xl font-bold text-slate-900">
+              <div
+                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(204, 188, 188, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-xl font-bold lb-font-mono"
+                    style={{ color: '#323139' }}
+                  >
                     {totalGames}
                   </span>
-                  <span className="text-xs text-slate-500">total</span>
+                  <span
+                    className="text-xs uppercase"
+                    style={{ color: '#ccbcbc' }}
+                  >
+                    total
+                  </span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-slate-400 rounded-full w-full" />
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
+                  <div
+                    className="h-full rounded-full w-full"
+                    style={{ backgroundColor: '#ccbcbc' }}
+                  />
                 </div>
               </div>
             </div>
@@ -314,7 +512,7 @@ const PlayerStatsModal = ({
                         Points Scored
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-900">
+                        <span className="text-xl font-bold text-slate-900">
                           {pointsFor}
                         </span>
                         <span className="text-sm text-slate-500">
@@ -327,7 +525,7 @@ const PlayerStatsModal = ({
                         Points Conceded
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-900">
+                        <span className="text-xl font-bold text-slate-900">
                           {pointsAgainst}
                         </span>
                         <span className="text-sm text-slate-500">
@@ -346,7 +544,7 @@ const PlayerStatsModal = ({
                       <div className="flex items-center gap-2">
                         <div
                           className={cn(
-                            "text-2xl font-bold",
+                            "text-xl font-bold",
                             pointsDiff > 0
                               ? "text-emerald-600"
                               : pointsDiff < 0
@@ -461,6 +659,7 @@ export function PlayerLeaderboard({
   loading,
   emptyMessage,
   matchType,
+  currentUserId,
 }: PlayerLeaderboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(
     null
@@ -469,112 +668,76 @@ export function PlayerLeaderboard({
   if (loading) return <LeaderboardLoading />;
   if (data.length === 0) return <LeaderboardEmpty message={emptyMessage} />;
 
+  // Find current user's entry
+  const currentUserEntry = currentUserId
+    ? data.find((entry) => entry.player._id === currentUserId)
+    : null;
+
   const topThree = data.slice(0, 3);
   const others = data.slice(3);
 
   return (
-    <div className="">
-      {/* TOP 3 — featured layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-3">
-        {topThree.map((entry) => (
+    <div className="lb-font-primary">
+      {/* CURRENT USER ROW - shown at top if user is not in top 3 */}
+      {currentUserEntry && currentUserEntry.rank > 3 && (
+        <>
           <div
-            key={entry.player._id}
-            onClick={() => setSelectedPlayer(entry)}
-            className={cn(
-              "group border bg-white p-3 transition-all hover:-translate-y-1 cursor-pointer"
-            )}
+            className=""
+            style={{
+              backgroundColor: 'rgba(24, 195, 248, 0.05)',
+              border: '2px solid rgba(24, 195, 248, 0.2)',
+            }}
           >
-            <div className="flex items-center gap-2">
-              <RankMedal rank={entry.rank} />
-
-              <Link
-                href={`/profile/${entry.player._id}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Avatar className="h-10 w-10 ring-2 ring-indigo-200 group-hover:ring-indigo-300 transition-all">
-                  <AvatarImage
-                    src={entry.player.profileImage}
-                    alt={getDisplayName(entry.player)}
-                  />
-                  <AvatarFallback>
-                    {getInitials(getDisplayName(entry.player))}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
-                  {getDisplayName(entry.player)}
-                </h3>
-                <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-0.5">
-                  <span className="font-semibold text-slate-800">{entry.stats.wins}</span>
-                  <span className="text-[10px]">wins</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="font-semibold text-rose-600">{entry.stats.losses}</span>
-                  <span className="text-[10px]">losses</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="font-semibold text-indigo-600">{entry.stats.winRate}%</span>
-                  <span className="text-[10px]">WR</span>
-                  {entry.stats.currentStreak !== 0 && (
-                    <>
-                      <span className="text-slate-400">•</span>
-                      <StreakBadge streak={entry.stats.currentStreak} />
-                    </>
-                  )}
-                </div>
-              </div>
+            <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+              <PlayerRow
+                entry={currentUserEntry}
+                isTopThree={false}
+                isCurrentUser={true}
+                onClick={() => setSelectedPlayer(currentUserEntry)}
+              />
             </div>
           </div>
-        ))}
+          <div
+            className="h-px"
+            style={{
+              background: 'linear-gradient(to right, transparent, rgba(204, 188, 188, 0.3), transparent)',
+            }}
+          />
+        </>
+      )}
+
+      {/* TOP 3 — same structure as others, different styling */}
+      <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+        {topThree.map((entry) => {
+          const isCurrentUser = currentUserId === entry.player._id;
+          const isTopThree = entry.rank <= 3;
+
+          return (
+            <PlayerRow
+              key={entry.player._id}
+              entry={entry}
+              isTopThree={isTopThree}
+              isCurrentUser={isCurrentUser}
+              onClick={() => setSelectedPlayer(entry)}
+            />
+          );
+        })}
       </div>
 
       {/* OTHERS — list style */}
-      <div className="">
-        {others.map((entry) => (
-          <div
-            key={entry.player._id}
-            onClick={() => setSelectedPlayer(entry)}
-            className="group bg-white border p-2 transition-all hover:-translate-y-[2px] cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <RankMedal rank={entry.rank} />
-
-              <Link
-                href={`/profile/${entry.player._id}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Avatar className="h-10 w-10 ring-1 ring-slate-200 group-hover:ring-indigo-200 transition-all">
-                  <AvatarImage src={entry.player.profileImage} />
-                  <AvatarFallback>
-                    {getInitials(getDisplayName(entry.player))}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
-                  {getDisplayName(entry.player)}
-                </p>
-                <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-0.5">
-                  <span className="font-semibold text-slate-800">{entry.stats.wins}</span>
-                  <span className="text-[10px]">wins</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="font-semibold text-rose-600">{entry.stats.losses}</span>
-                  <span className="text-[10px]">losses</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="font-semibold text-indigo-600">{entry.stats.winRate}%</span>
-                  <span className="text-[10px]">WR</span>
-                  {entry.stats.currentStreak !== 0 && (
-                    <>
-                      <span className="text-slate-400">•</span>
-                      <StreakBadge streak={entry.stats.currentStreak} />
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+        {others.map((entry) => {
+          const isCurrentUser = currentUserId === entry.player._id;
+          return (
+            <PlayerRow
+              key={entry.player._id}
+              entry={entry}
+              isTopThree={false}
+              isCurrentUser={isCurrentUser}
+              onClick={() => setSelectedPlayer(entry)}
+            />
+          );
+        })}
       </div>
 
       {/* Stats Modal */}

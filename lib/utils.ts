@@ -189,3 +189,56 @@ export function getInitials(name?: string): string {
 export function getDisplayName(item: { fullName?: string; username?: string; name?: string }): string {
   return item.fullName || item.username || item.name || "Unknown";
 }
+
+/**
+ * Professional pastel color palette for avatar backgrounds
+ * Carefully selected for accessibility and visual harmony
+ */
+const AVATAR_COLORS = [
+  '#E8B4B8', '#F4C7AB', '#F5D5A8', '#F0E3C4',  // Warm tones
+  '#B8D8E8', '#B8E0D8', '#C4E3D6', '#D8E8F0',  // Cool tones
+  '#D4C4B0', '#C8D4BC', '#E0D4C8', '#D8D0C8',  // Earthy tones
+  '#D8C8E0', '#E8D4E0', '#F0D8E8',             // Purple/Pink tones
+  '#F0E8C8', '#D8E8C8', '#E8E0D0'              // Yellow/Green tones
+] as const;
+
+/**
+ * Simple hash function to convert a string to a number
+ * Uses djb2 algorithm - fast and good distribution
+ */
+function hashString(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Get a deterministic avatar background color based on user ID or name
+ * Always returns the same color for the same input
+ *
+ * @param identifier - User ID, username, or any unique identifier
+ * @returns Hex color code from the palette
+ */
+export function getAvatarColor(identifier?: string): string {
+  if (!identifier) return '#ccbcbc'; // Fallback to current default
+
+  const hash = hashString(identifier);
+  const index = hash % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
+/**
+ * Get avatar fallback styles (background + text color)
+ * Combines color generation and text color logic
+ *
+ * @param identifier - User ID, username, or any unique identifier
+ * @returns Object with backgroundColor and color properties
+ */
+export function getAvatarFallbackStyle(identifier?: string) {
+  const backgroundColor = getAvatarColor(identifier);
+  const color = '#ffffff'; // White text works well with all our pastels
+
+  return { backgroundColor, color };
+}

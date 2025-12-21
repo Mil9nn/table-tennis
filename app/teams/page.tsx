@@ -20,7 +20,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Plus,
   Edit2,
   Trash,
   Search,
@@ -28,6 +27,8 @@ import {
   ChevronLeftCircle,
   ArrowRight,
   Loader2,
+  Filter,
+  X,
 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
@@ -62,18 +63,19 @@ const ITEMS_PER_PAGE = 15;
 
 export default function TeamsPage() {
   const [activeTab, setActiveTab] = useState("my-teams");
-  
+
   // All teams - with pagination
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  
+
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const user = useAuthStore((state) => state.user);
 
@@ -491,61 +493,77 @@ export default function TeamsPage() {
 
   return (
     <section>
-      <div className="p-4 bg-[#6878E1] space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl font-bold text-white">Teams</h1>
-          <Button className="bg-white text-zinc-800 hover:bg-blue-400">
-            <Link
-              href="/teams/create"
-              className="text-sm flex items-center gap-1"
-            >
-              <Plus
-                strokeWidth={5}
-                className="bg-[#6878E1] text-white p-1 rounded-full"
-              />
-              New Team
-            </Link>
-          </Button>
-        </div>
+      <div className="p-4 space-y-4" style={{ backgroundColor: '#323139' }}>
+        <h1 className="text-2xl font-bold text-white">Teams</h1>
 
-        <div className="space-y-2 mb-6 flex items-center justify-between gap-4 flex-wrap">
-          <div className="relative w-full sm:w-60">
-            <Search className="absolute left-3 top-2.5 text-blue-500 size-4" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 text-zinc-400 size-4" />
             <Input
               placeholder="Search teams..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 border-2 bg-[#F7F8FE] text-sm rounded-full"
+              className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-sm rounded-lg focus:ring-2 focus:ring-zinc-700"
             />
           </div>
 
-          <div className="flex gap-4 flex-wrap">
-            <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-[180px] bg-white">
-                <SelectValue placeholder="Filter by city" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city!}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] bg-white">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="wins">Most Wins</SelectItem>
-                <SelectItem value="players">Most Players</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowFilters(!showFilters)}
+            className="shrink-0 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+          >
+            <Filter className="size-4" />
+          </Button>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="bg-zinc-900 rounded-lg p-4 space-y-3 border border-zinc-800">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-white">Filters</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilters(false)}
+                className="size-6 hover:bg-zinc-800 text-zinc-400"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-400 uppercase tracking-wide">City</label>
+              <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectValue placeholder="Filter by city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city!}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-400 uppercase tracking-wide">Sort By</label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="wins">Most Wins</SelectItem>
+                  <SelectItem value="players">Most Players</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="my-teams" onValueChange={setActiveTab} className="w-full">
