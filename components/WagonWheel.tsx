@@ -48,6 +48,16 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
     ? validShots.filter((s) => s.stroke === selectedStroke)
     : validShots;
   
+  // Calculate dynamic landing indicator size based on shot count
+  // More shots = smaller indicators to prevent clustering
+  const shotCount = displayShots.length;
+  const baseLandingRadius = 4;
+  const maxLandingRadius = 7; // for hover state
+  
+  // Scale factor: max 100 shots = 0.4x, min 5 shots = 1x
+  const scaleFactor = Math.max(0.4, Math.min(1, (100 - shotCount) / 100 + 0.4));
+  const landingRadius = baseLandingRadius * scaleFactor;
+  const landingRadiusHovered = maxLandingRadius * scaleFactor;
 
   return (
     <div className="space-y-4">
@@ -250,6 +260,20 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
             const isHovered = hoveredShot === idx;
             const shotColor = getShotColor(shot.stroke!);
 
+            // Determine if shot is forehand or backhand
+            const isForehand = shot.stroke?.startsWith("forehand") ?? false;
+            const isBackhand = shot.stroke?.startsWith("backhand") ?? false;
+            
+            // Apply styling based on hand: Forehand = 0.85-0.95 opacity, solid stroke
+            // Backhand = 0.45-0.60 opacity, dashed stroke
+            const lineOpacity = isForehand 
+              ? 0.9  // 0.85-0.95 range, using 0.9 as middle
+              : isBackhand 
+              ? 0.525  // 0.45-0.60 range, using 0.525 as middle
+              : 0.85;  // Default for other shot types (net_point, serve_point)
+            
+            const strokeDasharray = isBackhand ? "4,4" : "none";
+
             // Check if origin is on or off table
             const originOnTable =
               shot.originX! >= 0 &&
@@ -282,8 +306,9 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                   stroke={shotColor}
                   strokeWidth={isHovered ? 2 : 1}
                   strokeLinecap="round"
+                  strokeDasharray={strokeDasharray}
                   initial={{ opacity: 0, pathLength: 0 }}
-                  animate={{ opacity: 0.85, pathLength: 1 }}
+                  animate={{ opacity: lineOpacity, pathLength: 1 }}
                   transition={{ 
                     delay: idx * 0.03 + 0.1,
                     duration: 0.6,
@@ -296,10 +321,8 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                 <motion.circle
                   cx={x1}
                   cy={y1}
-                  r={isHovered ? 5 : 2.5}
+                  r={isHovered ? landingRadiusHovered * 0.7 : landingRadius * 0.7}
                   fill={originOnTable ? shotColor : "#9CA3AF"}
-                  stroke="white"
-                  strokeWidth="0.5"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 0.8, scale: 1 }}
                   transition={{ 
@@ -314,10 +337,8 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                 <motion.circle
                   cx={x2}
                   cy={y2}
-                  r={isHovered ? 7 : 4}
+                  r={isHovered ? landingRadiusHovered : landingRadius}
                   fill="#FFD700"
-                  stroke="white"
-                  strokeWidth={isHovered ? "2" : "1"}
                   filter={isHovered ? "url(#glow)" : undefined}
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -326,7 +347,7 @@ export default function WagonWheel({ shots, title, animateOnce }: WagonWheelProp
                     duration: 0.4,
                     ease: "easeOut"
                   }}
-                  style={{ transition: "r 0.2s, stroke-width 0.2s" }}
+                  style={{ transition: "r 0.2s" }}
                 />
               </motion.g>
             );

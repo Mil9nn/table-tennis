@@ -415,7 +415,7 @@ export function generatePerformanceCommentary(
 
     if (closeGames >= games.length * 0.6) {
       commentary.push(
-        `The match was highly competitive with ${closeGames} out of ${games.length} games decided by 2 points or fewer, showcasing evenly matched opponents and intense rallies throughout.`
+        `The match was highly competitive with ${closeGames} out of ${games.length} games decided by 2 points or fewer, showcasing evenly matched opponents.`
       );
     }
   }
@@ -423,34 +423,15 @@ export function generatePerformanceCommentary(
   return commentary;
 }
 
-// Calculate longest rally
-export function calculateLongestRally(games: any[]): number {
-  let maxRally = 0;
+// Calculate total winning shots across all games
+export function calculateTotalWinningShots(games: any[]): number {
+  let total = 0;
 
   games.forEach((game) => {
     if (game.shots && Array.isArray(game.shots)) {
-      // Group shots by rally
-      const rallies: any[][] = [];
-      let currentRally: any[] = [];
-
-      game.shots.forEach((shot: any) => {
-        currentRally.push(shot);
-        // A rally ends when a point is won (you can adjust this logic based on your data structure)
-        // For now, we'll count continuous shots
-      });
-
-      if (currentRally.length > 0) {
-        rallies.push(currentRally);
-      }
-
-      // Find max rally length in this game
-      rallies.forEach((rally) => {
-        if (rally.length > maxRally) {
-          maxRally = rally.length;
-        }
-      });
+      total += game.shots.length;
     }
   });
 
-  return maxRally;
+  return total;
 }

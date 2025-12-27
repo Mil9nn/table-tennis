@@ -40,3 +40,58 @@ export function buildScheduleSingleDoubleSingle(teamA: any[], teamB: any[]) {
     { left: [teamA[1]], right: [teamB[1]] },
   ];
 }
+
+/**
+ * Check if a user is a participant in a match
+ * @param userId - The user ID to check
+ * @param match - The match object (individual or team)
+ * @returns true if user is a participant, false otherwise
+ */
+export function isUserParticipantInMatch(userId: string, match: any): boolean {
+  if (!match || !userId) return false;
+
+  // Handle individual matches
+  if (match.matchCategory === "individual") {
+    const participants = match.participants || [];
+    return participants.some((p: any) => {
+      const participantId = p._id?.toString() || p.toString();
+      return participantId === userId;
+    });
+  }
+
+  // Handle team matches
+  if (match.matchCategory === "team") {
+    // Check team1 players
+    const team1Players = match.team1?.players || [];
+    for (const player of team1Players) {
+      const playerId = player.user?._id?.toString() || player.user?.toString() || player.user?._id || player.user;
+      if (playerId === userId) return true;
+    }
+
+    // Check team2 players
+    const team2Players = match.team2?.players || [];
+    for (const player of team2Players) {
+      const playerId = player.user?._id?.toString() || player.user?.toString() || player.user?._id || player.user;
+      if (playerId === userId) return true;
+    }
+
+    // Check subMatches players
+    const subMatches = match.subMatches || [];
+    for (const subMatch of subMatches) {
+      const team1SubPlayers = Array.isArray(subMatch.playerTeam1)
+        ? subMatch.playerTeam1
+        : [subMatch.playerTeam1];
+      const team2SubPlayers = Array.isArray(subMatch.playerTeam2)
+        ? subMatch.playerTeam2
+        : [subMatch.playerTeam2];
+
+      for (const player of [...team1SubPlayers, ...team2SubPlayers]) {
+        if (!player) continue;
+        const playerId = player._id?.toString() || player.toString() || player._id || player;
+        if (playerId === userId) return true;
+      }
+    }
+  }
+
+  return false;
+}

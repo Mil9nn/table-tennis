@@ -13,7 +13,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { id } = await context.params;
 
     const match = await populateIndividualMatch(
-      IndividualMatch.findById(id)
+      IndividualMatch.findById(id),
+      { includeTournament: true }
     ).exec();
 
     if (!match) {

@@ -57,10 +57,21 @@ export default function CustomMatchingPage() {
     );
   }
 
-  if (tournament.format !== "knockout" || !tournament.bracket) {
+  // Check if tournament has a knockout bracket (either pure knockout or hybrid in knockout phase)
+  const hasKnockoutBracket = 
+    tournament.bracket && 
+    (tournament.format === "knockout" || 
+     (tournament.format === "hybrid" && tournament.currentPhase === "knockout"));
+
+  if (!hasKnockoutBracket) {
     return (
       <div className="text-center py-12">
         <p>This tournament does not have a knockout bracket</p>
+        {tournament.format === "hybrid" && tournament.currentPhase !== "knockout" && (
+          <p className="text-sm text-gray-500 mt-2">
+            Please complete the round-robin phase and transition to knockout phase first.
+          </p>
+        )}
         <Button
           variant="outline"
           onClick={() => router.push(`/tournaments/${tournamentId}`)}
@@ -152,7 +163,19 @@ export default function CustomMatchingPage() {
         <CustomKnockoutMatcher
           tournamentId={tournamentId}
           bracket={tournament.bracket}
-          participants={tournament.participants.filter(isUserParticipant)}
+          participants={
+            // For hybrid tournaments in knockout phase, use qualified participants only
+            // For pure knockout tournaments, use all participants
+            tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants
+              ? tournament.qualifiedParticipants.filter(isUserParticipant)
+              : tournament.participants.filter(isUserParticipant)
+          }
+          qualifiedParticipantIds={
+            // Pass qualified participant IDs for validation and UI indicators
+            tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants
+              ? new Set(tournament.qualifiedParticipants.map((p: any) => p._id?.toString() || p.toString()))
+              : new Set(tournament.participants.map((p: any) => p._id?.toString() || p.toString()))
+          }
           currentRound={selectedRound}
           onSuccess={handleSuccess}
           matchType={tournament.matchType}

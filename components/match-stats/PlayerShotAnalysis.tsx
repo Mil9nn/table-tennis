@@ -1,10 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart,
   Pie,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   Cell,
 } from "recharts";
 import { getShotColor, renderCustomLabel } from "@/lib/match-stats-utils";
@@ -22,10 +20,9 @@ interface PlayerShotAnalysisProps {
 
 export function PlayerShotAnalysis({ playerPieData }: PlayerShotAnalysisProps) {
   return (
-    <div className="space-y-4 p-2">
-      <h3 className="font-semibold text-base mb-1">Player Shot Analysis</h3>
+    <div className="space-y-4 bg-white">
+      <h3 className="font-semibold text-base text-[#353535]">Player Shot Analysis</h3>
 
-      {/* Player Cards */}
       {playerPieData.length > 0 && (
         <div className="grid md:grid-cols-2 gap-6">
           {playerPieData.map((player) => {
@@ -43,19 +40,18 @@ function PlayerPieChart({ player }: { player: PlayerPieData }) {
   const totalShots = player.data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <section ref={ref}>
-      <header>
-        <CardTitle className="text-lg font-semibold tracking-tight">
+    <section ref={ref} className="bg-white border border-[#d9d9d9] p-4">
+      <header className="mb-2">
+        <h4 className="text-sm font-semibold tracking-tight text-[#353535]">
           {player.playerName}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Total points:&nbsp;
-          <span className="font-medium text-foreground">{totalShots}</span>
+        </h4>
+        <p className="text-xs text-[#d9d9d9]">
+          Total winning shots:&nbsp;
+          <span className="font-medium text-[#353535]">{totalShots}</span>
         </p>
       </header>
 
-      {/* Smaller Chart */}
-      <div className="h-72">
+      <div className="h-64">
         {isInView && (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -65,7 +61,7 @@ function PlayerPieChart({ player }: { player: PlayerPieData }) {
                 cy="50%"
                 labelLine={false}
                 label={renderCustomLabel}
-                outerRadius={85}
+                outerRadius={80}
                 dataKey="value"
                 isAnimationActive={true}
                 animationBegin={0}
@@ -76,9 +72,14 @@ function PlayerPieChart({ player }: { player: PlayerPieData }) {
                   <Cell key={`cell-${index}`} fill={getShotColor(entry.name)} />
                 ))}
               </Pie>
-
               <Tooltip
-                formatter={(value: any, name: any) => [`${value} shots`, name]}
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 0,
+                  boxShadow: "none",
+                }}
+                formatter={(value: any, name: any) => [`${value} winning shots`, name]}
               />
             </PieChart>
           </ResponsiveContainer>

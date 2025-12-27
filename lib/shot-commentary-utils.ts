@@ -141,8 +141,8 @@ function calculateTableIntersection(
 /**
  * Determine zone based on landing X coordinate (horizontal)
  * Zones: Deep (closest to player) | Mid | Short (closest to net)
- * Left side: Deep (0-16.67) | Mid (16.67-33.33) | Short (33.33-50)
- * Right side: Short (50-66.67) | Mid (66.67-83.33) | Deep (83.33-100)
+ * Left side: Deep (0-25) | Mid (25-40) | Short (40-50)
+ * Right side: Short (50-60) | Mid (60-75) | Deep (75-100)
  */
 export function getZone(landingX: number, receivingSide?: Side): "short" | "mid" | "deep" | null {
   // Determine which side of the table the ball landed on
@@ -336,12 +336,12 @@ const THRESHOLDS = {
   CLOSE_TO_NET_Y: 50,          // Y < 50 = front half, considered "close to net" area
   ORIGIN_CLOSE_TO_TABLE: 26,   // Distance from table edge for "close to table" (70cm)
   // Zone thresholds (horizontal/X-based): Deep | Mid | Short on each side
-  ZONE_DEEP_LEFT: 16.67,       // Left side: Deep zone (0-16.67)
-  ZONE_MID_LEFT: 33.33,        // Left side: Mid zone (16.67-33.33)
-  ZONE_SHORT_LEFT: 50,         // Left side: Short zone (33.33-50)
-  ZONE_SHORT_RIGHT: 66.67,     // Right side: Short zone (50-66.67)
-  ZONE_MID_RIGHT: 83.33,       // Right side: Mid zone (66.67-83.33)
-  ZONE_DEEP_RIGHT: 100,        // Right side: Deep zone (83.33-100)
+  ZONE_DEEP_LEFT: 25,          // Left side: Deep zone (0-25)
+  ZONE_MID_LEFT: 40,           // Left side: Mid zone (25-40)
+  ZONE_SHORT_LEFT: 50,         // Left side: Short zone (40-50)
+  ZONE_SHORT_RIGHT: 60,        // Right side: Short zone (50-60)
+  ZONE_MID_RIGHT: 75,          // Right side: Mid zone (60-75)
+  ZONE_DEEP_RIGHT: 100,        // Right side: Deep zone (75-100)
   // Sector thresholds (vertical/Y-based): Backhand | Crossover | Forehand
   SECTOR_BACKHAND: 33.33,      // Y < 33.33% = Backhand (for left side player)
   SECTOR_CROSSOVER: 66.67,     // Y 33.33-66.67% = Crossover

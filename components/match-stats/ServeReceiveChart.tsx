@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -10,9 +9,10 @@ import {
 } from "recharts";
 import { useInView } from "@/hooks/useInView";
 
+// Accent colors with variety
 const COLORS = {
-  serve: "#F4A261", // warm amber — NOT green
-  receive: "#4C6EF5", // refined cool blue
+  serve: "#3c6e71", // teal from app palette
+  receive: "#284b63", // navy from app palette
 };
 
 interface ServeReceiveChartProps {
@@ -29,38 +29,41 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
   if (data.length === 0) return null;
 
   return (
-    <section ref={ref}>
-      <header className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold tracking-tight">
-              Serve vs Receive Performance
-            </CardTitle>
-            <p className="text-xs text-gray-500">
-              Compare points won while serving vs receiving
-            </p>
-          </div>
-        </div>
+    <section ref={ref} className="bg-white">
+      <header className="pb-3">
+        <h3 className="text-base font-semibold tracking-tight text-[#353535]">
+          Serve vs Receive Performance
+        </h3>
+        <p className="text-xs text-[#d9d9d9]">
+          Compare points won while serving vs receiving
+        </p>
       </header>
 
-      {/* Smaller + sleek chart height */}
       <div className="h-56 w-full">
         {isInView && (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} barGap={6} barCategoryGap="20%">
-              <XAxis dataKey="player" tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+              <XAxis 
+                dataKey="player" 
+                tick={{ fontSize: 11, fill: "#353535" }} 
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
+              />
               <YAxis
                 width={28}
                 allowDecimals={false}
-                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                tick={{ fontSize: 11, fill: "#353535" }}
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
               />
               <Tooltip
                 contentStyle={{
-                  background: "#111",
-                  border: "1px solid #333",
-                  borderRadius: "10px",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 0,
+                  boxShadow: "none",
                 }}
-                labelStyle={{ color: "#aaa" }}
+                labelStyle={{ color: "#353535" }}
               />
               <Legend
                 wrapperStyle={{ paddingTop: 8 }}
@@ -73,7 +76,7 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
               <Bar
                 dataKey="Serve"
                 fill={COLORS.serve}
-                radius={[4, 4, 0, 0]}
+                radius={0}
                 isAnimationActive={true}
                 animationBegin={0}
                 animationDuration={1000}
@@ -82,7 +85,7 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
               <Bar
                 dataKey="Receive"
                 fill={COLORS.receive}
-                radius={[4, 4, 0, 0]}
+                radius={0}
                 isAnimationActive={true}
                 animationBegin={200}
                 animationDuration={1000}

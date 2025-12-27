@@ -16,129 +16,272 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { axiosInstance } from "@/lib/axiosInstance";
 import ProfileHeader from "./components/ProfileHeader";
+import MatchTypeBreakdown from "./components/MatchTypeBreakdown";
+import PlayingStyle from "./components/PlayingStyle";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Lock } from "lucide-react";
 
 import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
 import GroupWorkIcon from '@mui/icons-material/GroupWork';
 
-const ProfilePage = () => {
-  const { user } = useAuthStore();
+interface ProfilePageContentProps {
+  userId?: string;
+}
+
+export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
+  const { user: currentUser } = useAuthStore();
   const router = useRouter();
+  const [stats, setStats] = useState<any>(null);
+  const [profileUser, setProfileUser] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const { hasFeature } = useSubscription();
+
+  // Determine which user ID to use: provided userId or current authenticated user
+  const targetUserId = userId || currentUser?._id;
+  const isOwnProfile = !userId || userId === currentUser?._id;
+
+  // Fetch profile stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!targetUserId) {
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        setLoadingStats(true);
+        const response = await axiosInstance.get(`/profile/${targetUserId}/stats`);
+        
+        if (response.data) {
+          // Extract user and stats from response
+          if (response.data.user) {
+            setProfileUser(response.data.user);
+          }
+          if (response.data.stats) {
+            setStats(response.data.stats);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+        setStats(null);
+        setProfileUser(null);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [targetUserId]);
+
+  // Use currentUser for own profile (has complete data), otherwise use profileUser from API
+  const displayUser = isOwnProfile ? currentUser : profileUser;
 
   const navigationCards = [
     {
-      id: "performance-insights",
-      title: "Performance Insights",
-      icon: TrendingUp,
-      color: "text-blue-500",
-      route: "/profile/insights",
-    },
-    {
       id: "player-stats",
       title: "Player Stats",
-
       icon: BarChart3,
-      color: "text-purple-500",
       route: "/profile/stats",
-    },
-    {
-      id: "shot-analysis",
-      title: "Shot Analysis",
-
-      icon: ScatterPlotIcon,
-      color: "text-yellow-500",
-      route: "/profile/shots",
-    },
-    {
-      id: "team-stats",
-      title: "Team Stats",
-
-      icon: Diversity3Icon,
-      color: "text-green-500",
-      route: "/profile/team",
-    },
-    {
-      id: "tournaments",
-      title: "Tournaments",
-
-      icon: Trophy,
-      color: "text-amber-500",
-      route: "/profile/tournaments",
-    },
-    {
-      id: "head-to-head",
-      title: "Head to Head",
-
-      icon: Swords,
-      color: "text-red-500",
-      route: "/profile/head-to-head",
-    },
-    {
-      id: "my-teams",
-      title: "My Teams",
-
-      icon: GroupWorkIcon,
-      color: "text-indigo-500",
-      route: "/profile/my-teams",
+      requiresPro: true,
     },
     {
       id: "match-history",
       title: "Match History",
-
       icon: History,
-      color: "text-cyan-500",
       route: "/profile/history",
+      requiresPro: false,
+    },
+    {
+      id: "performance-insights",
+      title: "Performance Insights",
+      icon: TrendingUp,
+      route: "/profile/insights",
+      requiresPro: true,
+    },
+    {
+      id: "shot-analysis",
+      title: "Shot Analysis",
+      icon: ScatterPlotIcon,
+      route: "/profile/shots",
+      requiresPro: true,
+    },
+    {
+      id: "my-teams",
+      title: "My Teams",
+      icon: GroupWorkIcon,
+      route: "/profile/my-teams",
+      requiresPro: false,
+    },
+    {
+      id: "team-stats",
+      title: "Team Stats",
+      icon: Diversity3Icon,
+      route: "/profile/team",
+      requiresPro: true,
+    },
+    {
+      id: "tournaments",
+      title: "Tournaments",
+      icon: Trophy,
+      route: "/profile/tournaments",
+      requiresPro: true,
+    },
+    {
+      id: "head-to-head",
+      title: "Head to Head",
+      icon: Swords,
+      route: "/profile/head-to-head",
+      requiresPro: true,
     },
     {
       id: "activity-trends",
       title: "Activity & Trends",
-
       icon: Calendar,
-      color: "text-pink-500",
       route: "/profile/activity",
+      requiresPro: true,
     },
   ];
 
+  // Prepare match type breakdown data
+  const matchTypeData = stats ? [
+    {
+      label: "Singles",
+      matches: stats.individual?.singles?.totalMatches || 0,
+      wins: stats.individual?.singles?.wins || 0,
+      losses: stats.individual?.singles?.losses || 0,
+      setsWon: stats.individual?.singles?.setsWon || 0,
+      setsLost: stats.individual?.singles?.setsLost || 0,
+      color: "bg-blue-500",
+    },
+    {
+      label: "Doubles",
+      matches: stats.individual?.doubles?.totalMatches || 0,
+      wins: stats.individual?.doubles?.wins || 0,
+      losses: stats.individual?.doubles?.losses || 0,
+      setsWon: stats.individual?.doubles?.setsWon || 0,
+      setsLost: stats.individual?.doubles?.setsLost || 0,
+      color: "bg-purple-500",
+    },
+    {
+      label: "Mixed Doubles",
+      matches: stats.individual?.mixed?.totalMatches || 0,
+      wins: stats.individual?.mixed?.wins || 0,
+      losses: stats.individual?.mixed?.losses || 0,
+      setsWon: stats.individual?.mixed?.setsWon || 0,
+      setsLost: stats.individual?.mixed?.setsLost || 0,
+      color: "bg-pink-500",
+    },
+    {
+      label: "Team Matches",
+      matches: stats.team?.totalMatches || 0,
+      wins: stats.team?.wins || 0,
+      losses: stats.team?.losses || 0,
+      setsWon: stats.team?.setsWon || 0,
+      setsLost: stats.team?.setsLost || 0,
+      color: "bg-emerald-500",
+    },
+  ] : [];
+
+  // Guard against missing user ID
+  if (!targetUserId) {
+    return (
+      <div className="min-h-screen bg-[#ffffff] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#3c6e71]" />
+          <p className="text-[#353535]">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-gray-50">
-      {user ? (
+    <div className="min-h-screen bg-[#ffffff]">
+      {displayUser ? (
         <ProfileHeader
           detailedStats={null}
           tournamentStats={null}
-          user={user}
+          user={displayUser}
+          stats={stats}
+          isOwnProfile={isOwnProfile}
         />
+      ) : loadingStats ? (
+        <div className="min-h-screen bg-[#ffffff] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#3c6e71]" />
+        </div>
       ) : (
-        <Loader2 />
+        <div className="min-h-screen bg-[#ffffff] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-[#353535]">User not found</p>
+          </div>
+        </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Stats Section - Match Type Breakdown & Playing Style */}
+      {stats && !loadingStats && (
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          {/* Section Title */}
+          <div className="mb-8">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+              Performance Overview
+            </h2>
+            <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
+          </div>
+
+          {/* Match Type & Playing Style Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+            <MatchTypeBreakdown data={matchTypeData} />
+            <PlayingStyle shotAnalysis={stats.shotAnalysis} />
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Section Title */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800">Your Dashboard</h2>
-          <p className="text-gray-600 mt-2 text-sm">
-            Comprehensive stats, insights, and achievements
-          </p>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Dashboard
+          </h2>
+          <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
         </div>
 
         {/* Navigation Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#d9d9d9]">
           {navigationCards.map((card) => {
             const Icon = card.icon;
+            const isLocked = card.requiresPro && !hasFeature("profileInsightsAccess");
+            
+            const handleClick = () => {
+              if (isLocked) {
+                router.push("/subscription?feature=" + encodeURIComponent(card.title));
+              } else {
+                router.push(card.route);
+              }
+            };
+            
             return (
               <button
                 key={card.id}
-                onClick={() => router.push(card.route)}
-                className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-transparent overflow-hidden text-left transform hover:-translate-y-1"
+                onClick={handleClick}
+                className="group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left relative"
               >
-                <div className="relative">
-                  {/* Content */}
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-sm flex items-center gap-2 font-bold text-gray-800 group-hover:text-gray-900 mb-2">
-                      <Icon className={`size-5 ${card.color}`} />
-                      <span>{card.title}</span>
-                    </h3>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5 text-[#3c6e71] group-hover:text-[#ffffff] transition-colors" />
+                      <h3 className="text-sm font-semibold text-[#353535] group-hover:text-[#ffffff] transition-colors tracking-wide">
+                        {card.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isLocked && (
+                        <Lock className="w-3 h-3 text-[#3c6e71] group-hover:text-[#ffffff] transition-colors" />
+                      )}
+                      <ChevronRight className="w-4 h-4 text-[#d9d9d9] group-hover:text-[#ffffff] transition-all group-hover:translate-x-1" />
+                    </div>
                   </div>
                 </div>
               </button>
@@ -148,6 +291,11 @@ const ProfilePage = () => {
       </div>
     </div>
   );
+};
+
+const ProfilePage = () => {
+  // No userId provided, will use current authenticated user
+  return <ProfilePageContent />;
 };
 
 export default ProfilePage;

@@ -90,7 +90,7 @@ export interface ITournament extends Document {
   scorers: mongoose.Types.ObjectId[]; // Users who can score matches (max 10)
 
   // Subscription tracking
-  createdWithTier: "free" | "pro" | "premium" | "enterprise";
+  createdWithTier: "free" | "pro" | "enterprise";
   customBranding?: {
     logo?: string;
     primaryColor?: string;
@@ -134,9 +134,7 @@ export interface ITournament extends Document {
     roundRobinNumberOfGroups?: number;
 
     // Qualification settings
-    qualificationMethod: "top_n_overall" | "top_n_per_group" | "percentage";
-    qualifyingCount?: number; // How many qualify (top N)
-    qualifyingPercentage?: number; // Or percentage (e.g., 50 for top 50%)
+    qualificationMethod: "top_n_per_group";
     qualifyingPerGroup?: number; // For group-based qualification
 
     // Knockout phase settings
@@ -229,7 +227,7 @@ const tournamentSchema = new Schema<ITournament>(
     // Subscription tracking
     createdWithTier: {
       type: String,
-      enum: ["free", "pro", "premium", "enterprise"],
+      enum: ["free", "pro", "enterprise"],
       required: true,
       default: "free",
     },
@@ -284,11 +282,9 @@ const tournamentSchema = new Schema<ITournament>(
         // Qualification settings
         qualificationMethod: {
           type: String,
-          enum: ["top_n_overall", "top_n_per_group", "percentage"],
-          default: "top_n_overall",
+          enum: ["top_n_per_group"],
+          default: "top_n_per_group",
         },
-        qualifyingCount: { type: Number },
-        qualifyingPercentage: { type: Number },
         qualifyingPerGroup: { type: Number },
 
         // Knockout phase settings

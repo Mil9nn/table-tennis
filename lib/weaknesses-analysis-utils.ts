@@ -20,7 +20,7 @@ import {
 } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
 import { analyzeShotPlacement, getZone, getSector } from "@/lib/shot-commentary-utils";
-import { getAbsoluteSector } from "@/lib/sector-utils";
+import { getAbsoluteSector, getRelativeSector } from "@/lib/sector-utils";
 
 // Minimum sample sizes for statistical significance
 const MIN_SHOT_ATTEMPTS = 5; // Minimum shots for shot weakness analysis
@@ -234,7 +234,21 @@ export function calculateShotWeaknesses(
 }
 
 /**
- * Calculate zone-based weaknesses (10x10 grid)
+ * Calculate zone-based weaknesses with fine-grained grid aligned to zone-sector boundaries
+ * 
+ * Grid structure: 20 columns × 9 rows = 180 cells
+ * - X-axis: 20 columns (5% width each) aligns with zone boundaries:
+ *   - Columns 0-4 (0-25%): Left Deep
+ *   - Columns 5-7 (25-40%): Left Mid
+ *   - Columns 8-9 (40-50%): Left Short
+ *   - Columns 10-11 (50-60%): Right Short
+ *   - Columns 12-14 (60-75%): Right Mid
+ *   - Columns 15-19 (75-100%): Right Deep
+ * 
+ * - Y-axis: 9 rows (~11.11% height each) aligns with sector boundaries:
+ *   - Rows 0-2 (0-33.33%): Top/Backhand
+ *   - Rows 3-5 (33.33-66.67%): Middle/Crossover
+ *   - Rows 6-8 (66.67-100%): Bottom/Forehand
  * 
  * Uses determinePointOutcomes to correctly handle both cases:
  * - If only winning shots are stored: each shot = one point
@@ -244,7 +258,10 @@ export function calculateZoneWeaknesses(
   allGames: any[],
   userId: string
 ): ZoneWeaknessData {
-  // Initialize 10x10 grid
+  // Initialize 20x9 grid (180 cells)
+  const GRID_COLS = 20;
+  const GRID_ROWS = 9;
+  
   const grid: Record<
     string,
     {
@@ -267,8 +284,11 @@ export function calculateZoneWeaknesses(
       if (!outcome.won) return; // Skip losing shots in rally
       if (outcome.landingX == null || outcome.landingY == null) return;
 
-      const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
-      const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
+      // Map landing position to grid cell (aligned with zone-sector boundaries)
+      // X: 20 columns, 5% width each
+      const zoneX = Math.min(GRID_COLS - 1, Math.floor(outcome.landingX / 5));
+      // Y: 9 rows, ~11.11% height each
+      const zoneY = Math.min(GRID_ROWS - 1, Math.floor(outcome.landingY / (100 / GRID_ROWS)));
       const zoneKey = `${zoneX},${zoneY}`;
 
       if (!grid[zoneKey]) {
@@ -302,9 +322,9 @@ export function calculateZoneWeaknesses(
   const heatmapGrid: ZoneCell[][] = [];
   const allWinRates: number[] = [];
 
-  for (let y = 0; y < 10; y++) {
+  for (let y = 0; y < GRID_ROWS; y++) {
     const row: ZoneCell[] = [];
-    for (let x = 0; x < 10; x++) {
+    for (let x = 0; x < GRID_COLS; x++) {
       const zoneKey = `${x},${y}`;
       const zoneData = grid[zoneKey];
 
@@ -516,27 +536,27 @@ export function analyzeOpponentPatterns(
           opponentStrokes[stroke].timesUsed++;
           opponentStrokes[stroke].pointsWonByOpponent++;
 
-          if (outcome.landingX != null && outcome.landingY != null) {
-            const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
-            const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
-            opponentStrokes[stroke].zones.push(getZoneDescription(zoneX, zoneY));
-          }
-        }
-      } else if (outcome.won && outcome.playerId !== userId && outcome.stroke) {
-        // Case: Only winning shots stored - opponent won, track their winning stroke
-        const stroke = outcome.stroke;
-        if (!opponentStrokes[stroke]) {
-          opponentStrokes[stroke] = { timesUsed: 0, pointsWonByOpponent: 0, zones: [] };
-        }
-        opponentStrokes[stroke].timesUsed++;
-        opponentStrokes[stroke].pointsWonByOpponent++;
-
         if (outcome.landingX != null && outcome.landingY != null) {
-          const zoneX = Math.min(9, Math.floor(outcome.landingX / 10));
-          const zoneY = Math.min(9, Math.floor(outcome.landingY / 10));
+          const zoneX = Math.min(19, Math.floor(outcome.landingX / 5));
+          const zoneY = Math.min(8, Math.floor(outcome.landingY / (100 / 9)));
           opponentStrokes[stroke].zones.push(getZoneDescription(zoneX, zoneY));
         }
       }
+    } else if (outcome.won && outcome.playerId !== userId && outcome.stroke) {
+      // Case: Only winning shots stored - opponent won, track their winning stroke
+      const stroke = outcome.stroke;
+      if (!opponentStrokes[stroke]) {
+        opponentStrokes[stroke] = { timesUsed: 0, pointsWonByOpponent: 0, zones: [] };
+      }
+      opponentStrokes[stroke].timesUsed++;
+      opponentStrokes[stroke].pointsWonByOpponent++;
+
+      if (outcome.landingX != null && outcome.landingY != null) {
+        const zoneX = Math.min(19, Math.floor(outcome.landingX / 5));
+        const zoneY = Math.min(8, Math.floor(outcome.landingY / (100 / 9)));
+        opponentStrokes[stroke].zones.push(getZoneDescription(zoneX, zoneY));
+      }
+    }
     });
   });
 
@@ -706,11 +726,12 @@ export function calculateZoneSectorWeaknesses(
   // Since only winning shots are recorded:
   // - If shot.player === userId: user won the point (win)
   // - If shot.player !== userId: opponent won the point (loss for user)
+  const userIdStr = userId.toString();
   allGames.forEach((game) => {
     const shots = game.shots || [];
     
     shots.forEach((shot: any) => {
-      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString();
+      const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString() || shot.player;
       if (!shotPlayerId) return;
       if (shot.landingX == null || shot.landingY == null) return;
 
@@ -727,7 +748,8 @@ export function calculateZoneSectorWeaknesses(
       stats.totalShots++;
       
       // If shot is from user, they won the point. If from opponent, user lost the point.
-      if (shotPlayerId === userId) {
+      // Compare as strings to handle ObjectId and string comparisons
+      if (shotPlayerId.toString() === userIdStr) {
         stats.wins++;
       } else {
         stats.losses++;
@@ -780,15 +802,30 @@ export function calculateZoneSectorWeaknesses(
         ? Object.entries(stats.strokes).sort((a, b) => b[1] - a[1])[0]?.[0] || null
         : null;
 
-      // Generate recommendation
-      const zoneName = `${zone} ${sector}`;
+      // Generate recommendation with proper zone-sector naming
+      // Convert absolute sector to relative sector (using side1 as default perspective)
+      const relativeSector = getRelativeSector(
+        sector === "top" ? 10 : sector === "middle" ? 50 : 90, // Use representative Y values
+        "side1"
+      );
+      
+      // Format zone name (capitalize first letter)
+      const formattedZone = zone === "mid" ? "Mid" : zone.charAt(0).toUpperCase() + zone.slice(1);
+      
+      // Format sector name (capitalize first letter)
+      const formattedSector = relativeSector === "crossover" 
+        ? "Crossover" 
+        : relativeSector ? relativeSector.charAt(0).toUpperCase() + relativeSector.slice(1) 
+        : "";
+      
+      const zoneSectorName = `${formattedZone} ${formattedSector}`;
       let recommendation = "";
       if (vulnerability === "high") {
-        recommendation = `${zoneName.charAt(0).toUpperCase() + zoneName.slice(1)} zone is vulnerable (${winRate.toFixed(0)}% win rate). Practice defending this area.`;
+        recommendation = `${zoneSectorName} zone is vulnerable (${winRate.toFixed(0)}% win rate). Practice defending this area.`;
       } else if (vulnerability === "low") {
-        recommendation = `${zoneName.charAt(0).toUpperCase() + zoneName.slice(1)} zone is a strength (${winRate.toFixed(0)}% win rate). Use this advantage.`;
+        recommendation = `${zoneSectorName} zone is a strength (${winRate.toFixed(0)}% win rate). Use this advantage.`;
       } else {
-        recommendation = `${zoneName.charAt(0).toUpperCase() + zoneName.slice(1)} zone performance is average (${winRate.toFixed(0)}% win rate). Maintain consistency.`;
+        recommendation = `${zoneSectorName} zone performance is average (${winRate.toFixed(0)}% win rate). Maintain consistency.`;
       }
 
       weaknesses.push({
@@ -1100,8 +1137,22 @@ export function analyzeWeaknesses(
 // Helper functions
 
 function getZoneDescription(x: number, y: number): string {
-  const xDesc = x < 3 ? "left" : x > 6 ? "right" : "middle";
-  const yDesc = y < 3 ? "near" : y > 6 ? "deep" : "mid";
+  // X-axis: 20 columns (0-19), each 5% wide
+  // Zone mapping: 0-4=Left Deep, 5-7=Left Mid, 8-9=Left Short, 
+  //               10-11=Right Short, 12-14=Right Mid, 15-19=Right Deep
+  // Y-axis: 9 rows (0-8), each ~11.11% tall
+  // Sector mapping: 0-2=Backhand, 3-5=Crossover, 6-8=Forehand
+  
+  let xDesc: string;
+  if (x <= 4) xDesc = "left deep";
+  else if (x <= 7) xDesc = "left mid";
+  else if (x <= 9) xDesc = "left short";
+  else if (x <= 11) xDesc = "right short";
+  else if (x <= 14) xDesc = "right mid";
+  else xDesc = "right deep";
+  
+  const yDesc = y <= 2 ? "backhand" : y <= 5 ? "crossover" : "forehand";
+  
   return `${yDesc} ${xDesc}`;
 }
 

@@ -1,5 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -192,3 +194,45 @@
 .leaderboard-modal-content::-webkit-scrollbar-thumb:hover {
   background: rgba(50, 49, 57, 0.3);
 }
+
+@layer base {
+  .marketing {
+    --m-bg-main: oklch(0.145 0 0);       /* dark base */
+    --m-bg-card: oklch(0.205 0 0);       /* cards */
+    --m-text-primary: oklch(0.985 0 0);
+    --m-text-muted: oklch(0.708 0 0);
+    --m-accent-primary: oklch(0.488 0.243 264.376); /* violet */
+    --m-accent-secondary: oklch(0.645 0.246 16.439); /* pink */
+    --m-live: oklch(0.696 0.17 162.48);  /* emerald */
+    
+    /* Brand Color Palette (MARKETING_HOMEPAGE.md Line 381) */
+    --brand-dark-gray: #353535;
+    --brand-teal: #3c6e71;
+    --brand-white: #ffffff;
+    --brand-light-gray: #d9d9d9;
+    --brand-dark-blue: #284b63;
+  }
+}
+
+@layer components {
+  .marketing .m-h1 {
+    @apply text-4xl md:text-6xl font-semibold tracking-tight text-[var(--m-text-primary)];
+  }
+
+  .marketing .m-h2 {
+    @apply text-3xl md:text-4xl font-semibold text-[var(--m-text-primary)];
+  }
+
+  .marketing .m-h3 {
+    @apply text-xl font-medium text-[var(--m-text-primary)];
+  }
+
+  .marketing .m-body {
+    @apply text-[15px] leading-relaxed text-[var(--m-text-muted)];
+  }
+
+  .marketing .m-label {
+    @apply text-xs uppercase tracking-wider text-[var(--m-text-muted)];
+  }
+}
+

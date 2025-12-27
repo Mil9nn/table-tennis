@@ -149,12 +149,8 @@ export function HybridTournamentManager({
 
   const getQualificationMethodLabel = (method: string) => {
     switch (method) {
-      case "top_n_overall":
-        return "Top N Overall";
       case "top_n_per_group":
         return "Top N Per Group";
-      case "percentage":
-        return "Top Percentage";
       default:
         return method;
     }

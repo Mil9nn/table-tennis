@@ -2,7 +2,6 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OriginDistanceWeakness } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
@@ -35,94 +34,98 @@ export function OriginDistanceAnalysis({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Distance from Table Analysis</CardTitle>
-        <p className="text-sm text-gray-500">
+    <div className="border border-[#d9d9d9] bg-white p-4">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-[#353535]">Distance from Table Analysis</h3>
+        <p className="text-xs text-[#d9d9d9]">
           Your performance based on where you hit shots from
         </p>
-      </CardHeader>
-      <CardContent>
-        <div className="grid md:grid-cols-2 gap-4">
-          {sortedDistances.map((distance, idx) => {
-            // Show all categories, but style differently if no data
-            if (distance.totalShots === 0) {
-              return (
-                <div key={idx} className="p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-60">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold capitalize text-sm text-gray-500">
-                      {distance.originZone.replace(/-/g, " ")}
-                    </h4>
-                    <Badge variant="outline" className="text-gray-400">
-                      No data
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    No shots recorded from this position
-                  </div>
-                </div>
-              );
-            }
-            
-            const bgColor =
-              distance.winRate < 45
-                ? "border-red-300 bg-red-50"
-                : distance.winRate > 55
-                ? "border-green-300 bg-green-50"
-                : "border-yellow-300 bg-yellow-50";
+      </div>
 
-            const badgeVariant =
-              distance.winRate < 45 ? "destructive" : "secondary";
-
+      <div className="grid grid-cols-2 gap-3">
+        {sortedDistances.map((distance, idx) => {
+          // Show all categories, but style differently if no data
+          if (distance.totalShots === 0) {
             return (
-                <div key={idx} className={`p-4 border rounded-lg ${bgColor}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold capitalize text-sm">
-                      {distance.originZone.replace(/-/g, " ")}
-                    </h4>
-                    <Badge variant={badgeVariant}>
-                      {distance.winRate.toFixed(0)}%
-                    </Badge>
-                  </div>
-
-                  <div className="text-sm space-y-1 mb-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Shots:</span>
-                      <span className="font-semibold">{distance.totalShots}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">W/L:</span>
-                      <span className="font-semibold">
-                        {distance.wins}/{distance.losses}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Common strokes at this distance */}
-                  {distance.commonStrokes.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-600 mb-1">Common Strokes:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {distance.commonStrokes.slice(0, 3).map((s, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {formatStrokeName(s.stroke)} ({s.count})
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recommendation */}
-                  {distance.winRate < 50 && (
-                    <p className="text-xs mt-3 pt-3 border-t">
-                      <RecommendationText text={distance.recommendation} />
-                    </p>
-                  )}
+              <div key={idx} className="p-3 border border-[#d9d9d9] bg-[#f8f8f8] opacity-60">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold capitalize text-xs text-[#d9d9d9]">
+                    {distance.originZone.replace(/-/g, " ")}
+                  </h4>
+                  <Badge variant="outline" className="text-[#d9d9d9] border-[#d9d9d9] text-xs">
+                    No data
+                  </Badge>
                 </div>
-              );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+                <div className="text-xs text-[#d9d9d9]">
+                  No shots recorded from this position
+                </div>
+              </div>
+            );
+          }
+          
+          const bgColor =
+            distance.winRate < 45
+              ? "border-red-500/20 bg-red-500/5"
+              : distance.winRate > 55
+              ? "border-[#3c6e71]/20 bg-[#3c6e71]/5"
+              : "border-amber-500/20 bg-amber-500/5";
+
+          const badgeClass =
+            distance.winRate < 45 
+              ? "bg-red-500 text-white" 
+              : distance.winRate > 55
+              ? "bg-[#3c6e71] text-white"
+              : "bg-amber-500 text-white";
+
+          return (
+            <div key={idx} className={`p-3 border ${bgColor}`}>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold capitalize text-xs text-[#353535]">
+                  {distance.originZone.replace(/-/g, " ")}
+                </h4>
+                <Badge className={`text-[10px] rounded-full px-1.5 py-0.5 ${badgeClass}`}>
+                  {distance.winRate.toFixed(0)}%
+                </Badge>
+              </div>
+
+              <div className="text-xs space-y-1 mb-2">
+                <div className="flex justify-between">
+                  <span className="text-[#353535]/70">Total Shots:</span>
+                  <span className="font-semibold text-[#353535]">{distance.totalShots}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#353535]/70">Won/Lost:</span>
+                  <span className="font-semibold text-[#353535]">
+                    <span className="text-green-600">{distance.wins}</span>/
+                    <span className="text-red-600">{distance.losses}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Common strokes at this distance */}
+              {distance.commonStrokes.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-[#d9d9d9] mb-1">Common Strokes:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {distance.commonStrokes.slice(0, 3).map((s, i) => (
+                      <Badge key={i} variant="outline" className="text-xs border-[#d9d9d9] text-[#353535]">
+                        {formatStrokeName(s.stroke)} ({s.count})
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendation */}
+              {distance.winRate < 50 && (
+                <p className="text-xs mt-2 pt-2 border-t border-[#d9d9d9] text-[#353535]/70">
+                  <RecommendationText text={distance.recommendation} />
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

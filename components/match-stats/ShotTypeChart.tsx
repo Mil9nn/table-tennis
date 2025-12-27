@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -21,65 +20,59 @@ export function ShotTypeChart({ data }: ShotTypeChartProps) {
   if (data.length === 0) return null;
 
   return (
-    <section ref={ref}>
-      <header className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold tracking-tight">
-              Shot Type Distribution
-            </CardTitle>
-            <p className="text-xs text-gray-500">
-              Frequency of each shot type across all games
-            </p>
-          </div>
-        </div>
+    <section ref={ref} className="bg-white">
+      <header className="pb-3">
+        <h3 className="text-base font-semibold tracking-tight text-[#353535]">
+          Shot Type Distribution
+        </h3>
+        <p className="text-xs text-[#d9d9d9]">
+          Frequency of each winning shot type across all games
+        </p>
       </header>
 
-        {/* Reduced height for modern compact look */}
-        <div className="h-56 w-full">
-          {isInView && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data}
-                barGap={6}
-                barCategoryGap="18%"
+      <div className="h-56 w-full">
+        {isInView && (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} barGap={6} barCategoryGap="18%">
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11, fill: "#353535" }}
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
+              />
+              <YAxis
+                width={28}
+                tick={{ fontSize: 11, fill: "#353535" }}
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 0,
+                  boxShadow: "none",
+                }}
+                labelStyle={{ color: "#353535" }}
+                itemStyle={{ color: "#353535" }}
+                formatter={(value?: number) => [`${value ?? 0}`, "Count"]}
+              />
+              <Bar
+                dataKey="value"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1200}
+                animationEasing="ease-out"
               >
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                />
-                <YAxis
-                  width={28}
-                  tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                />
-
-                <Tooltip
-                  contentStyle={{
-                    background: "#111",
-                    border: "1px solid #333",
-                    borderRadius: "10px",
-                  }}
-                  labelStyle={{ color: "#aaa" }}
-                  itemStyle={{ color: "#fff" }}
-                  formatter={(value?: number) => [`${value ?? 0}`, "Count"]}
-                />
-
-                <Bar
-                  dataKey="value"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={0}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                >
-                  {data.map((entry, i) => (
-                    <Cell key={i} fill={getShotColor(entry.name)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+                {data.map((entry, i) => (
+                  <Cell key={i} fill={getShotColor(entry.name)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </section>
   );
 }

@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { Loader2, BarChart3, Target, Map, Sparkles } from "lucide-react";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import { isUserParticipantInMatch } from "@/lib/matchHelpers";
 
 // New Components
 import {
@@ -53,12 +55,15 @@ import {
   detectAchievements,
   generatePerformanceInsights,
   generatePerformanceCommentary,
-  calculateLongestRally,
+  calculateTotalWinningShots,
 } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share } from "@mui/icons-material";
 import { toast } from "sonner";
+import { FeatureGate } from "@/components/FeatureGate";
+import { LockedContent } from "@/components/paywall/LockedContent";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const SECTIONS: Section[] = [
   { id: "overview", label: "Overview", icon: <Sparkles className="h-4 w-4" /> },
@@ -80,6 +85,8 @@ export default function MatchStatsPage() {
   const router = useRouter();
   const matchId = params.id as string;
   const { match, fetchingMatch, fetchMatch } = useMatchStore();
+  const { canAccessStatsPage, loading: subscriptionLoading } = useSubscription();
+  const { user } = useAuthStore();
 
   // Section tracking
   const [activeSection, setActiveSection] = useState("overview");
@@ -178,8 +185,8 @@ export default function MatchStatsPage() {
       };
     });
 
-    const serveTypeData = Object.entries(serveTypeStats).map(
-      ([playerId, s]) => {
+    const serveTypeData = Object.entries(serveTypeStats)
+      .map(([playerId, s]) => {
         const player = allParticipants.find(
           (p) => p._id.toString() === playerId
         );
@@ -193,8 +200,8 @@ export default function MatchStatsPage() {
           mix_spin: s.serve.mix_spin || 0,
           no_spin: s.serve.no_spin || 0,
         };
-      }
-    );
+      })
+      .filter((d) => d.side_spin + d.top_spin + d.back_spin + d.mix_spin + d.no_spin > 0);
 
     const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
       name: formatStrokeName(type),
@@ -235,7 +242,7 @@ export default function MatchStatsPage() {
       allGames,
       shots.length
     );
-    const longestRally = calculateLongestRally(allGames);
+    const totalWinningShots = calculateTotalWinningShots(allGames);
 
     return {
       side1Name,
@@ -253,7 +260,7 @@ export default function MatchStatsPage() {
         achievements,
         insights,
         commentary,
-        longestRally,
+        totalWinningShots,
       },
     };
   }, [match]);
@@ -289,8 +296,8 @@ export default function MatchStatsPage() {
       };
     });
 
-    const serveTypeData = Object.entries(serveTypeStats).map(
-      ([playerId, s]) => {
+    const serveTypeData = Object.entries(serveTypeStats)
+      .map(([playerId, s]) => {
         const player = allParticipants.find(
           (p) => p._id?.toString() === playerId
         );
@@ -304,8 +311,8 @@ export default function MatchStatsPage() {
           mix_spin: s.serve.mix_spin || 0,
           no_spin: s.serve.no_spin || 0,
         };
-      }
-    );
+      })
+      .filter((d) => d.side_spin + d.top_spin + d.back_spin + d.mix_spin + d.no_spin > 0);
 
     const strokeData = Object.entries(shotTypes).map(([type, value]) => ({
       name: formatStrokeName(type),
@@ -347,7 +354,7 @@ export default function MatchStatsPage() {
       allSubMatchGames,
       allShots.length
     );
-    const longestRally = calculateLongestRally(allSubMatchGames);
+    const totalWinningShots = calculateTotalWinningShots(allSubMatchGames);
 
     return {
       team1Name,
@@ -365,7 +372,7 @@ export default function MatchStatsPage() {
         achievements,
         insights,
         commentary,
-        longestRally,
+        totalWinningShots,
       },
     };
   }, [match]);
@@ -384,6 +391,22 @@ export default function MatchStatsPage() {
   if (!match) {
     return (
       <div className="container mx-auto py-8 text-center">Match not found</div>
+    );
+  }
+
+
+  // Subscription check - lock entire stats page for free users
+  if (!subscriptionLoading && !canAccessStatsPage()) {
+    return (
+      <div className="min-h-screen bg-[#ffffff]">
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <LockedContent
+            feature="statsPageAccess"
+            title="Advanced Match Analytics"
+            description="Unlock full match analysis with detailed shot placement, weakness analysis, and AI-powered insights"
+          />
+        </div>
+      </div>
     );
   }
 
@@ -412,14 +435,14 @@ export default function MatchStatsPage() {
       individualMatchData;
 
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-white">
         {/* Top Actions */}
-        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white border-b border-[#d9d9d9]">
           <Button
             onClick={() => router.back()}
             variant="ghost"
             size="sm"
-            className="text-black hover:bg-white/10 rounded-full gap-2 shadow-sm"
+            className="text-[#353535] hover:bg-[#f8f8f8] gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="inline">Back</span>
@@ -429,10 +452,10 @@ export default function MatchStatsPage() {
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="bg-white border-white text-black hover:bg-white rounded-full gap-2"
+            className="bg-white border-[#d9d9d9] text-[#353535] hover:bg-[#f8f8f8] gap-2"
           >
-            <Share fontSize="small" className="" />
-            <span className="">Share</span>
+            <Share fontSize="small" />
+            <span>Share</span>
           </Button>
         </div>
 
@@ -512,7 +535,7 @@ export default function MatchStatsPage() {
             {/* Charts Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <ServeReceiveChart data={stats.serveData} />
-              <ServeTypeChart data={stats.serveTypeData} />
+              {stats.serveTypeData && stats.serveTypeData.length > 0 && <ServeTypeChart data={stats.serveTypeData} />}
               <ShotTypeChart data={stats.strokeData} />
             </div>
 
@@ -544,9 +567,6 @@ export default function MatchStatsPage() {
 
             {/* Per-Player Analysis */}
             <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-4">
-                Player Shot Distribution
-              </h3>
               <PlayerShotAnalysis playerPieData={stats.playerPieData} />
             </div>
           </StatsSectionContainer>
@@ -571,7 +591,12 @@ export default function MatchStatsPage() {
 
             {/* Weaknesses Section */}
             <div className="mt-8">
-              <MatchWeaknessesSection matchId={matchId} category="individual" />
+              <MatchWeaknessesSection 
+                matchId={matchId} 
+                category="individual" 
+                match={match}
+                userId={user?._id || null}
+              />
             </div>
           </StatsSectionContainer>
         </main>
@@ -591,14 +616,14 @@ export default function MatchStatsPage() {
     } = teamMatchData;
 
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen bg-white">
         {/* Top Actions */}
-        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="sticky top-0 z-30 flex items-center justify-between p-2 bg-white border-b border-[#d9d9d9]">
           <Button
             onClick={() => router.back()}
             variant="ghost"
             size="sm"
-            className="text-black hover:bg-white/10 rounded-full gap-2 shadow-sm"
+            className="text-[#353535] hover:bg-[#f8f8f8] gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="inline">Back</span>
@@ -608,10 +633,10 @@ export default function MatchStatsPage() {
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="bg-white border-white text-black hover:bg-white rounded-full gap-2"
+            className="bg-white border-[#d9d9d9] text-[#353535] hover:bg-[#f8f8f8] gap-2"
           >
-            <Share fontSize="small" className="" />
-            <span className="">Share</span>
+            <Share fontSize="small" />
+            <span>Share</span>
           </Button>
         </div>
 
@@ -691,7 +716,7 @@ export default function MatchStatsPage() {
             {/* Charts Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <ServeReceiveChart data={stats.serveData} />
-              <ServeTypeChart data={stats.serveTypeData} />
+              {stats.serveTypeData && stats.serveTypeData.length > 0 && <ServeTypeChart data={stats.serveTypeData} />}
               <ShotTypeChart data={stats.strokeData} />
             </div>
 
@@ -735,21 +760,21 @@ export default function MatchStatsPage() {
               return (
                 <div
                   key={smIdx}
-                  className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 space-y-4 bg-white dark:bg-zinc-900"
+                  className="border border-[#d9d9d9] p-6 space-y-4 bg-white"
                 >
                   <div className="flex flex-col justify-between">
-                    <h3 className="flex items-center gap-4 font-semibold text-base">
+                    <h3 className="flex items-center gap-4 font-semibold text-base text-[#353535]">
                       <span>
                         Match {subMatch.matchNumber}: {player1} vs {player2}
                       </span>
-                      <span className="text-zinc-500">
+                      <span className="text-[#d9d9d9]">
                         {subMatch.finalScore?.team1Sets || 0} -{" "}
                         {subMatch.finalScore?.team2Sets || 0}
                       </span>
                     </h3>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <span className="text-sm text-[#d9d9d9]">
                       {subMatch.winnerSide && (
-                        <span className="ml-2 text-emerald-500">
+                        <span className="ml-2 text-[#3c6e71]">
                           (
                           {subMatch.winnerSide === "team1"
                             ? team1Name
@@ -789,9 +814,6 @@ export default function MatchStatsPage() {
 
             {/* Per-Player Analysis */}
             <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-4">
-                Player Shot Distribution
-              </h3>
               <PlayerShotAnalysis playerPieData={stats.playerPieData} />
             </div>
           </StatsSectionContainer>
@@ -816,7 +838,12 @@ export default function MatchStatsPage() {
 
             {/* Weaknesses Section */}
             <div className="mt-8">
-              <MatchWeaknessesSection matchId={matchId} category="team" />
+              <MatchWeaknessesSection 
+                matchId={matchId} 
+                category="team" 
+                match={match}
+                userId={user?._id || null}
+              />
             </div>
           </StatsSectionContainer>
         </main>

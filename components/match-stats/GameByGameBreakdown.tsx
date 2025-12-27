@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
 import {
   BarChart,
   Bar,
@@ -77,11 +70,11 @@ export function GameByGameBreakdown({
 
   return (
     <section>
-      <header className="space-y-1 mb-4">
-        <CardTitle className="text-lg sm:text-xl font-semibold tracking-tight">
+      <header className="mb-4">
+        <h3 className="text-base font-semibold tracking-tight text-[#353535]">
           Game-by-Game Analysis
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        </h3>
+        <p className="text-xs text-[#d9d9d9]">
           Detailed breakdown of each individual game
         </p>
       </header>
@@ -119,7 +112,7 @@ export function GameByGameBreakdown({
                 {game.winnerSide && (
                   <Badge
                     variant="outline"
-                    className="text-xs rounded-full ring-1 ring-emerald-500 text-emerald-600 dark:text-emerald-400"
+                    className="text-xs border-[#3c6e71] text-[#3c6e71]"
                   >
                     Winner:{" "}
                     {game.winnerSide === "side1"
@@ -138,23 +131,23 @@ export function GameByGameBreakdown({
               <div className="space-y-2">
                 <button
                   onClick={() => toggleGameExpanded(idx)}
-                  className="flex items-center gap-2 w-full hover:bg-gray-50 dark:hover:bg-zinc-800/40 p-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 w-full hover:bg-[#f8f8f8] p-2 transition-colors"
                 >
-                  <h4 className="text-sm font-semibold">
+                  <h4 className="text-sm font-semibold text-[#353535]">
                     Shot Feed (This Game)
                   </h4>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-[#3c6e71]/10 text-[#3c6e71]">
                     {gameShots.length} winning shots
                   </Badge>
                   {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 ml-auto text-gray-500" />
+                    <ChevronUp className="w-4 h-4 ml-auto text-[#d9d9d9]" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 ml-auto text-gray-500" />
+                    <ChevronDown className="w-4 h-4 ml-auto text-[#d9d9d9]" />
                   )}
                 </button>
 
                 {isExpanded && (
-                  <ul className="divide-y divide-gray-200">
+                  <ul className="divide-y divide-[#d9d9d9]">
                     {gameShots.length ? (
                       gameShots.map((shot, i) => {
                       const playerName =
@@ -222,21 +215,21 @@ export function GameByGameBreakdown({
                       return (
                         <li
                           key={i}
-                          className="flex flex-col gap-1.5 text-xs sm:text-sm py-2 hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors rounded-lg"
+                          className="flex flex-col gap-1.5 text-xs sm:text-sm py-2 hover:bg-[#f8f8f8] transition-colors"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-400 dark:text-zinc-600 font-mono text-xs">
+                            <span className="text-[#d9d9d9] font-mono text-xs">
                               {i + 1}.
                             </span>
                             <span className="flex-1">
-                              <strong className="text-gray-900 dark:text-zinc-100">
+                              <strong className="text-[#353535]">
                                 {playerName}
                               </strong>{" "}
-                              <span className="text-gray-500 dark:text-zinc-400 text-xs">
+                              <span className="text-[#d9d9d9] text-xs">
                                 ({shot.side})
                               </span>{" "}
                               →{" "}
-                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                              <span className="text-[#3c6e71] font-medium">
                                 {shotType}
                               </span>
                             </span>
@@ -245,13 +238,13 @@ export function GameByGameBreakdown({
                           {/* Advanced Commentary */}
                           {commentary && (
                             <div className="flex items-start gap-2 ml-8 text-xs">
-                              <MessageSquare className="w-3 h-3 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
+                              <MessageSquare className="w-3 h-3 text-[#284b63] mt-0.5 shrink-0" />
                               <span 
-                                className="text-gray-600 dark:text-zinc-400 italic leading-relaxed"
+                                className="text-[#353535]/70 italic leading-relaxed"
                                 dangerouslySetInnerHTML={{ 
                                   __html: commentary.replace(
                                     /<strong>(.*?)<\/strong>/g, 
-                                    '<strong class="font-bold text-gray-900 dark:text-zinc-100 not-italic">$1</strong>'
+                                    '<strong class="font-bold text-[#353535] not-italic">$1</strong>'
                                   )
                                 }}
                               />
@@ -261,7 +254,7 @@ export function GameByGameBreakdown({
                       );
                     })
                     ) : (
-                      <li className="px-3 py-3 text-sm text-gray-500 dark:text-zinc-500 italic">
+                      <li className="px-3 py-3 text-sm text-[#d9d9d9] italic">
                         No shots recorded…
                       </li>
                     )}
@@ -280,19 +273,37 @@ function GameStrokeChart({ strokeData }: { strokeData: Array<{ name: string; val
   const { ref, isInView } = useInView({ threshold: 0.2 });
 
   return (
-    <div className="space-y-2 p-2" ref={ref}>
-      <h4 className="text-sm font-semibold">
+    <div className="space-y-2 py-3" ref={ref}>
+      <h4 className="text-sm font-semibold text-[#353535]">
         Shot Type Frequency
       </h4>
-      <div className="h-64">
+      <div className="h-56 bg-white">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={strokeData}>
-            <XAxis dataKey="name" style={{ fontSize: "11px" }} />
-            <YAxis width={25} />
-            <Tooltip />
+            <XAxis 
+              dataKey="name" 
+              style={{ fontSize: "11px" }} 
+              tick={{ fill: '#353535' }}
+              axisLine={{ stroke: '#d9d9d9' }}
+              tickLine={{ stroke: '#d9d9d9' }}
+            />
+            <YAxis 
+              width={25} 
+              tick={{ fill: '#353535' }}
+              axisLine={{ stroke: '#d9d9d9' }}
+              tickLine={{ stroke: '#d9d9d9' }}
+            />
+            <Tooltip 
+              contentStyle={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #d9d9d9',
+                borderRadius: 0,
+                boxShadow: 'none',
+              }}
+            />
             <Bar
               dataKey="value"
-              radius={[4, 4, 0, 0]}
+              radius={0}
               isAnimationActive={isInView}
               animationBegin={0}
               animationDuration={800}

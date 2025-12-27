@@ -80,37 +80,71 @@ export function getAllMatchIds(tournament: any): any[] {
     return matchIds;
   }
 
-  // For hybrid knockout phase, also get bracket matches
+  // For hybrid knockout phase, get BOTH round-robin AND bracket matches
   if (
     tournament.format === "hybrid" &&
-    tournament.currentPhase === "knockout" &&
-    tournament.bracket
+    tournament.currentPhase === "knockout"
   ) {
     const matchIds: string[] = [];
-    tournament.bracket.rounds.forEach((round: any) => {
-      round.matches.forEach((match: any) => {
-        if (match.matchId) {
-          matchIds.push(
-            typeof match.matchId === "string"
-              ? match.matchId
-              : match.matchId.toString()
-          );
-        }
-      });
-    });
-    if (tournament.bracket.thirdPlaceMatch?.matchId) {
-      const thirdPlaceId = tournament.bracket.thirdPlaceMatch.matchId;
-      matchIds.push(
-        typeof thirdPlaceId === "string"
-          ? thirdPlaceId
-          : thirdPlaceId.toString()
+    
+    // Get round-robin matches (historical)
+    if (usesGroups && tournament.groups && tournament.groups.length > 0) {
+      const roundRobinIds = tournament.groups.flatMap((g: any) =>
+        g.rounds.flatMap((r: any) => r.matches)
       );
+      matchIds.push(...roundRobinIds.map((id: any) => id.toString()));
+    } else if (tournament.rounds && tournament.rounds.length > 0) {
+      const roundRobinIds = tournament.rounds.flatMap((r: any) => r.matches);
+      matchIds.push(...roundRobinIds.map((id: any) => id.toString()));
     }
+    
+    // Get bracket matches (knockout phase)
+    if (tournament.bracket) {
+      tournament.bracket.rounds.forEach((round: any) => {
+        round.matches.forEach((match: any) => {
+          if (match.matchId) {
+            matchIds.push(
+              typeof match.matchId === "string"
+                ? match.matchId
+                : match.matchId.toString()
+            );
+          }
+        });
+      });
+      if (tournament.bracket.thirdPlaceMatch?.matchId) {
+        const thirdPlaceId = tournament.bracket.thirdPlaceMatch.matchId;
+        matchIds.push(
+          typeof thirdPlaceId === "string"
+            ? thirdPlaceId
+            : thirdPlaceId.toString()
+        );
+      }
+    }
+    
     return matchIds;
   }
 
   // Default: round-robin matches
   return tournament.rounds?.flatMap((r: any) => r.matches) || [];
+}
+
+/**
+ * Get all tournament matches (match documents, not just IDs)
+ * Handles round-robin matches, bracket matches, and hybrid tournaments in both phases
+ * 
+ * @param tournament - Tournament document
+ * @param isTeamTournament - Whether this is a team tournament
+ * @returns Array of match documents (IndividualMatch or TeamMatch)
+ */
+export async function getAllTournamentMatches(
+  tournament: any,
+  isTeamTournament: boolean
+): Promise<any[]> {
+  const matchIds = getAllMatchIds(tournament);
+  if (matchIds.length === 0) {
+    return [];
+  }
+  return await fetchMatches(matchIds, true);
 }
 
 /**

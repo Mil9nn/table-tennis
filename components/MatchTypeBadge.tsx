@@ -1,10 +1,9 @@
 import React from "react";
-import { Badge } from "@/components/ui/badge";
 import { User, Users, HeartHandshake } from "lucide-react";
 
 export type MatchType = "singles" | "doubles" | "mixed_doubles";
 
-type Props = React.ComponentProps<typeof Badge> & {
+type Props = React.ComponentProps<"span"> & {
   type: MatchType;
   size?: "sm" | "md" | "lg";
   showIcon?: boolean;
@@ -14,17 +13,17 @@ const TYPE_CONFIG: Record<MatchType, { label: string; icon: React.ElementType; c
   singles: {
     label: "Singles",
     icon: User,
-    className: "bg-purple-50 text-purple-800 ring-2 ring-purple-100",
+    className: "text-[#3c6e71] dark:text-[#3c6e71]",
   },
   doubles: {
     label: "Doubles",
     icon: Users,
-    className: "bg-cyan-50 text-cyan-800 ring-2 ring-cyan-100",
+    className: "text-[#284b63] dark:text-[#284b63]",
   },
   mixed_doubles: {
     label: "Mixed Doubles",
     icon: HeartHandshake,
-    className: "bg-pink-50 text-pink-800 ring-2 ring-pink-100",
+    className: "text-[#3c6e71] dark:text-[#3c6e71]",
   },
 };
 
@@ -39,9 +38,9 @@ export default function MatchTypeBadge({ type, size = "sm", showIcon = false, cl
   const Icon = cfg.icon;
 
   return (
-    <Badge
+    <span
       {...props}
-      className={`${SIZE_MAP[size]} inline-flex items-center gap-2 rounded-full font-medium ${cfg.className} ${className}`}
+      className={`${SIZE_MAP[size]} inline-flex items-center gap-2 rounded-lg font-medium transition-colors ${cfg.className} ${className}`}
       aria-label={`Match type: ${cfg.label}`}
       title={cfg.label}
     >
@@ -52,7 +51,7 @@ export default function MatchTypeBadge({ type, size = "sm", showIcon = false, cl
       ) : null}
 
       <span className="whitespace-nowrap">{cfg.label}</span>
-    </Badge>
+    </span>
   );
 }
 

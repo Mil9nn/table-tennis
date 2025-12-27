@@ -87,6 +87,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         city: raw.city,
         venue: raw.venue,
         scorer: normalizeScorer(raw.scorer),
+        tournament: raw.tournament, // Include tournament field (may be ID or populated object)
         subMatches: raw.subMatches || [],
         currentSubMatch: raw.currentSubMatch || 1,
         status: raw.status,
@@ -105,6 +106,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       numberOfSets: Number(raw.numberOfSets ?? 3),
       participants,
       scorer: normalizeScorer(raw.scorer),
+      tournament: raw.tournament, // Include tournament field (may be ID or populated object)
       city: raw.city,
       venue: raw.venue,
       status: raw.status,

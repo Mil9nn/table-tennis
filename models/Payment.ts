@@ -10,9 +10,10 @@ export interface IPayment extends Document {
   currency: string;
   status: PaymentStatus;
 
-  // Stripe payment info
-  stripePaymentIntentId?: string;
-  stripeInvoiceId?: string;
+  // Razorpay payment info
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
+  razorpayInvoiceId?: string;
 
   // Payment details
   paymentMethod?: string; // e.g., "card", "bank_transfer"
@@ -45,10 +46,10 @@ const paymentSchema = new Schema<IPayment>(
       required: true,
       min: 0,
     },
-    currency: {
+      currency: {
       type: String,
       required: true,
-      default: "usd",
+      default: "INR",
       uppercase: true,
     },
     status: {
@@ -58,13 +59,17 @@ const paymentSchema = new Schema<IPayment>(
       default: "pending",
     },
 
-    // Stripe info
-    stripePaymentIntentId: {
+    // Razorpay info
+    razorpayPaymentId: {
       type: String,
       sparse: true,
       unique: true,
     },
-    stripeInvoiceId: {
+    razorpayOrderId: {
+      type: String,
+      sparse: true,
+    },
+    razorpayInvoiceId: {
       type: String,
       sparse: true,
     },

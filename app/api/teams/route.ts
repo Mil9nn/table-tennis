@@ -6,42 +6,114 @@ import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { logError } from "@/lib/error-logger";
+import { validateQueryParams, searchTeamsQuerySchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "0", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
 
-    let query = Team.find()
+    // Validate query parameters
+    const validation = validateQueryParams(searchTeamsQuerySchema, searchParams);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { search, city, sortBy, sortOrder, limit, skip } = validation.data;
+
+    // Build filter object
+    const filter: any = {};
+
+    // City filter
+    if (city && city !== "all") {
+      filter.city = city;
+    }
+
+    // Search filter - search by team name, captain, or players
+    // We need to use aggregation for searching in populated fields
+    if (search && search.trim()) {
+      const searchRegex = { $regex: search.trim(), $options: "i" };
+      
+      // Find matching user IDs (for captain/player search)
+      const matchingUsers = await User.find({
+        $or: [
+          { fullName: searchRegex },
+          { username: searchRegex }
+        ]
+      }).select("_id");
+      
+      const userIds = matchingUsers.map(u => u._id);
+      
+      // Build search conditions
+      const searchConditions: any[] = [
+        { name: searchRegex }
+      ];
+      
+      if (userIds.length > 0) {
+        searchConditions.push({ captain: { $in: userIds } });
+        searchConditions.push({ "players.user": { $in: userIds } });
+      }
+      
+      filter.$or = searchConditions;
+    }
+
+    // Build sort object
+    let sortObject: any = {};
+    if (sortBy === "name") {
+      sortObject.name = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "createdAt") {
+      sortObject.createdAt = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "wins" || sortBy === "players") {
+      // These require aggregation, fall back to name for now
+      // Will be sorted in memory after fetch
+      sortObject.name = 1;
+    } else {
+      sortObject.name = sortOrder === "asc" ? 1 : -1;
+    }
+
+    let query = Team.find(filter)
       .populate("captain", "username fullName profileImage")
       .populate("players.user", "username fullName profileImage")
-      .sort({ name: 1 });
+      .sort(sortObject);
 
     if (skip > 0) query = query.skip(skip);
     if (limit > 0) query = query.limit(limit);
 
-    const teams = await query.exec();
+    let teams = await query.exec();
 
-    const formatted = teams.map((t) => {
+    // Format teams with assignments
+    let formatted = teams.map((t) => {
       const playersWithAssignments = t.players.map((p: any) => ({
         ...p.toObject(),
         assignment: t.assignments?.get(p.user._id.toString()) || null,
       }));
 
-      // Check if team has any assignments
       const hasAssignments = t.assignments && t.assignments.size > 0;
 
       return { 
         ...t.toObject(), 
         players: playersWithAssignments,
-        hasAssignments, // ✅ Add this flag for frontend
+        hasAssignments,
       };
     });
 
+    // Sort by wins or players in memory (since these are computed/array fields)
+    if (sortBy === "wins") {
+      formatted = formatted.sort((a: any, b: any) => {
+        const aWins = a.record?.wins || 0;
+        const bWins = b.record?.wins || 0;
+        return sortOrder === "asc" ? aWins - bWins : bWins - aWins;
+      });
+    } else if (sortBy === "players") {
+      formatted = formatted.sort((a: any, b: any) => {
+        const aPlayers = a.players?.length || 0;
+        const bPlayers = b.players?.length || 0;
+        return sortOrder === "asc" ? aPlayers - bPlayers : bPlayers - aPlayers;
+      });
+    }
+
     // Get total count for pagination
-    const totalCount = await Team.countDocuments();
+    const totalCount = await Team.countDocuments(filter);
     const hasMore = skip + teams.length < totalCount;
 
     return NextResponse.json({

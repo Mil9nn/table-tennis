@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
-import { generateToken, setAuthCookie } from "@/lib/jwt";
+import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { registerSchema } from "@/lib/validations/auth";
+import { generateVerificationToken, sendVerificationEmail } from "@/lib/ses";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -59,11 +60,35 @@ export async function POST(request: NextRequest) {
 
     await newUser.save();
 
-    const token = generateToken(newUser._id.toString());
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const response = NextResponse.json(
+    // Save verification token
+    await VerificationToken.create({
+      userId: newUser._id,
+      token: verificationToken,
+      type: "email_verification",
+      expiresAt,
+    });
+
+    // Send verification email
+    const emailSent = await sendVerificationEmail(
+      newUser.email,
+      newUser.fullName,
+      verificationToken
+    );
+
+    if (!emailSent) {
+      console.error("Failed to send verification email during registration");
+      // Don't fail registration, user can request a new email later
+    }
+
+    // Return success without setting auth cookie - user must verify email first
+    return NextResponse.json(
       {
-        message: "User registered successfully.",
+        message: "Registration successful! Please check your email to verify your account.",
+        requiresVerification: true,
         user: {
           _id: newUser._id,
           username: newUser.username,
@@ -73,10 +98,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-
-    setAuthCookie(response, token);
-
-    return response;
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(

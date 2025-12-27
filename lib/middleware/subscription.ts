@@ -72,8 +72,7 @@ export async function requireTier(
     const tierHierarchy: Record<SubscriptionTier, number> = {
       free: 0,
       pro: 1,
-      premium: 2,
-      enterprise: 3,
+      enterprise: 2,
     };
 
     const userTierLevel = tierHierarchy[subscription.tier];
@@ -119,12 +118,25 @@ export async function requireFeature(
     // Check if feature is enabled
     const featureValue = subscription.features[feature];
 
+    // Handle boolean features
     if (typeof featureValue === "boolean" && !featureValue) {
       return {
         allowed: false,
         error: `This feature is not available on your current plan`,
         subscription,
       };
+    }
+
+    // Handle string-based features (like statsPageAccess)
+    if (typeof featureValue === "string") {
+      // For statsPageAccess, 'free' means locked, 'pro' means unlocked
+      if (feature === "statsPageAccess" && featureValue === "free") {
+        return {
+          allowed: false,
+          error: `This feature requires a Pro subscription or higher`,
+          subscription,
+        };
+      }
     }
 
     return { allowed: true, subscription, userId: auth.userId };

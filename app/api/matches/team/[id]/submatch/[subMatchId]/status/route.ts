@@ -28,6 +28,10 @@ export async function POST(
     }
 
     // Check scoring permission
+    // Match-tournament validation: canScoreTournamentMatch() verifies that:
+    // 1. The user is a scorer for the tournament (organizer or in scorers array)
+    // 2. The match belongs to that tournament (implicit via match.tournament)
+    // This prevents updating matches from wrong tournaments
     let canScore = match.scorer?.toString() === auth.userId;
     
     if (!canScore && match.tournament) {

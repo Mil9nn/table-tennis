@@ -12,11 +12,11 @@ export function PerformanceCommentary({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 bg-white">
       {commentary.map((paragraph, idx) => (
         <p
           key={idx}
-          className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"
+          className="text-sm leading-relaxed text-[#353535]/80"
         >
           {paragraph}
         </p>

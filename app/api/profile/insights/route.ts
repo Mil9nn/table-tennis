@@ -4,6 +4,7 @@ import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
+import { requireFeature } from "@/lib/middleware/subscription";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,20 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = decoded.userId;
+
+    // TEMPORARILY DISABLED: Subscription check for frontend development
+    // const featureCheck = await requireFeature(request, "profileInsightsAccess");
+    // if (!featureCheck.allowed) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       message: "This feature requires a Pro subscription",
+    //       error: "UPGRADE_REQUIRED",
+    //       tier: featureCheck.subscription?.tier || "free",
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Fetch all completed matches
     const individualMatches = await IndividualMatch.find({

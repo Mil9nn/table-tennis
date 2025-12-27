@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
+import Team from "@/models/Team";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { teamMatchService } from "@/services/match/teamMatchService";
 import { populateTeamMatch } from "@/services/match/populationService";
 import { jsonError } from "@/lib/api-errors";
+import { validateQueryParams, getTeamMatchesQuerySchema } from "@/lib/validations";
 
 /**
  * POST /api/matches/team
@@ -49,23 +51,92 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/matches/team
- * List team matches with pagination
+ * List team matches with pagination and filters
  */
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "0", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
 
-    let query = populateTeamMatch(TeamMatch.find()).sort({ createdAt: -1 });
+    // Validate query parameters
+    const validation = validateQueryParams(getTeamMatchesQuerySchema, searchParams);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { format, status, search, dateFrom, dateTo, sortBy, sortOrder, limit, skip } = validation.data;
+
+    // Build filter object
+    const filter: any = {};
+
+    // Match format filter
+    if (format && format !== "all") {
+      filter.matchFormat = format;
+    }
+
+    // Status filter
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        filter.createdAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        filter.createdAt.$lte = endDate;
+      }
+    }
+
+    // Search filter - search by team names
+    if (search && search.trim()) {
+      const searchRegex = { $regex: search.trim(), $options: "i" };
+      
+      // Find matching team IDs
+      const matchingTeams = await Team.find({
+        name: searchRegex
+      }).select("_id");
+      
+      const teamIds = matchingTeams.map(t => t._id);
+      
+      if (teamIds.length > 0) {
+        filter.$or = [
+          { team1: { $in: teamIds } },
+          { team2: { $in: teamIds } }
+        ];
+      } else {
+        // No matching teams, return empty
+        return NextResponse.json(
+          {
+            matches: [],
+            pagination: {
+              total: 0,
+              skip,
+              limit,
+              hasMore: false,
+            },
+          },
+          { status: 200 }
+        );
+      }
+    }
+
+    // Build sort object
+    const sortObject: any = {};
+    sortObject[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    let query = populateTeamMatch(TeamMatch.find(filter)).sort(sortObject);
 
     if (skip > 0) query = query.skip(skip);
     if (limit > 0) query = query.limit(limit);
 
     const matches = await query.exec();
 
-    const totalCount = await TeamMatch.countDocuments();
+    const totalCount = await TeamMatch.countDocuments(filter);
     const hasMore = skip + matches.length < totalCount;
 
     return NextResponse.json(

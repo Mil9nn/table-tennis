@@ -121,10 +121,8 @@ const tournamentSchema = z
     // ═══════════════════════════════════════════
     qualification: z
       .object({
-        method: z.enum(["top_n_overall", "top_n_per_group", "percentage"]),
-        count: z.string().optional(),
+        method: z.enum(["top_n_per_group"]),
         perGroup: z.string().optional(),
-        percentage: z.string().optional(),
       })
       .optional(),
 
@@ -235,10 +233,8 @@ export default function CreateTournamentPage() {
 
       // Qualification defaults
       qualification: {
-        method: "top_n_overall",
-        count: "8",
+        method: "top_n_per_group",
         perGroup: "2",
-        percentage: "50",
       },
 
       // Hybrid Knockout defaults
@@ -255,16 +251,12 @@ export default function CreateTournamentPage() {
   const watchHybridUseGroups = form.watch("hybridRoundRobin.useGroups");
   const watchQualMethod = form.watch("qualification.method");
 
-  // Reset qualification method if "top_n_per_group" selected but groups disabled
+  // Reset and enforce "top_n_per_group" as the only qualification method
   useEffect(() => {
-    if (
-      watchFormat === "hybrid" &&
-      !watchHybridUseGroups &&
-      watchQualMethod === "top_n_per_group"
-    ) {
-      form.setValue("qualification.method", "top_n_overall");
+    if (watchFormat === "hybrid" && watchQualMethod !== "top_n_per_group") {
+      form.setValue("qualification.method", "top_n_per_group");
     }
-  }, [watchFormat, watchHybridUseGroups, watchQualMethod, form]);
+  }, [watchFormat, watchQualMethod, form]);
 
   const addParticipant = (user: any) => {
     if (!participants.find((p) => p._id === user._id)) {
@@ -362,19 +354,8 @@ export default function CreateTournamentPage() {
           roundRobinNumberOfGroups: data.hybridRoundRobin?.useGroups
             ? Number(data.hybridRoundRobin.numberOfGroups)
             : undefined,
-          qualificationMethod: data.qualification?.method || "top_n_overall",
-          qualifyingCount:
-            data.qualification?.method === "top_n_overall"
-              ? Number(data.qualification.count)
-              : undefined,
-          qualifyingPerGroup:
-            data.qualification?.method === "top_n_per_group"
-              ? Number(data.qualification.perGroup)
-              : undefined,
-          qualifyingPercentage:
-            data.qualification?.method === "percentage"
-              ? Number(data.qualification.percentage)
-              : undefined,
+          qualificationMethod: "top_n_per_group",
+          qualifyingPerGroup: Number(data.qualification?.perGroup) || 2,
           knockoutAllowCustomMatching:
             data.hybridKnockout?.allowCustomMatching ?? true,
           knockoutThirdPlaceMatch:
@@ -419,19 +400,19 @@ export default function CreateTournamentPage() {
   // RENDER
   // ═══════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#ffffff]">
       {/* HEADER: Precise & Architectural */}
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]/95 backdrop-blur-sm">
         <div className="mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
+              <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
                 Tournament Creation
               </h1>
               <p></p>
@@ -445,10 +426,10 @@ export default function CreateTournamentPage() {
           {/* FORMAT SELECTOR: High Density Toggle */}
           <div className="mb-10">
             <div className="mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600 px-2">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
                 Select Format
               </h2>
-              <div className="h-px bg-slate-100 flex-1" />
+              <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
             </div>
 
             <FormField
@@ -456,7 +437,7 @@ export default function CreateTournamentPage() {
               name="format"
               render={({ field }) => (
                 <FormItem>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-[1px] bg-[#d9d9d9]">
                     {[
                       {
                         type: "round_robin" as const,
@@ -486,33 +467,31 @@ export default function CreateTournamentPage() {
                           type="button"
                           onClick={() => field.onChange(formatOption.type)}
                           className={cn(
-                            "relative group p-4 rounded border transition-all duration-200 text-left overflow-hidden",
-                            isActive
-                              ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                              : "border-slate-200 bg-white hover:border-slate-400"
+                            "group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left",
+                            isActive && "bg-[#3c6e71]"
                           )}
                         >
-                          <div className="flex flex-col h-full justify-between gap-4">
-                            <div className="flex justify-between items-start">
+                          <div className="p-6">
+                            <div className="flex flex-col gap-2">
                               <Icon
                                 className={cn(
-                                  "w-5 h-5",
-                                  isActive ? "text-slate-300" : "text-slate-600"
+                                  "w-5 h-5 transition-colors",
+                                  isActive ? "text-[#ffffff]" : "text-[#3c6e71] group-hover:text-[#ffffff]"
                                 )}
                               />
-                            </div>
-                            <div>
-                              <h3 className="text-xs font-bold uppercase tracking-widest leading-none mb-1">
-                                {formatOption.title}
-                              </h3>
-                              <p
-                                className={cn(
-                                  "text-xs tracking-tight",
-                                  isActive ? "text-slate-400" : "text-slate-500"
-                                )}
-                              >
-                                {formatOption.description}
-                              </p>
+                              <div>
+                                <h3 className={cn("text-sm font-semibold tracking-wide transition-colors", isActive ? "text-[#ffffff]" : "text-[#353535] group-hover:text-[#ffffff]")}>
+                                  {formatOption.title}
+                                </h3>
+                                <p
+                                  className={cn(
+                                    "text-xs mt-1 transition-colors",
+                                    isActive ? "text-[#ffffff]/70" : "text-[#353535]/60 group-hover:text-[#ffffff]/70"
+                                  )}
+                                >
+                                  {formatOption.description}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </button>
@@ -527,14 +506,14 @@ export default function CreateTournamentPage() {
 
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="border border-slate-100 rounded-lg p-1 sm:p-2 bg-slate-50/30"
+            className="border border-[#d9d9d9] rounded-lg p-4 bg-[#ffffff]"
           >
-            <div className="bg-white rounded-md">
+            <div className="bg-[#ffffff] rounded-md">
               {/* ═══════════════════════════════════════════
                   SECTION 1: BASIC INFO
               ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-3 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+              <div className="p-4 space-y-3 border-b border-[#d9d9d9]">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Basic Information
                 </h2>
 
@@ -544,14 +523,14 @@ export default function CreateTournamentPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                         Tournament Name
                       </FormLabel>
 
                       <FormControl>
                         <Input
-                          className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                       placeholder:text-slate-400 placeholder:opacity-70"
+                          className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
+                       placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
                           placeholder="Spring Championship 2025"
                           {...field}
                         />
@@ -569,14 +548,14 @@ export default function CreateTournamentPage() {
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                           City
                         </FormLabel>
 
                         <FormControl>
                           <Input
-                            className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                         placeholder:text-slate-400 placeholder:opacity-70"
+                            className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
+                         placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
                             placeholder="New York"
                             {...field}
                           />
@@ -592,14 +571,14 @@ export default function CreateTournamentPage() {
                     name="venue"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                           Venue
                         </FormLabel>
 
                         <FormControl>
                           <Input
-                            className="bg-slate-50 border-slate-200 rounded h-10 text-sm
-                         placeholder:text-slate-400 placeholder:opacity-70"
+                            className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
+                         placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
                             placeholder="Sports Center"
                             {...field}
                           />
@@ -617,7 +596,7 @@ export default function CreateTournamentPage() {
                   name="startDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                         Start Date
                       </FormLabel>
 
@@ -630,8 +609,8 @@ export default function CreateTournamentPage() {
                             <Button
                               variant="outline"
                               className={cn(
-                                "pl-3 text-left font-normal text-sm bg-slate-50 h-10 rounded border-slate-200",
-                                !field.value && "text-slate-400"
+                                "pl-3 text-left font-normal text-sm bg-[#ffffff] h-10 rounded border-[#d9d9d9] hover:border-[#3c6e71]",
+                                !field.value && "text-[#353535]/40"
                               )}
                             >
                               {field.value ? (
@@ -667,8 +646,8 @@ export default function CreateTournamentPage() {
               {/* ═══════════════════════════════════════════
                 SECTION 2: CATEGORY
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Category
                 </h2>
 
@@ -677,7 +656,7 @@ export default function CreateTournamentPage() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-[1px] bg-[#d9d9d9]">
                         {[
                           {
                             type: "individual" as const,
@@ -703,37 +682,35 @@ export default function CreateTournamentPage() {
                                 field.onChange(categoryOption.type)
                               }
                               className={cn(
-                                "relative group p-4 rounded border transition-all duration-200 text-left overflow-hidden",
-                                isActive
-                                  ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                                  : "border-slate-200 bg-white hover:border-slate-400"
+                                "group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left",
+                                isActive && "bg-[#3c6e71]"
                               )}
                             >
-                              <div className="flex flex-col h-full justify-between gap-4">
-                                <div className="flex justify-between items-start">
+                              <div className="p-6">
+                                <div className="flex flex-col gap-2">
                                   <Icon
                                     className={cn(
-                                      "w-5 h-5",
+                                      "w-5 h-5 transition-colors",
                                       isActive
-                                        ? "text-slate-300"
-                                        : "text-slate-600"
+                                        ? "text-[#ffffff]"
+                                        : "text-[#3c6e71] group-hover:text-[#ffffff]"
                                     )}
                                   />
-                                </div>
-                                <div>
-                                  <h3 className="text-xs font-bold uppercase tracking-widest leading-none mb-1">
-                                    {categoryOption.title}
-                                  </h3>
-                                  <p
-                                    className={cn(
-                                      "text-xs tracking-tight",
-                                      isActive
-                                        ? "text-slate-400"
-                                        : "text-slate-500"
-                                    )}
-                                  >
-                                    {categoryOption.description}
-                                  </p>
+                                  <div>
+                                    <h3 className={cn("text-sm font-semibold tracking-wide transition-colors", isActive ? "text-[#ffffff]" : "text-[#353535] group-hover:text-[#ffffff]")}>
+                                      {categoryOption.title}
+                                    </h3>
+                                    <p
+                                      className={cn(
+                                        "text-xs mt-1 transition-colors",
+                                        isActive
+                                          ? "text-[#ffffff]/70"
+                                          : "text-[#353535]/60 group-hover:text-[#ffffff]/70"
+                                      )}
+                                    >
+                                      {categoryOption.description}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </button>
@@ -749,8 +726,8 @@ export default function CreateTournamentPage() {
               {/* ═══════════════════════════════════════════
                 SECTION 3: MATCH SETTINGS
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   {watchCategory === "team"
                     ? "Team Match Format"
                     : "Match Settings"}
@@ -764,7 +741,7 @@ export default function CreateTournamentPage() {
                       name="matchType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                          <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                             Match Type
                           </FormLabel>
                           <div className="flex gap-2 flex-wrap">
@@ -782,8 +759,8 @@ export default function CreateTournamentPage() {
                                   className={cn(
                                     "px-4 py-2 text-xs rounded border transition-all",
                                     isActive
-                                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
+                                      ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
+                                      : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
                                   )}
                                 >
                                   {opt.label}
@@ -801,7 +778,7 @@ export default function CreateTournamentPage() {
                       name="setsPerMatch"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                          <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                             Sets Per Match
                           </FormLabel>
                           <div className="flex gap-2">
@@ -815,8 +792,8 @@ export default function CreateTournamentPage() {
                                   className={cn(
                                     "w-10 h-10 text-sm rounded border transition-all",
                                     isActive
-                                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
+                                      ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
+                                      : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
                                   )}
                                 >
                                   {n}
@@ -838,8 +815,8 @@ export default function CreateTournamentPage() {
               {/* ═══════════════════════════════════════════
                 SECTION 4: FORMAT-SPECIFIC OPTIONS
             ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-gray-100">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   {watchFormat === "knockout" && "Knockout Settings"}
                   {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
                 </h2>
@@ -853,7 +830,7 @@ export default function CreateTournamentPage() {
                 {watchFormat === "hybrid" && (
                   <div className="space-y-4">
                     {/* Phase 1: Round Robin */}
-                    <div className="rounded-xl  p-4">
+                    <div className="">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs font-bold text-slate-600 bg-black/10 px-2 py-1 rounded">
                           PHASE 1
@@ -872,16 +849,6 @@ export default function CreateTournamentPage() {
 
                     {/* Qualification */}
                     <div>
-                      {watchQualMethod === "top_n_per_group" &&
-                        !watchHybridUseGroups && (
-                          <div className="mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-300">
-                            <p className="text-xs text-yellow-800">
-                              <span className="font-semibold">Note:</span> "Top
-                              N Per Group" requires groups to be enabled in
-                              Phase 1. Reverting to "Top N Overall".
-                            </p>
-                          </div>
-                        )}
                       <QualificationConfig
                         form={form}
                         useGroups={watchHybridUseGroups ?? false}
@@ -908,7 +875,7 @@ export default function CreateTournamentPage() {
                 SECTION 5: PARTICIPANTS
             ═══════════════════════════════════════════ */}
               <div className="p-4 space-y-4">
-                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   {watchCategory === "team" ? "Teams" : "Participants"}
                 </h2>
 
@@ -938,7 +905,7 @@ export default function CreateTournamentPage() {
                 />
 
                 {participants.length > 0 ? (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-[1px] bg-[#d9d9d9] max-h-64 overflow-y-auto">
                     <AnimatePresence>
                       {participants.map((p, idx) => (
                         <motion.div
@@ -947,19 +914,19 @@ export default function CreateTournamentPage() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ duration: 0.2 }}
-                          className="flex items-center justify-between p-3 border border-slate-200 rounded bg-white hover:bg-slate-50 transition"
+                          className="flex items-center justify-between p-3 bg-[#ffffff] hover:bg-[#3c6e71]/10 transition group"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                            <div className="w-8 h-8 rounded-full bg-[#3c6e71] text-[#ffffff] flex items-center justify-center font-bold text-xs">
                               {idx + 1}
                             </div>
                             <div>
-                              <p className="font-medium text-sm text-slate-900">
+                              <p className="font-medium text-sm text-[#353535]">
                                 {watchCategory === "team"
                                   ? p.name
                                   : p.fullName || p.username}
                               </p>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-[#353535]/60">
                                 {watchCategory === "team"
                                   ? `${p.players?.length || 0} players`
                                   : `@${p.username}`}
@@ -969,7 +936,7 @@ export default function CreateTournamentPage() {
                           <button
                             type="button"
                             onClick={() => removeParticipant(p._id)}
-                            className="text-slate-400 hover:text-red-600 transition p-1"
+                            className="text-[#353535]/40 hover:text-red-600 transition p-1"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -978,7 +945,7 @@ export default function CreateTournamentPage() {
                     </AnimatePresence>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-400 border border-slate-200 rounded border-dashed">
+                  <div className="text-center py-8 text-[#353535]/40 border border-[#d9d9d9] rounded border-dashed">
                     <p className="text-sm">
                       No {watchCategory === "team" ? "teams" : "participants"}{" "}
                       added yet
@@ -987,7 +954,7 @@ export default function CreateTournamentPage() {
                   </div>
                 )}
 
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-[#353535]/60 text-center">
                   {participants.length} / 2 minimum{" "}
                   {watchCategory === "team" ? "teams" : "participants"}
                 </p>
@@ -998,7 +965,7 @@ export default function CreateTournamentPage() {
             <div className="p-4 pt-6">
               <Button
                 type="submit"
-                className="w-full py-6 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
+                className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

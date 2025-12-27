@@ -42,7 +42,7 @@ export interface SafeZone {
 }
 
 export interface ZoneWeaknessData {
-  heatmapGrid: ZoneCell[][]; // 10x10 grid
+  heatmapGrid: ZoneCell[][]; // 20x9 grid (9 rows × 20 columns) aligned with zone-sector boundaries
   vulnerableZones: VulnerableZone[];
   safeZones: SafeZone[];
 }

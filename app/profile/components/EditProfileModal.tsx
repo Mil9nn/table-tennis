@@ -28,13 +28,12 @@ import {
   Loader2,
   Calendar,
   MapPin,
-  Phone,
-  Edit3,
-  VenusAndMars,
   User as UserIcon,
+  VenusAndMars,
 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { User } from "@/types/user";
+import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -109,32 +108,34 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-none p-0">
-        <DialogHeader className="bg-gray-100 p-2">
-          <DialogTitle className="text-2xl text-left font-bold text-gray-800">
+        <DialogHeader className="bg-[#ffffff] px-6 py-6 border-b border-[#d9d9d9]">
+          <DialogTitle className="text-2xl text-left font-bold text-[#353535]">
             Edit Profile
           </DialogTitle>
-          <DialogDescription className="text-left">Update your profile information</DialogDescription>
+          <DialogDescription className="text-left text-[#8b8b8b]">
+            Update your profile information
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-6">
             {/* Full Name */}
             <FormField
               control={form.control}
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                  <FormLabel className="text-[#353535] font-semibold text-sm flex items-center gap-2">
                     Full Name
                   </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Your full name"
-                      className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                      className="border-[#d9d9d9] text-[#353535] focus:ring-2 focus:ring-[#3c6e71] focus:border-transparent bg-[#ffffff]"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -146,18 +147,18 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                 name="dateOfBirth"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
-                      <Calendar size={16} className="text-indigo-500" />
+                    <FormLabel className="text-[#353535] font-semibold text-sm flex items-center gap-2">
+                      <Calendar size={16} className="text-[#3c6e71]" />
                       Date of Birth
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="date"
-                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-[#d9d9d9] text-[#353535] focus:ring-2 focus:ring-[#3c6e71] focus:border-transparent bg-[#ffffff]"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -168,8 +169,8 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
-                      <VenusAndMars className="text-indigo-500 size-5" />
+                    <FormLabel className="text-[#353535] font-semibold text-sm flex items-center gap-2">
+                      <VenusAndMars className="text-[#3c6e71] size-5" />
                       Gender
                     </FormLabel>
 
@@ -179,11 +180,11 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                           key={option}
                           type="button"
                           onClick={() => field.onChange(option)}
-                          className={`px-4 py-2 text-xs rounded-md border focus:outline-none transition
+                          className={`px-4 py-2 text-xs rounded-sm border font-medium focus:outline-none transition
                             ${
                               field.value === option
-                                ? "bg-blue-500 text-white"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
+                                : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
                             }`}
                         >
                           {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -191,7 +192,7 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                       ))}
                     </div>
 
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -202,7 +203,7 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                 name="handedness"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
+                    <FormLabel className="text-[#353535] font-semibold text-sm flex items-center gap-2">
                       Playing Hand
                     </FormLabel>
 
@@ -212,11 +213,11 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                           key={option}
                           type="button"
                           onClick={() => field.onChange(option)}
-                          className={`px-4 py-2 text-xs rounded-md border focus:outline-none transition
+                          className={`px-4 py-2 text-xs rounded-sm border font-medium focus:outline-none transition
                             ${
                               field.value === option
-                                ? "bg-blue-500 text-white"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
+                                : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
                             }`}
                         >
                           {option === "right" ? "Right-handed" : "Left-handed"}
@@ -224,7 +225,7 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                       ))}
                     </div>
 
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -235,18 +236,18 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-medium flex items-center gap-2">
-                      <MapPin size={16} className="text-indigo-500" />
+                    <FormLabel className="text-[#353535] font-semibold text-sm flex items-center gap-2">
+                      <MapPin size={16} className="text-[#3c6e71]" />
                       Location
                     </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="City, Country"
-                        className="border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                        className="border-[#d9d9d9] text-[#353535] focus:ring-2 focus:ring-[#3c6e71] focus:border-transparent bg-[#ffffff]"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -258,39 +259,39 @@ const EditProfileModal = ({ isOpen, onClose, user }: EditProfileModalProps) => {
               name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-700 font-medium">
+                  <FormLabel className="text-[#353535] font-semibold text-sm">
                     Bio
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Tell us about yourself and your table tennis journey..."
-                      className="border-gray-200 focus:ring-2 focus:ring-indigo-500 min-h-[120px] resize-none"
+                      className="border-[#d9d9d9] text-[#353535] focus:ring-2 focus:ring-[#3c6e71] focus:border-transparent bg-[#ffffff] min-h-[120px] resize-none"
                       {...field}
                     />
                   </FormControl>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[#8b8b8b]">
                     {field.value?.length || 0}/500 characters
                   </p>
-                  <FormMessage />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
 
             {/* Submit Buttons */}
-            <div className="flex gap-3 justify-end pt-4">
+            <div className="flex gap-3 justify-end pt-4 border-t border-[#d9d9d9]">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
                 disabled={isLoading}
-                className="border-gray-300"
+                className="border-[#d9d9d9] text-[#353535] hover:bg-[#f5f5f5]"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:opacity-90"
+                className="bg-[#3c6e71] text-[#ffffff] hover:bg-[#2d5559]"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">

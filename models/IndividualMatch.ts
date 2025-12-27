@@ -127,6 +127,16 @@ IndividualMatchSchema.pre('save', function(next) {
   next();
 });
 
+// Indexes for efficient leaderboard queries
+// Core query filter: status + matchType + createdAt
+IndividualMatchSchema.index({ status: 1, matchType: 1, createdAt: -1 });
+// Tournament-specific queries
+IndividualMatchSchema.index({ tournament: 1, status: 1, matchType: 1 });
+// Player lookup
+IndividualMatchSchema.index({ participants: 1, status: 1 });
+// Compound index for main leaderboard queries (matchCategory is from base schema)
+IndividualMatchSchema.index({ matchCategory: 1, status: 1, matchType: 1, createdAt: -1 });
+
 // Create discriminator model (prevent overwrite during hot reload)
 let IndividualMatch: mongoose.Model<IIndividualMatch>;
 if (Match.discriminators && Match.discriminators['individual']) {

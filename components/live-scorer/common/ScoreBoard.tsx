@@ -2,7 +2,6 @@
 
 import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
-import SetTracker from "@/components/SetTracker";
 import MatchInfo from "./MatchInfo";
 import { checkGameWon } from "@/components/live-scorer/individual/helpers";
 import {
@@ -193,14 +192,6 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   return (
     <div>
-      {/* Set Tracker */}
-      <SetTracker
-        bestOf={totalGames}
-        side1Sets={side1Sets}
-        side2Sets={side2Sets}
-        status={status}
-      />
-
       {/* Match Info */}
       <MatchInfo
         currentGame={currentGame}
@@ -253,13 +244,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       {/* Game Won Message */}
       {isGameWon && status !== "completed" && (
         <div
-          className="text-center py-4 bg-gradient-to-r from-green-50 to-emerald-50 
-          rounded-xl border-2 border-green-200 shadow-lg"
+          className="text-center py-4 bg-gradient-to-r from-[#3c6e71]/10 to-[#284b63]/10 
+          rounded-xl border-2 border-[#3c6e71]/30 shadow-lg"
         >
-          <p className="text-xl font-black text-green-700 mb-1">
+          <p className="text-xl font-black text-[#3c6e71] mb-1">
             🏆 Game Won by {gameWinnerName}!
           </p>
-          <p className="text-sm text-green-600 font-medium">
+          <p className="text-sm text-[#284b63] font-medium">
             Starting next game...
           </p>
         </div>
@@ -268,10 +259,10 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       {/* Match Completed Message */}
       {status === "completed" && (
         <div
-          className="text-center py-6 bg-gradient-to-r from-amber-50 to-yellow-50 
-          rounded-xl border-2 border-amber-200 shadow-lg"
+          className="text-center py-6 bg-gradient-to-r from-[#3c6e71]/10 to-[#284b63]/10 
+          rounded-xl border-2 border-[#3c6e71]/30 shadow-lg"
         >
-          <p className="text-2xl font-black text-amber-700">Match Completed!</p>
+          <p className="text-2xl font-black text-[#284b63]">Match Completed!</p>
         </div>
       )}
     </div>

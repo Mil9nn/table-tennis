@@ -41,7 +41,7 @@ export function RoundRobinConfig({
         control={form.control}
         name={useGroupsField}
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded border border-slate-200 bg-white p-3">
+          <FormItem className="flex flex-row items-center justify-between rounded border border-slate-200 p-2">
             <div className="space-y-0.5">
               <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">Use Groups</FormLabel>
               <FormDescription className="text-xs text-slate-500">
@@ -60,7 +60,7 @@ export function RoundRobinConfig({
       />
 
       {watchUseGroups && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4 border-l-2 border-slate-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-slate-200">
           <FormField
             control={form.control}
             name={numberOfGroupsField}

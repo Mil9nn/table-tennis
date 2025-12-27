@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ScrollArea, ScrollBar } from "./ui/scroll-area";
 import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
@@ -215,6 +216,9 @@ const ShotSelector = () => {
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>
       <DialogContent className="rounded-none sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogTitle asChild>
+          <VisuallyHidden>Shot Selector</VisuallyHidden>
+        </DialogTitle>
         <DialogHeader>
           <div className="flex items-center gap-2">
             {(currentStep === "origin" ||
@@ -264,13 +268,13 @@ const ShotSelector = () => {
         {currentStep === "shot" && (
           <ScrollArea className="h-96">
             <div className="space-y-4 p-1 sm:grid sm:grid-cols-2 sm:gap-4">
-              {Object.entries(shotCategories).map(([category, shots]) => (
+              {Object.entries(shotCategories).map(([category, shotData]) => (
                 <div key={category}>
                   <h3 className="font-medium capitalize mb-2 text-sm text-gray-700">
                     {category.replace(/_/g, " ")}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {shots.map((shot) => (
+                    {shotData.shots.map((shot) => (
                       <button
                         key={shot.value}
                         onClick={() => handleShotSelect(shot.value)}

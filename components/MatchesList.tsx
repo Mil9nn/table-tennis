@@ -50,7 +50,7 @@ export default function MatchesList({
   }
 
   return (
-    <div className="divide-y divide-gray-100">
+    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
         const side1Won = match.winnerSide === "side1";
@@ -70,7 +70,7 @@ export default function MatchesList({
           <Link
             key={match._id}
             href={`/matches/${match._id}`}
-            className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+            className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71]"
           >
             {/* Line 1: Players & Score */}
             <div className="flex items-center justify-between gap-2">
@@ -91,8 +91,8 @@ export default function MatchesList({
                   )}
                 </div>
                 <span
-                  className={`font-medium text-sm truncate ${
-                    side1Won ? "text-green-600" : "text-gray-800"
+                  className={`font-medium text-sm truncate transition-colors group-hover:text-[#ffffff] ${
+                    side1Won ? "text-green-600 group-hover:text-green-200" : "text-gray-800"
                   }`}
                 >
                   {side1Name}
@@ -101,18 +101,18 @@ export default function MatchesList({
 
               {/* Score */}
               {isCompleted && match.finalScore ? (
-                <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff]">
                   {match.finalScore.side1Sets} - {match.finalScore.side2Sets}
                 </span>
               ) : (
-                <span className="text-xs text-gray-400">vs</span>
+                <span className="text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">vs</span>
               )}
 
               {/* Side 2: Name + Avatars */}
               <div className={`flex items-center gap-1.5`}>
                 <span
-                  className={`font-medium text-sm truncate ${
-                    side2Won ? "text-green-600" : "text-gray-800"
+                  className={`font-medium text-sm truncate transition-colors group-hover:text-[#ffffff] ${
+                    side2Won ? "text-green-600 group-hover:text-green-200" : "text-gray-800"
                   }`}
                 >
                   {side2Name}
@@ -143,24 +143,24 @@ export default function MatchesList({
             </div>
 
             {/* Line 2: Meta info */}
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs text-gray-400 capitalize">
+            <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+              <span className="capitalize">
                 {match.matchType?.replace("_", " ")}
               </span>
-              <span className="text-xs text-gray-300">•</span>
-              <span className="text-xs text-gray-400">
+              <span>•</span>
+              <span>
                 {match.createdAt ? format(new Date(match.createdAt), "dd MMM yyyy") : "—"}
               </span>
               {match.city && (
                 <>
-                  <span className="text-xs text-gray-300">•</span>
-                  <span className="text-xs text-gray-400">{match.city}</span>
+                  <span>•</span>
+                  <span>{match.city}</span>
                 </>
               )}
             </div>
           </Link>
         );
       })}
-    </div>
+    </section>
   );
 }

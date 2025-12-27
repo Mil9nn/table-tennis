@@ -1,92 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
-import { constructWebhookEvent, getTierFromPriceId } from "@/lib/stripe";
+import { verifyWebhookSignature, getTierFromPlanId } from "@/lib/razorpay";
 import {
   createSubscription,
   updateSubscriptionTier,
   renewSubscription,
   expireSubscription,
-  syncSubscriptionWithStripe,
+  syncSubscriptionWithRazorpay,
 } from "@/lib/subscription-helpers";
 import { connectDB } from "@/lib/mongodb";
 import { Subscription } from "@/models/Subscription";
-import Stripe from "stripe";
 
 /**
  * POST /api/subscription/webhook
- * Handle Stripe webhook events
+ * Handle Razorpay webhook events
  *
- * Important: This endpoint must be configured in Stripe Dashboard
+ * Important: This endpoint must be configured in Razorpay Dashboard
  * Events to listen for:
- * - checkout.session.completed
- * - invoice.payment_succeeded
- * - invoice.payment_failed
- * - customer.subscription.updated
- * - customer.subscription.deleted
+ * - payment.captured
+ * - subscription.activated
+ * - subscription.charged
+ * - subscription.cancelled
+ * - subscription.paused
+ * - subscription.resumed
  */
 export async function POST(req: NextRequest) {
   try {
     // Get the raw body as text
     const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
+    const signature = req.headers.get("x-razorpay-signature");
 
     if (!signature) {
-      console.error("❌ Missing stripe-signature header");
+      console.error("❌ Missing x-razorpay-signature header");
       return NextResponse.json(
-        { error: "Missing stripe-signature header" },
+        { error: "Missing x-razorpay-signature header" },
         { status: 400 }
       );
     }
 
     // Verify webhook signature
-    let event: Stripe.Event;
     try {
-      event = await constructWebhookEvent(body, signature);
+      const isValid = verifyWebhookSignature(body, signature);
+      if (!isValid) {
+        console.error("❌ Webhook signature verification failed");
+        return NextResponse.json(
+          { error: "Webhook signature verification failed" },
+          { status: 400 }
+        );
+      }
     } catch (err: any) {
-      console.error("❌ Webhook signature verification failed:", err.message);
+      console.error("❌ Webhook signature verification error:", err.message);
       return NextResponse.json(
         { error: `Webhook Error: ${err.message}` },
         { status: 400 }
       );
     }
 
-    console.log(`✅ Received Stripe webhook: ${event.type}`);
+    const event = JSON.parse(body);
+    console.log(`✅ Received Razorpay webhook: ${event.event}`);
 
     await connectDB();
 
     // Handle the event
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
+    switch (event.event) {
+      case "subscription.activated": {
+        const subscription = event.payload.subscription.entity;
+        await handleSubscriptionActivated(subscription);
         break;
       }
 
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentSucceeded(invoice);
+      case "subscription.charged": {
+        const payment = event.payload.payment.entity;
+        const subscription = event.payload.subscription.entity;
+        await handleSubscriptionCharged(payment, subscription);
         break;
       }
 
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentFailed(invoice);
+      case "payment.captured": {
+        const payment = event.payload.payment.entity;
+        await handlePaymentCaptured(payment);
         break;
       }
 
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdated(subscription);
+      case "subscription.cancelled": {
+        const subscription = event.payload.subscription.entity;
+        await handleSubscriptionCancelled(subscription);
         break;
       }
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionDeleted(subscription);
+      case "subscription.paused": {
+        const subscription = event.payload.subscription.entity;
+        await handleSubscriptionPaused(subscription);
+        break;
+      }
+
+      case "subscription.resumed": {
+        const subscription = event.payload.subscription.entity;
+        await handleSubscriptionResumed(subscription);
         break;
       }
 
       default:
-        console.log(`⚠️  Unhandled event type: ${event.type}`);
+        console.log(`⚠️  Unhandled event type: ${event.event}`);
     }
 
     return NextResponse.json({ received: true });
@@ -100,145 +114,159 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Handle successful checkout session
+ * Handle subscription activated
  */
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId || session.client_reference_id;
-  const tier = session.metadata?.tier as "pro" | "premium";
+async function handleSubscriptionActivated(subscription: any) {
+  const userId = subscription.notes?.userId;
+  const tier = subscription.notes?.tier as "pro";
 
   if (!userId || !tier) {
-    console.error("❌ Missing userId or tier in checkout session metadata");
+    console.error("❌ Missing userId or tier in subscription notes");
     return;
   }
 
   console.log(`✅ Creating ${tier} subscription for user ${userId}`);
 
-  // Get subscription details from Stripe
-  const stripeSubscriptionId = session.subscription as string;
-  const customerId = session.customer as string;
-
-  // Get the price ID from the subscription
-  let stripePriceId = "";
-  if (session.line_items && session.line_items.data.length > 0) {
-    stripePriceId = session.line_items.data[0]?.price?.id || "";
-  }
+  // Get subscription details from Razorpay
+  const razorpaySubscriptionId = subscription.id;
+  const customerId = subscription.customer_id;
+  const planId = subscription.plan_id;
 
   // Create or update subscription in database
-  // Note: Trial days would need to be fetched from the subscription object separately if needed
   await createSubscription(userId, tier, {
-    stripeCustomerId: customerId,
-    stripeSubscriptionId: stripeSubscriptionId,
-    stripePriceId: stripePriceId,
+    razorpayCustomerId: customerId,
+    razorpaySubscriptionId: razorpaySubscriptionId,
+    razorpayPlanId: planId,
   });
 
   console.log(`✅ Subscription created successfully for user ${userId}`);
 }
 
 /**
- * Handle successful payment
+ * Handle subscription charged (recurring payment)
  */
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  const stripeSubscriptionId = (invoice as any).subscription as string;
+async function handleSubscriptionCharged(payment: any, subscription: any) {
+  const razorpaySubscriptionId = subscription.id;
 
-  if (!stripeSubscriptionId) {
-    console.log("⚠️  Invoice has no subscription - skipping");
+  if (!razorpaySubscriptionId) {
+    console.log("⚠️  Payment has no subscription - skipping");
     return;
   }
 
-  // Find subscription by Stripe subscription ID
-  const subscription = await Subscription.findOne({ stripeSubscriptionId });
+  // Find subscription by Razorpay subscription ID
+  const dbSubscription = await Subscription.findOne({ razorpaySubscriptionId });
 
-  if (!subscription) {
-    console.error(`❌ Subscription not found for Stripe ID: ${stripeSubscriptionId}`);
+  if (!dbSubscription) {
+    console.error(`❌ Subscription not found for Razorpay ID: ${razorpaySubscriptionId}`);
     return;
   }
 
-  console.log(`✅ Payment succeeded for subscription ${subscription._id}`);
+  console.log(`✅ Payment succeeded for subscription ${dbSubscription._id}`);
 
   // Renew the subscription
-  await renewSubscription(subscription._id.toString(), {
-    amount: (invoice as any).amount_paid,
-    stripePaymentIntentId: (invoice as any).payment_intent as string,
-    stripeInvoiceId: invoice.id,
+  await renewSubscription(dbSubscription._id.toString(), {
+    amount: payment.amount,
+    razorpayPaymentId: payment.id,
+    razorpayOrderId: payment.order_id,
+    razorpayInvoiceId: payment.invoice_id,
   });
 
-  console.log(`✅ Subscription renewed for user ${subscription.user}`);
+  console.log(`✅ Subscription renewed for user ${dbSubscription.user}`);
 }
 
 /**
- * Handle failed payment
+ * Handle payment captured
  */
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const stripeSubscriptionId = (invoice as any).subscription as string;
+async function handlePaymentCaptured(payment: any) {
+  // This handles one-time payments or initial subscription payments
+  // The subscription.charged event is more specific for recurring payments
+  console.log(`✅ Payment captured: ${payment.id}`);
+  
+  // If this payment is linked to a subscription, handle it
+  if (payment.subscription_id) {
+    const dbSubscription = await Subscription.findOne({ 
+      razorpaySubscriptionId: payment.subscription_id 
+    });
 
-  if (!stripeSubscriptionId) {
-    console.log("⚠️  Invoice has no subscription - skipping");
-    return;
+    if (dbSubscription) {
+      await renewSubscription(dbSubscription._id.toString(), {
+        amount: payment.amount,
+        razorpayPaymentId: payment.id,
+        razorpayOrderId: payment.order_id,
+        razorpayInvoiceId: payment.invoice_id,
+      });
+    }
   }
-
-  const subscription = await Subscription.findOne({ stripeSubscriptionId });
-
-  if (!subscription) {
-    console.error(`❌ Subscription not found for Stripe ID: ${stripeSubscriptionId}`);
-    return;
-  }
-
-  console.log(`❌ Payment failed for subscription ${subscription._id}`);
-
-  // Update subscription status to past_due
-  subscription.status = "past_due";
-  await subscription.save();
-
-  // TODO: Send email notification to user about failed payment
-  console.log(`⚠️  Subscription ${subscription._id} marked as past_due`);
 }
 
 /**
- * Handle subscription updated
+ * Handle subscription cancelled
  */
-async function handleSubscriptionUpdated(stripeSubscription: Stripe.Subscription) {
-  const subscription = await Subscription.findOne({
-    stripeSubscriptionId: stripeSubscription.id,
+async function handleSubscriptionCancelled(subscription: any) {
+  const dbSubscription = await Subscription.findOne({
+    razorpaySubscriptionId: subscription.id,
   });
 
-  if (!subscription) {
-    console.error(`❌ Subscription not found for Stripe ID: ${stripeSubscription.id}`);
+  if (!dbSubscription) {
+    console.error(`❌ Subscription not found for Razorpay ID: ${subscription.id}`);
     return;
   }
 
-  console.log(`✅ Syncing subscription ${subscription._id} from Stripe`);
-
-  // Sync subscription data from Stripe
-  await syncSubscriptionWithStripe(subscription._id.toString());
-
-  // Check if tier changed (e.g., upgraded/downgraded)
-  const newTier = getTierFromPriceId(stripeSubscription.items.data[0]?.price.id || "");
-
-  if (newTier !== subscription.tier && newTier !== "free") {
-    console.log(`✅ Updating subscription tier from ${subscription.tier} to ${newTier}`);
-    await updateSubscriptionTier(subscription.user.toString(), newTier);
-  }
-
-  console.log(`✅ Subscription ${subscription._id} synced successfully`);
-}
-
-/**
- * Handle subscription deleted/cancelled
- */
-async function handleSubscriptionDeleted(stripeSubscription: Stripe.Subscription) {
-  const subscription = await Subscription.findOne({
-    stripeSubscriptionId: stripeSubscription.id,
-  });
-
-  if (!subscription) {
-    console.error(`❌ Subscription not found for Stripe ID: ${stripeSubscription.id}`);
-    return;
-  }
-
-  console.log(`✅ Expiring subscription ${subscription._id}`);
+  console.log(`✅ Expiring subscription ${dbSubscription._id}`);
 
   // Expire the subscription (downgrade to free tier)
-  await expireSubscription(subscription._id.toString());
+  await expireSubscription(dbSubscription._id.toString());
 
-  console.log(`✅ Subscription ${subscription._id} expired and downgraded to free`);
+  console.log(`✅ Subscription ${dbSubscription._id} expired and downgraded to free`);
+}
+
+/**
+ * Handle subscription paused
+ */
+async function handleSubscriptionPaused(subscription: any) {
+  const dbSubscription = await Subscription.findOne({
+    razorpaySubscriptionId: subscription.id,
+  });
+
+  if (!dbSubscription) {
+    console.error(`❌ Subscription not found for Razorpay ID: ${subscription.id}`);
+    return;
+  }
+
+  console.log(`✅ Pausing subscription ${dbSubscription._id}`);
+
+  // Mark subscription as cancelled (will expire at period end)
+  dbSubscription.status = "cancelled";
+  await dbSubscription.save();
+
+  console.log(`✅ Subscription ${dbSubscription._id} paused`);
+}
+
+/**
+ * Handle subscription resumed
+ */
+async function handleSubscriptionResumed(subscription: any) {
+  const dbSubscription = await Subscription.findOne({
+    razorpaySubscriptionId: subscription.id,
+  });
+
+  if (!dbSubscription) {
+    console.error(`❌ Subscription not found for Razorpay ID: ${subscription.id}`);
+    return;
+  }
+
+  console.log(`✅ Resuming subscription ${dbSubscription._id}`);
+
+  // Sync subscription data from Razorpay
+  await syncSubscriptionWithRazorpay(dbSubscription._id.toString());
+
+  // Check if tier changed
+  const newTier = getTierFromPlanId(subscription.plan_id || "");
+
+  if (newTier !== dbSubscription.tier && newTier !== "free") {
+    console.log(`✅ Updating subscription tier from ${dbSubscription.tier} to ${newTier}`);
+    await updateSubscriptionTier(dbSubscription.user.toString(), newTier);
+  }
+
+  console.log(`✅ Subscription ${dbSubscription._id} resumed successfully`);
 }

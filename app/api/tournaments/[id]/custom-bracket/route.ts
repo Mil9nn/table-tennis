@@ -217,10 +217,15 @@ export async function POST(
       );
     }
 
-    // Verify tournament format is knockout
-    if (tournament.format !== "knockout") {
+    // Verify tournament has a knockout bracket (either pure knockout or hybrid in knockout phase)
+    const hasKnockoutBracket = 
+      tournament.bracket && 
+      (tournament.format === "knockout" || 
+       (tournament.format === "hybrid" && tournament.currentPhase === "knockout"));
+    
+    if (!hasKnockoutBracket) {
       return NextResponse.json(
-        { error: "This endpoint is only for knockout tournaments" },
+        { error: "This endpoint requires a tournament with an active knockout bracket" },
         { status: 400 }
       );
     }
@@ -349,10 +354,43 @@ export async function POST(
       });
     } else {
       // For singles, use tournament participant IDs
-      const tournamentParticipantIds = tournament.participants.map((p: any) =>
-        p.toString()
-      );
-      validEntryIds = new Set(tournamentParticipantIds);
+      // For hybrid tournaments in knockout phase, use qualified participants only
+      let participantIds: string[];
+      if (tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants) {
+        participantIds = tournament.qualifiedParticipants.map((p: any) => p.toString());
+      } else {
+        participantIds = tournament.participants.map((p: any) => p.toString());
+      }
+      validEntryIds = new Set(participantIds);
+    }
+
+    // For hybrid tournaments in knockout phase, validate participants are qualified
+    if (tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants) {
+      const qualifiedIds = new Set(tournament.qualifiedParticipants.map((p: any) => p.toString()));
+      
+      for (const match of matches) {
+        if (!isDoubles) {
+          // For singles, check if participant is qualified
+          if (match.participant1 && !qualifiedIds.has(match.participant1)) {
+            return NextResponse.json(
+              {
+                error: `Participant ${match.participant1} is not qualified for knockout phase. Only participants who advanced from round-robin can participate.`,
+              },
+              { status: 400 }
+            );
+          }
+          if (match.participant2 && !qualifiedIds.has(match.participant2)) {
+            return NextResponse.json(
+              {
+                error: `Participant ${match.participant2} is not qualified for knockout phase. Only participants who advanced from round-robin can participate.`,
+              },
+              { status: 400 }
+            );
+          }
+        }
+        // For doubles, we validate pairs are created from qualified participants
+        // This is handled by the pair creation step
+      }
     }
 
     // Validate match entries exist

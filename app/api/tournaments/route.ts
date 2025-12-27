@@ -8,6 +8,7 @@ import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { validateRequest, validateQueryParams, createTournamentSchema, getTournamentsQuerySchema } from "@/lib/validations";
 import { logError } from "@/lib/error-logger";
+import { getUserSubscription, checkLimit, checkTournamentFormatAllowed, incrementTournamentCount } from "@/lib/middleware/subscription";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -54,6 +55,38 @@ export async function POST(request: NextRequest) {
       teamConfig,
     } = validation.data;
 
+    // Check subscription limits and restrictions
+    const subscription = await getUserSubscription(auth.userId);
+    
+    // Check tournament creation limit
+    const tournamentLimitCheck = await checkLimit(auth.userId, "tournaments", 0);
+    if (!tournamentLimitCheck.allowed) {
+      return NextResponse.json(
+        { error: tournamentLimitCheck.error },
+        { status: 403 }
+      );
+    }
+
+    // Check participant limit if participants are provided
+    if (participants && participants.length > 0) {
+      const participantLimitCheck = await checkLimit(auth.userId, "participants", participants.length);
+      if (!participantLimitCheck.allowed) {
+        return NextResponse.json(
+          { error: participantLimitCheck.error },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check tournament format restriction
+    const formatCheck = await checkTournamentFormatAllowed(auth.userId, format);
+    if (!formatCheck.allowed) {
+      return NextResponse.json(
+        { error: formatCheck.error },
+        { status: 403 }
+      );
+    }
+
     // Validate participants based on category
     if (participants && participants.length > 0) {
       if (category === "team") {
@@ -87,6 +120,10 @@ export async function POST(request: NextRequest) {
 
     // Note: Validation for groups + round-robin is now handled by Zod schema
 
+    // Get subscription tier and features for tournament metadata
+    const userTier = subscription.tier;
+    const maxScorersAllowed = subscription.features.maxScorers;
+
     const tournament = new Tournament({
       name,
       format,
@@ -97,6 +134,8 @@ export async function POST(request: NextRequest) {
       venue,
       participants: participants || [],
       organizer: auth.userId,
+      createdWithTier: userTier,
+      maxScorersAllowed: maxScorersAllowed,
       // Force groups to false for round-robin format
       useGroups: format === "round_robin" ? false : (useGroups || false),
       numberOfGroups: format === "round_robin" ? undefined : (numberOfGroups || undefined),
@@ -143,6 +182,9 @@ export async function POST(request: NextRequest) {
     });
 
     await tournament.save();
+
+    // Increment tournament creation counter
+    await incrementTournamentCount(auth.userId);
 
     // DEBUG: Log after save
     console.log("🟡 [API POST] Tournament saved:", {
@@ -227,7 +269,7 @@ export async function GET(req: NextRequest) {
       return validation.error;
     }
 
-    const { status, format, category, city, search, limit, skip, sortBy, sortOrder } = validation.data;
+    const { status, format, category, city, search, dateFrom, dateTo, limit, skip, sortBy, sortOrder } = validation.data;
 
     let query: any = {};
     if (status && status !== "all") query.status = status;
@@ -239,6 +281,20 @@ export async function GET(req: NextRequest) {
         { name: { $regex: search, $options: "i" } },
         { city: { $regex: search, $options: "i" } },
       ];
+    }
+
+    // Date range filter on startDate
+    if (dateFrom || dateTo) {
+      query.startDate = {};
+      if (dateFrom) {
+        query.startDate.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        // Add 1 day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        query.startDate.$lte = endDate;
+      }
     }
 
     // Build sort object

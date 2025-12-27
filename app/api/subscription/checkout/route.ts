@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api/auth";
 import { withErrorHandling, ApiError } from "@/lib/api/http";
-import { createCheckoutSession, isStripeConfigured } from "@/lib/stripe";
+import { createCheckoutLink, isRazorpayConfigured } from "@/lib/razorpay";
 import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 
 /**
  * POST /api/subscription/checkout
- * Create a Stripe checkout session for subscription purchase
+ * Create a Razorpay checkout link for subscription purchase
  */
 export const POST = withErrorHandling(async (req: NextRequest) => {
-  if (!isStripeConfigured()) {
-    throw ApiError.serviceUnavailable("Stripe is not configured. Please contact the administrator.");
+  if (!isRazorpayConfigured()) {
+    throw ApiError.serviceUnavailable("Razorpay is not configured. Please contact the administrator.");
   }
 
   const { userId } = await requireAuth(req);
   const body = await req.json();
 
-  const { tier, trialDays } = body;
+  const { tier, billingPeriod } = body;
 
-  // Validate tier
-  if (!tier || !["pro", "premium"].includes(tier)) {
-    throw ApiError.badRequest("Invalid subscription tier. Must be 'pro' or 'premium'");
+  // Validate tier - only pro is allowed
+  if (!tier || tier !== "pro") {
+    throw ApiError.badRequest("Invalid subscription tier. Must be 'pro'");
+  }
+
+  // Validate billing period
+  if (!billingPeriod || !["monthly", "yearly"].includes(billingPeriod)) {
+    throw ApiError.badRequest("Invalid billing period. Must be 'monthly' or 'yearly'");
   }
 
   await connectDB();
@@ -34,16 +39,17 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   // Get base URL for redirect
   const baseUrl = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-  // Create Stripe checkout session
-  const session = await createCheckoutSession(userId, tier, {
-    successUrl: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${baseUrl}/pricing`,
+  // Create Razorpay checkout link
+  const checkoutLink = await createCheckoutLink(userId, tier, billingPeriod, {
+    successUrl: `${baseUrl}/subscription/success?payment_id={PAYMENT_ID}&subscription_id={SUBSCRIPTION_ID}`,
+    cancelUrl: `${baseUrl}/subscription`,
     customerEmail: user.email,
-    trialDays: trialDays || 14, // Default 14-day trial
+    customerName: user.name || user.email,
+    customerContact: user.phone,
   });
 
   return NextResponse.json({
-    sessionId: session.id,
-    url: session.url,
+    paymentLinkId: checkoutLink.id,
+    url: checkoutLink.short_url,
   });
 });

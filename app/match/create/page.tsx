@@ -32,19 +32,19 @@ export default function CreateMatchPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#ffffff]">
       {/* HEADER: Precise & Architectural */}
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]/95 backdrop-blur-sm">
         <div className="mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
+              <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
                 Match Creation
               </h1>
               <p></p>
@@ -57,13 +57,13 @@ export default function CreateMatchPage() {
         {/* CATEGORY SELECTOR: High Density Toggle */}
         <div className="mb-10">
           <div className="mb-4">
-            <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600 px-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
               Select Category
             </h2>
-            <div className="h-px bg-slate-100 flex-1" />
+            <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-[1px] bg-[#d9d9d9]">
             {categories.map((category) => {
               const isActive = matchCategory === category.type;
               const Icon = category.icon;
@@ -73,28 +73,23 @@ export default function CreateMatchPage() {
                   key={category.type}
                   onClick={() => setMatchCategory(category.type)}
                   className={cn(
-                    "relative group p-4 rounded border transition-all duration-200 text-left overflow-hidden",
-                    isActive
-                      ? "border-slate-900 bg-slate-900 text-white shadow-md"
-                      : "border-slate-200 bg-white hover:border-slate-400"
+                    "group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left",
+                    isActive && "bg-[#3c6e71]"
                   )}
                 >
-                  <div className="flex flex-col h-full justify-between gap-4">
-                    <div className="flex justify-between items-start">
-                      <Icon className={cn("w-5 h-5", isActive ? "text-slate-300" : "text-slate-600")} />
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Icon className={cn("w-5 h-5 transition-colors", isActive ? "text-[#ffffff]" : "text-[#3c6e71] group-hover:text-[#ffffff]")} />
+                        <h3 className={cn("text-sm font-semibold tracking-wide transition-colors", isActive ? "text-[#ffffff]" : "text-[#353535] group-hover:text-[#ffffff]")}>
+                          {category.title}
+                        </h3>
+                      </div>
                       {isActive && (
-                        <motion.div layoutId="arrow" className="text-white">
+                        <motion.div layoutId="arrow" className="text-[#ffffff]">
                           <ArrowRight className="w-4 h-4" />
                         </motion.div>
                       )}
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-widest leading-none mb-1">
-                        {category.title}
-                      </h3>
-                      <p className={cn("text-xs tracking-tight", isActive ? "text-slate-600" : "text-slate-500")}>
-                        {category.description}
-                      </p>
                     </div>
                   </div>
                 </button>
@@ -111,7 +106,6 @@ export default function CreateMatchPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.2 }}
-            className="border border-slate-100 rounded-lg p-1 sm:p-2 bg-slate-50/30"
           >
             {matchCategory === "individual" ? (
               <IndividualMatchForm endpoint="/matches/individual" />

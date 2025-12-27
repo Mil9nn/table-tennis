@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import MatchesList from "@/components/MatchesList";
 import TeamMatchesList from "@/components/TeamMatchesList";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Plus, Search, Loader2, Filter, X } from "lucide-react";
+import { Plus, Search, Loader2, Filter, X, CalendarDays } from "lucide-react";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,34 +20,32 @@ import { IndividualMatch, TeamMatch } from "@/types/match.type";
 import MatchesListSkeleton from "@/components/skeletons/MatchesListSkeleton";
 import TeamMatchesListSkeleton from "@/components/skeletons/TeamMatchesListSkeleton";
 import Link from "next/link";
-// removed shadcn button for native link-button styling
+import { EmptyState } from "../tournaments/components/EmptyState";
+import { Diversity3 } from "@mui/icons-material";
+import { useIndividualMatchFilters, useTeamMatchFilters } from "@/hooks/useFilters";
 
 const ITEMS_PER_PAGE = 15;
 
 export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("individual");
 
-  // Individual - with pagination
-  const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>(
-    []
-  );
+  // Individual matches state
+  const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>([]);
   const [individualLoading, setIndividualLoading] = useState(true);
   const [individualLoadingMore, setIndividualLoadingMore] = useState(false);
   const [individualHasMore, setIndividualHasMore] = useState(true);
   const [individualPage, setIndividualPage] = useState(0);
-  const [individualSearch, setIndividualSearch] = useState("");
-  const [individualFilterType, setIndividualFilterType] = useState("all");
-  const [individualFilterStatus, setIndividualFilterStatus] = useState("all");
 
-  // Team - with pagination
+  // Team matches state
   const [teamMatches, setTeamMatches] = useState<TeamMatch[]>([]);
   const [teamLoading, setTeamLoading] = useState(true);
   const [teamLoadingMore, setTeamLoadingMore] = useState(false);
   const [teamHasMore, setTeamHasMore] = useState(true);
   const [teamPage, setTeamPage] = useState(0);
-  const [teamSearch, setTeamSearch] = useState("");
-  const [teamFilterFormat, setTeamFilterFormat] = useState("all");
-  const [teamFilterStatus, setTeamFilterStatus] = useState("all");
+
+  // Filter hooks with debounced search
+  const individualFilters = useIndividualMatchFilters(300);
+  const teamFilters = useTeamMatchFilters(300);
 
   // Show/hide filters
   const [showFilters, setShowFilters] = useState(false);
@@ -56,77 +54,99 @@ export default function MatchesPage() {
   const individualObserverTarget = useRef<HTMLDivElement>(null);
   const teamObserverTarget = useRef<HTMLDivElement>(null);
 
-  // Fetch individual matches with pagination
-  const fetchIndividualMatches = useCallback(async (page: number, append = false) => {
-    try {
-      if (append) {
-        setIndividualLoadingMore(true);
-      } else {
-        setIndividualLoading(true);
+  // Fetch individual matches with server-side filtering
+  const fetchIndividualMatches = useCallback(
+    async (page: number, append = false) => {
+      try {
+        if (append) {
+          setIndividualLoadingMore(true);
+        } else {
+          setIndividualLoading(true);
+        }
+
+        const skip = page * ITEMS_PER_PAGE;
+        const params = individualFilters.buildQueryParams({ limit: ITEMS_PER_PAGE, skip });
+        
+        const { data } = await axiosInstance.get(`/matches/individual?${params.toString()}`);
+
+        if (append) {
+          setIndividualMatches((prev) => [...prev, ...(data.matches || [])]);
+        } else {
+          setIndividualMatches(data.matches || []);
+        }
+
+        setIndividualHasMore(data.pagination?.hasMore || false);
+      } catch (err) {
+        console.error("Error fetching individual matches:", err);
+      } finally {
+        setIndividualLoading(false);
+        setIndividualLoadingMore(false);
       }
+    },
+    [individualFilters]
+  );
 
-      const skip = page * ITEMS_PER_PAGE;
-      const { data } = await axiosInstance.get(
-        `/matches/individual?limit=${ITEMS_PER_PAGE}&skip=${skip}`
-      );
+  // Fetch team matches with server-side filtering
+  const fetchTeamMatches = useCallback(
+    async (page: number, append = false) => {
+      try {
+        if (append) {
+          setTeamLoadingMore(true);
+        } else {
+          setTeamLoading(true);
+        }
 
-      if (append) {
-        setIndividualMatches((prev) => [...prev, ...(data.matches || [])]);
-      } else {
-        setIndividualMatches(data.matches || []);
+        const skip = page * ITEMS_PER_PAGE;
+        const params = teamFilters.buildQueryParams({ limit: ITEMS_PER_PAGE, skip });
+
+        const { data } = await axiosInstance.get(`/matches/team?${params.toString()}`);
+
+        if (append) {
+          setTeamMatches((prev) => [...prev, ...(data.matches || [])]);
+        } else {
+          setTeamMatches(data.matches || []);
+        }
+
+        setTeamHasMore(data.pagination?.hasMore || false);
+      } catch (err) {
+        console.error("Error fetching team matches:", err);
+      } finally {
+        setTeamLoading(false);
+        setTeamLoadingMore(false);
       }
+    },
+    [teamFilters]
+  );
 
-      setIndividualHasMore(data.pagination?.hasMore || false);
-    } catch (err) {
-      console.error("Error fetching individual matches:", err);
-    } finally {
-      setIndividualLoading(false);
-      setIndividualLoadingMore(false);
-    }
-  }, []);
-
-  // Fetch team matches with pagination
-  const fetchTeamMatches = useCallback(async (page: number, append = false) => {
-    try {
-      if (append) {
-        setTeamLoadingMore(true);
-      } else {
-        setTeamLoading(true);
-      }
-
-      const skip = page * ITEMS_PER_PAGE;
-      const { data } = await axiosInstance.get(
-        `/matches/team?limit=${ITEMS_PER_PAGE}&skip=${skip}`
-      );
-
-      if (append) {
-        setTeamMatches((prev) => [...prev, ...(data.matches || [])]);
-      } else {
-        setTeamMatches(data.matches || []);
-      }
-
-      setTeamHasMore(data.pagination?.hasMore || false);
-    } catch (err) {
-      console.error("Error fetching team matches:", err);
-    } finally {
-      setTeamLoading(false);
-      setTeamLoadingMore(false);
-    }
-  }, []);
-
-  // Fetch individual matches only when individual tab is active
+  // Refetch individual matches when filters change (using debounced search)
   useEffect(() => {
-    if (activeTab === "individual" && individualMatches.length === 0) {
+    if (activeTab === "individual") {
+      setIndividualPage(0);
       fetchIndividualMatches(0, false);
     }
-  }, [activeTab, fetchIndividualMatches, individualMatches.length]);
+  }, [
+    activeTab,
+    individualFilters.debouncedSearch,
+    individualFilters.filters.type,
+    individualFilters.filters.status,
+    individualFilters.filters.dateFrom,
+    individualFilters.filters.dateTo,
+  ]);
 
-  // Fetch team matches only when team tab is active
+  // Refetch team matches when filters change (using debounced search)
   useEffect(() => {
-    if (activeTab === "team" && teamMatches.length === 0) {
+    if (activeTab === "team") {
+      setTeamPage(0);
       fetchTeamMatches(0, false);
     }
-  }, [activeTab, fetchTeamMatches, teamMatches.length]);
+  }, [
+    activeTab,
+    teamFilters.debouncedSearch,
+    teamFilters.filters.format,
+    teamFilters.filters.status,
+    teamFilters.filters.dateFrom,
+    teamFilters.filters.dateTo,
+  ]);
 
   // Load more individual matches when intersection observer triggers
   useEffect(() => {
@@ -206,54 +226,34 @@ export default function MatchesPage() {
     fetchTeamMatches,
   ]);
 
-  const filteredIndividualMatches = useMemo(() => {
-    return individualMatches.filter((match) => {
-      const nameMatch = match.participants?.some((p) =>
-        p?.fullName?.toLowerCase().includes(individualSearch.toLowerCase())
-      );
-      const typeMatch =
-        individualFilterType === "all" ||
-        match.matchType === individualFilterType;
-      const statusMatch =
-        individualFilterStatus === "all" ||
-        match.status === individualFilterStatus;
-      return nameMatch && typeMatch && statusMatch;
-    });
-  }, [individualMatches, individualSearch, individualFilterType, individualFilterStatus]);
-
-  const filteredTeamMatches = useMemo(() => {
-    return teamMatches.filter((match) => {
-      const nameMatch =
-        match.team1?.name?.toLowerCase().includes(teamSearch.toLowerCase()) ||
-        match.team2?.name?.toLowerCase().includes(teamSearch.toLowerCase());
-
-      const formatMatch =
-        teamFilterFormat === "all" || match.matchFormat === teamFilterFormat;
-
-      const statusMatch =
-        teamFilterStatus === "all" || match.status === teamFilterStatus;
-
-      return nameMatch && formatMatch && statusMatch;
-    });
-  }, [teamMatches, teamSearch, teamFilterFormat, teamFilterStatus]);
-
+  // Get current filters based on active tab
+  const currentFilters = activeTab === "individual" ? individualFilters : teamFilters;
 
   return (
-    <div>
-      <div className="p-4 space-y-4" style={{ backgroundColor: '#323139' }}>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Matches</h1>
-          <p className= "text-sm text-zinc-400 mt-1">Track and manage your table tennis competitions</p>
-        </div>
+    <div style={{ backgroundColor: "#ffffff", minHeight: "100vh" }}>
+      <header className="bg-[#353535] text-lb-white p-6 space-y-4">
+        <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Matches</h1>
 
         <div className="flex items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-zinc-400 size-4" />
+            <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
             <Input
-              placeholder={activeTab === "individual" ? "Search by player name..." : "Search by team name..."}
-              value={activeTab === "individual" ? individualSearch : teamSearch}
-              onChange={(e) => activeTab === "individual" ? setIndividualSearch(e.target.value) : setTeamSearch(e.target.value)}
-              className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-sm rounded-lg focus:ring-2 focus:ring-zinc-700"
+              placeholder={
+                activeTab === "individual"
+                  ? "Search by player name..."
+                  : "Search by team name..."
+              }
+              value={
+                activeTab === "individual"
+                  ? individualFilters.filters.search
+                  : teamFilters.filters.search
+              }
+              onChange={(e) =>
+                activeTab === "individual"
+                  ? individualFilters.setFilter("search", e.target.value)
+                  : teamFilters.setFilter("search", e.target.value)
+              }
+              className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
             />
           </div>
 
@@ -261,163 +261,304 @@ export default function MatchesPage() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className="shrink-0 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+            className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
+              currentFilters.hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+            }`}
           >
             <Filter className="size-4" />
           </Button>
         </div>
 
-        {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-zinc-900 rounded-lg p-4 space-y-3 border border-zinc-800">
+          <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-white">Filters</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFilters(false)}
-                className="size-6 hover:bg-zinc-800 text-zinc-400"
-              >
-                <X className="size-4" />
-              </Button>
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">Filters</h3>
+              <div className="flex items-center gap-2">
+                {currentFilters.hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (activeTab === "individual") {
+                        individualFilters.clearAll();
+                      } else {
+                        teamFilters.clearAll();
+                      }
+                    }}
+                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                  >
+                    Clear All
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFilters(false)}
+                  className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
             </div>
 
             {activeTab === "individual" ? (
-              <>
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Type</label>
-                  <Select value={individualFilterType} onValueChange={setIndividualFilterType}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="singles">Singles</SelectItem>
-                      <SelectItem value="doubles">Doubles</SelectItem>
-                      <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                      Type
+                    </label>
+                    <Select
+                      value={individualFilters.filters.type}
+                      onValueChange={(val) => individualFilters.setFilter("type", val)}
+                    >
+                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                        <SelectValue placeholder="Filter by type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="singles">Singles</SelectItem>
+                        <SelectItem value="doubles">Doubles</SelectItem>
+                        <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                      Status
+                    </label>
+                    <Select
+                      value={individualFilters.filters.status}
+                      onValueChange={(val) => individualFilters.setFilter("status", val)}
+                    >
+                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="not_started">Scheduled</SelectItem>
+                        <SelectItem value="in_progress">Live</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Status</label>
-                  <Select value={individualFilterStatus} onValueChange={setIndividualFilterStatus}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="in_progress">Live</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <CalendarDays className="size-3" /> Date Range
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    <Input
+                      type="date"
+                      value={individualFilters.filters.dateFrom}
+                      onChange={(e) => individualFilters.setFilter("dateFrom", e.target.value)}
+                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      placeholder="From"
+                    />
+                    <Input
+                      type="date"
+                      value={individualFilters.filters.dateTo}
+                      onChange={(e) => individualFilters.setFilter("dateTo", e.target.value)}
+                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      placeholder="To"
+                    />
+                  </div>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Format</label>
-                  <Select value={teamFilterFormat} onValueChange={setTeamFilterFormat}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Formats</SelectItem>
-                      <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
-                      <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                      Format
+                    </label>
+                    <Select
+                      value={teamFilters.filters.format}
+                      onValueChange={(val) => teamFilters.setFilter("format", val)}
+                    >
+                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                        <SelectValue placeholder="Filter by format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Formats</SelectItem>
+                        <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
+                        <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                      Status
+                    </label>
+                    <Select
+                      value={teamFilters.filters.status}
+                      onValueChange={(val) => teamFilters.setFilter("status", val)}
+                    >
+                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="not_started">Scheduled</SelectItem>
+                        <SelectItem value="in_progress">Live</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs text-zinc-400 uppercase tracking-wide">Status</label>
-                  <Select value={teamFilterStatus} onValueChange={setTeamFilterStatus}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="in_progress">Live</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <CalendarDays className="size-3" /> Date Range
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    <Input
+                      type="date"
+                      value={teamFilters.filters.dateFrom}
+                      onChange={(e) => teamFilters.setFilter("dateFrom", e.target.value)}
+                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      placeholder="From"
+                    />
+                    <Input
+                      type="date"
+                      value={teamFilters.filters.dateTo}
+                      onChange={(e) => teamFilters.setFilter("dateTo", e.target.value)}
+                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      placeholder="To"
+                    />
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
-      </div>
+      </header>
 
-      <Tabs defaultValue="individual" onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto h-fit rounded-none p-0" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <TabsTrigger className="p-2 rounded-none" value="individual">
-            Individual Matches
+      <Tabs
+        defaultValue="individual"
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
+        <TabsList
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            width: "100%",
+            backgroundColor: "#ffffff",
+            padding: 0,
+            borderRadius: "0px",
+            height: "auto",
+          }}
+        >
+          <TabsTrigger
+            value="individual"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              padding: "0.5rem",
+              letterSpacing: "-0.01em",
+              borderRadius: "0px",
+            }}
+            className="data-[state=active]:bg-[#284b63] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+          >
+            Individual
           </TabsTrigger>
-          <TabsTrigger className="p-2 rounded-none" value="team">
-            Team Matches
+          <TabsTrigger
+            value="team"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              padding: "0.5rem",
+              letterSpacing: "-0.01em",
+              borderRadius: "0px",
+            }}
+            className="data-[state=active]:bg-[#284b63] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+          >
+            Team
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="individual">
+        <TabsContent value="individual" className="">
           {individualLoading ? (
             <MatchesListSkeleton />
           ) : (
             <>
-              <MatchesList matches={filteredIndividualMatches} />
+              <MatchesList matches={individualMatches} />
 
-              {/* Intersection Observer Target */}
-              <div ref={individualObserverTarget} className="h-20 flex items-center justify-center">
+              <div
+                ref={individualObserverTarget}
+                style={{
+                  height: "5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 {individualLoadingMore && (
-                  <div className="flex items-center gap-2 text-blue-600">
+                  <div
+                    className="flex items-center gap-2"
+                    style={{ color: "#3c6e71" }}
+                  >
                     <Loader2 className="animate-spin" size={20} />
-                    <span className="text-sm">Loading more matches...</span>
+                    <span style={{ fontSize: "0.875rem" }}>
+                      Loading more...
+                    </span>
                   </div>
                 )}
                 {!individualHasMore && individualMatches.length > 0 && (
-                  <p className="text-sm text-gray-500">No more matches to load</p>
+                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                    No more matches
+                  </p>
                 )}
               </div>
             </>
           )}
         </TabsContent>
 
-        <TabsContent value="team" className="space-y-6">
+        <TabsContent value="team" style={{ margin: 0 }}>
           {teamLoading ? (
             <TeamMatchesListSkeleton />
           ) : (
             <>
-              {filteredTeamMatches.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                    <GroupsIcon 
-                      sx={{ fontSize: 48, color: '#9ca3af' }}
-                    />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    No Team Matches Found
-                  </h3>
-                  <p className="text-sm text-gray-500 text-center max-w-md mb-6">
-                    {teamMatches.length === 0
-                      ? "Get started by creating your first team match."
-                      : "No matches match your current filters."}
-                  </p>
-                </div>
+              {teamMatches.length === 0 ? (
+                <EmptyState
+                  icon={Diversity3}
+                  title="No team matches yet"
+                  description="Create a team match to schedule games and track results."
+                  actionLabel="Create team match"
+                  actionHref="/match/create"
+                />
               ) : (
                 <>
-                  <TeamMatchesList matches={filteredTeamMatches} />
+                  <TeamMatchesList matches={teamMatches} />
 
-                  {/* Intersection Observer Target */}
-                  <div ref={teamObserverTarget} className="h-20 flex items-center justify-center">
+                  <div
+                    ref={teamObserverTarget}
+                    style={{
+                      height: "5rem",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     {teamLoadingMore && (
-                      <div className="flex items-center gap-2 text-blue-600">
+                      <div
+                        className="flex items-center gap-2"
+                        style={{ color: "#3c6e71" }}
+                      >
                         <Loader2 className="animate-spin" size={20} />
-                        <span className="text-sm">Loading more matches...</span>
+                        <span style={{ fontSize: "0.875rem" }}>
+                          Loading more...
+                        </span>
                       </div>
                     )}
                     {!teamHasMore && teamMatches.length > 0 && (
-                      <p className="text-sm text-gray-500">No more matches to load</p>
+                      <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                        No more matches
+                      </p>
                     )}
                   </div>
                 </>

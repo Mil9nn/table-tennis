@@ -1,9 +1,7 @@
 // components/live-scorer/common/MatchInfo.tsx
 "use client";
 
-import { Timer, Wind } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Timer } from "lucide-react";
 
 interface MatchInfoProps {
   currentGame: number;
@@ -19,34 +17,28 @@ export default function MatchInfo({
   rallyCount = 0,
 }: MatchInfoProps) {
   return (
-    <Card className="rounded-none border-none shadow-none p-2">
-      <CardContent>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          {/* Game Progress */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-blue-500 text-white
-                flex items-center justify-center font-bold shadow-lg">
-                {currentGame}
-              </div>
-              <div className="text-sm">
-                <p className="font-semibold text-gray-900">Game {currentGame}</p>
-                <p className="text-xs text-gray-500">of {totalGames}</p>
-              </div>
-            </div>
+    <div className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-sm dark:shadow-lg px-4 py-2">
+      <div className="flex items-center justify-between gap-3">
+        {/* Game Progress */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[#3c6e71] to-[#284b63] text-white flex items-center justify-center font-bold text-sm">
+            {currentGame}
           </div>
-
-          {/* Rally Counter */}
-          {rallyCount > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md">
-              <Timer className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium">
-                <span className="font-semibold">{rallyCount}</span> rallies
-              </span>
-            </div>
-          )}
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Set {currentGame} of {totalGames}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Rally Counter */}
+        {rallyCount > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
+            <Timer className="w-3.5 h-3.5 text-[#3c6e71]" />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {rallyCount}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

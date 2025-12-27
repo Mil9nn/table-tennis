@@ -184,11 +184,11 @@ export default function TableCourt({
 
           {/* Zone dividing lines (vertical) - Deep, Mid, Short on each side */}
           {/* Left side divisions */}
-          <div className="absolute top-0 bottom-0 left-[16.67%] w-px bg-white/40 pointer-events-none" />
-          <div className="absolute top-0 bottom-0 left-[33.33%] w-px bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[25%] w-px bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[40%] w-px bg-white/40 pointer-events-none" />
           {/* Right side divisions */}
-          <div className="absolute top-0 bottom-0 left-[66.67%] w-px bg-white/40 pointer-events-none" />
-          <div className="absolute top-0 bottom-0 left-[83.33%] w-px bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[60%] w-px bg-white/40 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 left-[75%] w-px bg-white/40 pointer-events-none" />
         </div>
 
         {/* Distance zone grid lines */}
@@ -307,7 +307,7 @@ export default function TableCourt({
                 />
                 {/* Main marker */}
                 <div
-                  className="absolute w-2 h-2 bg-linear-to-br from-yellow-300 to-orange-400 rounded-full border border-white shadow-[0_0_20px_rgba(251,191,36,0.6)] -translate-x-1/2 -translate-y-1/2 z-10"
+                  className="absolute w-2 h-2 bg-linear-to-br from-yellow-300 to-yellow-400 rounded-full border border-white shadow-[0_0_20px_rgba(250,204,21,0.6)] -translate-x-1/2 -translate-y-1/2 z-10"
                   style={{
                     left: `${coordToPercent(selectedPoint.x)}%`,
                     top: `${coordToPercent(selectedPoint.y)}%`,

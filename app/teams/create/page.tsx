@@ -127,19 +127,19 @@ export default function CreateTeamPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#ffffff]">
       {/* HEADER: Precise & Architectural */}
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]/95 backdrop-blur-sm">
         <div className="mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-[14px] font-bold uppercase tracking-[0.2em] text-slate-900 leading-none">
+              <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
                 Team Creation
               </h1>
               <p></p>
@@ -149,31 +149,31 @@ export default function CreateTeamPage() {
       </header>
 
       <main className="mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto border border-slate-100 rounded-lg p-1 sm:p-2 bg-slate-50/30">
-          <div className="bg-white rounded-md">
+        <div className="max-w-2xl mx-auto border border-[#d9d9d9] rounded-lg p-4 bg-[#ffffff]">
+          <div className="bg-[#ffffff] rounded-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
             {/* ═══════════════════════════════════════════
                 SECTION 1: TEAM LOGO
             ═══════════════════════════════════════════ */}
-            <div className="p-4 space-y-3 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+            <div className="p-4 space-y-3 border-b border-[#d9d9d9]">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                 Team Logo
               </h2>
 
               {!imagePreview ? (
                 <div
                   {...getRootProps()}
-                  className="flex flex-col items-center justify-center border border-dashed border-slate-200 rounded p-6 cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className="flex flex-col items-center justify-center border border-dashed border-[#d9d9d9] rounded p-6 cursor-pointer bg-[#ffffff] hover:bg-[#3c6e71]/10 transition-colors"
                 >
                   <input {...getInputProps()} />
-                  <Upload className="w-8 h-8 text-slate-600 mb-2" />
-                  <p className="text-slate-600 text-sm">
+                  <Upload className="w-8 h-8 text-[#3c6e71] mb-2" />
+                  <p className="text-[#353535] text-sm">
                     {isDragActive
                       ? "Drop the image here"
                       : "Drag & drop or click to upload"}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#353535]/40">
                     PNG, JPG, GIF (max 5MB)
                   </p>
                 </div>
@@ -184,12 +184,12 @@ export default function CreateTeamPage() {
                     alt="Preview"
                     width={160}
                     height={160}
-                    className="rounded border border-slate-200 shadow-sm"
+                    className="rounded border border-[#d9d9d9] shadow-sm"
                   />
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-[#ffffff] rounded-full hover:bg-red-600 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -200,8 +200,8 @@ export default function CreateTeamPage() {
             {/* ═══════════════════════════════════════════
                 SECTION 2: BASIC INFORMATION
             ═══════════════════════════════════════════ */}
-            <div className="p-4 space-y-3 border-b border-gray-100">
-              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+            <div className="p-4 space-y-3 border-b border-[#d9d9d9]">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                 Basic Information
               </h2>
 
@@ -211,14 +211,14 @@ export default function CreateTeamPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                    <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                       Team Name
                     </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter team name"
                         {...field}
-                        className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
+                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
@@ -232,14 +232,14 @@ export default function CreateTeamPage() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
+                    <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
                       City
                     </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter city"
                         {...field}
-                        className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
+                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
@@ -252,7 +252,7 @@ export default function CreateTeamPage() {
                 SECTION 3: PLAYERS
             ═══════════════════════════════════════════ */}
             <div className="p-4 space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                 Players
               </h2>
 
@@ -278,27 +278,27 @@ export default function CreateTeamPage() {
 
               {/* PLAYER LIST */}
               {players.length > 0 ? (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-[1px] bg-[#d9d9d9] max-h-64 overflow-y-auto">
                   {players.map((p, idx) => (
                     <div
                       key={p._id}
-                      className="flex items-center justify-between p-3 border border-slate-200 rounded bg-white hover:bg-slate-50 transition"
+                      className="flex items-center justify-between p-3 bg-[#ffffff] hover:bg-[#3c6e71]/10 transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#3c6e71] text-[#ffffff] flex items-center justify-center font-bold text-xs">
                           {idx + 1}
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-slate-900">
+                          <p className="font-medium text-sm text-[#353535]">
                             {p.fullName || p.username}
                           </p>
-                          <p className="text-xs text-slate-500">@{p.username}</p>
+                          <p className="text-xs text-[#353535]/60">@{p.username}</p>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => removePlayer(p._id)}
-                        className="text-slate-400 hover:text-red-600 transition p-1"
+                        className="text-[#353535]/40 hover:text-red-600 transition p-1"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -306,20 +306,20 @@ export default function CreateTeamPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-400 border border-slate-200 rounded border-dashed">
+                <div className="text-center py-8 text-[#353535]/40 border border-[#d9d9d9] rounded border-dashed">
                   <p className="text-sm">No players added yet</p>
                   <p className="text-xs mt-1">Search and add at least 2</p>
                 </div>
               )}
 
-              <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-200">
-                <Info className="w-4 h-4 text-slate-600 mt-0.5" />
+              <div className="flex items-start gap-2 text-xs text-[#353535]/60 bg-[#ffffff] p-3 rounded border border-[#d9d9d9]">
+                <Info className="w-4 h-4 text-[#3c6e71] mt-0.5" />
                 <p>
                   You will be automatically assigned as the team captain.
                 </p>
               </div>
 
-              <p className="text-xs text-slate-500 text-center">
+              <p className="text-xs text-[#353535]/60 text-center">
                 {players.length} / 2 minimum players
               </p>
             </div>
@@ -329,7 +329,7 @@ export default function CreateTeamPage() {
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="w-full py-6 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
+                className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
               >
                 {form.formState.isSubmitting ? (
                   <>

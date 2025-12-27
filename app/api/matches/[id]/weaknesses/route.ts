@@ -5,6 +5,8 @@ import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import { analyzeWeaknesses } from "@/lib/weaknesses-analysis-utils";
+import { requireFeature } from "@/lib/middleware/subscription";
+import { isUserParticipantInMatch } from "@/lib/matchHelpers";
 
 export async function GET(
   request: NextRequest,
@@ -27,6 +29,20 @@ export async function GET(
         { status: 401 }
       );
     }
+
+    // TEMPORARILY DISABLED: Subscription check for frontend development
+    // const featureCheck = await requireFeature(request, "advancedAnalytics");
+    // if (!featureCheck.allowed) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       message: "This feature requires a Pro subscription",
+    //       error: "UPGRADE_REQUIRED",
+    //       tier: featureCheck.subscription?.tier || "free",
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
 
     const { id } = await context.params;
     const matchId = id;
@@ -59,95 +75,150 @@ export async function GET(
       });
     }
 
-    // Analyze weaknesses for each participant
-    const participantsAnalysis: any[] = [];
+    // Verify user is a participant in the match
+    if (!isUserParticipantInMatch(decoded.userId, match)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not a participant in this match",
+          error: "NOT_PARTICIPANT",
+        },
+        { status: 403 }
+      );
+    }
+
+    const userId = decoded.userId;
+    let userGames: any[] = [];
+    let userParticipant: any = null;
 
     if (category === "individual") {
-      // Individual match - analyze each participant
+      // Individual match - find current user and filter their games
       const participants = match.participants || [];
-
-      participants.forEach((participant: any) => {
-        const participantId = participant._id.toString();
-        const participantGames = match.games || [];
-
-        if (participantGames.length > 0) {
-          const weaknessAnalysis = analyzeWeaknesses(participantGames, participantId);
-
-          participantsAnalysis.push({
-            userId: participantId,
-            name: participant.fullName || participant.username,
-            profileImage: participant.profileImage,
-            weaknesses: weaknessAnalysis,
-          });
-        }
+      userParticipant = participants.find((p: any) => {
+        const participantId = p._id?.toString() || p.toString();
+        return participantId === userId;
       });
+
+      if (!userParticipant) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "You are not a participant in this match",
+            error: "NOT_PARTICIPANT",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Filter games to only include shots where current user is the player
+      const allGames = match.games || [];
+      userGames = allGames.map((game: any) => {
+        // Filter shots to only current user's shots
+        const userShots = (game.shots || []).filter((shot: any) => {
+          const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString() || shot.player;
+          return shotPlayerId === userId;
+        });
+        return {
+          ...game,
+          shots: userShots,
+        };
+      }).filter((game: any) => game.shots.length > 0); // Only include games where user has shots
+
     } else {
-      // Team match - analyze players from subMatches
-      const allPlayers = new Map<string, any>();
+      // Team match - find current user in subMatches and collect their games
+      const subMatches = match.subMatches || [];
+      
+      // Find user's participant info from team players
+      const team1Players = match.team1?.players || [];
+      const team2Players = match.team2?.players || [];
+      
+      for (const player of [...team1Players, ...team2Players]) {
+        const playerId = player.user?._id?.toString() || player.user?.toString() || player.user?._id || player.user;
+        if (playerId === userId) {
+          userParticipant = {
+            _id: playerId,
+            fullName: player.user?.fullName,
+            username: player.user?.username,
+            profileImage: player.user?.profileImage,
+          };
+          break;
+        }
+      }
 
-      // Collect all unique players from subMatches
-      match.subMatches?.forEach((subMatch: any) => {
-        const team1Players = Array.isArray(subMatch.playerTeam1)
-          ? subMatch.playerTeam1
-          : [subMatch.playerTeam1];
-        const team2Players = Array.isArray(subMatch.playerTeam2)
-          ? subMatch.playerTeam2
-          : [subMatch.playerTeam2];
+      // If not found in team players, check subMatches
+      if (!userParticipant) {
+        for (const subMatch of subMatches) {
+          const team1SubPlayers = Array.isArray(subMatch.playerTeam1)
+            ? subMatch.playerTeam1
+            : [subMatch.playerTeam1];
+          const team2SubPlayers = Array.isArray(subMatch.playerTeam2)
+            ? subMatch.playerTeam2
+            : [subMatch.playerTeam2];
 
-        [...team1Players, ...team2Players].forEach((player: any) => {
-          if (player?._id) {
-            const playerId = player._id.toString();
-            if (!allPlayers.has(playerId)) {
-              allPlayers.set(playerId, {
+          for (const player of [...team1SubPlayers, ...team2SubPlayers]) {
+            if (!player) continue;
+            const playerId = player._id?.toString() || player.toString() || player._id || player;
+            if (playerId === userId) {
+              userParticipant = {
                 _id: playerId,
                 fullName: player.fullName,
                 username: player.username,
                 profileImage: player.profileImage,
-                games: [],
-              });
+              };
+              break;
             }
           }
-        });
-      });
+          if (userParticipant) break;
+        }
+      }
 
-      // Collect games for each player
-      match.subMatches?.forEach((subMatch: any) => {
-        const team1Players = Array.isArray(subMatch.playerTeam1)
+      if (!userParticipant) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "You are not a participant in this match",
+            error: "NOT_PARTICIPANT",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Collect games from subMatches where user participated
+      for (const subMatch of subMatches) {
+        const team1SubPlayers = Array.isArray(subMatch.playerTeam1)
           ? subMatch.playerTeam1
           : [subMatch.playerTeam1];
-        const team2Players = Array.isArray(subMatch.playerTeam2)
+        const team2SubPlayers = Array.isArray(subMatch.playerTeam2)
           ? subMatch.playerTeam2
           : [subMatch.playerTeam2];
 
-        const allSubMatchPlayers = [...team1Players, ...team2Players];
-
-        allSubMatchPlayers.forEach((player: any) => {
-          if (player?._id && subMatch.games) {
-            const playerId = player._id.toString();
-            const playerData = allPlayers.get(playerId);
-            if (playerData) {
-              playerData.games.push(...subMatch.games);
-            }
-          }
+        const allSubMatchPlayers = [...team1SubPlayers, ...team2SubPlayers];
+        const userInSubMatch = allSubMatchPlayers.some((player: any) => {
+          if (!player) return false;
+          const playerId = player._id?.toString() || player.toString() || player._id || player;
+          return playerId === userId;
         });
-      });
 
-      // Analyze each player
-      allPlayers.forEach((playerData, playerId) => {
-        if (playerData.games.length > 0) {
-          const weaknessAnalysis = analyzeWeaknesses(playerData.games, playerId);
-
-          participantsAnalysis.push({
-            userId: playerId,
-            name: playerData.fullName || playerData.username,
-            profileImage: playerData.profileImage,
-            weaknesses: weaknessAnalysis,
-          });
+        if (userInSubMatch && subMatch.games) {
+          // Filter shots to only current user's shots
+          const userSubMatchGames = subMatch.games.map((game: any) => {
+            const userShots = (game.shots || []).filter((shot: any) => {
+              const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString() || shot.player;
+              return shotPlayerId === userId;
+            });
+            return {
+              ...game,
+              shots: userShots,
+            };
+          }).filter((game: any) => game.shots.length > 0);
+          
+          userGames.push(...userSubMatchGames);
         }
-      });
+      }
     }
 
-    if (participantsAnalysis.length === 0) {
+    // Analyze weaknesses for current user only
+    if (userGames.length === 0) {
       return NextResponse.json({
         success: true,
         message: "Insufficient data for weakness analysis in this match.",
@@ -155,12 +226,32 @@ export async function GET(
       });
     }
 
+    const weaknessAnalysis = analyzeWeaknesses(userGames, userId);
+
+    // Collect all shots from userGames for visualization
+    const allShots: any[] = [];
+    userGames.forEach((game: any) => {
+      if (game.shots && Array.isArray(game.shots)) {
+        game.shots.forEach((shot: any) => {
+          if (shot.landingX != null && shot.landingY != null) {
+            allShots.push(shot);
+          }
+        });
+      }
+    });
+
     return NextResponse.json({
       success: true,
       data: {
         matchId,
         category,
-        participants: participantsAnalysis,
+        participant: {
+          userId: userId,
+          name: userParticipant.fullName || userParticipant.username,
+          profileImage: userParticipant.profileImage,
+          weaknesses: weaknessAnalysis,
+          shots: allShots, // Include shots for visualization
+        },
       },
     });
   } catch (error: any) {
@@ -175,3 +266,4 @@ export async function GET(
     );
   }
 }
+

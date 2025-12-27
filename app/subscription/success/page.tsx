@@ -10,15 +10,16 @@ import Link from "next/link";
 export default function SubscriptionSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const paymentId = searchParams.get("payment_id");
+  const subscriptionId = searchParams.get("subscription_id");
 
   useEffect(() => {
     // Track successful subscription
-    if (sessionId) {
-      console.log("Subscription successful:", sessionId);
+    if (paymentId || subscriptionId) {
+      console.log("Subscription successful:", { paymentId, subscriptionId });
       // TODO: Track analytics event
     }
-  }, [sessionId]);
+  }, [paymentId, subscriptionId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100 flex items-center justify-center px-6">
@@ -33,7 +34,7 @@ export default function SubscriptionSuccessPage() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-neutral-900 mb-2">
-            Welcome to Premium!
+            Welcome to Pro!
           </h1>
           <p className="text-xl text-neutral-600">
             Your subscription has been activated successfully
@@ -48,15 +49,15 @@ export default function SubscriptionSuccessPage() {
             <ul className="space-y-2 text-blue-800">
               <li className="flex items-start gap-2">
                 <CheckCircleIcon fontSize="small" className="mt-0.5" />
-                <span>All premium features are now unlocked</span>
+                <span>All Pro features are now unlocked</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircleIcon fontSize="small" className="mt-0.5" />
-                <span>Your 14-day free trial has started</span>
+                <span>You have full access to advanced analytics and insights</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircleIcon fontSize="small" className="mt-0.5" />
-                <span>You won't be charged until the trial ends</span>
+                <span>Your subscription will renew automatically</span>
               </li>
             </ul>
           </div>

@@ -8,6 +8,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { FeatureGate } from "@/components/FeatureGate";
+import { LockedContent } from "@/components/paywall/LockedContent";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import {
   BarChart,
   Bar,
@@ -25,17 +28,18 @@ import { ShotWeaknessChart } from "@/components/weaknesses-analysis/ShotWeakness
 import { ZoneHeatmap } from "@/components/weaknesses-analysis/ZoneHeatmap";
 import { ServeReceiveWeaknessCard } from "@/components/weaknesses-analysis/ServeReceiveWeaknessCard";
 import { OpponentPatternAnalysis } from "@/components/weaknesses-analysis/OpponentPatternAnalysis";
-import { ZoneSectorWeaknessTable } from "@/components/weaknesses-analysis/ZoneSectorWeaknessTable";
 import { LineWeaknessChart } from "@/components/weaknesses-analysis/LineWeaknessChart";
 import { OriginDistanceAnalysis } from "@/components/weaknesses-analysis/OriginDistanceAnalysis";
 import {
-  hasZoneSectorData,
   hasLineData,
   hasOriginDistanceData,
 } from "@/lib/weaknesses-analysis-utils";
+import { EmptyState } from "../components/EmptyState";
+import { TrendingUpOutlined } from "@mui/icons-material";
 
 const PerformanceInsightsPage = () => {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [data, setData] = useState<any>(null);
   const [weaknessData, setWeaknessData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -76,64 +80,50 @@ const PerformanceInsightsPage = () => {
   const graphs = data?.graphs || { matchPoints: [], serveAccuracy: [] };
 
   return (
-    <div className="min-h-[calc(100vh-65px)]">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-sm flex items-center gap-2 font-bold text-gray-800">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 p-1 border-2 rounded-full text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <MoveLeft className="size-4" />
-            </button>
-            <span>Performance Insights</span>
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Performance Insights
           </h1>
-          <p className=" text-xs mt-2">
-            Key performance metrics and analytics
-          </p>
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
-        {/* Content */}
-        {loading ? (
+        <FeatureGate
+          feature="profileInsightsAccess"
+          fallback={<LockedContent feature="profileInsightsAccess" />}
+        >
+          {/* Content */}
+          {loading ? (
           <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
-            <Loader2 className="animate-spin" />
+            <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
         ) : !data || graphs.matchPoints.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-            <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No Insights Available
-            </h3>
-            <p className="text-gray-600">
-              Play more matches to generate performance insights!
-            </p>
-          </div>
+          <EmptyState icon={TrendingUpOutlined} title="No insights available." description="Performance insights will appear after matches are played!" />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-8">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-2 max-w-md">
+            <div className="max-w-xs">
               {/* Overall Win Rate */}
-              <div className="bg-white border border-gray-200/70 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-xs font-semibold text-blue-500 tracking-wide">
-                    Overall Win Rate
-                  </h3>
-                </div>
-                <p className="text-xl font-bold text-gray-700">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Overall Win Rate
+                </h3>
+                <p className="text-3xl font-bold text-[#353535]">
                   {stats.overallWinRate}%
                 </p>
               </div>
             </div>
 
             {/* Points Scored vs Conceded */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-6">
-                Points Scored vs Conceded
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+                Points Scored vs Conceded (Last 10 Matches)
               </h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={graphs.matchPoints}>
+                  <BarChart data={graphs.matchPoints.slice(-10)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="match" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 12 }} />
@@ -158,8 +148,8 @@ const PerformanceInsightsPage = () => {
 
             {/* Serve Accuracy Over Time */}
             {graphs.serveAccuracy.length > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                   Serve Accuracy Over Time
                 </h3>
                 <div className="h-80">
@@ -195,29 +185,31 @@ const PerformanceInsightsPage = () => {
             )}
 
             {/* Weaknesses Analysis Section */}
-            <div className="mt-8 space-y-6">
-              <div className="border-t-2 border-gray-200 pt-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  Weaknesses Analysis
-                </h2>
-                <p className="text-sm text-gray-600 mb-6">
-                  Identify areas for improvement based on your last 20 matches
-                </p>
+            <div className="mt-12 space-y-8">
+              <div className="border-t border-[#d9d9d9] pt-8">
+                <div className="mb-6">
+                  <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+                    Weaknesses Analysis
+                  </h2>
+                  <p className="text-xs text-[#353535] mt-2">
+                    Identify areas for improvement based on your last 20 matches
+                  </p>
+                </div>
 
                 {weaknessLoading ? (
                   <div className="flex items-center justify-center py-20">
                     <div className="flex items-center gap-3">
-                      <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
-                      <span className="text-gray-600">Analyzing weaknesses...</span>
+                      <Loader2 className="animate-spin h-6 w-6 text-[#3c6e71]" />
+                      <span className="text-[#353535] text-sm">Analyzing weaknesses...</span>
                     </div>
                   </div>
                 ) : !weaknessData ? (
-                  <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-                    <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                  <div className="bg-[#ffffff] border border-[#d9d9d9] p-16 text-center">
+                    <TrendingUp className="w-16 h-16 text-[#d9d9d9] mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-[#353535] mb-2">
                       No Analysis Available
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-[#353535] text-sm">
                       Play more matches to generate weakness analysis!
                     </p>
                   </div>
@@ -225,16 +217,11 @@ const PerformanceInsightsPage = () => {
                   <div className="space-y-6">
                     <WeaknessInsightsPanel insights={weaknessData.overallInsights} />
 
-                    <div className="grid md:grid-cols-2 gap-6">
                       <ShotWeaknessChart
                         shotWeaknesses={weaknessData.shotWeaknesses.byStrokeType}
                         variant="weaknesses"
                         showTop={10}
                       />
-                      <ZoneHeatmap
-                        zoneData={weaknessData.zoneWeaknesses}
-                      />
-                    </div>
 
                     <ServeReceiveWeaknessCard
                       serveStats={weaknessData.serveReceiveWeaknesses.serve}
@@ -246,27 +233,12 @@ const PerformanceInsightsPage = () => {
                       maxDisplay={5}
                     />
 
+                    <ZoneHeatmap
+                      zoneData={weaknessData.zoneWeaknesses}
+                    />
+
                     {/* Semantic Zone Analysis Section */}
                     {weaknessData.semanticZoneAnalysis && (
-                      <div className="space-y-4 mt-6">
-                        {/* Only show header if at least one sub-section has data */}
-                        {(hasZoneSectorData(weaknessData.semanticZoneAnalysis.zoneSectorWeaknesses) ||
-                          hasLineData(weaknessData.semanticZoneAnalysis.lineWeaknesses) ||
-                          hasOriginDistanceData(weaknessData.semanticZoneAnalysis.originDistanceWeaknesses)) && (
-                          <div>
-                            <h3 className="text-xl font-semibold">Semantic Zone Analysis</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              Advanced analysis using table zones, sectors, and shot trajectories
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Each component returns null if no data */}
-                        <ZoneSectorWeaknessTable
-                          weaknesses={weaknessData.semanticZoneAnalysis.zoneSectorWeaknesses}
-                          showAll={false}
-                        />
-
                         <div className="grid md:grid-cols-2 gap-4">
                           <LineWeaknessChart
                             lineWeaknesses={weaknessData.semanticZoneAnalysis.lineWeaknesses}
@@ -274,7 +246,6 @@ const PerformanceInsightsPage = () => {
                           <OriginDistanceAnalysis
                             distanceWeaknesses={weaknessData.semanticZoneAnalysis.originDistanceWeaknesses}
                           />
-                        </div>
                       </div>
                     )}
                   </div>
@@ -283,6 +254,7 @@ const PerformanceInsightsPage = () => {
             </div>
           </div>
         )}
+        </FeatureGate>
       </div>
     </div>
   );

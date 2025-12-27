@@ -1,5 +1,4 @@
 import React from "react";
-import { Badge } from "@/components/ui/badge";
 import { Clock, Play, CheckCircle, XCircle } from "lucide-react";
 
 export type MatchStatus =
@@ -8,7 +7,7 @@ export type MatchStatus =
   | "completed"
   | "cancelled";
 
-type Props = React.ComponentProps<typeof Badge> & {
+type Props = React.ComponentProps<"span"> & {
   status: MatchStatus;
   size?: "sm" | "md" | "lg";
   showIcon?: boolean;
@@ -18,22 +17,22 @@ const STATUS_CONFIG: Record<MatchStatus, { label: string; icon: React.ElementTyp
   scheduled: {
     label: "Scheduled",
     icon: Clock,
-    className: "bg-yellow-50 text-yellow-800 ring-2 ring-yellow-200",
+    className: "text-gray-600 dark:text-gray-400",
   },
   in_progress: {
     label: "In progress",
     icon: Play,
-    className: "bg-blue-50 text-blue-800 ring-2 ring-blue-200",
+    className: "text-[#3c6e71] dark:text-[#3c6e71]",
   },
   completed: {
     label: "Completed",
     icon: CheckCircle,
-    className: "bg-green-50 text-green-800 ring-2 ring-green-200",
+    className: "text-[#284b63] dark:text-[#284b63]",
   },
   cancelled: {
     label: "Cancelled",
     icon: XCircle,
-    className: "bg-red-50 text-red-800 ring-2 ring-red-200",
+    className: "text-red-600 dark:text-red-400",
   },
 };
 
@@ -48,9 +47,9 @@ export default function MatchStatusBadge({ status, size = "sm", showIcon = false
   const Icon = cfg.icon;
 
   return (
-    <Badge
+    <span
       {...props}
-      className={`${SIZE_MAP[size]} inline-flex items-center gap-2 rounded-full font-medium ${cfg.className} ${className}`}
+      className={`${SIZE_MAP[size]} inline-flex items-center gap-2 rounded-lg font-medium transition-colors ${cfg.className} ${className}`}
       aria-label={`Match status: ${cfg.label}`}
       title={cfg.label}
     >
@@ -61,7 +60,7 @@ export default function MatchStatusBadge({ status, size = "sm", showIcon = false
       ) : null}
 
       <span className="whitespace-nowrap capitalize">{cfg.label}</span>
-    </Badge>
+    </span>
   );
 }
 

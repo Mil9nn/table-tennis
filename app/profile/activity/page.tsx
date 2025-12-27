@@ -3,9 +3,23 @@
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { ArrowLeft, Calendar as CalendarIcon, TrendingUp, Activity as ActivityIcon } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  TrendingUp,
+  Activity as ActivityIcon,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { EmptyState } from "../components/EmptyState";
 
 const ActivityTrendsPage = () => {
   const router = useRouter();
@@ -29,87 +43,93 @@ const ActivityTrendsPage = () => {
   }, []);
 
   const monthlyActivity = detailedStats?.monthlyActivity || [];
-  const totalMatches = monthlyActivity.reduce((sum: number, m: any) => sum + m.count, 0);
-  const avgPerMonth = monthlyActivity.length > 0 ? (totalMatches / monthlyActivity.length).toFixed(1) : 0;
-  const peakMonth = monthlyActivity.length > 0
-    ? monthlyActivity.reduce((max: any, m: any) => m.count > max.count ? m : max, monthlyActivity[0])
-    : null;
+  const totalMatches = monthlyActivity.reduce(
+    (sum: number, m: any) => sum + m.count,
+    0
+  );
+  const avgPerMonth =
+    monthlyActivity.length > 0
+      ? (totalMatches / monthlyActivity.length).toFixed(1)
+      : 0;
+  const peakMonth =
+    monthlyActivity.length > 0
+      ? monthlyActivity.reduce(
+          (max: any, m: any) => (m.count > max.count ? m : max),
+          monthlyActivity[0]
+        )
+      : null;
 
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-gray-50">
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Profile</span>
-        </button>
-
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Activity & Trends</h1>
-          <p className="text-gray-600 mt-2">
-            Track your playing activity over time and identify performance patterns
-          </p>
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Activity & Trends
+          </h1>
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white rounded-lg p-8 text-center">
-            <div className="animate-pulse">
-              <div className="h-4 bg-zinc-200 rounded w-1/4 mx-auto"></div>
-            </div>
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
         ) : monthlyActivity.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-            <ActivityIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No Activity Data Yet
-            </h3>
-            <p className="text-gray-600">
-              Play matches to start tracking your activity trends over time!
-            </p>
-          </div>
+          <EmptyState
+            icon={ActivityIcon}
+            title="No activity data available."
+            description="Play matches to start tracking your activity trends over time!"
+          />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarIcon className="w-5 h-5 text-pink-600" />
-                  <h3 className="text-sm font-semibold text-pink-900">Total Matches</h3>
-                </div>
-                <p className="text-3xl font-bold text-pink-700">{totalMatches}</p>
-                <p className="text-xs text-pink-600 mt-1">Across {monthlyActivity.length} months</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Total Matches
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
+                  {totalMatches}
+                </p>
+                <p className="text-xs text-[#353535] mt-3">
+                  Across {monthlyActivity.length} months
+                </p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <h3 className="text-sm font-semibold text-purple-900">Average Per Month</h3>
-                </div>
-                <p className="text-3xl font-bold text-purple-700">{avgPerMonth}</p>
-                <p className="text-xs text-purple-600 mt-1">Matches per month</p>
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Average Per Month
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
+                  {avgPerMonth}
+                </p>
+                <p className="text-xs text-[#353535] mt-3">
+                  Matches per month
+                </p>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <ActivityIcon className="w-5 h-5 text-amber-600" />
-                  <h3 className="text-sm font-semibold text-amber-900">Peak Month</h3>
-                </div>
-                <p className="text-3xl font-bold text-amber-700">{peakMonth?.count || 0}</p>
-                <p className="text-xs text-amber-600 mt-1">
-                  {peakMonth?.month ? new Date(peakMonth.month).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "N/A"}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Peak Month
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
+                  {peakMonth?.count || 0}
+                </p>
+                <p className="text-xs text-[#353535] mt-3">
+                  {peakMonth?.month
+                    ? new Date(peakMonth.month).toLocaleDateString("en-US", {
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "N/A"}
                 </p>
               </div>
             </div>
 
             {/* Monthly Activity Chart */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-6">
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                 Monthly Match Activity
               </h3>
               <div className="h-80">
@@ -118,23 +138,29 @@ const ActivityTrendsPage = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="month"
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       tickFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+                        return date.toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "2-digit",
+                        });
                       }}
                     />
                     <YAxis width={40} tick={{ fontSize: 12 }} />
                     <Tooltip
                       labelFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                        return date.toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        });
                       }}
                       formatter={(value: any) => [`${value} matches`, "Total"]}
                     />
                     <Bar
                       dataKey="count"
-                      fill="#8B5CF6"
+                      fill="#3c6e71"
                       radius={[8, 8, 0, 0]}
                       name="Matches"
                     />
@@ -144,33 +170,38 @@ const ActivityTrendsPage = () => {
             </div>
 
             {/* Activity Breakdown */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                 Monthly Breakdown
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {monthlyActivity.slice().reverse().map((item: any, index: number) => {
                   const percentage = (item.count / totalMatches) * 100;
                   const date = new Date(item.month);
-                  const monthName = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                  const monthName = date.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  });
 
                   return (
                     <div key={index} className="flex items-center gap-4">
-                      <div className="w-32 text-sm font-medium text-gray-700">
+                      <div className="w-32 text-xs font-bold text-[#353535]">
                         {monthName}
                       </div>
-                      <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
+                      <div className="flex-1 bg-[#e5e7eb] rounded-full h-6 relative overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-end px-3 transition-all duration-500"
+                          className="h-full bg-[#3c6e71] rounded-full flex items-center justify-end px-3 transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         >
                           {percentage > 15 && (
-                            <span className="text-white text-xs font-bold">{item.count}</span>
+                            <span className="text-white text-xs font-bold">
+                              {item.count}
+                            </span>
                           )}
                         </div>
                       </div>
                       {percentage <= 15 && (
-                        <div className="w-12 text-sm font-semibold text-gray-700">
+                        <div className="w-12 text-xs font-bold text-[#353535]">
                           {item.count}
                         </div>
                       )}

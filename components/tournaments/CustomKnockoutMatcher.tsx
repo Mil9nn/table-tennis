@@ -42,6 +42,7 @@ interface CustomKnockoutMatcherProps {
   tournamentId: string;
   bracket: KnockoutBracket;
   participants: Participant[];
+  qualifiedParticipantIds?: Set<string>; // Set of qualified participant IDs (for hybrid tournaments)
   currentRound: number;
   onSuccess?: () => void;
   matchType?: "singles" | "doubles" | "mixed_doubles";
@@ -52,6 +53,7 @@ export default function CustomKnockoutMatcher({
   tournamentId,
   bracket,
   participants,
+  qualifiedParticipantIds,
   currentRound,
   onSuccess,
   matchType = "singles",
@@ -195,7 +197,15 @@ export default function CustomKnockoutMatcher({
   const getAvailableParticipants = (excludeMatchIndex?: number): Participant[] => {
     const used = getUsedIds(excludeMatchIndex);
     return participants.filter(
-      (p) => !used.has(p._id) && eligibleIds.has(p._id)
+      (p) => {
+        // Must not be used in another match
+        if (used.has(p._id)) return false;
+        // Must be eligible (not eliminated)
+        if (!eligibleIds.has(p._id)) return false;
+        // For hybrid tournaments, must be qualified (if qualifiedParticipantIds is provided)
+        if (qualifiedParticipantIds && !qualifiedParticipantIds.has(p._id)) return false;
+        return true;
+      }
     );
   };
 
@@ -522,48 +532,64 @@ export default function CustomKnockoutMatcher({
                           </SelectTrigger>
                           <SelectContent>
                             {availableForP1.length > 0 ? (
-                              availableForP1.map((item: any) => (
-                                <SelectItem
-                                  key={item._id}
-                                  value={item._id}
-                                >
-                                  {isDoubles ? (
-                                    <div className="flex items-center gap-2 flex-wrap py-1">
-                                      <Avatar className="w-5 h-5 shrink-0">
-                                        <AvatarImage src={item.player1?.profileImage} />
-                                        <AvatarFallback className="text-[10px]">
-                                          {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-xs">
-                                        {item.player1?.fullName || item.player1?.username}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">&</span>
-                                      <Avatar className="w-5 h-5 shrink-0">
-                                        <AvatarImage src={item.player2?.profileImage} />
-                                        <AvatarFallback className="text-[10px]">
-                                          {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-xs">
-                                        {item.player2?.fullName || item.player2?.username}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <Avatar className="w-6 h-6 shrink-0">
-                                        <AvatarImage src={item.profileImage} />
-                                        <AvatarFallback className="text-xs">
-                                          {(item.fullName || item.username).substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="truncate">
-                                        {item.fullName || item.username}
-                                      </span>
-                                    </div>
-                                  )}
-                                </SelectItem>
-                              ))
+                              availableForP1.map((item: any) => {
+                                const isQualified = qualifiedParticipantIds 
+                                  ? qualifiedParticipantIds.has(item._id || (item.player1?._id && item.player2?._id ? item._id : item.player1?._id))
+                                  : true; // If no qualifiedParticipantIds provided, assume all are qualified (pure knockout)
+                                
+                                return (
+                                  <SelectItem
+                                    key={item._id}
+                                    value={item._id}
+                                  >
+                                    {isDoubles ? (
+                                      <div className="flex items-center gap-2 flex-wrap py-1">
+                                        <Avatar className="w-5 h-5 shrink-0">
+                                          <AvatarImage src={item.player1?.profileImage} />
+                                          <AvatarFallback className="text-[10px]">
+                                            {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-xs">
+                                          {item.player1?.fullName || item.player1?.username}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">&</span>
+                                        <Avatar className="w-5 h-5 shrink-0">
+                                          <AvatarImage src={item.player2?.profileImage} />
+                                          <AvatarFallback className="text-[10px]">
+                                            {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-xs">
+                                          {item.player2?.fullName || item.player2?.username}
+                                        </span>
+                                        {qualifiedParticipantIds && (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Eliminated"}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="w-6 h-6 shrink-0">
+                                          <AvatarImage src={item.profileImage} />
+                                          <AvatarFallback className="text-xs">
+                                            {(item.fullName || item.username).substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="truncate">
+                                          {item.fullName || item.username}
+                                        </span>
+                                        {qualifiedParticipantIds && (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Eliminated"}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    )}
+                                  </SelectItem>
+                                );
+                              })
                             ) : (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                 No available {isDoubles ? "pairs" : "players"}
@@ -635,48 +661,64 @@ export default function CustomKnockoutMatcher({
                           </SelectTrigger>
                           <SelectContent>
                             {availableForP2.length > 0 ? (
-                              availableForP2.map((item: any) => (
-                                <SelectItem
-                                  key={item._id}
-                                  value={item._id}
-                                >
-                                  {isDoubles ? (
-                                    <div className="flex items-center gap-2 flex-wrap py-1">
-                                      <Avatar className="w-5 h-5 shrink-0">
-                                        <AvatarImage src={item.player1?.profileImage} />
-                                        <AvatarFallback className="text-[10px]">
-                                          {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-xs">
-                                        {item.player1?.fullName || item.player1?.username}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">&</span>
-                                      <Avatar className="w-5 h-5 shrink-0">
-                                        <AvatarImage src={item.player2?.profileImage} />
-                                        <AvatarFallback className="text-[10px]">
-                                          {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-xs">
-                                        {item.player2?.fullName || item.player2?.username}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <Avatar className="w-6 h-6 shrink-0">
-                                        <AvatarImage src={item.profileImage} />
-                                        <AvatarFallback className="text-xs">
-                                          {(item.fullName || item.username).substring(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="truncate">
-                                        {item.fullName || item.username}
-                                      </span>
-                                    </div>
-                                  )}
-                                </SelectItem>
-                              ))
+                              availableForP2.map((item: any) => {
+                                const isQualified = qualifiedParticipantIds 
+                                  ? qualifiedParticipantIds.has(item._id || (item.player1?._id && item.player2?._id ? item._id : item.player1?._id))
+                                  : true; // If no qualifiedParticipantIds provided, assume all are qualified (pure knockout)
+                                
+                                return (
+                                  <SelectItem
+                                    key={item._id}
+                                    value={item._id}
+                                  >
+                                    {isDoubles ? (
+                                      <div className="flex items-center gap-2 flex-wrap py-1">
+                                        <Avatar className="w-5 h-5 shrink-0">
+                                          <AvatarImage src={item.player1?.profileImage} />
+                                          <AvatarFallback className="text-[10px]">
+                                            {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-xs">
+                                          {item.player1?.fullName || item.player1?.username}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">&</span>
+                                        <Avatar className="w-5 h-5 shrink-0">
+                                          <AvatarImage src={item.player2?.profileImage} />
+                                          <AvatarFallback className="text-[10px]">
+                                            {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-xs">
+                                          {item.player2?.fullName || item.player2?.username}
+                                        </span>
+                                        {qualifiedParticipantIds && (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Eliminated"}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="w-6 h-6 shrink-0">
+                                          <AvatarImage src={item.profileImage} />
+                                          <AvatarFallback className="text-xs">
+                                            {(item.fullName || item.username).substring(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="truncate">
+                                          {item.fullName || item.username}
+                                        </span>
+                                        {qualifiedParticipantIds && (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Eliminated"}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    )}
+                                  </SelectItem>
+                                );
+                              })
                             ) : (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                 No available {isDoubles ? "pairs" : "players"}

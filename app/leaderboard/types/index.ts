@@ -105,4 +105,4 @@ export interface TournamentPlayerStats {
   };
 }
 
-export type LeaderboardType = "singles" | "doubles" | "mixed_doubles" | "teams" | "tournaments";
+export type LeaderboardType = "individual" | "teams" | "tournaments";

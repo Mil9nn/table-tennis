@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface Game {
@@ -36,8 +36,8 @@ export function MatchTimeline({
     : winnerSide;
 
   return (
-    <div className="w-full p-4">
-      <h3 className="text-lg font-semibold mb-6 text-zinc-900 dark:text-zinc-100">
+    <div className="w-full py-4">
+      <h3 className="text-base font-semibold mb-4 text-[#353535]">
         Match Timeline
       </h3>
 
@@ -57,8 +57,8 @@ export function MatchTimeline({
                   transition={{ delay: idx * 0.1, duration: 0.3 }}
                   className="shrink-0"
                 >
-                  <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-sm p-2">
-                    <div className="text-xs text-center text-zinc-500 dark:text-zinc-400 mb-2 font-medium">
+                  <div className="bg-white border border-[#d9d9d9] p-2">
+                    <div className="text-xs text-center text-[#d9d9d9] mb-2 font-medium">
                       Game {idx + 1}
                     </div>
 
@@ -66,19 +66,15 @@ export function MatchTimeline({
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <span
                         className={`text-lg font-bold ${
-                          side1Won
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-zinc-400 dark:text-zinc-600"
+                          side1Won ? "text-[#3c6e71]" : "text-[#d9d9d9]"
                         }`}
                       >
                         {game.side1Score}
                       </span>
-                      <span className="text-xs text-zinc-400">-</span>
+                      <span className="text-xs text-[#d9d9d9]">-</span>
                       <span
                         className={`text-lg font-bold ${
-                          side2Won
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-zinc-400 dark:text-zinc-600"
+                          side2Won ? "text-[#3c6e71]" : "text-[#d9d9d9]"
                         }`}
                       >
                         {game.side2Score}
@@ -88,7 +84,7 @@ export function MatchTimeline({
                     {/* Winner Indicator */}
                     <div className="flex items-center justify-center gap-1">
                       {side1Won && (
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <div className="flex items-center gap-1 text-[#3c6e71]">
                           <Check className="h-3 w-3" />
                           <span className="text-xs font-medium truncate max-w-20">
                             {side1Name}
@@ -96,7 +92,7 @@ export function MatchTimeline({
                         </div>
                       )}
                       {side2Won && (
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <div className="flex items-center gap-1 text-[#3c6e71]">
                           <Check className="h-3 w-3" />
                           <span className="text-xs font-medium truncate max-w-20">
                             {side2Name}
@@ -104,7 +100,7 @@ export function MatchTimeline({
                         </div>
                       )}
                       {isDraw && (
-                        <span className="text-xs text-zinc-400">Draw</span>
+                        <span className="text-xs text-[#d9d9d9]">Draw</span>
                       )}
                     </div>
                   </div>
@@ -112,7 +108,7 @@ export function MatchTimeline({
 
                 {/* Connector Line (except for last game) */}
                 {idx < games.length - 1 && (
-                  <div className="shrink-0 w-6 h-0.5 bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="shrink-0 w-6 h-0.5 bg-[#d9d9d9]" />
                 )}
               </div>
             );
@@ -123,13 +119,12 @@ export function MatchTimeline({
 
       {/* Overall Result */}
       {overallWinner && (
-        <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
+        <div className="mt-4 pt-4 border-t border-[#d9d9d9]">
           <div className="flex items-center justify-center gap-2">
             <div className="flex items-center gap-2 px-4">
-              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                {overallWinner === "side1" ? side1Name : side2Name} won the
-                match
+              <Check className="h-4 w-4 text-[#3c6e71]" />
+              <span className="text-sm font-semibold text-[#3c6e71]">
+                {overallWinner === "side1" ? side1Name : side2Name} won the match
               </span>
             </div>
           </div>

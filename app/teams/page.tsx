@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import TeamListSkeleton from "@/components/skeletons/TeamListSkeleton";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isAxiosError } from "axios";
+import { useTeamsFilters } from "@/hooks/useFilters";
 
 type Team = {
   _id: string;
@@ -71,11 +72,14 @@ export default function TeamsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
 
-  const [search, setSearch] = useState("");
-  const [cityFilter, setCityFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("name");
+  // Available cities for filter dropdown (populated from API results)
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Use the shared filters hook with debounced search
+  const { filters, debouncedSearch, setFilter, clearAll, hasActiveFilters, buildQueryParams } = useTeamsFilters(300);
 
   const user = useAuthStore((state) => state.user);
 
@@ -83,42 +87,56 @@ export default function TeamsPage() {
   const myTeamsObserverTarget = useRef<HTMLDivElement>(null);
   const allTeamsObserverTarget = useRef<HTMLDivElement>(null);
 
-  // Fetch teams with pagination
-  const fetchTeams = useCallback(async (pageNum: number, append = false) => {
-    try {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
+  // Fetch teams with server-side filtering and pagination
+  const fetchTeams = useCallback(
+    async (pageNum: number, append = false) => {
+      try {
+        if (append) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
+
+        const skip = pageNum * ITEMS_PER_PAGE;
+        const params = buildQueryParams({ limit: ITEMS_PER_PAGE, skip });
+
+        const res = await axiosInstance.get(`/teams?${params.toString()}`);
+
+        const newTeams = res.data.teams || [];
+
+        if (append) {
+          setTeams((prev) => [...prev, ...newTeams]);
+        } else {
+          setTeams(newTeams);
+        }
+
+        // Collect cities for filter dropdown (only on first fetch)
+        if (!append && newTeams.length > 0) {
+          const cities = Array.from(
+            new Set(newTeams.map((t: Team) => t.city).filter(Boolean))
+          ) as string[];
+          setAvailableCities((prev) => {
+            const combined = new Set([...prev, ...cities]);
+            return Array.from(combined);
+          });
+        }
+
+        setHasMore(res.data.pagination?.hasMore || false);
+      } catch (err) {
+        console.error("Error fetching teams", err);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
+    },
+    [buildQueryParams]
+  );
 
-      const skip = pageNum * ITEMS_PER_PAGE;
-      const res = await axiosInstance.get(
-        `/teams?limit=${ITEMS_PER_PAGE}&skip=${skip}`
-      );
-      
-      if (append) {
-        setTeams((prev) => [...prev, ...(res.data.teams || [])]);
-      } else {
-        setTeams(res.data.teams || []);
-      }
-
-      setHasMore(res.data.pagination?.hasMore || false);
-    } catch (err) {
-      console.error("Error fetching teams", err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
-
-  // Fetch teams once on mount - both tabs use the same data
-  // (my-teams filters client-side from all teams, so we need all teams anyway)
+  // Refetch when filters change (using debounced search)
   useEffect(() => {
-    if (teams.length === 0) {
-      fetchTeams(0, false);
-    }
-  }, [fetchTeams, teams.length]);
+    setPage(0);
+    fetchTeams(0, false);
+  }, [debouncedSearch, filters.city, filters.sortBy]);
 
   const deleteTeam = async (id: string) => {
     if (!confirm("Are you sure you want to delete this team?")) return;
@@ -127,7 +145,6 @@ export default function TeamsPage() {
       toast.success("Team deleted");
       // Reset and refetch from beginning
       setPage(0);
-      setTeams([]);
       fetchTeams(0, false);
     } catch (err: unknown) {
       console.error("Delete failed", err);
@@ -170,7 +187,6 @@ export default function TeamsPage() {
   }, [loadingMore, loading, hasMore, page, activeTab, fetchTeams]);
 
   // Load more teams when intersection observer triggers for my-teams tab
-  // We need to keep fetching until we have enough filtered results
   useEffect(() => {
     if (activeTab !== "my-teams") return;
 
@@ -202,61 +218,11 @@ export default function TeamsPage() {
     };
   }, [loadingMore, loading, hasMore, page, activeTab, fetchTeams]);
 
+  // Filter for "My Teams" tab - teams where user is captain
   const myTeams = useMemo(() => {
     if (!user) return [];
-    // Only show teams where the user is the captain (teams they created)
-    return teams.filter((team) => {
-      return team.captain?._id === user._id;
-    });
+    return teams.filter((team) => team.captain?._id === user._id);
   }, [teams, user]);
-
-  const applyFilters = (teamList: Team[]) => {
-    let filtered = teamList;
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.captain?.username?.toLowerCase().includes(q) ||
-          t.captain?.fullName?.toLowerCase().includes(q) ||
-          t.players.some(
-            (p) =>
-              p.user.username.toLowerCase().includes(q) ||
-              p.user.fullName?.toLowerCase().includes(q)
-          )
-      );
-    }
-
-    if (cityFilter !== "all") {
-      filtered = filtered.filter((t) => t.city === cityFilter);
-    }
-
-    if (sortBy === "wins") {
-      filtered = [...filtered].sort(
-        (a, b) => (b.record?.wins || 0) - (a.record?.wins || 0)
-      );
-    } else if (sortBy === "players") {
-      filtered = [...filtered].sort(
-        (a, b) => (b.players?.length || 0) - (a.players?.length || 0)
-      );
-    } else {
-      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    return filtered;
-  };
-
-  const filteredMyTeams = useMemo(
-    () => applyFilters(myTeams),
-    [myTeams, search, cityFilter, sortBy]
-  );
-  const filteredAllTeams = useMemo(
-    () => applyFilters(teams),
-    [teams, search, cityFilter, sortBy]
-  );
-
-  const cities = Array.from(new Set(teams.map((t) => t.city).filter(Boolean)));
 
   const TeamCard = ({ team }: { team: Team }) => {
     const user = useAuthStore((state) => state.user);
@@ -265,54 +231,91 @@ export default function TeamsPage() {
     return (
       <>
         <div
-          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            borderBottom: "1px solid #d9d9d9",
+            cursor: "pointer",
+            transition: "background-color 0.15s",
+          }}
+          className="hover:bg-[#f5f5f5] p-2"
           onClick={() => setSelectedTeam(team)}
         >
-          {/* Team Logo */}
           <Image
             src={team.logo || "/imgs/logo.png"}
             alt={team.name}
             width={40}
             height={40}
-            className="w-10 h-10 rounded-full object-cover shrink-0"
+            style={{ width: "2.5rem", height: "2.5rem", objectFit: "cover" }}
+            className="rounded-full shrink-0"
           />
 
-          {/* Team Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm text-gray-800 truncate">
+              <span
+                style={{
+                  fontWeight: "600",
+                  fontSize: "0.9375rem",
+                  color: "#353535",
+                  letterSpacing: "-0.01em",
+                }}
+                className="truncate"
+              >
                 {team.name}
               </span>
               {team.city && (
-                <span className="text-xs text-gray-400">• {team.city}</span>
+                <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
+                  • {team.city}
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-3 mt-0.5">
-              <span className="text-xs text-gray-400">
+            <div
+              className="flex items-center gap-3"
+              style={{ marginTop: "0.25rem" }}
+            >
+              <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
                 {team.players?.length || 0} players
               </span>
-              <span className="text-xs text-gray-400">
+              <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
                 {team.record?.wins || 0}W - {team.record?.losses || 0}L
               </span>
             </div>
           </div>
 
-          {/* Captain Avatar */}
           {team.captain?.profileImage ? (
             <Image
               src={team.captain.profileImage}
               alt={team.captain.fullName || team.captain.username || "Captain"}
               width={28}
               height={28}
-              className="w-7 h-7 rounded-full object-cover shrink-0"
+              style={{ width: "1.75rem", height: "1.75rem", objectFit: "cover" }}
+              className="rounded-full shrink-0"
             />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
-              {(team.captain?.fullName?.[0] || team.captain?.username?.[0] || "?").toUpperCase()}
+            <div
+              style={{
+                width: "1.75rem",
+                height: "1.75rem",
+                backgroundColor: "#d9d9d9",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                color: "#353535",
+              }}
+              className="rounded-full flex items-center justify-center shrink-0"
+            >
+              {(
+                team.captain?.fullName?.[0] ||
+                team.captain?.username?.[0] ||
+                "?"
+              ).toUpperCase()}
             </div>
           )}
 
-          <ArrowRight className="w-4 h-4 text-gray-300 shrink-0" />
+          <ArrowRight
+            style={{ width: "1rem", height: "1rem", color: "#d9d9d9" }}
+            className="shrink-0"
+          />
         </div>
 
         <Dialog
@@ -321,15 +324,34 @@ export default function TeamsPage() {
         >
           <DialogContent className="w-md max-h-[80vh] p-0 overflow-y-auto rounded-xl [&>button]:hidden">
             <DialogHeader className="gap-0">
-              {/* Header Bar */}
-              <div className="flex items-center justify-between gap-4 px-4 py-3 bg-[#667eea]">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                  padding: "0.75rem 1rem",
+                  backgroundColor: "#3c6e71",
+                }}
+              >
                 <button
                   onClick={() => setSelectedTeam(null)}
-                  className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                  style={{ padding: "0.25rem", transition: "background-color 0.15s" }}
+                  className="hover:bg-white/10 rounded-full"
                 >
-                  <ChevronLeftCircle className="size-6 text-white" />
+                  <ChevronLeftCircle
+                    style={{ width: "1.5rem", height: "1.5rem", color: "#ffffff" }}
+                  />
                 </button>
-                <DialogTitle className="text-white font-semibold text-base flex-1 text-center">
+                <DialogTitle
+                  style={{
+                    color: "#ffffff",
+                    fontWeight: "600",
+                    fontSize: "1rem",
+                    flex: 1,
+                    textAlign: "center",
+                  }}
+                >
                   Team Details
                 </DialogTitle>
                 <div>
@@ -342,7 +364,12 @@ export default function TeamsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8 hover:bg-white/10 text-white"
+                          style={{
+                            width: "2rem",
+                            height: "2rem",
+                            color: "#ffffff",
+                          }}
+                          className="hover:bg-white/10"
                         >
                           <Edit2 className="size-4" />
                         </Button>
@@ -350,7 +377,12 @@ export default function TeamsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-8 hover:bg-white/10 text-white hover:text-red-300"
+                        style={{
+                          width: "2rem",
+                          height: "2rem",
+                          color: "#ffffff",
+                        }}
+                        className="hover:bg-white/10"
                         onClick={() => deleteTeam(team._id)}
                       >
                         <Trash className="size-4" />
@@ -360,59 +392,169 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              {/* Team Info */}
-              <div className="bg-gradient-to-b from-[#667eea] to-[#5a6fd6] px-4 pb-5 pt-2">
+              <div
+                style={{
+                  background: "linear-gradient(to bottom, #3c6e71, #284b63)",
+                  padding: "0.5rem 1rem 1.25rem",
+                }}
+              >
                 <div className="flex flex-col items-center">
                   <Image
                     src={team.logo || "/imgs/logo.png"}
                     alt={team.name}
                     width={72}
                     height={72}
-                    className="w-18 h-18 rounded-full object-cover border-3 border-white/20"
+                    style={{
+                      width: "4.5rem",
+                      height: "4.5rem",
+                      objectFit: "cover",
+                      border: "3px solid rgba(255,255,255,0.2)",
+                    }}
+                    className="rounded-full"
                   />
-                  <h2 className="text-white font-bold text-xl mt-2">{team.name}</h2>
+                  <h2
+                    style={{
+                      color: "#ffffff",
+                      fontWeight: "600",
+                      fontSize: "1.25rem",
+                      marginTop: "0.5rem",
+                    }}
+                  >
+                    {team.name}
+                  </h2>
                   {team.city && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <MapPin className="size-3.5 text-white/60" />
-                      <span className="text-white/80 text-sm">{team.city}</span>
+                    <div
+                      className="flex items-center gap-1.5"
+                      style={{ marginTop: "0.25rem" }}
+                    >
+                      <MapPin
+                        style={{
+                          width: "0.875rem",
+                          height: "0.875rem",
+                          color: "rgba(255,255,255,0.6)",
+                        }}
+                      />
+                      <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.875rem" }}>
+                        {team.city}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-4 gap-2 mt-4">
-                  <div className="bg-white/10 backdrop-blur rounded-lg py-2 px-1 text-center">
-                    <p className="text-lg text-white font-bold">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "0.5rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(10px)",
+                      padding: "0.5rem 0.25rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ fontSize: "1.125rem", color: "#ffffff", fontWeight: "600" }}>
                       {team.players?.length || 0}
                     </p>
-                    <p className="text-[10px] text-white/70 uppercase tracking-wide">Players</p>
+                    <p
+                      style={{
+                        fontSize: "0.625rem",
+                        color: "rgba(255,255,255,0.7)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Players
+                    </p>
                   </div>
-                  <div className="bg-white/10 backdrop-blur rounded-lg py-2 px-1 text-center">
-                    <p className="text-lg text-white font-bold">
+                  <div
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(10px)",
+                      padding: "0.5rem 0.25rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ fontSize: "1.125rem", color: "#ffffff", fontWeight: "600" }}>
                       {(team.record?.wins || 0) + (team.record?.losses || 0)}
                     </p>
-                    <p className="text-[10px] text-white/70 uppercase tracking-wide">Matches</p>
+                    <p
+                      style={{
+                        fontSize: "0.625rem",
+                        color: "rgba(255,255,255,0.7)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Matches
+                    </p>
                   </div>
-                  <div className="bg-white/10 backdrop-blur rounded-lg py-2 px-1 text-center">
-                    <p className="text-lg text-green-300 font-bold">
+                  <div
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(10px)",
+                      padding: "0.5rem 0.25rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ fontSize: "1.125rem", color: "#ffffff", fontWeight: "600" }}>
                       {team.record?.wins || 0}
                     </p>
-                    <p className="text-[10px] text-white/70 uppercase tracking-wide">Wins</p>
+                    <p
+                      style={{
+                        fontSize: "0.625rem",
+                        color: "rgba(255,255,255,0.7)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Wins
+                    </p>
                   </div>
-                  <div className="bg-white/10 backdrop-blur rounded-lg py-2 px-1 text-center">
-                    <p className="text-lg text-red-300 font-bold">
+                  <div
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(10px)",
+                      padding: "0.5rem 0.25rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ fontSize: "1.125rem", color: "#ffffff", fontWeight: "600" }}>
                       {team.record?.losses || 0}
                     </p>
-                    <p className="text-[10px] text-white/70 uppercase tracking-wide">Losses</p>
+                    <p
+                      style={{
+                        fontSize: "0.625rem",
+                        color: "rgba(255,255,255,0.7)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Losses
+                    </p>
                   </div>
                 </div>
               </div>
             </DialogHeader>
 
-            {/* Players */}
-            <div className="p-4 bg-[#F8F9FA]">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            <div style={{ padding: "1rem", backgroundColor: "#ffffff" }}>
+              <div
+                className="flex items-center justify-between"
+                style={{ marginBottom: "0.75rem" }}
+              >
+                <h3
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    color: "#353535",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Squad ({team.players?.length || 0})
                 </h3>
                 {isOwner && (
@@ -423,7 +565,13 @@ export default function TeamsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-[#667eea] hover:text-[#5a6fd6] h-7 px-2"
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#3c6e71",
+                        height: "1.75rem",
+                        padding: "0 0.5rem",
+                      }}
+                      className="hover:text-[#284b63]"
                     >
                       Assign Positions
                     </Button>
@@ -438,7 +586,16 @@ export default function TeamsPage() {
                       <Link
                         key={p.user._id}
                         href={`/profile/${p.user._id}`}
-                        className="flex items-center justify-between py-2.5 px-3 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.625rem 0.75rem",
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #d9d9d9",
+                          transition: "background-color 0.15s",
+                        }}
+                        className="hover:bg-[#f5f5f5]"
                       >
                         <div className="flex items-center gap-3">
                           {p.user.profileImage ? (
@@ -447,31 +604,74 @@ export default function TeamsPage() {
                               alt={p.user.fullName || p.user.username}
                               width={36}
                               height={36}
-                              className={`w-9 h-9 rounded-full object-cover ${isCaptain ? "ring-2 ring-yellow-400" : ""}`}
+                              style={{
+                                width: "2.25rem",
+                                height: "2.25rem",
+                                objectFit: "cover",
+                                border: isCaptain ? "2px solid #3c6e71" : "none",
+                              }}
+                              className="rounded-full"
                             />
                           ) : (
-                            <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-[#667eea] to-[#5a6fd6] flex items-center justify-center text-white font-semibold text-sm ${isCaptain ? "ring-2 ring-yellow-400" : ""}`}>
-                              {(p.user.fullName?.[0] || p.user.username?.[0] || "?").toUpperCase()}
+                            <div
+                              style={{
+                                width: "2.25rem",
+                                height: "2.25rem",
+                                background: "linear-gradient(135deg, #3c6e71, #284b63)",
+                                color: "#ffffff",
+                                fontWeight: "600",
+                                fontSize: "0.875rem",
+                                border: isCaptain ? "2px solid #3c6e71" : "none",
+                              }}
+                              className="rounded-full flex items-center justify-center"
+                            >
+                              {(
+                                p.user.fullName?.[0] ||
+                                p.user.username?.[0] ||
+                                "?"
+                              ).toUpperCase()}
                             </div>
                           )}
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="font-medium text-sm text-gray-800">
+                              <p
+                                style={{
+                                  fontWeight: "500",
+                                  fontSize: "0.875rem",
+                                  color: "#353535",
+                                }}
+                              >
                                 {p.user.fullName || p.user.username}
                               </p>
                               {isCaptain && (
-                                <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                                <span
+                                  style={{
+                                    fontSize: "0.625rem",
+                                    fontWeight: "600",
+                                    backgroundColor: "#3c6e71",
+                                    color: "#ffffff",
+                                    padding: "0.125rem 0.375rem",
+                                  }}
+                                >
                                   C
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-400">
+                            <p style={{ fontSize: "0.75rem", color: "#d9d9d9" }}>
                               @{p.user.username}
                             </p>
                           </div>
                         </div>
                         {p.assignment && (
-                          <span className="text-[10px] font-medium py-1 px-2 rounded-full bg-[#667eea]/10 text-[#667eea]">
+                          <span
+                            style={{
+                              fontSize: "0.625rem",
+                              fontWeight: "500",
+                              padding: "0.25rem 0.5rem",
+                              backgroundColor: "rgba(60,110,113,0.1)",
+                              color: "#3c6e71",
+                            }}
+                          >
                             {p.assignment}
                           </span>
                         )}
@@ -479,7 +679,14 @@ export default function TeamsPage() {
                     );
                   })
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-6">
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#d9d9d9",
+                      textAlign: "center",
+                      padding: "1.5rem",
+                    }}
+                  >
                     No players yet
                   </p>
                 )}
@@ -492,18 +699,18 @@ export default function TeamsPage() {
   };
 
   return (
-    <section>
-      <div className="p-4 space-y-4" style={{ backgroundColor: '#323139' }}>
-        <h1 className="text-2xl font-bold text-white">Teams</h1>
+    <section style={{ backgroundColor: "#ffffff", minHeight: "100vh" }}>
+      <header className="bg-[#353535] text-[#ffffff] p-6 space-y-4">
+        <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Teams</h1>
 
         <div className="flex items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-zinc-400 size-4" />
+            <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
             <Input
               placeholder="Search teams..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-sm rounded-lg focus:ring-2 focus:ring-zinc-700"
+              value={filters.search}
+              onChange={(e) => setFilter("search", e.target.value)}
+              className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
             />
           </div>
 
@@ -511,103 +718,168 @@ export default function TeamsPage() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className="shrink-0 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+            className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
+              hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+            }`}
           >
             <Filter className="size-4" />
           </Button>
         </div>
 
-        {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-zinc-900 rounded-lg p-4 space-y-3 border border-zinc-800">
+          <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-white">Filters</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFilters(false)}
-                className="size-6 hover:bg-zinc-800 text-zinc-400"
-              >
-                <X className="size-4" />
-              </Button>
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">
+                Filters
+              </h3>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAll}
+                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                  >
+                    Clear All
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFilters(false)}
+                  className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs text-zinc-400 uppercase tracking-wide">City</label>
-              <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Filter by city" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city!}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                  City
+                </label>
+                <Select
+                  value={filters.city}
+                  onValueChange={(val) => setFilter("city", val)}
+                >
+                  <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                    <SelectValue placeholder="Filter by city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Cities</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <label className="text-xs text-zinc-400 uppercase tracking-wide">Sort By</label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="wins">Most Wins</SelectItem>
-                  <SelectItem value="players">Most Players</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                  Sort By
+                </label>
+                <Select
+                  value={filters.sortBy}
+                  onValueChange={(val) => setFilter("sortBy", val)}
+                >
+                  <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="wins">Most Wins</SelectItem>
+                    <SelectItem value="players">Most Players</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         )}
-      </div>
+      </header>
 
       <Tabs defaultValue="my-teams" onValueChange={setActiveTab} className="w-full">
         <TabsList
-          className="grid w-full rounded-none p-0 max-w-md h-fit mx-auto"
-          style={{ gridTemplateColumns: "1fr 1fr" }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            width: "100%",
+            backgroundColor: "#ffffff",
+            borderBottom: "1px solid #d9d9d9",
+            padding: 0,
+            height: "auto",
+          }}
         >
-          <TabsTrigger className="p-2 rounded-none" value="my-teams">
+          <TabsTrigger
+            value="my-teams"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              padding: "0.5rem",
+              color: "#353535",
+              letterSpacing: "-0.01em",
+              borderRadius: "0px",
+            }}
+            className="data-[state=active]:bg-[#3c6e71] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+          >
             My Teams
           </TabsTrigger>
-          <TabsTrigger className="p-2 rounded-none" value="all-teams">
+          <TabsTrigger
+            value="all-teams"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              padding: "0.5rem",
+              color: "#353535",
+              letterSpacing: "-0.01em",
+              borderRadius: "0px",
+            }}
+            className="data-[state=active]:bg-[#3c6e71] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+          >
             All Teams
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="my-teams">
+        <TabsContent value="my-teams" style={{ margin: 0 }}>
           {loading ? (
             <TeamListSkeleton />
-          ) : filteredMyTeams.length ? (
+          ) : myTeams.length ? (
             <>
-              <div className="divide-y divide-gray-100">
-                {filteredMyTeams.map((team) => (
+              <div style={{ borderTop: "1px solid #d9d9d9" }}>
+                {myTeams.map((team) => (
                   <TeamCard key={team._id} team={team} />
                 ))}
               </div>
-              {/* Intersection Observer Target */}
-              <div ref={myTeamsObserverTarget} className="h-20 flex items-center justify-center">
+              <div
+                ref={myTeamsObserverTarget}
+                style={{
+                  height: "5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 {loadingMore && (
-                  <div className="flex items-center gap-2 text-blue-600">
+                  <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
                     <Loader2 className="animate-spin" size={20} />
-                    <span className="text-sm">Loading more teams...</span>
+                    <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
                   </div>
                 )}
                 {!hasMore && teams.length > 0 && (
-                  <p className="text-sm text-gray-500">No more teams to load</p>
+                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                    No more teams
+                  </p>
                 )}
               </div>
             </>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-500">
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
                 {!user
                   ? "Please log in to see your teams."
-                  : search || cityFilter !== "all"
+                  : hasActiveFilters
                   ? "No teams found matching your filters."
                   : "You are not part of any teams yet."}
               </p>
@@ -615,32 +887,50 @@ export default function TeamsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="all-teams">
+        <TabsContent value="all-teams" style={{ margin: 0 }}>
           {loading ? (
             <TeamListSkeleton />
-          ) : filteredAllTeams.length ? (
+          ) : teams.length ? (
             <>
-              <div className="divide-y divide-gray-100">
-                {filteredAllTeams.map((team) => (
+              <div style={{ borderTop: "1px solid #d9d9d9" }}>
+                {teams.map((team) => (
                   <TeamCard key={team._id} team={team} />
                 ))}
               </div>
-              {/* Intersection Observer Target */}
-              <div ref={allTeamsObserverTarget} className="h-20 flex items-center justify-center">
+              <div
+                ref={allTeamsObserverTarget}
+                style={{
+                  height: "5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 {loadingMore && (
-                  <div className="flex items-center gap-2 text-blue-600">
+                  <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
                     <Loader2 className="animate-spin" size={20} />
-                    <span className="text-sm">Loading more teams...</span>
+                    <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
                   </div>
                 )}
                 {!hasMore && teams.length > 0 && (
-                  <p className="text-sm text-gray-500">No more teams to load</p>
+                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                    No more teams
+                  </p>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-8">
-              No teams found.
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "#d9d9d9",
+                textAlign: "center",
+                padding: "2rem",
+              }}
+            >
+              {hasActiveFilters
+                ? "No teams found matching your filters."
+                : "No teams found."}
             </p>
           )}
         </TabsContent>

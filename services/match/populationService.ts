@@ -45,9 +45,16 @@ export function populateIndividualMatch<T>(
     query = query.populate("scorer", userFields);
   }
 
-  // Optionally populate tournament
+  // Optionally populate tournament (with organizer and scorers for permission checks)
   if (includeTournament) {
-    query = query.populate("tournament");
+    query = query.populate({
+      path: "tournament",
+      select: "name format status organizer scorers",
+      populate: [
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "scorers", select: "username fullName profileImage" }
+      ]
+    });
   }
 
   // Optionally populate shot players
@@ -115,9 +122,16 @@ export function populateTeamMatch<T>(
     query = query.populate("scorer", userFields);
   }
 
-  // Optionally populate tournament
+  // Optionally populate tournament (with organizer and scorers for permission checks)
   if (includeTournament) {
-    query = query.populate("tournament");
+    query = query.populate({
+      path: "tournament",
+      select: "name format status organizer scorers",
+      populate: [
+        { path: "organizer", select: "username fullName profileImage" },
+        { path: "scorers", select: "username fullName profileImage" }
+      ]
+    });
   }
 
   // Optionally populate shot players

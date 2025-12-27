@@ -93,11 +93,9 @@ export const baseTournamentFields = {
       // Qualification settings
       qualificationMethod: {
         type: String,
-        enum: ["top_n_overall", "top_n_per_group", "percentage"],
-        default: "top_n_overall",
+        enum: ["top_n_per_group"],
+        default: "top_n_per_group",
       },
-      qualifyingCount: { type: Number },
-      qualifyingPercentage: { type: Number },
       qualifyingPerGroup: { type: Number },
 
       // Knockout phase settings

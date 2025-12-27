@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema(
     profileImage: { type: String },
     password: { type: String, required: true },
 
+    // Email verification
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerifiedAt: { type: Date },
+
     // Profile completion fields
     dateOfBirth: { type: Date },
     gender: { type: String, enum: ["male", "female", "other", "prefer_not_to_say"] },
@@ -27,14 +31,14 @@ const userSchema = new mongoose.Schema(
     },
     subscriptionTier: {
       type: String,
-      enum: ["free", "pro", "premium", "enterprise"],
+      enum: ["free", "pro", "enterprise"],
       default: "free",
     },
 
     // Quick access cache (denormalized for performance)
     subscriptionStatus: {
       type: String,
-      enum: ["active", "trial", "expired", "cancelled"],
+      enum: ["active", "expired", "cancelled"],
       default: "active",
     },
     subscriptionExpiresAt: { type: Date },
@@ -49,5 +53,10 @@ const userSchema = new mongoose.Schema(
 // Indexes for search performance
 // Note: username and email indexes are created automatically by the unique: true constraint
 userSchema.index({ fullName: "text" }); // Text index for search
+
+// Indexes for leaderboard filtering
+userSchema.index({ dateOfBirth: 1 }); // Age calculation
+userSchema.index({ gender: 1 }); // Gender filtering
+userSchema.index({ handedness: 1 }); // Handedness filtering
 
 export const User = mongoose.models.User || mongoose.model("User", userSchema);

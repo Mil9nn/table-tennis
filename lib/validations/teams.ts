@@ -120,7 +120,9 @@ export const assignPlayerPositionsSchema = z.object({
 export const searchTeamsQuerySchema = z.object({
   search: z.string().max(200).optional(),
   city: z.string().max(100).optional(),
-  limit: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 10),
+  sortBy: z.enum(["name", "wins", "players", "createdAt"]).optional().default("name"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
+  limit: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 15),
   skip: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
 }).strict();
 

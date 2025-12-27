@@ -2,18 +2,29 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy, Users, Target } from "lucide-react";
 import { useLeaderboard } from "./hooks/useLeaderboard";
-import { PlayerLeaderboard, TeamLeaderboard, TournamentLeaderboard } from "./components";
+import {
+  PlayerLeaderboard,
+  TeamLeaderboard,
+  TournamentLeaderboard,
+  LeaderboardFilters,
+} from "./components";
 import type { LeaderboardType } from "./types";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import type { LeaderboardFilters as FilterType } from "@/lib/leaderboard/filterUtils";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LockedContent } from "@/components/paywall/LockedContent";
 
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 export default function LeaderboardPage() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<LeaderboardType>("singles");
+  const { hasFeature } = useSubscription();
+  const [activeTab, setActiveTab] = useState<LeaderboardType>("individual");
+  const [filters, setFilters] = useState<Partial<FilterType>>({});
+  
   const {
     leaderboard,
     teamLeaderboard,
@@ -22,39 +33,32 @@ export default function LeaderboardPage() {
     loadingMore,
     hasMore,
     fetchMore,
-  } = useLeaderboard(activeTab);
+  } = useLeaderboard(activeTab, { filters });
 
-  // Individual observers
-  const singlesObserverTarget = useRef<HTMLDivElement>(null);
-  const doublesObserverTarget = useRef<HTMLDivElement>(null);
-  const mixedObserverTarget = useRef<HTMLDivElement>(null);
+  const individualObserverTarget = useRef<HTMLDivElement>(null);
   const teamsObserverTarget = useRef<HTMLDivElement>(null);
   const tournamentsObserverTarget = useRef<HTMLDivElement>(null);
 
   const getObserverTarget = () => {
     switch (activeTab) {
-      case "singles": return singlesObserverTarget;
-      case "doubles": return doublesObserverTarget;
-      case "mixed_doubles": return mixedObserverTarget;
-      case "teams": return teamsObserverTarget;
-      case "tournaments": return tournamentsObserverTarget;
-      default: return null;
+      case "individual":
+        return individualObserverTarget;
+      case "teams":
+        return teamsObserverTarget;
+      case "tournaments":
+        return tournamentsObserverTarget;
+      default:
+        return null;
     }
   };
 
-  // Infinite scroll handler
   useEffect(() => {
     const observerTarget = getObserverTarget();
     if (!observerTarget?.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          !loadingMore &&
-          !loading &&
-          hasMore
-        ) {
+        if (entries[0].isIntersecting && !loadingMore && !loading && hasMore) {
           fetchMore();
         }
       },
@@ -70,257 +74,199 @@ export default function LeaderboardPage() {
     };
   }, [loadingMore, loading, hasMore, activeTab, fetchMore]);
 
-  return (
-    <div className="max-w-4xl mx-auto pb-10">
+  // Check if user has Pro subscription
+  const hasProAccess = hasFeature("profileInsightsAccess");
 
-      {/* -------------------------------------------------- */}
-      {/*  HERO HEADER */}
-      {/* -------------------------------------------------- */}
-      <header
-        className="px-6 p-4 flex flex-col justify-center"
-        style={{
-          backgroundColor: '#323139',
-          boxShadow: '0 4px 20px rgba(50, 49, 57, 0.08)'
-        }}
-      >
-        <div className="lb-font-primary">
-          <h1
-            className="text-[2.5rem] md:text-[2.5rem] font-bold tracking-tight"
-            style={{ color: '#ffffff' }}
-          >
-            Leaderboards
-          </h1>
-          <div
-            className="w-15 h-1 mt-3 mb-4"
-            style={{ backgroundColor: '#18c3f8' }}
+  if (!hasProAccess) {
+    return (
+      <div className="min-h-screen bg-lb-white">
+        <header className="bg-[#353535] border-b border-[#d9d9d9]">
+          <div className="max-w-6xl mx-auto px-6 py-8">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl md:text-5xl font-bold text-lb-white tracking-tight">
+                Leaderboards
+              </h1>
+            </div>
+            <div className="h-1 w-20 bg-[#3c6e71] mb-2" />
+            <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
+              Compete, rank and dominate.
+            </p>
+            <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
+              Track your performance across all match
+              categories and tournaments.
+            </p>
+          </div>
+        </header>
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <LockedContent
+            feature="leaderboard"
+            requiredTier="pro"
+            title="Leaderboard Access"
+            description="Upgrade to Pro to access leaderboards and see how you rank against other players"
+            showUpgradeButton={true}
           />
-          <p
-            className="text-[0.9375rem]"
-            style={{ color: '#ccbcbc' }}
-          >
-            Rankings across all match categories and tournaments
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-lb-white">
+      {/* Hero Header */}
+      <header className="bg-[#353535] border-b border-[#d9d9d9]">
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl md:text-5xl font-bold text-lb-white tracking-tight">
+              Leaderboards
+            </h1>
+          </div>
+          <div className="h-1 w-20 bg-[#3c6e71] mb-2" />
+          <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
+            Compete, rank and dominate.
+          </p>
+          <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
+            Track your performance across all match
+            categories and tournaments.
           </p>
         </div>
       </header>
 
-      {/* -------------------------------------------------- */}
-      {/*  TABS */}
-      {/* -------------------------------------------------- */}
-      <div
-        className="sticky top-0 z-20"
-        style={{
-          backgroundColor: '#ffffff',
-          boxShadow: '0 2px 16px rgba(50, 49, 57, 0.08)'
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as LeaderboardType)}
-          className="w-full"
-        >
-          <TabsList
-            className="flex flex-wrap w-full h-auto rounded-none p-0"
-            style={{
-              borderBottom: '2px solid rgba(204, 188, 188, 0.3)',
-              backgroundColor: 'transparent'
-            }}
+      {/* Sticky Tabs */}
+      <div className="sticky top-0 z-20 bg-lb-white shadow-sm">
+        <div className="max-w-6xl mx-auto">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as LeaderboardType)}
+            className="w-full"
           >
+            <TabsList className="flex items-center flex-wrap w-full h-auto rounded-none p-0 bg-transparent gap-0">
+              {/* Individual Tab */}
               <TabsTrigger
-                value="singles"
+                value="individual"
                 className="
-                  lb-font-primary
-                  flex-1 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
-                  transition-all duration-250
-                  data-[state=inactive]:opacity-60
-                  data-[state=active]:font-semibold
-                  data-[state=active]:opacity-100
-                  hover:bg-[rgba(204,188,188,0.08)]
+                  flex-1 p-2 text-xs font-semibold uppercase tracking-wider rounded-none
+                  transition-all duration-200 border-0
+                  border-b-2 border-transparent
+                  text-[#353535] hover:bg-[#f5f5f5]
+                  data-[state=active]:border-[#3c6e71] 
+                  data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
-                style={{
-                  color: '#323139',
-                  borderBottom: activeTab === 'singles' ? '3px solid #18c3f8' : '3px solid transparent'
-                }}
               >
-                Singles
+                <span>Individual</span>
               </TabsTrigger>
 
-              <TabsTrigger
-                value="doubles"
-                className="
-                  lb-font-primary
-                  flex-1 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
-                  transition-all duration-250
-                  data-[state=inactive]:opacity-60
-                  data-[state=active]:font-semibold
-                  data-[state=active]:opacity-100
-                  hover:bg-[rgba(204,188,188,0.08)]
-                "
-                style={{
-                  color: '#323139',
-                  borderBottom: activeTab === 'doubles' ? '3px solid #18c3f8' : '3px solid transparent'
-                }}
-              >
-                Doubles
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="mixed_doubles"
-                className="
-                  lb-font-primary
-                  flex-1 px-4 py-3 text-xs font-medium uppercase tracking-wide rounded-none
-                  transition-all duration-250
-                  data-[state=inactive]:opacity-60
-                  data-[state=active]:font-semibold
-                  data-[state=active]:opacity-100
-                  hover:bg-[rgba(204,188,188,0.08)]
-                "
-                style={{
-                  color: '#323139',
-                  borderBottom: activeTab === 'mixed_doubles' ? '3px solid #18c3f8' : '3px solid transparent'
-                }}
-              >
-                Mixed Doubles
-              </TabsTrigger>
-
+              {/* Teams Tab */}
               <TabsTrigger
                 value="teams"
                 className="
-                  lb-font-primary
-                  flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
-                  transition-all duration-250
-                  data-[state=inactive]:opacity-60
-                  data-[state=active]:font-semibold
-                  data-[state=active]:opacity-100
-                  hover:bg-[rgba(204,188,188,0.08)]
+                  flex-1 p-2 text-xs font-semibold uppercase tracking-wider rounded-none
+                  transition-all duration-200 border-0
+                  border-b-2 border-transparent
+                  text-[#353535] hover:bg-[#f5f5f5]
+                  data-[state=active]:border-[#3c6e71]
+                  data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
-                style={{
-                  color: '#323139',
-                  borderBottom: activeTab === 'teams' ? '3px solid #18c3f8' : '3px solid transparent'
-                }}
               >
-                <GroupWorkIcon
-                  className="size-4"
-                  style={{ color: '#323139' }}
-                />
-                Teams
+                <div className="flex items-center justify-center gap-2">
+                  <GroupWorkIcon className="w-4 h-4" />
+                  <span>Teams</span>
+                </div>
               </TabsTrigger>
 
+              {/* Tournaments Tab */}
               <TabsTrigger
                 value="tournaments"
                 className="
-                  lb-font-primary
-                  flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium uppercase tracking-wide rounded-none
-                  transition-all duration-250
-                  data-[state=inactive]:opacity-60
-                  data-[state=active]:font-semibold
-                  data-[state=active]:opacity-100
-                  hover:bg-[rgba(204,188,188,0.08)]
+                  flex-1 p-2 text-xs font-semibold uppercase tracking-wider rounded-none
+                  transition-all duration-200 border-0
+                  border-b-2 border-transparent
+                  text-[#353535] hover:bg-[#f5f5f5]
+                  data-[state=active]:border-[#3c6e71]
+                  data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
-                style={{
-                  color: '#323139',
-                  borderBottom: activeTab === 'tournaments' ? '3px solid #18c3f8' : '3px solid transparent'
-                }}
               >
-                <EmojiEventsIcon
-                  className="size-4"
-                  style={{ color: '#18c3f8' }}
-                />
-                Tournaments
+                <div className="flex items-center justify-center gap-2">
+                  <EmojiEventsIcon className="w-4 h-4" />
+                  <span>Tournaments</span>
+                </div>
               </TabsTrigger>
             </TabsList>
+          </Tabs>
+        </div>
+      </div>
 
-          {/* -------------------------------------------------- */}
-          {/*  TAB CONTENT PANELS */}
-          {/* -------------------------------------------------- */}
-
-          <LeaderboardTabPanel
-            value="singles"
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            observerRef={singlesObserverTarget}
-          >
-            <PlayerLeaderboard
-              data={leaderboard}
-              loading={loading}
-              emptyMessage="No singles matches yet"
-              matchType="singles"
-              currentUserId={user?._id}
+      {/* Tab Content */}
+      <div className="max-w-6xl mx-auto">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v as LeaderboardType);
+            // Clear filters when switching tabs (except for teams/tournaments)
+            if (v !== "teams" && v !== "tournaments") {
+              setFilters({});
+            }
+          }}
+          className="w-full"
+        >
+          <TabsContent value="individual" className="p-0">
+            <LeaderboardFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              tabType="individual"
             />
-          </LeaderboardTabPanel>
-
-          <LeaderboardTabPanel
-            value="doubles"
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            observerRef={doublesObserverTarget}
-          >
-            <PlayerLeaderboard
-              data={leaderboard}
+            <LeaderboardPanel
               loading={loading}
-              emptyMessage="No doubles matches yet"
-              matchType="doubles"
-              currentUserId={user?._id}
-            />
-          </LeaderboardTabPanel>
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              observerRef={individualObserverTarget}
+            >
+              <PlayerLeaderboard
+                data={leaderboard}
+                loading={loading}
+                emptyMessage="No individual matches yet"
+                matchType={filters.type || "all"}
+                currentUserId={user?._id}
+              />
+            </LeaderboardPanel>
+          </TabsContent>
 
-          <LeaderboardTabPanel
-            value="mixed_doubles"
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            observerRef={mixedObserverTarget}
-          >
-            <PlayerLeaderboard
-              data={leaderboard}
+          <TabsContent value="teams" className="p-0">
+            <LeaderboardPanel
               loading={loading}
-              emptyMessage="No mixed doubles matches yet"
-              matchType="mixed_doubles"
-              currentUserId={user?._id}
-            />
-          </LeaderboardTabPanel>
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              observerRef={teamsObserverTarget}
+            >
+              <TeamLeaderboard
+                data={teamLeaderboard}
+                loading={loading}
+                currentUserId={user?._id}
+              />
+            </LeaderboardPanel>
+          </TabsContent>
 
-          <LeaderboardTabPanel
-            value="teams"
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            observerRef={teamsObserverTarget}
-          >
-            <TeamLeaderboard
-              data={teamLeaderboard}
+          <TabsContent value="tournaments" className="p-0">
+            <LeaderboardPanel
               loading={loading}
-              currentUserId={user?._id}
-            />
-          </LeaderboardTabPanel>
-
-          <LeaderboardTabPanel
-            value="tournaments"
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            observerRef={tournamentsObserverTarget}
-          >
-            <TournamentLeaderboard
-              data={tournamentLeaderboard}
-              loading={loading}
-              currentUserId={user?._id}
-            />
-          </LeaderboardTabPanel>
-
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              observerRef={tournamentsObserverTarget}
+            >
+              <TournamentLeaderboard
+                data={tournamentLeaderboard}
+                loading={loading}
+                currentUserId={user?._id}
+              />
+            </LeaderboardPanel>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
 
-/* --------------------------------------------- */
-/*  REUSABLE TAB PANEL WITH MODERN SHELL         */
-/* --------------------------------------------- */
-
-function LeaderboardTabPanel({
-  value,
+/* Reusable Leaderboard Panel Component */
+function LeaderboardPanel({
   children,
   loading,
   loadingMore,
@@ -328,45 +274,34 @@ function LeaderboardTabPanel({
   observerRef,
 }: any) {
   return (
-    <TabsContent value={value} className="p-0">
+    <div className="border border-[#d9d9d9]">
+      {/* Content */}
+      <div className="bg-[#ffffff]">{children}</div>
 
-      {/* CONTENT CARD */}
-      <div className="border border-slate-200/50">
-        {children}
-
-        {/* INFINITE SCROLL ZONE */}
-        {!loading && (
-          <div
-            ref={observerRef}
-            className="h-20 flex items-center justify-center lb-font-primary"
-          >
-            {loadingMore && (
-              <div className="flex items-center gap-2">
-                <Loader2
-                  className="animate-spin"
-                  size={24}
-                  style={{ color: '#18c3f8' }}
-                />
-                <span
-                  className="text-[0.875rem]"
-                  style={{ color: '#ccbcbc' }}
-                >
-                  Loading more…
-                </span>
-              </div>
-            )}
-
-            {!hasMore && (
-              <p
-                className="text-[0.875rem] italic"
-                style={{ color: 'rgba(204, 188, 188, 0.7)' }}
-              >
-                End of leaderboard
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    </TabsContent>
+      {/* Infinite Scroll Zone */}
+      {!loading && (
+        <div
+          ref={observerRef}
+          className="
+            h-14 flex flex-col items-center justify-center
+            border-t border-[#d9d9d9]
+            bg-[#f9f9f9]
+          "
+        >
+          {loadingMore ? (
+            <div className="flex items-center gap-3">
+              <Loader2 className="animate-spin w-5 h-5 text-[#3c6e71]" />
+              <span className="text-sm font-medium text-[#353535]">
+                Loading more rankings…
+              </span>
+            </div>
+          ) : !hasMore ? (
+            <p className="text-sm text-[#d9d9d9] italic font-medium">
+              You've reached the end of the leaderboard
+            </p>
+          ) : null}
+        </div>
+      )}
+    </div>
   );
 }

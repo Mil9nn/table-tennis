@@ -1,143 +1,167 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Search, X } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import BlinkingDotsLoader from "@/components/loaders/BlinkingDotsLoader";
 import { User } from "@/types/user";
-import { X } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { getInitial, getAvatarFallbackStyle } from "@/lib/utils";
+import { getAvatarFallbackStyle, getInitial } from "@/lib/utils";
 
-function UserSearchInput({
-  placeholder,
+interface UserSearchInputProps {
+  placeholder?: string;
+  onSelect: (user: User) => void;
+  clearAfterSelect?: boolean;
+}
+
+export default function UserSearchInput({
+  placeholder = "Search players",
   onSelect,
   clearAfterSelect = false,
-}: {
-  placeholder: string;
-  onSelect: (u: User) => void;
-  clearAfterSelect?: boolean;
-}) {
+}: UserSearchInputProps) {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<User[]>([]);
+  const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [focused, setFocused] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const fetchSuggestions = async (val: string) => {
-    setQuery(val);
-    if (val.length < 2) {
-      setSuggestions([]);
+  const fetchUsers = async (value: string) => {
+    setQuery(value);
+    if (value.length < 2) {
+      setResults([]);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axiosInstance.get(`/users/search?q=${val}`);
-      setSuggestions(response.data?.users || []);
-    } catch (err) {
-      console.error("Error fetching suggestions:", err);
+      const res = await axiosInstance.get(`/users/search?q=${value}`);
+      setResults(res.data?.users ?? []);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelect = (u: User) => {
-    onSelect(u);
+  const handleSelect = (user: User) => {
+    onSelect(user);
 
     if (clearAfterSelect) {
       setQuery("");
-      setSuggestions([]);
-      setSelectedUser(null);
+      setResults([]);
     } else {
-      setSelectedUser(u);
-      setSuggestions([]);
+      setSelectedUser(user);
+      setResults([]);
     }
   };
 
-  const handleClear = () => {
+  const clearSelection = () => {
     setSelectedUser(null);
     setQuery("");
   };
 
   return (
-    <div className="relative">
-      {/* Selected user (for singles/doubles inputs) */}
+    <div className="relative w-full">
+      {/* Selected State */}
       {selectedUser && !clearAfterSelect ? (
-        <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 transition-all group">
+        <div className="flex items-center justify-between px-3 py-2 border border-[#d9d9d9] bg-white">
           <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
-              <AvatarImage src={selectedUser.profileImage} alt={selectedUser.username} />
-              <AvatarFallback style={getAvatarFallbackStyle(selectedUser._id)}>{getInitial(selectedUser.username)}</AvatarFallback>
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={selectedUser.profileImage} />
+              <AvatarFallback style={getAvatarFallbackStyle(selectedUser._id)}>
+                {getInitial(selectedUser.username)}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-medium text-foreground">
+
+            <div className="leading-tight">
+              <div className="text-sm font-medium text-[#353535]">
                 {selectedUser.fullName || selectedUser.username}
-              </span>
-              <span className="text-xs text-muted-foreground">@{selectedUser.username}</span>
+              </div>
+              <div className="text-[11px] text-[#8c8c8c] tracking-wide">
+                @{selectedUser.username}
+              </div>
             </div>
           </div>
+
           <button
-            onClick={handleClear}
-            type="button"
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+            onClick={clearSelection}
+            className="text-[#8c8c8c] hover:text-[#353535] transition"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       ) : (
         <>
-          <Input
-            placeholder={placeholder}
-            value={query}
-            onChange={(e) => fetchSuggestions(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)} // short delay to allow click
-            className="placeholder:text-[#BFBFBF] pr-10"
-          />
-          {loading && (
-            <div className="absolute right-3 top-2.5">
-              <BlinkingDotsLoader />
+          {/* Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#8c8c8c]" />
+
+            <Input
+              value={query}
+              onChange={(e) => fetchUsers(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 120)}
+              placeholder={placeholder}
+              className="
+                pl-9 pr-9 h-10
+                border-[#d9d9d9]
+                focus-visible:ring-0
+                focus:border-[#3c6e71]
+                placeholder:text-[#bfbfbf]
+                text-sm
+              "
+            />
+
+            {loading && (
+              <div className="absolute right-3 top-2.5">
+                <BlinkingDotsLoader />
+              </div>
+            )}
+          </div>
+
+          {/* Dropdown */}
+          {focused && query.length >= 2 && !loading && (
+            <div className="absolute z-30 mt-1 w-full border border-[#d9d9d9] bg-white max-h-64 overflow-y-auto">
+              {results.length > 0 ? (
+                results.map((user) => (
+                  <button
+                    key={user._id}
+                    onMouseDown={() => handleSelect(user)}
+                    className="
+                      w-full flex items-center gap-3 px-3 py-2
+                      hover:bg-[#f7f7f7]
+                      transition text-left
+                    "
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={user.profileImage} />
+                      <AvatarFallback style={getAvatarFallbackStyle(user._id)}>
+                        {getInitial(user.username)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="leading-tight">
+                      <div className="text-sm font-medium text-[#353535]">
+                        {user.fullName || user.username}
+                      </div>
+                      {user.fullName && (
+                        <div className="text-[11px] text-[#8c8c8c] tracking-wide">
+                          @{user.username}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-4 text-sm text-[#8c8c8c] text-center">
+                  No players found
+                </div>
+              )}
             </div>
           )}
         </>
       )}
-
-      {/* Dropdown suggestions */}
-      {focused && query.length >= 2 && !loading && !selectedUser && (
-        <ul className="absolute z-20 w-full bottom-full mb-1 bg-background border rounded-lg shadow-lg overflow-hidden animate-in fade-in-50 slide-in-from-bottom-1 max-h-60 overflow-y-auto">
-          {suggestions.length > 0 ? (
-            suggestions.map((u) => {
-              const displayName = u.fullName || u.username;
-              return (
-                <li
-                  key={u._id}
-                  onMouseDown={() => handleSelect(u)}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer transition-colors"
-                >
-                  <Avatar className="h-8 w-8 ring-2 ring-gray-800/50">
-                    <AvatarImage src={u.profileImage} alt={displayName} />
-                    <AvatarFallback style={getAvatarFallbackStyle(u._id)}>{getInitial(displayName)}</AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-sm font-medium">{displayName}</span>
-                    {u.fullName && (
-                      <span className="text-xs text-muted-foreground">@{u.username}</span>
-                    )}
-                  </div>
-                </li>
-              );
-            })
-          ) : (
-            <li className="px-3 py-4 text-center text-sm text-muted-foreground">
-              No users found. Try a different search term.
-            </li>
-          )}
-        </ul>
-      )}
     </div>
   );
 }
-
-export default UserSearchInput;

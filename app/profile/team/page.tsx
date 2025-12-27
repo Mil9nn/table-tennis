@@ -2,21 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { ArrowLeft, Users, Trophy, Target, TrendingUp } from "lucide-react";
+import {
+  Users,
+  Trophy,
+  Target,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
 } from "recharts";
+import { EmptyState } from "../components/EmptyState";
+
+import Diversity3Icon from '@mui/icons-material/Diversity3';
 
 const TeamStatsPage = () => {
   const router = useRouter();
@@ -55,7 +64,9 @@ const TeamStatsPage = () => {
 
   const subMatchWinRate =
     teamStats.subMatchesPlayed > 0
-      ? ((teamStats.subMatchesWon / teamStats.subMatchesPlayed) * 100).toFixed(1)
+      ? ((teamStats.subMatchesWon / teamStats.subMatchesPlayed) * 100).toFixed(
+          1
+        )
       : "0";
 
   // Format data for charts
@@ -89,202 +100,176 @@ const TeamStatsPage = () => {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Profile</span>
-        </button>
-
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Team Statistics</h1>
-          <p className="text-gray-600 mt-2">
-            Your performance in team matches and formats
-          </p>
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Team Statistics
+          </h1>
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white rounded-lg p-8 text-center">
-            <div className="animate-pulse">
-              <div className="h-4 bg-zinc-200 rounded w-1/4 mx-auto"></div>
-            </div>
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
         ) : teamStats.total === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No Team Statistics
-            </h3>
-            <p className="text-gray-600">
-              Join a team and play team matches to see your team statistics!
-            </p>
-          </div>
+          <EmptyState
+            icon={Diversity3Icon}
+            title="No team statistics available."
+            description="Team statistics will appear after team matches are played!"
+          />
         ) : (
-          <div className="space-y-6">
-            {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-sm font-semibold text-blue-900">
-                    Team Matches
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-blue-700">
+          <div className="space-y-8">
+            {/* Key Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Team Matches */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Team Matches Played
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {teamStats.total}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  {teamStats.wins}W " {teamStats.losses}L
+                <p className="text-xs text-[#353535] mt-3">
+                  {teamStats.wins}W - {teamStats.losses}L
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Trophy className="w-5 h-5 text-green-600" />
-                  <h3 className="text-sm font-semibold text-green-900">
-                    Team Win Rate
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-green-700">
+              {/* Team Win Rate */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Team Win Rate
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {teamWinRate}%
                 </p>
-                <p className="text-xs text-green-600 mt-1">Overall team performance</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5 text-purple-600" />
-                  <h3 className="text-sm font-semibold text-purple-900">
-                    Individual Games
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-purple-700">
-                  {teamStats.subMatchesPlayed}
-                </p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Games played in team matches
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-amber-600" />
-                  <h3 className="text-sm font-semibold text-amber-900">
-                    Personal Win Rate
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-amber-700">
-                  {subMatchWinRate}%
-                </p>
-                <p className="text-xs text-amber-600 mt-1">
-                  In individual games ({teamStats.subMatchesWon} wins)
+                <p className="text-xs text-[#353535] mt-3">
+                  Overall team performance
                 </p>
               </div>
             </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Team Match Results */}
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Team Match Results
+            {/* Individual Performance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Individual Games */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Individual Games Played
                 </h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={winLossData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry) => {
-                          const percent = (
-                            ((entry.value as number) / teamStats.total) *
-                            100
-                          ).toFixed(1);
-                          return `${percent}%`;
-                        }}
-                        outerRadius={100}
-                        dataKey="value"
-                      >
-                        {winLossData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any, name: any) => [
-                          `${value} matches`,
-                          name,
-                        ]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <p className="text-4xl font-bold text-[#353535]">
+                  {teamStats.subMatchesPlayed}
+                </p>
+                <p className="text-xs text-[#353535] mt-3">
+                  Games in team matches
+                </p>
               </div>
 
-              {/* Individual Game Results */}
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Individual Game Results
+              {/* Personal Win Rate */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Personal Win Rate
                 </h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={subMatchData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry) => {
-                          const percent = (
-                            ((entry.value as number) / teamStats.subMatchesPlayed) *
-                            100
-                          ).toFixed(1);
-                          return `${percent}%`;
-                        }}
-                        outerRadius={100}
-                        dataKey="value"
-                      >
-                        {subMatchData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any, name: any) => [
-                          `${value} games`,
-                          name,
-                        ]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <p className="text-4xl font-bold text-[#353535]">
+                  {subMatchWinRate}%
+                </p>
+                <p className="text-xs text-[#353535] mt-3">
+                  {teamStats.subMatchesWon} individual wins
+                </p>
+              </div>
+            </div>
+
+            {/* Team Match Results */}
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+                Team Match Results
+              </h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={winLossData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => {
+                        const percent = (
+                          ((entry.value as number) / teamStats.total) *
+                          100
+                        ).toFixed(1);
+                        return `${percent}%`;
+                      }}
+                      outerRadius={100}
+                      dataKey="value"
+                    >
+                      {winLossData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any) => [`${value} matches`]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Individual Game Results */}
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+                Individual Game Results
+              </h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={subMatchData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => {
+                        const percent = (
+                          ((entry.value as number) /
+                            teamStats.subMatchesPlayed) *
+                          100
+                        ).toFixed(1);
+                        return `${percent}%`;
+                      }}
+                      outerRadius={100}
+                      dataKey="value"
+                    >
+                      {subMatchData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any) => [`${value} games`]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
             {/* Match Format Distribution */}
             {formatData.length > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                   Match Format Distribution
                 </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={formatData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip />
                       <Bar
                         dataKey="matches"
-                        fill="#3B82F6"
+                        fill="#3c6e71"
                         radius={[8, 8, 0, 0]}
                         name="Matches"
                       />
@@ -294,50 +279,58 @@ const TeamStatsPage = () => {
               </div>
             )}
 
-            {/* Performance Summary */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
-                Performance Summary
+            {/* Performance Analysis */}
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+                Performance Analysis
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Team Match Win Rate</span>
-                    <span>{teamWinRate}%</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-[#353535] font-semibold">
+                      Team Match Win Rate
+                    </span>
+                    <span className="text-sm font-bold text-[#3c6e71]">
+                      {teamWinRate}%
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-[#d9d9d9] rounded-full h-2">
                     <div
-                      className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-[#3c6e71] h-2 rounded-full transition-all duration-500"
                       style={{ width: `${teamWinRate}%` }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Individual Game Win Rate</span>
-                    <span>{subMatchWinRate}%</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-[#353535] font-semibold">
+                      Individual Game Win Rate
+                    </span>
+                    <span className="text-sm font-bold text-[#3c6e71]">
+                      {subMatchWinRate}%
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-[#d9d9d9] rounded-full h-2">
                     <div
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-[#3c6e71] h-2 rounded-full transition-all duration-500"
                       style={{ width: `${subMatchWinRate}%` }}
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Analysis:</strong> You&apos;ve played{" "}
-                  {teamStats.subMatchesPlayed} individual games across{" "}
-                  {teamStats.total} team matches.
-                  {parseFloat(subMatchWinRate) > parseFloat(teamWinRate)
-                    ? " Your personal performance is stronger than your team's overall record, showing you're a key contributor."
-                    : parseFloat(subMatchWinRate) < parseFloat(teamWinRate)
-                    ? " Your team wins more than your individual win rate suggests - great teamwork!"
-                    : " Your performance aligns with your team's success rate."}
-                </p>
+                <div className="border-t border-[#d9d9d9] pt-4 mt-4">
+                  <p className="text-xs text-[#353535]">
+                    <strong>Summary:</strong> You&apos;ve played{" "}
+                    {teamStats.subMatchesPlayed} individual games across{" "}
+                    {teamStats.total} team matches.
+                    {parseFloat(subMatchWinRate) > parseFloat(teamWinRate)
+                      ? " Your personal performance exceeds your team's overall record."
+                      : parseFloat(subMatchWinRate) < parseFloat(teamWinRate)
+                      ? " Your team performs better overall - great teamwork!"
+                      : " Your personal performance aligns with your team's success."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

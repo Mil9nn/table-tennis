@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, CalendarDays } from "lucide-react";
 
 export type FilterState = {
   query: string;
   status: string;
   format: string;
   sort: string;
+  dateFrom: string;
+  dateTo: string;
 };
 
 type HeaderHeroProps = {
@@ -18,21 +20,45 @@ type HeaderHeroProps = {
   onFiltersChange: (filters: FilterState) => void;
 };
 
+const DEFAULT_FILTERS: FilterState = {
+  query: "",
+  status: "all",
+  format: "all",
+  sort: "recent",
+  dateFrom: "",
+  dateTo: "",
+};
+
 export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
   const [showFilters, setShowFilters] = useState(false);
 
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filters.query !== DEFAULT_FILTERS.query ||
+      filters.status !== DEFAULT_FILTERS.status ||
+      filters.format !== DEFAULT_FILTERS.format ||
+      filters.dateFrom !== DEFAULT_FILTERS.dateFrom ||
+      filters.dateTo !== DEFAULT_FILTERS.dateTo
+    );
+  }, [filters]);
+
+  const clearAll = () => {
+    onFiltersChange(DEFAULT_FILTERS);
+  };
+
   return (
-    <header className="text-white p-4 space-y-4" style={{ backgroundColor: '#323139' }}>
-      <h1 className="text-2xl font-bold">Tournaments</h1>
+    <header className="bg-[#353535] text-[#ffffff] p-6 space-y-4">
+      <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Tournaments</h1>
 
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 text-zinc-400 size-4" />
+          <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
           <Input
             value={filters.query}
             onChange={(e) => onFiltersChange({ ...filters, query: e.target.value })}
             placeholder="Search tournaments..."
-            className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-sm rounded-lg focus:ring-2 focus:ring-zinc-700"
+            className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
           />
         </div>
 
@@ -40,7 +66,9 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
           variant="outline"
           size="icon"
           onClick={() => setShowFilters(!showFilters)}
-          className="shrink-0 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+          className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
+            hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+          }`}
         >
           <Filter className="size-4" />
         </Button>
@@ -48,53 +76,90 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
 
       {/* Filter Panel */}
       {showFilters && (
-        <div className="bg-zinc-900 rounded-lg p-4 space-y-3 border border-zinc-800">
+        <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-white">Filters</h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowFilters(false)}
-              className="size-6 hover:bg-zinc-800 text-zinc-400"
-            >
-              <X className="size-4" />
-            </Button>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">Filters</h3>
+            <div className="flex items-center gap-2">
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAll}
+                  className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                >
+                  Clear All
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilters(false)}
+                className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-400 uppercase tracking-wide">Format</label>
-            <Select value={filters.format} onValueChange={(v) => onFiltersChange({ ...filters, format: v })}>
-              <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Formats</SelectItem>
-                <SelectItem value="round_robin">Round Robin</SelectItem>
-                <SelectItem value="knockout">Knockout</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Format</label>
+              <Select value={filters.format} onValueChange={(v) => onFiltersChange({ ...filters, format: v })}>
+                <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Formats</SelectItem>
+                  <SelectItem value="round_robin">Round Robin</SelectItem>
+                  <SelectItem value="knockout">Knockout</SelectItem>
+                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Status</label>
+              <Select value={filters.status} onValueChange={(v) => onFiltersChange({ ...filters, status: v })}>
+                <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-400 uppercase tracking-wide">Status</label>
-            <Select value={filters.status} onValueChange={(v) => onFiltersChange({ ...filters, status: v })}>
-              <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-1">
+            <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+              <CalendarDays className="size-3" /> Date Range
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => onFiltersChange({ ...filters, dateFrom: e.target.value })}
+                className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                placeholder="From"
+              />
+              <Input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => onFiltersChange({ ...filters, dateTo: e.target.value })}
+                className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                placeholder="To"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-400 uppercase tracking-wide">Sort By</label>
+          <div className="space-y-1">
+            <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Sort By</label>
             <Select value={filters.sort} onValueChange={(v) => onFiltersChange({ ...filters, sort: v })}>
-              <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
               <SelectContent>

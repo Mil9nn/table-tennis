@@ -5,11 +5,27 @@ import { AxiosError } from "axios";
 import { User } from "@/types/user";
 import { toast } from "sonner";
 
+interface RegisterResponse {
+    message: string;
+    requiresVerification?: boolean;
+    user?: {
+        _id: string;
+        username: string;
+        fullName: string;
+        email: string;
+    };
+}
+
+interface LoginResponse {
+    message: string;
+    user?: User;
+}
+
 interface AuthState {
     authLoading: boolean;
     fetchUser: () => Promise<void>;
-    register: (formData: RegisterForm) => Promise<void>;
-    login: (formData: LoginForm) => Promise<void>;
+    register: (formData: RegisterForm) => Promise<RegisterResponse>;
+    login: (formData: LoginForm) => Promise<LoginResponse>;
     logout: () => Promise<void>;
     user: User | null;
     setUser: (user: User | null) => void;
@@ -39,11 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const response = await axiosInstance.post("auth/register", formData);
 
-            // Auto login after successful registration
-            if (response.data.user) {
-                set({ user: response.data.user });
-            }
-
+            // Don't auto login - user needs to verify email first
             toast.success(response.data.message);
             return response.data;
         } catch (error: AxiosError | any) {

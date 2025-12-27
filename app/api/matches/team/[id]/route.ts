@@ -11,7 +11,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     await connectDB();
     const { id } = await context.params;
 
-    const match = await populateTeamMatch(TeamMatch.findById(id)).exec();
+    const match = await populateTeamMatch(TeamMatch.findById(id), {
+      includeTournament: true
+    }).exec();
 
     if (!match) return NextResponse.json({ error: "Team match not found" }, { status: 404 });
 

@@ -1,6 +1,5 @@
 // components/weaknesses-analysis/WeaknessInsightsPanel.tsx
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, TrendingUp, Target, CheckCircle2 } from "lucide-react";
@@ -15,12 +14,12 @@ export function WeaknessInsightsPanel({ insights }: WeaknessInsightsPanelProps) 
   return (
     <div className="space-y-4">
       {/* Primary Weakness Alert */}
-      <Alert className="border-red-200 bg-red-50">
+      <Alert className="border-red-500/20 bg-red-500/5">
         <AlertCircle className="h-5 w-5 text-red-600" />
         <AlertDescription className="ml-2">
           <div className="space-y-1">
-            <p className="font-semibold text-red-900">Primary Weakness</p>
-            <p className="text-sm text-red-800">
+            <p className="font-semibold text-red-700 text-sm">Primary Weakness</p>
+            <p className="text-sm text-red-700/80">
               <RecommendationText text={insights.primaryWeakness} />
             </p>
           </div>
@@ -31,71 +30,63 @@ export function WeaknessInsightsPanel({ insights }: WeaknessInsightsPanelProps) 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Secondary Weakness */}
         {insights.secondaryWeakness && (
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Target className="h-5 w-5 text-yellow-600 mt-1" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-yellow-900 text-sm">
-                    Secondary Weakness
-                  </p>
-                  <p className="text-sm text-yellow-800">
-                    <RecommendationText text={insights.secondaryWeakness} />
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Strength to Maintain */}
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6">
+          <div className="border border-amber-500/20 bg-amber-500/5 p-4">
             <div className="flex items-start gap-3">
-              <TrendingUp className="h-5 w-5 text-green-600 mt-1" />
+              <Target className="h-5 w-5 text-amber-600 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold text-green-900 text-sm">
-                  Strength to Maintain
+                <p className="font-semibold text-amber-700 text-sm">
+                  Secondary Weakness
                 </p>
-                <p className="text-sm text-green-800">
-                  <RecommendationText text={insights.strengthToMaintain} />
+                <p className="text-sm text-amber-700/80">
+                  <RecommendationText text={insights.secondaryWeakness} />
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Strength to Maintain */}
+        <div className="border border-[#3c6e71]/20 bg-[#3c6e71]/5 p-4">
+          <div className="flex items-start gap-3">
+            <TrendingUp className="h-5 w-5 text-[#3c6e71] mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-[#3c6e71] text-sm">
+                Strength to Maintain
+              </p>
+              <p className="text-sm text-[#3c6e71]/80">
+                <RecommendationText text={insights.strengthToMaintain} />
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Improvement Priorities */}
       {insights.improvementPriority.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-blue-600" />
-              Priority Improvements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {insights.improvementPriority.map((priority, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+        <div className="border border-[#d9d9d9] bg-white p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <CheckCircle2 className="h-5 w-5 text-[#284b63]" />
+            <h3 className="text-base font-semibold text-[#353535]">Priority Improvements</h3>
+          </div>
+          <div className="space-y-3">
+            {insights.improvementPriority.map((priority, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 bg-[#f8f8f8] hover:bg-[#f0f0f0] transition-colors"
+              >
+                <Badge
+                  variant={index === 0 ? "destructive" : "secondary"}
+                  className={`mt-0.5 shrink-0 ${index === 0 ? '' : 'bg-[#d9d9d9] text-[#353535]'}`}
                 >
-                  <Badge
-                    variant={index === 0 ? "destructive" : "secondary"}
-                    className="mt-0.5 shrink-0"
-                  >
-                    #{index + 1}
-                  </Badge>
-                  <p className="text-sm text-gray-700 flex-1">
-                    <RecommendationText text={priority} />
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  #{index + 1}
+                </Badge>
+                <p className="text-sm text-[#353535] flex-1">
+                  <RecommendationText text={priority} />
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

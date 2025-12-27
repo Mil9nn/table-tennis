@@ -83,27 +83,53 @@ const envSchema = z.object({
     .optional()
     .default("false"),
 
-  // Stripe Payment Processing (optional - for subscription features)
-  STRIPE_SECRET_KEY: z
+  // Razorpay Payment Processing (optional - for subscription features)
+  RAZORPAY_KEY_ID: z
     .string()
-    .min(1, "STRIPE_SECRET_KEY is required for subscription features")
+    .min(1, "RAZORPAY_KEY_ID is required for subscription features")
     .optional(),
-  STRIPE_WEBHOOK_SECRET: z
+  RAZORPAY_KEY_SECRET: z
     .string()
-    .min(1, "STRIPE_WEBHOOK_SECRET is required for webhook verification")
+    .min(1, "RAZORPAY_KEY_SECRET is required for subscription features")
     .optional(),
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
+  RAZORPAY_WEBHOOK_SECRET: z
     .string()
-    .min(1, "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is required for client-side Stripe")
+    .min(1, "RAZORPAY_WEBHOOK_SECRET is required for webhook verification")
     .optional(),
-  STRIPE_PRICE_PRO_YEARLY: z
+  RAZORPAY_PLAN_PRO_MONTHLY: z
     .string()
     .optional()
-    .describe("Stripe Price ID for Pro yearly subscription"),
-  STRIPE_PRICE_PREMIUM_YEARLY: z
+    .describe("Razorpay Plan ID for Pro monthly subscription"),
+  RAZORPAY_PLAN_PRO_YEARLY: z
     .string()
     .optional()
-    .describe("Stripe Price ID for Premium yearly subscription"),
+    .describe("Razorpay Plan ID for Pro yearly subscription"),
+
+  // AWS SES (for email verification and password reset)
+  AWS_ACCESS_KEY_ID: z
+    .string()
+    .min(1, "AWS_ACCESS_KEY_ID is required for email functionality")
+    .optional(),
+  AWS_SECRET_ACCESS_KEY: z
+    .string()
+    .min(1, "AWS_SECRET_ACCESS_KEY is required for email functionality")
+    .optional(),
+  AWS_SES_REGION: z
+    .string()
+    .optional()
+    .default("us-east-1")
+    .describe("AWS region for SES (default: us-east-1)"),
+  AWS_SES_FROM_EMAIL: z
+    .string()
+    .email("AWS_SES_FROM_EMAIL must be a valid email address")
+    .optional()
+    .describe("Verified sender email address for SES"),
+  NEXT_PUBLIC_APP_URL: z
+    .string()
+    .url("NEXT_PUBLIC_APP_URL must be a valid URL")
+    .optional()
+    .default("http://localhost:3000")
+    .describe("Public URL of the application for email links"),
 });
 
 export const env = (() => {

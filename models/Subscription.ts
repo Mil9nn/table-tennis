@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export type SubscriptionTier = "free" | "pro" | "premium" | "enterprise";
-export type SubscriptionStatus = "active" | "trial" | "past_due" | "cancelled" | "expired";
+export type SubscriptionTier = "free" | "pro" | "enterprise";
+export type SubscriptionStatus = "active" | "past_due" | "cancelled" | "expired";
 
 export interface ISubscriptionFeatures {
   maxTournaments: number; // -1 for unlimited
@@ -11,6 +11,11 @@ export interface ISubscriptionFeatures {
   exportData: boolean;
   customBranding: boolean;
   tournamentFormats: string[]; // e.g., ['round_robin', 'knockout', 'hybrid']
+  // New features for stats and profile pages
+  statsPageAccess: 'free' | 'pro'; // Access level for match stats page
+  profileInsightsAccess: boolean; // Performance Insights tab
+  shotAnalysisAccess: boolean; // Shot Analysis tab
+  aiInsights: boolean; // AI-powered insights (Pro only)
 }
 
 export interface ISubscription extends Document {
@@ -21,13 +26,12 @@ export interface ISubscription extends Document {
   // Subscription lifecycle
   startDate: Date;
   endDate: Date; // For yearly subscriptions
-  trialEndsAt?: Date;
   cancelledAt?: Date;
 
-  // Payment info (Stripe)
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  stripePriceId?: string;
+  // Payment info (Razorpay)
+  razorpayCustomerId?: string;
+  razorpaySubscriptionId?: string;
+  razorpayPlanId?: string;
   paymentMethod?: string; // Last 4 digits of card
 
   // Annual tracking for tournament limits
@@ -43,7 +47,6 @@ export interface ISubscription extends Document {
 
   // Instance methods
   isActive(): boolean;
-  isInTrial(): boolean;
   hasExpired(): boolean;
 }
 
@@ -59,6 +62,15 @@ const subscriptionFeaturesSchema = new Schema<ISubscriptionFeatures>({
     required: true,
     default: ["round_robin"]
   },
+  statsPageAccess: { 
+    type: String, 
+    enum: ['free', 'pro'], 
+    required: true, 
+    default: 'free' 
+  },
+  profileInsightsAccess: { type: Boolean, required: true, default: false },
+  shotAnalysisAccess: { type: Boolean, required: true, default: false },
+  aiInsights: { type: Boolean, required: true, default: false },
 }, { _id: false });
 
 const subscriptionSchema = new Schema<ISubscription>(
@@ -71,13 +83,13 @@ const subscriptionSchema = new Schema<ISubscription>(
     },
     tier: {
       type: String,
-      enum: ["free", "pro", "premium", "enterprise"],
+      enum: ["free", "pro", "enterprise"],
       required: true,
       default: "free",
     },
     status: {
       type: String,
-      enum: ["active", "trial", "past_due", "cancelled", "expired"],
+      enum: ["active", "past_due", "cancelled", "expired"],
       required: true,
       default: "active",
     },
@@ -85,13 +97,12 @@ const subscriptionSchema = new Schema<ISubscription>(
     // Subscription lifecycle
     startDate: { type: Date, required: true, default: Date.now },
     endDate: { type: Date, required: true }, // Set to far future for free tier
-    trialEndsAt: { type: Date },
     cancelledAt: { type: Date },
 
-    // Stripe payment info
-    stripeCustomerId: { type: String, sparse: true },
-    stripeSubscriptionId: { type: String, sparse: true, unique: true },
-    stripePriceId: { type: String },
+    // Razorpay payment info
+    razorpayCustomerId: { type: String, sparse: true },
+    razorpaySubscriptionId: { type: String, sparse: true, unique: true },
+    razorpayPlanId: { type: String },
     paymentMethod: { type: String }, // e.g., "****1234"
 
     // Period tracking for limits (resets annually)
@@ -111,6 +122,10 @@ const subscriptionSchema = new Schema<ISubscription>(
         exportData: false,
         customBranding: false,
         tournamentFormats: ["round_robin"],
+        statsPageAccess: 'free',
+        profileInsightsAccess: false,
+        shotAnalysisAccess: false,
+        aiInsights: false,
       }),
     },
   },
@@ -133,6 +148,10 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
         exportData: false,
         customBranding: false,
         tournamentFormats: ["round_robin"],
+        statsPageAccess: 'free',
+        profileInsightsAccess: false,
+        shotAnalysisAccess: false,
+        aiInsights: false,
       };
     case "pro":
       return {
@@ -143,16 +162,10 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
         exportData: true,
         customBranding: false,
         tournamentFormats: ["round_robin", "knockout", "hybrid"],
-      };
-    case "premium":
-      return {
-        maxTournaments: -1, // Unlimited
-        maxParticipants: -1, // Unlimited
-        maxScorers: 10,
-        advancedAnalytics: true,
-        exportData: true,
-        customBranding: true,
-        tournamentFormats: ["round_robin", "knockout", "hybrid"],
+        statsPageAccess: 'pro',
+        profileInsightsAccess: true,
+        shotAnalysisAccess: true,
+        aiInsights: false,
       };
     case "enterprise":
       return {
@@ -163,6 +176,10 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
         exportData: true,
         customBranding: true,
         tournamentFormats: ["round_robin", "knockout", "hybrid"],
+        statsPageAccess: 'pro',
+        profileInsightsAccess: true,
+        shotAnalysisAccess: true,
+        aiInsights: true,
       };
     default:
       return {
@@ -173,6 +190,10 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
         exportData: false,
         customBranding: false,
         tournamentFormats: ["round_robin"],
+        statsPageAccess: 'free',
+        profileInsightsAccess: false,
+        shotAnalysisAccess: false,
+        aiInsights: false,
       };
   }
 }
@@ -182,12 +203,7 @@ subscriptionSchema.statics.getFeaturesByTier = getFeaturesByTier;
 
 // Helper method to check if subscription is currently active
 subscriptionSchema.methods.isActive = function(): boolean {
-  return this.status === "active" || this.status === "trial";
-};
-
-// Helper method to check if in trial period
-subscriptionSchema.methods.isInTrial = function(): boolean {
-  return this.status === "trial" && this.trialEndsAt && new Date() < this.trialEndsAt;
+  return this.status === "active";
 };
 
 // Helper method to check if subscription has expired

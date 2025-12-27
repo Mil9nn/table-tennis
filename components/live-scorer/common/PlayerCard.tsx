@@ -37,18 +37,18 @@ export default function PlayerCard({
   // FIXED: Full Tailwind classes (no dynamic partials)
   const colors = {
     emerald: {
-      gradient: "bg-emerald-500",
-      text: "text-emerald-50",
-      scoreText: "text-emerald-900",
-      badge: "bg-emerald-900/20 text-emerald-100",
-      server: "bg-yellow-400",
+      gradient: "bg-[#3c6e71]",
+      text: "text-slate-50",
+      scoreText: "text-slate-100",
+      badge: "bg-white/15 text-slate-100",
+      server: "bg-amber-400",
     },
     rose: {
-      gradient: "bg-rose-500",
-      text: "text-rose-50",
-      scoreText: "text-rose-900",
-      badge: "bg-rose-900/20 text-rose-100",
-      server: "bg-yellow-400",
+      gradient: "bg-[#284b63]",
+      text: "text-slate-50",
+      scoreText: "text-slate-100",
+      badge: "bg-white/15 text-slate-100",
+      server: "bg-amber-400",
     },
   };
 
@@ -141,17 +141,6 @@ export default function PlayerCard({
         >
           {score}
         </motion.div>
-      </div>
-
-      {/* Sets Won Badge */}
-      <div className="flex items-center justify-between">
-        <div
-          className={`rounded-full px-4 py-2 flex items-center gap-2 text-sm font-bold ${colors[color].badge}`}
-        >
-          {players.length === 1 && players[0].name?.startsWith("Team")
-            ? `${setsWon} Ties`
-            : `Sets Won: ${setsWon}`}
-        </div>
       </div>
     </motion.div>
   );

@@ -3,7 +3,7 @@ import { User } from "@/models/User";
 import { withAuth } from "@/lib/api-utils";
 import { connectDB } from "@/lib/mongodb";
 import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
-import { validateRequest, createIndividualMatchSchema } from "@/lib/validations";
+import { validateRequest, validateQueryParams, createIndividualMatchSchema, getMatchesQuerySchema } from "@/lib/validations";
 import { logError } from "@/lib/error-logger";
 
 export async function POST(request: NextRequest) {
@@ -68,65 +68,93 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "0", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
-    const context = searchParams.get("context"); // "casual", "tournament", or null (all)
-
-    // Use repository for casual matches
-    if (context === "casual") {
-      const matches = await matchRepository.findCasualMatches({
-        limit: limit > 0 ? limit : undefined,
-        skip,
-      });
-
-      // Populate participants
-      const IndividualMatch = (await import("@/models/IndividualMatch")).default;
-      const populatedMatches = await Promise.all(
-        matches.map(async (m) => {
-          if (m.matchCategory === "individual") {
-            return IndividualMatch.findById(m._id)
-              .populate("participants", "username fullName profileImage")
-              .populate("scorer", "username fullName")
-              .populate("games.shots.player", "username fullName")
-              .populate("tournament", "name format status");
-          }
-          return m;
-        })
-      );
-
-      const totalCount = await matchRepository.findCasualMatches().then(m => m.length);
-
-      return NextResponse.json({
-        matches: populatedMatches,
-        pagination: {
-          total: totalCount,
-          skip,
-          limit,
-          hasMore: skip + matches.length < totalCount
-        }
-      });
+    
+    // Validate query parameters
+    const validation = validateQueryParams(getMatchesQuerySchema, searchParams);
+    if (!validation.success) {
+      return validation.error;
     }
 
-    // For tournament matches or all matches, use direct query for now
-    // TODO: Add repository method for tournament matches
+    const { context, type, status, search, dateFrom, dateTo, sortBy, sortOrder, limit, skip } = validation.data;
+
     const IndividualMatch = (await import("@/models/IndividualMatch")).default;
-    const Tournament = (await import("@/models/Tournament")).default;
 
-    // Build filter based on context
-    let filter: any = {};
-    if (context === "tournament") {
-      filter = { tournament: { $ne: null } };
+    // Build filter object
+    const filter: any = {};
+
+    // Context filter (casual/tournament)
+    if (context === "casual") {
+      filter.tournament = null;
+    } else if (context === "tournament") {
+      filter.tournament = { $ne: null };
     }
 
+    // Match type filter
+    if (type && type !== "all") {
+      filter.matchType = type;
+    }
+
+    // Status filter
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        filter.createdAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        // Add 1 day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        filter.createdAt.$lte = endDate;
+      }
+    }
+
+    // Build sort object
+    const sortObject: any = {};
+    sortObject[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // If searching, we need to use aggregation to search in populated fields
+    if (search && search.trim()) {
+      const searchRegex = { $regex: search.trim(), $options: "i" };
+      
+      // First, find matching user IDs
+      const matchingUsers = await User.find({
+        $or: [
+          { fullName: searchRegex },
+          { username: searchRegex }
+        ]
+      }).select("_id");
+      
+      const userIds = matchingUsers.map(u => u._id);
+      
+      if (userIds.length > 0) {
+        filter.participants = { $in: userIds };
+      } else {
+        // No matching users, return empty
+        return NextResponse.json({
+          matches: [],
+          pagination: {
+            total: 0,
+            skip,
+            limit,
+            hasMore: false
+          }
+        });
+      }
+    }
+
+    // Execute query
     let query = IndividualMatch.find(filter)
       .populate("participants", "username fullName profileImage")
       .populate("scorer", "username fullName")
-      .populate("games.shots.player", "username fullName")
       .populate("tournament", "name format status")
-      .sort({ createdAt: -1 })
+      .sort(sortObject)
       .skip(skip);
 
-    // apply limit if provided
     if (limit > 0) {
       query = query.limit(limit);
     }

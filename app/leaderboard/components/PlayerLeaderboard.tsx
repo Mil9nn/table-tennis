@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { cn, getAvatarFallbackStyle } from "@/lib/utils";
 import type { PlayerStats, FormatSpecificStats } from "../types";
-import { LeaderboardEmpty, LeaderboardLoading, RankBadge, StreakBadge } from "./shared";
+import {
+  LeaderboardEmpty,
+  LeaderboardLoading,
+  RankBadge,
+  StreakBadge,
+} from "./shared";
 import { getDisplayName, getInitials } from "../utils";
 import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
@@ -21,7 +26,7 @@ interface PlayerLeaderboardProps {
   data: PlayerStats[];
   loading: boolean;
   emptyMessage: string;
-  matchType: "singles" | "doubles" | "mixed_doubles";
+  matchType: "singles" | "doubles" | "mixed_doubles" | "all";
   currentUserId?: string;
 }
 
@@ -39,52 +44,50 @@ const PlayerRow = ({
   onClick: () => void;
 }) => {
   const isRank1 = entry.rank === 1;
+  const isRank2or3 = entry.rank === 2 || entry.rank === 3;
 
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer transition-all duration-250"
+      className="group cursor-pointer transition-all duration-200 hover:shadow-sm"
       style={{
         backgroundColor: isCurrentUser
-          ? 'rgba(24, 195, 248, 0.08)'
+          ? "rgba(60, 110, 113, 0.05)"
           : isRank1
-          ? 'rgba(24, 195, 248, 0.04)'
-          : '#ffffff',
-        borderLeft: isCurrentUser
-          ? '0px solid #18c3f8'
-          : isRank1
-          ? '4px solid #18c3f8'
-          : entry.rank === 2 || entry.rank === 3
-          ? '4px solid #ccbcbc'
-          : '4px solid transparent',
-        paddingTop: '16px',
-        paddingBottom: '16px',
-        paddingLeft: '20px',
-        paddingRight: '20px',
+          ? "rgba(60, 110, 113, 0.03)"
+          : "#ffffff",
+        borderLeft: isRank1
+          ? "4px solid #3c6e71"
+          : isRank2or3
+          ? "4px solid #d9d9d9"
+          : "4px solid transparent",
+        paddingTop: "18px",
+        paddingBottom: "18px",
+        paddingLeft: "20px",
+        paddingRight: "20px",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderLeftColor = '#18c3f8';
-        e.currentTarget.style.backgroundColor = 'rgba(204, 188, 188, 0.03)';
-        e.currentTarget.style.transform = 'translateX(4px)';
+        e.currentTarget.style.borderLeftColor = "#3c6e71";
+        e.currentTarget.style.backgroundColor = "rgba(60, 110, 113, 0.02)";
       }}
       onMouseLeave={(e) => {
-        const originalBorderColor = isCurrentUser || isRank1
-          ? '#18c3f8'
-          : entry.rank === 2 || entry.rank === 3
-          ? '#ccbcbc'
-          : 'transparent';
+        const originalBorderColor =
+          isCurrentUser || isRank1
+            ? "#3c6e71"
+            : isRank2or3
+            ? "#d9d9d9"
+            : "transparent";
         const originalBgColor = isCurrentUser
-          ? 'rgba(24, 195, 248, 0.08)'
+          ? "rgba(60, 110, 113, 0.05)"
           : isRank1
-          ? 'rgba(24, 195, 248, 0.04)'
-          : '#ffffff';
+          ? "rgba(60, 110, 113, 0.03)"
+          : "#ffffff";
         e.currentTarget.style.borderLeftColor = originalBorderColor;
         e.currentTarget.style.backgroundColor = originalBgColor;
-        e.currentTarget.style.transform = 'translateX(0)';
       }}
     >
       <div className="flex items-center gap-4">
-        <RankBadge rank={entry.rank} variant="list" />
+        <RankBadge rank={entry.rank} />
 
         <Link
           href={`/profile/${entry.player._id}`}
@@ -92,24 +95,27 @@ const PlayerRow = ({
         >
           <Avatar
             className="h-12 w-12 transition-all"
-            style={{
-              borderWidth: isTopThree
-                ? (isRank1 ? '2.5px' : '1.5px')
-                : '0px',
-              borderColor: isTopThree
-                ? (isRank1 ? '#18c3f8' : '#ccbcbc')
-                : 'transparent',
-            }}
+            style={
+              isTopThree
+                ? {
+                    borderWidth: isRank1 ? "2.5px" : "1.5px",
+                    borderColor: isRank1 ? "#3c6e71" : "#d9d9d9",
+                    borderStyle: "solid",
+                  }
+                : {}
+            }
             onMouseEnter={(e) => {
               if (isTopThree) {
-                e.currentTarget.style.borderWidth = '2px';
-                e.currentTarget.style.borderColor = '#18c3f8';
+                e.currentTarget.style.borderWidth = "2px";
+                e.currentTarget.style.borderColor = "#3c6e71";
               }
             }}
             onMouseLeave={(e) => {
               if (isTopThree) {
-                e.currentTarget.style.borderWidth = isRank1 ? '2.5px' : '1.5px';
-                e.currentTarget.style.borderColor = isRank1 ? '#18c3f8' : '#ccbcbc';
+                e.currentTarget.style.borderWidth = isRank1 ? "2.5px" : "1.5px";
+                e.currentTarget.style.borderColor = isRank1
+                  ? "#3c6e71"
+                  : "#d9d9d9";
               }
             }}
           >
@@ -122,41 +128,44 @@ const PlayerRow = ({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-[0.9375rem]" style={{ color: '#323139' }}>
+            <p className="font-semibold text-sm text-[#353535]">
               {getDisplayName(entry.player)}
             </p>
-            {isCurrentUser && (
-              <Badge
-                className="text-xs font-semibold px-2 py-0.5"
-                style={{
-                  backgroundColor: 'rgba(24, 195, 248, 0.15)',
-                  color: '#18c3f8',
-                  border: '1px solid rgba(24, 195, 248, 0.3)',
-                }}
-              >
-                You
-              </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-xs mt-1">
+            <div className="flex items-center gap-1 text-[#353535]">
+              <strong className="font-semibold">{entry.stats.wins}</strong>
+              <span className="text-[#a8a8a8] font-medium"> wins</span>
+            </div>
+            <span style={{ color: "#d9d9d9" }}>•</span>
+            <div className="flex items-center gap-1 text-[#353535]">
+              <strong className="font-semibold">{entry.stats.losses}</strong>
+              <span className="text-[#a8a8a8] font-medium"> losses</span>
+            </div>
+            {entry.stats.currentStreak !== 0 && (
+              <>
+                <StreakBadge streak={entry.stats.currentStreak} />
+              </>
             )}
           </div>
-          <div className="flex items-center gap-3 text-[0.75rem] mt-1">
-            <span style={{ color: '#323139' }}>
-              <strong className="lb-font-mono">{entry.stats.wins}</strong> wins
-            </span>
-            <span style={{ color: 'rgba(50, 49, 57, 0.7)' }}>
-              <strong className="lb-font-mono">{entry.stats.losses}</strong> losses
-            </span>
-            {entry.stats.currentStreak !== 0 && (
-              <StreakBadge streak={entry.stats.currentStreak} />
-            )}
+          <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-1 text-[#353535]">
+              <strong className="font-semibold">{entry.stats.setsWon}</strong>
+              <span className="text-[#a8a8a8] font-medium"> sets won</span>
+            </div>
+            <span style={{ color: "#d9d9d9" }}>•</span>
+            <div className="flex items-center gap-1 text-[#353535]">
+              <strong className="font-semibold">{entry.stats.setsLost}</strong>
+              <span className="text-[#a8a8a8] font-medium"> sets lost</span>
+            </div>
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="text-xs" style={{ color: '#ccbcbc' }}>Win Rate</div>
-          <div
-            className="text-lg font-bold lb-font-mono"
-            style={{ color: '#18c3f8' }}
-          >
+        <div className="text-right min-w-fit">
+          <div className="text-xs font-medium text-[#6c6868] uppercase tracking-wider mb-1">
+            Win Rate
+          </div>
+          <div className="text-sm font-bold" style={{ color: "#3c6e71" }}>
             {entry.stats.winRate}%
           </div>
         </div>
@@ -171,7 +180,7 @@ const PlayerStatsModal = ({
   onClose,
 }: {
   player: PlayerStats | null;
-  matchType: "singles" | "doubles" | "mixed_doubles";
+  matchType: "singles" | "doubles" | "mixed_doubles" | "all";
   onClose: () => void;
 }) => {
   const [detailedStats, setDetailedStats] =
@@ -188,8 +197,10 @@ const PlayerStatsModal = ({
     const fetchDetailedStats = async () => {
       setLoading(true);
       try {
+        // If matchType is "all", default to "singles" for the stats API
+        const typeParam = matchType === "all" ? "singles" : matchType;
         const { data } = await axiosInstance.get(
-          `/leaderboard/player/${player.player._id}/stats?type=${matchType}`
+          `/leaderboard/player/${player.player._id}/stats?type=${typeParam}`
         );
         setDetailedStats(data.stats);
       } catch (error) {
@@ -213,6 +224,7 @@ const PlayerStatsModal = ({
   const pointsAgainst = detailedStats?.points.totalConceded ?? 0;
   const pointsDiff = detailedStats?.points.differential ?? 0;
   const gameDiff = stats.wins - stats.losses;
+  const setDiff = stats.setsWon - stats.setsLost;
 
   // Calculate additional stats if available
   const avgPointsPerGame = detailedStats
@@ -228,31 +240,33 @@ const PlayerStatsModal = ({
   return (
     <Dialog open={!!player} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-y-auto leaderboard-modal-content lb-font-primary"
+        className="max-w-3xl max-h-[90vh] overflow-y-auto leaderboard-modal-content"
         style={{
-          backgroundColor: '#ffffff',
-          border: '2px solid rgba(204, 188, 188, 0.2)',
-          borderRadius: '24px',
-          boxShadow: '0 24px 48px rgba(50, 49, 57, 0.2)'
+          backgroundColor: "#ffffff",
+          border: "1px solid #d9d9d9",
+          borderRadius: "12px",
+          boxShadow: "0 20px 50px rgba(53, 53, 53, 0.15)",
         }}
       >
         {/* Header Section */}
         <DialogHeader
           className="pb-6"
           style={{
-            background: 'linear-gradient(to bottom, #ffffff, rgba(204, 188, 188, 0.05))',
-            borderBottom: '1px solid rgba(204, 188, 188, 0.2)',
-            marginBottom: '20px'
+            background:
+              "linear-gradient(to bottom, #ffffff, rgba(217, 217, 217, 0.03))",
+            borderBottom: "1px solid #d9d9d9",
+            marginBottom: "20px",
           }}
         >
           <div className="flex items-center gap-6 justify-between">
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar
-                  className="h-20 w-20 shadow-lg"
+                  className="h-20 w-20 shadow-sm ring-2 ring-offset-2"
                   style={{
-                    borderWidth: '3px',
-                    borderColor: '#18c3f8'
+                    borderWidth: "2px",
+                    borderColor: "#3c6e71",
+                    backgroundColor: "#284b63",
                   }}
                 >
                   <AvatarImage
@@ -260,33 +274,28 @@ const PlayerStatsModal = ({
                     alt={getDisplayName(player.player)}
                   />
                   <AvatarFallback
-                    className="text-xl font-bold"
+                    className="text-xl font-bold text-white"
                     style={getAvatarFallbackStyle(player.player._id)}
                   >
                     {getInitials(getDisplayName(player.player))}
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className="absolute bottom-0 -right-1 flex items-center justify-center rounded-full px-2 py-1 shadow-md"
-                  style={{ backgroundColor: '#18c3f8' }}
+                  className="absolute bottom-0 -right-1 flex items-center justify-center rounded-full px-2.5 py-1.5 shadow-md font-bold"
+                  style={{ backgroundColor: "#3c6e71", color: "#ffffff" }}
                 >
-                  <span className="text-xs font-bold" style={{ color: '#ffffff' }}>
-                    #{player.rank}
-                  </span>
+                  <span className="text-xs">#{player.rank}</span>
                 </div>
               </div>
 
               <div className="flex-1">
                 <DialogTitle
-                  className="text-xl font-bold mb-1"
-                  style={{ color: '#323139' }}
+                  className="text-2xl font-bold mb-1"
+                  style={{ color: "#353535" }}
                 >
                   {getDisplayName(player.player)}
                 </DialogTitle>
-                <p
-                  className="text-sm"
-                  style={{ color: '#ccbcbc' }}
-                >
+                <p className="text-sm" style={{ color: "#d9d9d9" }}>
                   @{player.player.username}
                 </p>
               </div>
@@ -294,172 +303,20 @@ const PlayerStatsModal = ({
 
             <div className="flex flex-col items-end gap-1">
               <div
-                className="text-xs uppercase tracking-wider"
-                style={{ color: '#ccbcbc' }}
+                className="text-xs uppercase tracking-wider font-semibold"
+                style={{ color: "#d9d9d9" }}
               >
                 Win Rate
               </div>
-              <div
-                className="text-2xl font-bold lb-font-mono"
-                style={{ color: '#18c3f8' }}
-              >
+              <div className="text-xl font-bold" style={{ color: "#3c6e71" }}>
                 {stats.winRate}%
               </div>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 py-4">
-          {/* Performance Overview */}
-          <div>
-            <h3
-              className="text-xs font-semibold uppercase tracking-wider mb-4"
-              style={{ color: '#ccbcbc' }}
-            >
-              Performance Overview
-            </h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div
-                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid rgba(204, 188, 188, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-xl font-bold lb-font-mono"
-                    style={{ color: '#323139' }}
-                  >
-                    {stats.wins}
-                  </span>
-                  <span
-                    className="text-xs uppercase"
-                    style={{ color: '#ccbcbc' }}
-                  >
-                    wins
-                  </span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      backgroundColor: '#18c3f8',
-                      width: totalGames > 0 ? `${(stats.wins / totalGames) * 100}%` : "0%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid rgba(204, 188, 188, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-xl font-bold lb-font-mono"
-                    style={{ color: '#323139' }}
-                  >
-                    {stats.losses}
-                  </span>
-                  <span
-                    className="text-xs uppercase"
-                    style={{ color: '#ccbcbc' }}
-                  >
-                    losses
-                  </span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      backgroundColor: '#ef4444',
-                      width: totalGames > 0 ? `${(stats.losses / totalGames) * 100}%` : "0%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl p-5 shadow-sm transition-all duration-250 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid rgba(204, 188, 188, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(24, 195, 248, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(204, 188, 188, 0.25)';
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-xl font-bold lb-font-mono"
-                    style={{ color: '#323139' }}
-                  >
-                    {totalGames}
-                  </span>
-                  <span
-                    className="text-xs uppercase"
-                    style={{ color: '#ccbcbc' }}
-                  >
-                    total
-                  </span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(204, 188, 188, 0.1)' }}>
-                  <div
-                    className="h-full rounded-full w-full"
-                    style={{ backgroundColor: '#ccbcbc' }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Game Statistics */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Game Statistics
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500 font-medium">
-                    Game Differential
-                  </span>
-                  <span
-                    className={cn(
-                      "text-lg font-bold",
-                      gameDiff > 0
-                        ? "text-emerald-600"
-                        : gameDiff < 0
-                        ? "text-rose-600"
-                        : "text-slate-600"
-                    )}
-                  >
-                    {gameDiff > 0 ? "+" : ""}
-                    {gameDiff}
-                  </span>
-                </div>
-              </div>
-
-              {stats.currentStreak !== 0 && (
+        <div className="space-y-6 py-4">
+        {stats.currentStreak !== 0 && (
                 <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-500 font-medium">
@@ -490,6 +347,200 @@ const PlayerStatsModal = ({
                   </div>
                 </div>
               )}
+          {/* Performance Overview */}
+          <div>
+            <h3
+              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              style={{ color: "#d9d9d9" }}
+            >
+              Overview
+            </h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div
+                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#3c6e71";
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(60, 110, 113, 0.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#d9d9d9";
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: "#3c6e71" }}
+                  >
+                    {stats.wins}
+                  </span>
+                  <span
+                    className="text-xs uppercase font-medium"
+                    style={{ color: "#d9d9d9" }}
+                  >
+                    wins
+                  </span>
+                </div>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: "rgba(60, 110, 113, 0.1)" }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      backgroundColor: "#3c6e71",
+                      width:
+                        totalGames > 0
+                          ? `${(stats.wins / totalGames) * 100}%`
+                          : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#e74c3c";
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(231, 76, 60, 0.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#d9d9d9";
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: "#e74c3c" }}
+                  >
+                    {stats.losses}
+                  </span>
+                  <span
+                    className="text-xs uppercase font-medium"
+                    style={{ color: "#d9d9d9" }}
+                  >
+                    losses
+                  </span>
+                </div>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: "rgba(231, 76, 60, 0.1)" }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      backgroundColor: "#e74c3c",
+                      width:
+                        totalGames > 0
+                          ? `${(stats.losses / totalGames) * 100}%`
+                          : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #d9d9d9",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#284b63";
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(40, 75, 99, 0.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#d9d9d9";
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                }}
+              >
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: "#284b63" }}
+                  >
+                    {totalGames}
+                  </span>
+                  <span
+                    className="text-xs uppercase font-medium"
+                    style={{ color: "#d9d9d9" }}
+                  >
+                    total
+                  </span>
+                </div>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: "rgba(40, 75, 99, 0.1)" }}
+                >
+                  <div
+                    className="h-full rounded-full w-full"
+                    style={{ backgroundColor: "#284b63" }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Set Statistics */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              Set Statistics
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-medium mb-1">
+                    Sets Won
+                  </span>
+                  <span className="text-lg font-bold text-slate-900">
+                    {stats.setsWon}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-medium mb-1">
+                    Sets Lost
+                  </span>
+                  <span className="text-lg font-bold text-slate-900">
+                    {stats.setsLost}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-medium mb-1">
+                    Set Differential
+                  </span>
+                  <span
+                    className={cn(
+                      "text-lg font-bold",
+                      setDiff > 0
+                        ? "text-emerald-600"
+                        : setDiff < 0
+                        ? "text-rose-600"
+                        : "text-slate-600"
+                    )}
+                  >
+                    {setDiff > 0 ? "+" : ""}
+                    {setDiff}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -612,7 +663,7 @@ const PlayerStatsModal = ({
           {/* {detailedStats && detailedStats.recentMatches.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Recent {matchType === 'singles' ? 'Singles' : matchType === 'doubles' ? 'Doubles' : 'Mixed'} Matches
+                Recent {matchType === 'singles' ? 'Singles' : matchType === 'doubles' ? 'Doubles' : matchType === 'mixed_doubles' ? 'Mixed' : 'Individual'} Matches
               </h3>
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="divide-y divide-slate-200">
@@ -677,18 +728,20 @@ export function PlayerLeaderboard({
   const others = data.slice(3);
 
   return (
-    <div className="lb-font-primary">
+    <div>
       {/* CURRENT USER ROW - shown at top if user is not in top 3 */}
       {currentUserEntry && currentUserEntry.rank > 3 && (
         <>
           <div
-            className=""
             style={{
-              backgroundColor: 'rgba(24, 195, 248, 0.05)',
-              border: '2px solid rgba(24, 195, 248, 0.2)',
+              backgroundColor: "rgba(60, 110, 113, 0.05)",
+              border: "1px solid rgba(60, 110, 113, 0.15)",
             }}
           >
-            <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+            <div
+              className="divide-y"
+              style={{ borderColor: "rgba(217, 217, 217, 0.5)" }}
+            >
               <PlayerRow
                 entry={currentUserEntry}
                 isTopThree={false}
@@ -700,14 +753,18 @@ export function PlayerLeaderboard({
           <div
             className="h-px"
             style={{
-              background: 'linear-gradient(to right, transparent, rgba(204, 188, 188, 0.3), transparent)',
+              background:
+                "linear-gradient(to right, transparent, rgba(217, 217, 217, 0.4), transparent)",
             }}
           />
         </>
       )}
 
-      {/* TOP 3 — same structure as others, different styling */}
-      <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+      {/* TOP 3 — enhanced styling */}
+      <div
+        className="divide-y"
+        style={{ borderColor: "rgba(217, 217, 217, 0.6)" }}
+      >
         {topThree.map((entry) => {
           const isCurrentUser = currentUserId === entry.player._id;
           const isTopThree = entry.rank <= 3;
@@ -725,7 +782,10 @@ export function PlayerLeaderboard({
       </div>
 
       {/* OTHERS — list style */}
-      <div className="divide-y" style={{ borderColor: 'rgba(204, 188, 188, 0.15)' }}>
+      <div
+        className="divide-y"
+        style={{ borderColor: "rgba(217, 217, 217, 0.6)" }}
+      >
         {others.map((entry) => {
           const isCurrentUser = currentUserId === entry.player._id;
           return (

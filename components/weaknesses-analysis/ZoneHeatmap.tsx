@@ -1,9 +1,6 @@
-// components/weaknesses-analysis/ZoneHeatmap.tsx
-
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ZoneWeaknessData } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
 
@@ -12,293 +9,384 @@ interface ZoneHeatmapProps {
 }
 
 export function ZoneHeatmap({ zoneData }: ZoneHeatmapProps) {
-  const [hoveredZone, setHoveredZone] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredZone, setHoveredZone] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // Table dimensions in SVG units
-  const TABLE_X = 182.67;
-  const TABLE_Y = 101.67;
-  const TABLE_WIDTH = 182.67;
-  const TABLE_HEIGHT = 101.67;
+  /* -------------------------------
+     Geometry (Table = SVG Canvas)
+  -------------------------------- */
+  const TABLE_WIDTH = 1000;
+  const TABLE_HEIGHT = 560;
 
-  // Grid cell size
-  const CELL_WIDTH = TABLE_WIDTH / 10;
-  const CELL_HEIGHT = TABLE_HEIGHT / 10;
+  // Fine-grained grid aligned with zone-sector boundaries
+  const GRID_COLS = 20; // 20 columns, 5% each
+  const GRID_ROWS = 9;  // 9 rows, ~11.11% each
 
-  // Get color based on win rate
-  const getWinRateColor = (winRate: number, totalShots: number): string => {
-    if (totalShots === 0) return "rgba(156, 163, 175, 0.2)"; // Gray for no data
+  const CELL_WIDTH = TABLE_WIDTH / GRID_COLS;
+  const CELL_HEIGHT = TABLE_HEIGHT / GRID_ROWS;
 
-    // Calculate relative thresholds based on average win rate for better sensitivity
-    const allWinRates = zoneData.heatmapGrid
-      .flat()
-      .filter((cell) => cell.totalShots > 0)
-      .map((cell) => cell.winRate);
-    
-    const avgWinRate = allWinRates.length > 0
-      ? allWinRates.reduce((a, b) => a + b, 0) / allWinRates.length
-      : 50;
-    
-    // Use relative thresholds: zones below average are more vulnerable
-    // Red: significantly below average (< avg - 10%)
-    // Orange: below average (< avg - 5%)
-    // Yellow: slightly below average (< avg)
-    // Light green: above average (>= avg)
-    // Strong green: significantly above average (>= avg + 10%)
-    if (winRate >= avgWinRate + 10) return "rgba(34, 197, 94, 0.7)"; // Strong green
-    if (winRate >= avgWinRate) return "rgba(132, 204, 22, 0.6)"; // Light green
-    if (winRate >= avgWinRate - 5) return "rgba(250, 204, 21, 0.6)"; // Yellow
-    if (winRate >= avgWinRate - 10) return "rgba(249, 115, 22, 0.7)"; // Orange
-    return "rgba(239, 68, 68, 0.8)"; // Red
+  /* -------------------------------
+     Color Logic (Based on Vulnerability)
+  -------------------------------- */
+  const getZoneColor = (
+    vulnerability: "high" | "medium" | "low" | undefined,
+    totalShots: number
+  ): string => {
+    if (totalShots === 0) return "rgba(148, 163, 184, 0.25)";
+
+    // Use vulnerability field for coloring (calculated using standard deviation)
+    if (vulnerability === "high") return "rgba(239, 68, 68, 0.85)"; // Red - weak zone
+    if (vulnerability === "medium") return "rgba(250, 204, 21, 0.7)"; // Yellow - average
+    return "rgba(34, 197, 94, 0.8)"; // Green - strong zone
   };
 
-  // Get zone color based on win rate
-  const getZoneColor = (cell: any): string => {
-    return getWinRateColor(cell.winRate, cell.totalShots);
+  const hoveredCell =
+    hoveredZone &&
+    zoneData.heatmapGrid[hoveredZone.y]?.[hoveredZone.x];
+
+  /* -------------------------------
+     Tooltip Position (% based)
+  -------------------------------- */
+  const tooltipLeft = hoveredZone
+    ? ((hoveredZone.x + 0.5) / GRID_COLS) * 100
+    : 0;
+
+  const tooltipTopRaw = hoveredZone
+    ? ((hoveredZone.y + 0.5) / GRID_ROWS) * 100
+    : 0;
+
+  const tooltipTop = Math.min(
+    Math.max(tooltipTopRaw, 10),
+    90
+  );
+
+  const isRightSide = tooltipLeft > 65;
+
+  const tooltipStyle: React.CSSProperties = {
+    left: isRightSide ? "auto" : `${tooltipLeft}%`,
+    right: isRightSide ? `${100 - tooltipLeft}%` : "auto",
+    top: `${tooltipTop}%`,
+    transform: isRightSide
+      ? "translate(-12px, -50%)"
+      : "translate(12px, -50%)",
   };
 
-  // Get hovered cell data
-  const hoveredCell = hoveredZone
-    ? zoneData.heatmapGrid[hoveredZone.y]?.[hoveredZone.x]
-    : null;
+  /* -------------------------------
+     Zone/Sector Name Helpers
+  -------------------------------- */
+  const getZoneName = (x: number): string => {
+    // 20 columns: 0-4=Left Deep, 5-7=Left Mid, 8-9=Left Short, 
+    //            10-11=Right Short, 12-14=Right Mid, 15-19=Right Deep
+    if (x <= 4) return "Left Deep";
+    if (x <= 7) return "Left Mid";
+    if (x <= 9) return "Left Short";
+    if (x <= 11) return "Right Short";
+    if (x <= 14) return "Right Mid";
+    return "Right Deep";
+  };
+
+  const getSectorName = (y: number): string => {
+    // 9 rows: 0-2=Backhand, 3-5=Crossover, 6-8=Forehand
+    if (y <= 2) return "Backhand";
+    if (y <= 5) return "Crossover";
+    return "Forehand";
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Zone Vulnerability Heatmap</CardTitle>
-        <p className="text-xs text-gray-500">
-          Hover over zones to see detailed stats. Colors show performance in that zone relative to your average performance across all zones (Red = below average, Green = above average)
+    <div className="border border-[#d9d9d9] bg-white p-4">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-[#353535]">
+          Zone-Sector Analysis
+        </h3>
+        <p className="text-xs text-[#d9d9d9]">
+          Zone vulnerability heatmap divided by zones and sectors. Red indicates vulnerability; green indicates strength.
         </p>
-      </CardHeader>
-      <CardContent>
-        {/* SVG Heatmap */}
-        <div className="relative">
-          <svg viewBox="0 0 548 305" className="w-full h-auto" style={{ maxHeight: "500px" }}>
-            {/* Background */}
-            <rect x="0" y="0" width="548" height="305" fill="#000" rx="8" />
+      </div>
 
-            {/* Table surface */}
+      <div>
+        {/* Responsive SVG Container */}
+        <div className="relative w-full aspect-video max-h-[80vh]">
+          <svg
+            viewBox={`0 0 ${TABLE_WIDTH} ${TABLE_HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-full"
+          >
+            {/* Table Surface */}
             <rect
-              x={TABLE_X}
-              y={TABLE_Y}
+              x={0}
+              y={0}
               width={TABLE_WIDTH}
               height={TABLE_HEIGHT}
               fill="#1E40AF"
-              stroke="#1E3A8A"
-              strokeWidth="2"
-              opacity="0.3"
-            />
-
-            {/* Center line */}
-            <line
-              x1={TABLE_X + TABLE_WIDTH / 2}
-              y1={TABLE_Y}
-              x2={TABLE_X + TABLE_WIDTH / 2}
-              y2={TABLE_Y + TABLE_HEIGHT}
               stroke="#ffffff"
-              strokeWidth="1"
-              opacity="0.4"
+              strokeWidth={6}
             />
 
-            {/* Grid cells */}
+            {/* Center Line */}
+            <line
+              x1={TABLE_WIDTH / 2}
+              y1={0}
+              x2={TABLE_WIDTH / 2}
+              y2={TABLE_HEIGHT}
+              stroke="#ffffff"
+              strokeWidth={3}
+              opacity={0.6}
+            />
+
+            {/* Net (solid black) */}
+            <line
+              x1={TABLE_WIDTH / 2}
+              y1={0}
+              x2={TABLE_WIDTH / 2}
+              y2={TABLE_HEIGHT}
+              stroke="#000000"
+              strokeWidth={4}
+              opacity={1}
+            />
+
+            {/* Sector dividing lines (horizontal) - Backhand, Crossover, Forehand */}
+            <line
+              x1={0}
+              y1={TABLE_HEIGHT * 0.3333}
+              x2={TABLE_WIDTH}
+              y2={TABLE_HEIGHT * 0.3333}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+            <line
+              x1={0}
+              y1={TABLE_HEIGHT * 0.6667}
+              x2={TABLE_WIDTH}
+              y2={TABLE_HEIGHT * 0.6667}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+
+            {/* Zone dividing lines (vertical) - Deep, Mid, Short on each side */}
+            {/* Left side divisions */}
+            <line
+              x1={TABLE_WIDTH * 0.25}
+              y1={0}
+              x2={TABLE_WIDTH * 0.25}
+              y2={TABLE_HEIGHT}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+            <line
+              x1={TABLE_WIDTH * 0.40}
+              y1={0}
+              x2={TABLE_WIDTH * 0.40}
+              y2={TABLE_HEIGHT}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+            {/* Right side divisions */}
+            <line
+              x1={TABLE_WIDTH * 0.60}
+              y1={0}
+              x2={TABLE_WIDTH * 0.60}
+              y2={TABLE_HEIGHT}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+            <line
+              x1={TABLE_WIDTH * 0.75}
+              y1={0}
+              x2={TABLE_WIDTH * 0.75}
+              y2={TABLE_HEIGHT}
+              stroke="#ffffff"
+              strokeWidth={2}
+              opacity={0.4}
+            />
+
+            {/* Heatmap Cells */}
             {zoneData.heatmapGrid.map((row, y) =>
               row.map((cell, x) => {
-                const cellX = TABLE_X + x * CELL_WIDTH;
-                const cellY = TABLE_Y + y * CELL_HEIGHT;
-                const isHovered = hoveredZone?.x === x && hoveredZone?.y === y;
+                const isHovered =
+                  hoveredZone?.x === x &&
+                  hoveredZone?.y === y;
 
                 return (
                   <g key={`${x}-${y}`}>
                     <rect
-                      x={cellX}
-                      y={cellY}
+                      x={x * CELL_WIDTH}
+                      y={y * CELL_HEIGHT}
                       width={CELL_WIDTH}
                       height={CELL_HEIGHT}
-                      fill={getZoneColor(cell)}
-                      stroke={isHovered ? "#ffffff" : "#1E3A8A"}
-                      strokeWidth={isHovered ? "2" : "0.5"}
-                      opacity={isHovered ? "1" : "0.85"}
-                      onMouseEnter={() => setHoveredZone({ x, y })}
-                      onMouseLeave={() => setHoveredZone(null)}
-                      style={{ cursor: cell.totalShots > 0 ? "pointer" : "default" }}
+                      fill={getZoneColor(
+                        cell.vulnerability,
+                        cell.totalShots
+                      )}
+                      stroke={
+                        isHovered
+                          ? "#ffffff"
+                          : "rgba(255,255,255,0.25)"
+                      }
+                      strokeWidth={isHovered ? 4 : 1}
+                      opacity={
+                        cell.totalShots === 0 ? 0.3 : 0.9
+                      }
+                      vectorEffect="non-scaling-stroke"
+                      onMouseEnter={() =>
+                        setHoveredZone({ x, y })
+                      }
+                      onMouseLeave={() =>
+                        setHoveredZone(null)
+                      }
+                      style={{
+                        cursor:
+                          cell.totalShots > 0
+                            ? "pointer"
+                            : "default",
+                      }}
                     />
 
-                    {/* Shot count label for cells with data */}
+                    {/* Shot Count */}
                     {cell.totalShots > 0 && (
                       <text
-                        x={cellX + CELL_WIDTH / 2}
-                        y={cellY + CELL_HEIGHT / 2}
+                        x={
+                          x * CELL_WIDTH +
+                          CELL_WIDTH / 2
+                        }
+                        y={
+                          y * CELL_HEIGHT +
+                          CELL_HEIGHT / 2
+                        }
                         fill="#ffffff"
-                        fontSize="8"
+                        fontSize={CELL_WIDTH * 0.35}
                         textAnchor="middle"
                         dominantBaseline="middle"
+                        fontWeight="600"
+                        opacity={0.85}
                         pointerEvents="none"
-                        fontWeight="bold"
-                        opacity="0.7"
                       >
                         {cell.totalShots}
                       </text>
                     )}
-                    {/* Indicator for insufficient data */}
-                    {cell.totalShots > 0 && cell.totalShots < 3 && (
-                      <text
-                        x={cellX + CELL_WIDTH / 2}
-                        y={cellY + CELL_HEIGHT / 2 + 10}
-                        fill="#ffffff"
-                        fontSize="6"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        pointerEvents="none"
-                        opacity="0.5"
-                      >
-                        *
-                      </text>
-                    )}
+
+                    {/* Insufficient Data Indicator */}
+                    {cell.totalShots > 0 &&
+                      cell.totalShots < 3 && (
+                        <text
+                          x={
+                            x * CELL_WIDTH +
+                            CELL_WIDTH / 2
+                          }
+                          y={
+                            y * CELL_HEIGHT +
+                            CELL_HEIGHT / 2 +
+                            CELL_HEIGHT * 0.25
+                          }
+                          fill="#ffffff"
+                          fontSize={CELL_WIDTH * 0.25}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          opacity={0.6}
+                          pointerEvents="none"
+                        >
+                          *
+                        </text>
+                      )}
                   </g>
                 );
               })
             )}
-
-            {/* Table borders */}
-            <rect
-              x={TABLE_X}
-              y={TABLE_Y}
-              width={TABLE_WIDTH}
-              height={TABLE_HEIGHT}
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2"
-            />
           </svg>
 
-          {/* Tooltip for hovered cell */}
+          {/* Tooltip */}
           {hoveredCell && hoveredCell.totalShots > 0 && (
-            <div className="absolute top-4 right-4 bg-white border-2 border-gray-300 rounded-lg shadow-lg p-3 z-10 max-w-xs">
-              <p className="font-semibold text-sm mb-2">
-                Zone ({hoveredZone!.x}, {hoveredZone!.y})
+            <div
+              className="absolute z-20 bg-white border border-[#d9d9d9] p-3 text-xs w-64 max-w-[90vw]"
+              style={tooltipStyle}
+            >
+              <p className="font-semibold mb-2 text-[#353535]">
+                {getSectorName(hoveredZone!.y)} - {getZoneName(hoveredZone!.x)}
               </p>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Total Shots:</span>
-                  <span className="font-semibold">
+
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-[#d9d9d9]">
+                    Point-Ending Shots
+                  </span>
+                  <span className="font-semibold text-[#353535]">
                     {hoveredCell.totalShots}
-                    {hoveredCell.totalShots < 3 && (
-                      <span className="text-gray-400 text-xs ml-1">(insufficient data)</span>
-                    )}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Win Rate:</span>
-                  <span
-                    className={`font-semibold ${
-                      hoveredCell.winRate >= 55
-                        ? "text-green-600"
-                        : hoveredCell.winRate >= 45
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[#d9d9d9]">
+                    Your Points Won
+                  </span>
+                  <span className="font-semibold text-green-600">
+                    {hoveredCell.wins}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[#d9d9d9]">
+                    Opponent Points Won
+                  </span>
+                  <span className="font-semibold text-red-600">
+                    {hoveredCell.losses}
+                  </span>
+                </div>
+
+                <div className="flex justify-between pt-1 border-t border-[#d9d9d9]/30">
+                  <span className="text-[#d9d9d9]">
+                    Your Success Rate
+                  </span>
+                  <span className="font-semibold text-[#353535]">
                     {hoveredCell.winRate.toFixed(1)}%
                   </span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Wins/Losses:</span>
-                  <span className="font-semibold">
-                    {hoveredCell.wins}/{hoveredCell.losses}
-                  </span>
-                </div>
+
                 {hoveredCell.dominantStroke && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-600">Dominant Shot:</span>
-                    <span className="font-semibold">
-                      {formatStrokeName(hoveredCell.dominantStroke)}
+                  <div className="flex justify-between">
+                    <span className="text-[#d9d9d9]">
+                      Most Used Shot
+                    </span>
+                    <span className="font-semibold text-[#353535]">
+                      {formatStrokeName(
+                        hoveredCell.dominantStroke
+                      )}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Vulnerability:</span>
+
+                <div className="flex justify-between pt-1 border-t border-[#d9d9d9]/30">
+                  <span className="text-[#d9d9d9]">
+                    Zone Strength
+                  </span>
                   <span
-                    className={`font-semibold ${
-                      hoveredCell.vulnerability === "high"
-                        ? "text-red-600"
-                        : hoveredCell.vulnerability === "medium"
-                        ? "text-yellow-600"
-                        : "text-green-600"
+                    className={`font-semibold text-xs px-2 py-0.5 rounded ${
+                      hoveredCell.vulnerability ===
+                      "high"
+                        ? "bg-red-100 text-red-700"
+                        : hoveredCell.vulnerability ===
+                          "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-green-100 text-green-700"
                     }`}
                   >
-                    {hoveredCell.vulnerability.toUpperCase()}
+                    {hoveredCell.vulnerability === "high" 
+                      ? "Weak Zone" 
+                      : hoveredCell.vulnerability === "medium"
+                      ? "Average"
+                      : "Strong Zone"}
                   </span>
                 </div>
               </div>
             </div>
           )}
         </div>
-
-        {/* Legend */}
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-gray-700">Color Legend:</span>
-            <span className="text-gray-500">Win Rate</span>
-          </div>
-
-          {(() => {
-            const allWinRates = zoneData.heatmapGrid
-              .flat()
-              .filter((cell) => cell.totalShots > 0)
-              .map((cell) => cell.winRate);
-            const avgWinRate = allWinRates.length > 0
-              ? allWinRates.reduce((a, b) => a + b, 0) / allWinRates.length
-              : 50;
-            
-            return (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-gray-600 font-medium">
-                  Your average win rate across zones: <span className="font-semibold text-blue-600">{avgWinRate.toFixed(1)}%</span>
-                </p>
-                <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-lime-500 to-green-500"></div>
-                <div className="flex items-center gap-3 text-xs flex-wrap">
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-red-500 opacity-80"></div>
-                    <span className="text-gray-600">Very Weak (&lt; avg - 10%)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-orange-500 opacity-70"></div>
-                    <span className="text-gray-600">Weak (avg - 10% to -5%)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-60"></div>
-                    <span className="text-gray-600">Below Average (avg - 5% to avg)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-lime-500 opacity-60"></div>
-                    <span className="text-gray-600">Above Average (avg to avg + 10%)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-green-500 opacity-70"></div>
-                    <span className="text-gray-600">Very Strong (&gt;= avg + 10%)</span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  * Zones with fewer than 3 shots are marked as neutral (insufficient data)
-                </p>
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Vulnerable Zones Summary */}
-        {zoneData.vulnerableZones.length > 0 && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="font-semibold text-sm text-red-900 mb-2">Top Vulnerable Zones:</p>
-            <ul className="space-y-1 text-xs text-red-800">
-              {zoneData.vulnerableZones.map((zone, idx) => (
-                <li key={idx}>
-                  • {zone.zone} - {zone.lossRate.toFixed(0)}% loss rate
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

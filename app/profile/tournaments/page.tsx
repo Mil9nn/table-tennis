@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import {
-  ArrowLeft,
   Trophy,
   Award,
   Medal,
   Target,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +20,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Legend,
 } from "recharts";
+import { EmptyState } from "../components/EmptyState";
 
 const TournamentsPage = () => {
   const router = useRouter();
@@ -58,12 +60,12 @@ const TournamentsPage = () => {
   const winRate =
     overview.totalTournaments > 0
       ? ((overview.tournamentWins / overview.totalTournaments) * 100).toFixed(1)
-      : 0;
+      : "0";
 
   const finalsRate =
     overview.totalTournaments > 0
       ? ((overview.finalsReached / overview.totalTournaments) * 100).toFixed(1)
-      : 0;
+      : "0";
 
   // Recent tournaments data
   const recentTournaments = tournamentStats?.recent || [];
@@ -94,15 +96,15 @@ const TournamentsPage = () => {
   const getPlacementBadge = (placement: string) => {
     const placementLower = placement?.toLowerCase() || "";
     if (placementLower.includes("1st") || placementLower.includes("winner")) {
-      return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      return "bg-[#fef3c7] text-[#92400e] border border-[#fcd34d]";
     }
     if (placementLower.includes("2nd") || placementLower.includes("runner")) {
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-[#f3f4f6] text-[#374151] border border-[#d1d5db]";
     }
     if (placementLower.includes("3rd") || placementLower.includes("semi")) {
-      return "bg-orange-100 text-orange-700 border-orange-200";
+      return "bg-[#fed7aa] text-[#92400e] border border-[#fdba74]";
     }
-    return "bg-blue-100 text-blue-700 border-blue-200";
+    return "bg-[#e0f2fe] text-[#0c4a6e] border border-[#7dd3fc]";
   };
 
   const formatDate = (dateString: string) => {
@@ -118,116 +120,90 @@ const TournamentsPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Profile</span>
-        </button>
-
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
             Tournament History
           </h1>
-          <p className="text-gray-600 mt-2">
-            Your tournament participation and achievements
-          </p>
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white rounded-lg p-8 text-center">
-            <div className="animate-pulse">
-              <div className="h-4 bg-zinc-200 rounded w-1/4 mx-auto"></div>
-            </div>
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
         ) : overview.totalTournaments === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-            <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No Tournament History
-            </h3>
-            <p className="text-gray-600">
-              Participate in tournaments to track your competitive journey!
-            </p>
-          </div>
+          <EmptyState
+            icon={Trophy}
+            title="No tournament history available."
+            description="Tournament statistics will appear after tournaments are played!"
+          />
         ) : (
-          <div className="space-y-6">
-            {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Trophy className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-sm font-semibold text-blue-900">
-                    Tournaments
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-blue-700">
+          <div className="space-y-8">
+            {/* Key Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Total Tournaments */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Tournaments Played
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {overview.totalTournaments}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">Total participated</p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-5 h-5 text-yellow-600" />
-                  <h3 className="text-sm font-semibold text-yellow-900">
-                    Championships
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-yellow-700">
+              {/* Championships */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Championships Won
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {overview.tournamentWins}
                 </p>
-                <p className="text-xs text-yellow-600 mt-1">
+                <p className="text-xs text-[#353535] mt-3">
                   {winRate}% win rate
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Medal className="w-5 h-5 text-purple-600" />
-                  <h3 className="text-sm font-semibold text-purple-900">
-                    Finals
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-purple-700">
+              {/* Finals Reached */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Finals Reached
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {overview.finalsReached}
                 </p>
-                <p className="text-xs text-purple-600 mt-1">
+                <p className="text-xs text-[#353535] mt-3">
                   {finalsRate}% of tournaments
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5 text-orange-600" />
-                  <h3 className="text-sm font-semibold text-orange-900">
-                    Semifinals
-                  </h3>
-                </div>
-                <p className="text-3xl font-bold text-orange-700">
+              {/* Semifinals Reached */}
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                  Semifinals Reached
+                </h3>
+                <p className="text-4xl font-bold text-[#353535]">
                   {overview.semifinalsReached}
                 </p>
-                <p className="text-xs text-orange-600 mt-1">Top 4 finishes</p>
+                <p className="text-xs text-[#353535] mt-3">Top 4 finishes</p>
               </div>
             </div>
 
             {/* Performance Distribution */}
             {performanceData.length > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                   Tournament Performance Distribution
                 </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={performanceData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip />
                       <Bar dataKey="value" radius={[8, 8, 0, 0]} name="Count">
@@ -247,90 +223,103 @@ const TournamentsPage = () => {
 
             {/* Recent Tournaments */}
             {recentTournaments.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-800">
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
                     Recent Tournaments
-                  </h3>
+                  </h2>
+                  <p className="text-xs text-[#353535] mt-1">
+                    Your recent tournament participation
+                  </p>
                 </div>
 
-                <div className="divide-y divide-gray-100">
-                  {recentTournaments.map((tournament: any, index: number) => (
-                    <div
-                      key={index}
-                      onClick={() =>
-                        router.push(`/tournaments/${tournament._id}`)
-                      }
-                      className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="p-3 bg-blue-50 rounded-lg">
-                            <Trophy className="w-6 h-6 text-blue-600" />
-                          </div>
+                <div className="bg-[#ffffff] border border-[#d9d9d9]">
+                  <div className="divide-y divide-[#d9d9d9]">
+                    {recentTournaments.map((tournament: any, index: number) => (
+                      <div
+                        key={index}
+                        onClick={() =>
+                          router.push(`/tournaments/${tournament._id}`)
+                        }
+                        className="p-6 hover:bg-[#f5f5f5] transition-colors cursor-pointer border-b border-[#d9d9d9] last:border-0"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="p-3 bg-[#f0f9ff] rounded">
+                              <Trophy className="w-5 h-5 text-[#3c6e71]" />
+                            </div>
 
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800">
-                              {tournament.name}
-                            </h4>
-                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>
-                                  {formatDate(
-                                    tournament.startDate || tournament.date
-                                  )}
-                                </span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-[#353535] truncate">
+                                {tournament.name}
+                              </h4>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-[#666666]">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>
+                                    {formatDate(
+                                      tournament.startDate || tournament.date
+                                    )}
+                                  </span>
+                                </div>
+                                {tournament.location && (
+                                  <span>{tournament.location}</span>
+                                )}
                               </div>
-                              {tournament.location && (
-                                <span>" {tournament.location}</span>
-                              )}
                             </div>
                           </div>
-                        </div>
 
-                        {tournament.placement && (
-                          <div
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold border ${getPlacementBadge(
-                              tournament.placement
-                            )}`}
-                          >
-                            {tournament.placement}
-                          </div>
-                        )}
+                          {tournament.placement && (
+                            <div
+                              className={`px-3 py-1 rounded text-xs font-semibold whitespace-nowrap ${getPlacementBadge(
+                                tournament.placement
+                              )}`}
+                            >
+                              {tournament.placement}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Achievement Summary */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
+            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
                 Achievement Summary
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Award className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-yellow-700">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-[#fef9e7] border border-[#e5d598] rounded">
+                  <Award className="w-8 h-8 text-[#92400e] mx-auto mb-3" />
+                  <p className="text-3xl font-bold text-[#353535]">
                     {overview.tournamentWins}
                   </p>
-                  <p className="text-sm text-yellow-600">Championships</p>
+                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                    Championships
+                  </p>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <Medal className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-700">
+
+                <div className="text-center p-4 bg-[#f3f4f6] border border-[#d1d5db] rounded">
+                  <Medal className="w-8 h-8 text-[#6b7280] mx-auto mb-3" />
+                  <p className="text-3xl font-bold text-[#353535]">
                     {overview.finalsReached - overview.tournamentWins}
                   </p>
-                  <p className="text-sm text-gray-600">Runner-ups</p>
+                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                    Runner-ups
+                  </p>
                 </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <Target className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-orange-700">
+
+                <div className="text-center p-4 bg-[#fed7aa] border border-[#fdba74] rounded">
+                  <Target className="w-8 h-8 text-[#92400e] mx-auto mb-3" />
+                  <p className="text-3xl font-bold text-[#353535]">
                     {overview.semifinalsReached - overview.finalsReached}
                   </p>
-                  <p className="text-sm text-orange-600">Semifinal Exits</p>
+                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                    Semifinal Exits
+                  </p>
                 </div>
               </div>
             </div>

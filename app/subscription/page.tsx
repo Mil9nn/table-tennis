@@ -1,366 +1,319 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSubscription } from "@/hooks/useSubscription";
+import { axiosInstance } from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { Check, Sparkles, Loader2, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
-
-interface SubscriptionSummary {
-  tier: string;
-  status: string;
-  isActive: boolean;
-  isInTrial: boolean;
-  features: any;
-  currentPeriodEnd: string;
-  daysUntilRenewal: number;
-  daysUntilTrialEnd: number | null;
-  tournamentsCreated: number;
-  tournamentsLimit: number;
-  canUpgrade: boolean;
-}
+import CancelIcon from "@mui/icons-material/Cancel";
 
 export default function SubscriptionPage() {
   const router = useRouter();
-  const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [managingSubscription, setManagingSubscription] = useState(false);
+  const searchParams = useSearchParams();
+  const { subscription, loading } = useSubscription();
+  const [processing, setProcessing] = useState(false);
+  const feature = searchParams.get("feature");
 
-  useEffect(() => {
-    fetchSubscription();
-  }, []);
-
-  const fetchSubscription = async () => {
+  const handleUpgrade = async (billingPeriod: "monthly" | "yearly") => {
     try {
-      const response = await fetch("/api/subscription");
-      if (response.ok) {
-        const data = await response.json();
-        setSubscription(data);
-      } else {
-        console.error("Failed to fetch subscription");
-      }
-    } catch (error) {
-      console.error("Error fetching subscription:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setManagingSubscription(true);
-
-    try {
-      const response = await fetch("/api/subscription/portal", {
-        method: "POST",
+      setProcessing(true);
+      const response = await axiosInstance.post("/api/subscription/checkout", {
+        tier: "pro",
+        billingPeriod,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create portal session");
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        toast.error("Failed to create checkout session");
       }
-
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (error) {
-      console.error("Error opening customer portal:", error);
-      alert("Failed to open subscription management. Please try again.");
-      setManagingSubscription(false);
+    } catch (error: any) {
+      console.error("Upgrade error:", error);
+      toast.error(error.response?.data?.message || "Failed to start upgrade process");
+    } finally {
+      setProcessing(false);
     }
   };
+
+  const proFeatures = [
+    "Full match statistics and analysis",
+    "Complete weakness analysis",
+    "Advanced heatmaps and wagon wheel",
+    "Per-player shot breakdowns",
+    "Performance insights and trends",
+    "Shot analysis and zone statistics",
+    "Export match data (CSV/PDF)",
+    "Unlimited match history",
+  ];
+
+  const freeFeatures = [
+    { text: "Unlimited match participation", included: true },
+    { text: "Basic statistics (W/L, sets, points)", included: true },
+    { text: "Last 20 matches", included: true },
+    { text: "Basic shot tracking", included: true },
+    { text: "Create 2 tournaments/year", included: true },
+    { text: "Max 16 participants", included: true },
+    { text: "Round-robin only", included: true },
+    { text: "Advanced analytics", included: false },
+    { text: "Data exports", included: false },
+    { text: "Multi-scorer", included: false },
+  ];
+
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading subscription...</p>
-        </div>
+      <div className="min-h-screen bg-[#ffffff] flex items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8 text-[#3c6e71]" />
       </div>
     );
   }
-
-  if (!subscription) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <h2 className="text-2xl font-bold text-neutral-900">No Subscription Found</h2>
-          </CardHeader>
-          <CardContent>
-            <p className="text-neutral-600 mb-4">
-              We couldn't find your subscription. This is unusual.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/pricing">View Pricing</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case "pro":
-        return "text-blue-600";
-      case "premium":
-        return "text-purple-600";
-      case "enterprise":
-        return "text-orange-600";
-      default:
-        return "text-neutral-600";
-    }
-  };
-
-  const getTierBadge = (tier: string) => {
-    switch (tier) {
-      case "pro":
-        return "bg-blue-100 text-blue-800";
-      case "premium":
-        return "bg-purple-100 text-purple-800";
-      case "enterprise":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-neutral-100 text-neutral-800";
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100 py-12 px-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-neutral-900 mb-2">
-            My Subscription
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="mb-4 text-[#353535] hover:text-[#3c6e71]"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Subscription Plans
           </h1>
-          <p className="text-neutral-600">
-            Manage your subscription and view usage details
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
+          <p className="text-sm text-[#353535]/70 mt-4 max-w-2xl">
+            Start free, upgrade when you need more. Choose monthly or yearly billing.
           </p>
         </div>
 
-        {/* Current Plan */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-neutral-900">
-                  Current Plan
-                </h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`text-3xl font-bold capitalize ${getTierColor(
-                      subscription.tier
-                    )}`}
-                  >
-                    {subscription.tier}
-                  </span>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${getTierBadge(
-                      subscription.tier
-                    )}`}
-                  >
-                    {subscription.isInTrial ? "Trial" : subscription.status}
-                  </span>
-                </div>
-              </div>
-              {subscription.tier !== "free" && subscription.isActive && (
-                <Button
-                  onClick={handleManageSubscription}
-                  disabled={managingSubscription}
-                  variant="outline"
-                >
-                  {managingSubscription ? "Loading..." : "Manage Subscription"}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+        {/* Current Plan Badge */}
+        {subscription && subscription.tier !== "free" && (
+          <div className="mb-8 p-4 bg-[#3c6e71]/10 border border-[#3c6e71] rounded-lg">
+            <p className="text-sm text-[#353535]">
+              Current Plan: <span className="font-semibold capitalize">{subscription.tier}</span>
+            </p>
+          </div>
+        )}
 
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Status */}
-              <div className="flex items-start gap-3">
-                <CheckCircleIcon
-                  className={
-                    subscription.isActive ? "text-green-500" : "text-neutral-300"
-                  }
-                />
-                <div>
-                  <p className="text-sm text-neutral-600">Status</p>
-                  <p className="text-lg font-semibold text-neutral-900 capitalize">
-                    {subscription.isActive ? "Active" : subscription.status}
-                  </p>
-                </div>
-              </div>
+        {/* Feature Context */}
+        {feature && (
+          <div className="mb-8 p-4 bg-[#f5f5f5] border border-[#d9d9d9] rounded-lg">
+            <p className="text-sm text-[#353535]">
+              You're viewing this page to unlock: <span className="font-semibold">{feature}</span>
+            </p>
+          </div>
+        )}
 
-              {/* Renewal Date */}
-              {subscription.tier !== "free" && (
-                <div className="flex items-start gap-3">
-                  <CalendarTodayIcon className="text-blue-500" />
-                  <div>
-                    <p className="text-sm text-neutral-600">
-                      {subscription.isInTrial ? "Trial Ends" : "Renews"}
-                    </p>
-                    <p className="text-lg font-semibold text-neutral-900">
-                      {subscription.isInTrial
-                        ? `${subscription.daysUntilTrialEnd} days`
-                        : `${subscription.daysUntilRenewal} days`}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Tournaments */}
-              <div className="flex items-start gap-3">
-                <EmojiEventsIcon className="text-orange-500" />
-                <div>
-                  <p className="text-sm text-neutral-600">Tournaments</p>
-                  <p className="text-lg font-semibold text-neutral-900">
-                    {subscription.tournamentsCreated} /{" "}
-                    {subscription.tournamentsLimit === -1
-                      ? "∞"
-                      : subscription.tournamentsLimit}
-                  </p>
-                </div>
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {/* Free Tier */}
+          <div className="bg-[#ffffff] border-2 border-[#d9d9d9] rounded-lg p-6">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-[#353535] mb-2">Free</h3>
+              <p className="text-sm text-[#353535]/70 mb-4">
+                Perfect for casual players
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-[#353535]">₹0</span>
               </div>
             </div>
 
-            {subscription.isInTrial && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>You're in trial mode!</strong> Your trial ends in{" "}
-                  {subscription.daysUntilTrialEnd} days. You won't be charged
-                  until the trial period ends.
-                </p>
-              </div>
-            )}
-          </CardContent>
+            <ul className="space-y-2 mb-6">
+              {freeFeatures.map((feature, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  {feature.included ? (
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <CancelIcon className="w-5 h-5 text-neutral-300 flex-shrink-0 mt-0.5" />
+                  )}
+                  <span className={`text-sm ${feature.included ? "text-[#353535]" : "text-neutral-400"}`}>
+                    {feature.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
-          {subscription.canUpgrade && (
-            <CardFooter>
-              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
-                <Link href="/pricing">
-                  <TrendingUpIcon className="mr-2" />
-                  Upgrade Plan
-                </Link>
+            {subscription?.tier === "free" ? (
+              <Button
+                disabled
+                className="w-full bg-neutral-300 text-neutral-600 cursor-not-allowed"
+              >
+                Current Plan
               </Button>
-            </CardFooter>
-          )}
-        </Card>
-
-        {/* Features */}
-        <Card>
-          <CardHeader>
-            <h2 className="text-2xl font-bold text-neutral-900">
-              Your Features
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon
-                  className={
-                    subscription.features.advancedAnalytics
-                      ? "text-green-500"
-                      : "text-neutral-300"
-                  }
-                />
-                <span
-                  className={
-                    subscription.features.advancedAnalytics
-                      ? "text-neutral-900"
-                      : "text-neutral-400"
-                  }
-                >
-                  Advanced Analytics
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon
-                  className={
-                    subscription.features.exportData
-                      ? "text-green-500"
-                      : "text-neutral-300"
-                  }
-                />
-                <span
-                  className={
-                    subscription.features.exportData
-                      ? "text-neutral-900"
-                      : "text-neutral-400"
-                  }
-                >
-                  Data Export (CSV/PDF)
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon
-                  className={
-                    subscription.features.customBranding
-                      ? "text-green-500"
-                      : "text-neutral-300"
-                  }
-                />
-                <span
-                  className={
-                    subscription.features.customBranding
-                      ? "text-neutral-900"
-                      : "text-neutral-400"
-                  }
-                >
-                  Custom Branding
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon className="text-green-500" />
-                <span className="text-neutral-900">
-                  {subscription.features.maxScorers === 0
-                    ? "Self-scoring only"
-                    : `Up to ${subscription.features.maxScorers} scorers`}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon className="text-green-500" />
-                <span className="text-neutral-900">
-                  Formats:{" "}
-                  {subscription.features.tournamentFormats.join(", ").replace(/_/g, " ")}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon className="text-green-500" />
-                <span className="text-neutral-900">
-                  Max Participants:{" "}
-                  {subscription.features.maxParticipants === -1
-                    ? "Unlimited"
-                    : subscription.features.maxParticipants}
-                </span>
+            ) : (
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-[#d9d9d9] hover:bg-[#f5f5f5]"
+              >
+                <Link href="/auth/register">Get Started</Link>
+              </Button>
+            )}
+          </div>
+          {/* Pro Monthly */}
+          <div className="bg-[#ffffff] border-2 border-[#d9d9d9] rounded-lg p-6">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-[#353535] mb-2">Pro - Monthly</h3>
+              <p className="text-sm text-[#353535]/70 mb-4">
+                Perfect for serious players and regular competitors
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-[#353535]">₹2</span>
+                <span className="text-sm text-[#353535]/70">/month</span>
+                <span className="text-xs text-[#3c6e71] ml-2">Testing</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Help Section */}
-        <div className="mt-8 text-center">
-          <p className="text-neutral-600 mb-4">
-            Need help with your subscription?
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button asChild variant="outline">
-              <Link href="/pricing">View All Plans</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <a href="mailto:support@yourtabletennis.com">Contact Support</a>
+            <ul className="space-y-2 mb-6">
+              {proFeatures.map((feature, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-[#3c6e71] flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-[#353535]">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              onClick={() => handleUpgrade("monthly")}
+              disabled={processing || subscription?.tier === "pro"}
+              className="w-full bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
+            >
+              {subscription?.tier === "pro" ? (
+                "Current Plan"
+              ) : processing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Subscribe Monthly
+                </>
+              )}
             </Button>
           </div>
+
+          {/* Pro Yearly */}
+          <div className="bg-[#ffffff] border-2 border-[#3c6e71] rounded-lg p-6 relative">
+            <div className="absolute top-4 right-4 bg-[#3c6e71] text-white text-xs px-2 py-1 rounded">
+              Best Value
+            </div>
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-[#353535] mb-2">Pro - Yearly</h3>
+              <p className="text-sm text-[#353535]/70 mb-4">
+                Best value for regular users
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-[#353535]">₹2</span>
+                <span className="text-sm text-[#353535]/70">/year</span>
+                <span className="text-xs text-[#3c6e71] ml-2">Testing Price</span>
+              </div>
+            </div>
+
+            <ul className="space-y-2 mb-6">
+              {proFeatures.map((feature, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-[#3c6e71] flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-[#353535]">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              onClick={() => handleUpgrade("yearly")}
+              disabled={processing || subscription?.tier === "pro"}
+              className="w-full bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
+            >
+              {subscription?.tier === "pro" ? (
+                "Current Plan"
+              ) : processing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Subscribe Yearly
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-16 mb-8">
+          <h2 className="text-2xl font-bold text-[#353535] mb-8 text-center">
+            Frequently Asked Questions
+          </h2>
+
+          <div className="space-y-6 max-w-4xl mx-auto">
+            <div>
+              <h3 className="text-lg font-semibold text-[#353535] mb-2">
+                What's the difference between Monthly and Yearly?
+              </h3>
+              <p className="text-[#353535]/70">
+                Both plans include the same Pro features. The yearly plan offers better value
+                with a discount compared to monthly billing.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#353535] mb-2">
+                Can I switch between plans?
+              </h3>
+              <p className="text-[#353535]/70">
+                Yes! You can switch between monthly and yearly plans. The new billing cycle
+                starts at your next renewal date.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#353535] mb-2">
+                What happens if I cancel my subscription?
+              </h3>
+              <p className="text-[#353535]/70">
+                Your data is never deleted. If you cancel a subscription, you'll keep Pro
+                features until the end of your billing period, then return to the Free tier.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#353535] mb-2">
+                Do you offer refunds?
+              </h3>
+              <p className="text-[#353535]/70">
+                Yes, we offer a 30-day money-back guarantee for all paid plans.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="mt-16 text-center">
+          <h2 className="text-2xl font-bold text-[#353535] mb-4">
+            Ready to elevate your game?
+          </h2>
+          <p className="text-[#353535]/70 mb-8 max-w-2xl mx-auto">
+            Join thousands of players and organizers using our platform to track,
+            analyze, and improve their table tennis performance.
+          </p>
+          <Button
+            asChild
+            size="lg"
+            className="bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
+          >
+            <Link href="/auth/register">Get Started Free</Link>
+          </Button>
         </div>
       </div>
     </div>

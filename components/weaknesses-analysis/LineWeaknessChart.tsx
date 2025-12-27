@@ -2,7 +2,6 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { LineWeakness } from "@/types/weaknesses.type";
 import { AlertCircle, TrendingUp } from "lucide-react";
@@ -24,33 +23,34 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
   }
 
   const getProgressColor = (winRate: number) => {
-    if (winRate >= 55) return "bg-green-500";
-    if (winRate >= 45) return "bg-yellow-500";
+    if (winRate >= 55) return "bg-[#3c6e71]";
+    if (winRate >= 45) return "bg-amber-500";
     return "bg-red-500";
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Line of Play Analysis</CardTitle>
-        <p className="text-sm text-gray-500">
+    <div className="border border-[#d9d9d9] bg-white p-4">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-[#353535]">Line of Play Analysis</h3>
+        <p className="text-xs text-[#d9d9d9]">
           Your performance when playing different shot trajectories
         </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      </div>
+
+      <div className="space-y-4">
         {/* Color Legend */}
-        <div className="flex items-center gap-4 flex-wrap text-xs pb-4 border-b">
+        <div className="flex items-center gap-4 flex-wrap text-xs pb-3 border-b border-[#d9d9d9]">
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            <span className="text-gray-600">Strong (&gt;55%)</span>
+            <span className="w-3 h-3 bg-[#3c6e71]"></span>
+            <span className="text-[#353535]/70">Strong (&gt;55%)</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-            <span className="text-gray-600">Average (45-55%)</span>
+            <span className="w-3 h-3 bg-amber-500"></span>
+            <span className="text-[#353535]/70">Average (45-55%)</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-red-500"></span>
-            <span className="text-gray-600">Weak (&lt;45%)</span>
+            <span className="w-3 h-3 bg-red-500"></span>
+            <span className="text-[#353535]/70">Weak (&lt;45%)</span>
           </div>
         </div>
         {sortedLines.map((line, idx) => {
@@ -61,15 +61,15 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
             <div key={idx} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold capitalize text-sm">{line.line}</span>
+                  <span className="font-semibold capitalize text-sm text-[#353535]">{line.line}</span>
                   {isVulnerable && (
                     <AlertCircle className="h-4 w-4 text-red-500" />
                   )}
                   {opponentEffective && (
-                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    <TrendingUp className="h-4 w-4 text-amber-500" />
                   )}
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-[#d9d9d9]">
                   {line.wins}W / {line.losses}L
                 </span>
               </div>
@@ -77,14 +77,14 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
               {/* Win Rate Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span>Your Win Rate</span>
+                  <span className="text-[#353535]/70">Your Win Rate</span>
                   <span
                     className={`font-semibold ${
                       line.winRate < 45
                         ? "text-red-600"
                         : line.winRate > 55
-                        ? "text-green-600"
-                        : "text-yellow-600"
+                        ? "text-[#3c6e71]"
+                        : "text-amber-600"
                     }`}
                   >
                     {line.winRate.toFixed(1)}%
@@ -100,11 +100,11 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
               {/* Opponent Success Rate */}
               {line.averageOpponentWinRate > 0 && (
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="flex justify-between text-xs text-[#d9d9d9]">
                     <span>Opponent Success vs You</span>
                     <span
                       className={`font-semibold ${
-                        line.averageOpponentWinRate > 55 ? "text-orange-600" : ""
+                        line.averageOpponentWinRate > 55 ? "text-amber-600" : ""
                       }`}
                     >
                       {line.averageOpponentWinRate.toFixed(1)}%
@@ -120,14 +120,14 @@ export function LineWeaknessChart({ lineWeaknesses }: LineWeaknessChartProps) {
 
               {/* Recommendation */}
               {isVulnerable && (
-                <p className="text-xs text-red-700 bg-red-50 p-2 rounded">
+                <p className="text-xs text-red-700 bg-red-500/5 p-2">
                   <RecommendationText text={line.recommendation} />
                 </p>
               )}
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

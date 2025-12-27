@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -6,7 +5,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { SHOT_TYPE_COLORS } from "@/constants/constants";
 import { useInView } from "@/hooks/useInView";
@@ -39,18 +37,18 @@ export function ServeTypeChart({ data }: ServeTypeChartProps) {
     if (nonZero.length === 0) return null;
 
     return (
-      <div className="bg-gray-900 text-white rounded-md p-2 text-sm shadow-lg">
-        <div className="font-semibold mb-1">{label}</div>
+      <div className="bg-white border border-[#d9d9d9] p-2 text-sm">
+        <div className="font-semibold mb-1 text-[#353535]">{label}</div>
         {nonZero.map((item: any) => (
-          <div key={item.dataKey ?? item.name} className="flex items-center justify-between">
+          <div key={item.dataKey ?? item.name} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span
                 className="inline-block w-2 h-2"
                 style={{ backgroundColor: item.color ?? item.fill ?? (item.payload && item.payload.fill) }}
               />
-              <span className="text-xs text-gray-300">{item.name}</span>
+              <span className="text-xs text-[#353535]/70">{item.name}</span>
             </div>
-            <div className="text-sm font-medium">{item.value}</div>
+            <div className="text-sm font-medium text-[#353535]">{item.value}</div>
           </div>
         ))}
       </div>
@@ -58,90 +56,92 @@ export function ServeTypeChart({ data }: ServeTypeChartProps) {
   };
 
   return (
-    <section ref={ref}>
-      <header className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold tracking-tight">
-              Serve Types Distribution
-            </CardTitle>
-            <p className="text-xs text-gray-500">
-              Breakdown of serve types used by each player
-            </p>
-          </div>
-        </div>
+    <section ref={ref} className="bg-white">
+      <header className="pb-3">
+        <h3 className="text-base font-semibold tracking-tight text-[#353535]">
+          Serve Types Distribution
+        </h3>
+        <p className="text-xs text-[#d9d9d9]">
+          Breakdown of serve types used by each player
+        </p>
       </header>
 
-        <div className="h-64 w-full">
-          {isInView && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barGap={2} barCategoryGap="15%">
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10, fill: "#9CA3AF" }}
-                  interval={0}
-                  angle={-20}
-                  textAnchor="end"
-                  height={50}
-                />
-                <YAxis width={28} allowDecimals={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
-                <Tooltip content={<CustomTooltip />} />
-
-
-                <Bar
-                  dataKey="side_spin"
-                  fill={SHOT_TYPE_COLORS.side_spin}
-                  name="Side Spin"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={0}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                />
-                <Bar
-                  dataKey="top_spin"
-                  fill={SHOT_TYPE_COLORS.top_spin}
-                  name="Top Spin"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={100}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                />
-                <Bar
-                  dataKey="back_spin"
-                  fill={SHOT_TYPE_COLORS.back_spin}
-                  name="Back Spin"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={200}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                />
-                <Bar
-                  dataKey="mix_spin"
-                  fill={SHOT_TYPE_COLORS.mix_spin}
-                  name="Mix Spin"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={300}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                />
-                <Bar
-                  dataKey="no_spin"
-                  fill={SHOT_TYPE_COLORS.no_spin}
-                  name="No Spin"
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={400}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+      <div className="h-56 w-full">
+        {isInView && (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barGap={2} barCategoryGap="15%">
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: "#353535" }}
+                interval={0}
+                angle={-20}
+                textAnchor="end"
+                height={50}
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
+              />
+              <YAxis 
+                width={28} 
+                allowDecimals={false} 
+                tick={{ fontSize: 11, fill: "#353535" }}
+                axisLine={{ stroke: "#d9d9d9" }}
+                tickLine={{ stroke: "#d9d9d9" }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar
+                dataKey="side_spin"
+                fill={SHOT_TYPE_COLORS.side_spin}
+                name="Side Spin"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="top_spin"
+                fill={SHOT_TYPE_COLORS.top_spin}
+                name="Top Spin"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={100}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="back_spin"
+                fill={SHOT_TYPE_COLORS.back_spin}
+                name="Back Spin"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={200}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="mix_spin"
+                fill={SHOT_TYPE_COLORS.mix_spin}
+                name="Mix Spin"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={300}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="no_spin"
+                fill={SHOT_TYPE_COLORS.no_spin}
+                name="No Spin"
+                radius={0}
+                isAnimationActive={true}
+                animationBegin={400}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </section>
   );
 }

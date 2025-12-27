@@ -2,7 +2,7 @@ import { Subscription, SubscriptionTier, ISubscription, ISubscriptionFeatures, g
 import { User } from "@/models/User";
 import { Payment } from "@/models/Payment";
 import { connectDB } from "./mongodb";
-import { syncSubscriptionFromStripe } from "./stripe";
+import { syncSubscriptionFromRazorpay } from "./razorpay";
 
 /**
  * Create a new subscription for a user
@@ -11,10 +11,9 @@ export async function createSubscription(
   userId: string,
   tier: SubscriptionTier,
   options?: {
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
-    stripePriceId?: string;
-    trialDays?: number;
+    razorpayCustomerId?: string;
+    razorpaySubscriptionId?: string;
+    razorpayPlanId?: string;
   }
 ): Promise<ISubscription> {
   await connectDB();
@@ -33,40 +32,29 @@ export async function createSubscription(
   const periodEnd = new Date();
   periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 
-  let status: "active" | "trial" = "active";
-  let trialEndsAt: Date | undefined;
-
-  // Set trial period if specified
-  if (options?.trialDays && options.trialDays > 0) {
-    status = "trial";
-    trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + options.trialDays);
-  }
-
   // Delete existing subscription if any
   await Subscription.findOneAndDelete({ user: userId });
 
   const subscription = await Subscription.create({
     user: userId,
     tier,
-    status,
+    status: "active",
     startDate: now,
     endDate,
-    trialEndsAt,
     currentPeriodStart: now,
     currentPeriodEnd: periodEnd,
     tournamentsCreatedThisPeriod: 0,
     features,
-    stripeCustomerId: options?.stripeCustomerId,
-    stripeSubscriptionId: options?.stripeSubscriptionId,
-    stripePriceId: options?.stripePriceId,
+    razorpayCustomerId: options?.razorpayCustomerId,
+    razorpaySubscriptionId: options?.razorpaySubscriptionId,
+    razorpayPlanId: options?.razorpayPlanId,
   });
 
   // Update user's cached fields
   await User.findByIdAndUpdate(userId, {
     subscription: subscription._id,
     subscriptionTier: tier,
-    subscriptionStatus: status,
+    subscriptionStatus: "active",
     subscriptionExpiresAt: endDate,
     hasAdvancedAnalytics: features.advancedAnalytics,
     canExportData: features.exportData,
@@ -199,8 +187,9 @@ export async function renewSubscription(
   subscriptionId: string,
   paymentData?: {
     amount: number;
-    stripePaymentIntentId?: string;
-    stripeInvoiceId?: string;
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpayInvoiceId?: string;
   }
 ): Promise<ISubscription> {
   await connectDB();
@@ -235,13 +224,14 @@ export async function renewSubscription(
       user: subscription.user,
       subscription: subscription._id,
       amount: paymentData.amount,
-      currency: "USD",
+      currency: "INR",
       status: "succeeded",
       paymentDate: new Date(),
       periodStart: newPeriodStart,
       periodEnd: newPeriodEnd,
-      stripePaymentIntentId: paymentData.stripePaymentIntentId,
-      stripeInvoiceId: paymentData.stripeInvoiceId,
+      razorpayPaymentId: paymentData.razorpayPaymentId,
+      razorpayOrderId: paymentData.razorpayOrderId,
+      razorpayInvoiceId: paymentData.razorpayInvoiceId,
     });
   }
 
@@ -249,9 +239,9 @@ export async function renewSubscription(
 }
 
 /**
- * Sync subscription from Stripe
+ * Sync subscription from Razorpay
  */
-export async function syncSubscriptionWithStripe(subscriptionId: string): Promise<ISubscription> {
+export async function syncSubscriptionWithRazorpay(subscriptionId: string): Promise<ISubscription> {
   await connectDB();
 
   const subscription = await Subscription.findById(subscriptionId);
@@ -259,24 +249,22 @@ export async function syncSubscriptionWithStripe(subscriptionId: string): Promis
     throw new Error("Subscription not found");
   }
 
-  if (!subscription.stripeSubscriptionId) {
-    throw new Error("Subscription is not linked to Stripe");
+  if (!subscription.razorpaySubscriptionId) {
+    throw new Error("Subscription is not linked to Razorpay");
   }
 
-  const stripeData = await syncSubscriptionFromStripe(subscription.stripeSubscriptionId);
+  const razorpayData = await syncSubscriptionFromRazorpay(subscription.razorpaySubscriptionId);
 
-  // Update subscription with Stripe data
-  subscription.currentPeriodStart = stripeData.currentPeriodStart;
-  subscription.currentPeriodEnd = stripeData.currentPeriodEnd;
+  // Update subscription with Razorpay data
+  subscription.currentPeriodStart = razorpayData.currentPeriodStart;
+  subscription.currentPeriodEnd = razorpayData.currentPeriodEnd;
 
-  // Map Stripe status to our status
-  if (stripeData.status === "active") {
+  // Map Razorpay status to our status
+  if (razorpayData.status === "active") {
     subscription.status = "active";
-  } else if (stripeData.status === "trialing") {
-    subscription.status = "trial";
-  } else if (stripeData.status === "past_due") {
+  } else if (razorpayData.status === "pending") {
     subscription.status = "past_due";
-  } else if (stripeData.status === "canceled" || stripeData.status === "incomplete_expired") {
+  } else if (razorpayData.status === "cancelled" || razorpayData.status === "expired") {
     subscription.status = "cancelled";
   }
 
@@ -308,23 +296,17 @@ export async function getSubscriptionSummary(userId: string) {
     (subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  const daysUntilTrialEnd = subscription.trialEndsAt
-    ? Math.ceil((subscription.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    : null;
-
   return {
     tier: subscription.tier,
     status: subscription.status,
     isActive: subscription.isActive(),
-    isInTrial: subscription.isInTrial(),
     features: subscription.features,
     currentPeriodStart: subscription.currentPeriodStart,
     currentPeriodEnd: subscription.currentPeriodEnd,
     daysUntilRenewal,
-    daysUntilTrialEnd,
     tournamentsCreated: subscription.tournamentsCreatedThisPeriod,
     tournamentsLimit: subscription.features.maxTournaments,
-    canUpgrade: subscription.tier !== "premium" && subscription.tier !== "enterprise",
+    canUpgrade: subscription.tier !== "enterprise",
   };
 }
 
@@ -335,7 +317,6 @@ export function getFeatureComparison(): Record<SubscriptionTier, ISubscriptionFe
   return {
     free: getFeaturesByTier("free"),
     pro: getFeaturesByTier("pro"),
-    premium: getFeaturesByTier("premium"),
     enterprise: getFeaturesByTier("enterprise"),
   };
 }

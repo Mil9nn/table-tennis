@@ -186,9 +186,7 @@ export interface Tournament {
   hybridConfig?: {
     roundRobinUseGroups: boolean;
     roundRobinNumberOfGroups?: number;
-    qualificationMethod: "top_n_overall" | "top_n_per_group" | "percentage";
-    qualifyingCount?: number;
-    qualifyingPercentage?: number;
+    qualificationMethod: "top_n_per_group";
     qualifyingPerGroup?: number;
     knockoutAllowCustomMatching: boolean;
     knockoutThirdPlaceMatch: boolean;

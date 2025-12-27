@@ -136,27 +136,12 @@ export class TournamentValidationService {
 
     // Validate qualification parameters based on method
     switch (config.qualificationMethod) {
-      case 'top_n_overall':
-        if (!config.qualifyingCount || config.qualifyingCount < 2) {
-          errors.push('Qualifying count must be at least 2 for top_n_overall method');
-        }
-        if (config.qualifyingCount && config.qualifyingCount >= tournament.participants.length) {
-          errors.push('Qualifying count must be less than total participants');
-        }
-        break;
-
       case 'top_n_per_group':
         if (!config.roundRobinUseGroups) {
           errors.push('top_n_per_group qualification requires groups in round-robin phase');
         }
         if (!config.qualifyingPerGroup || config.qualifyingPerGroup < 1) {
           errors.push('Qualifying per group must be at least 1');
-        }
-        break;
-
-      case 'percentage':
-        if (!config.qualifyingPercentage || config.qualifyingPercentage <= 0 || config.qualifyingPercentage >= 100) {
-          errors.push('Qualifying percentage must be between 1 and 99');
         }
         break;
     }
@@ -372,17 +357,10 @@ export class TournamentValidationService {
     const totalParticipants = tournament.participants.length;
 
     switch (config.qualificationMethod) {
-      case 'top_n_overall':
-        return config.qualifyingCount || 0;
-
       case 'top_n_per_group':
         const groups = config.roundRobinNumberOfGroups || 0;
         const perGroup = config.qualifyingPerGroup || 0;
         return groups * perGroup;
-
-      case 'percentage':
-        const percentage = config.qualifyingPercentage || 0;
-        return Math.floor(totalParticipants * (percentage / 100));
 
       default:
         return 0;

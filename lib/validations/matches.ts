@@ -158,10 +158,35 @@ export const swapPlayersSchema = z.object({
   }),
 }).strict();
 
-// Query params for GET matches
+// Extended match type schema for queries (includes mixed_doubles and 'all')
+export const matchTypeQuerySchema = z.enum(["singles", "doubles", "mixed_doubles", "all"]);
+
+// Team match format schema
+export const teamMatchFormatSchema = z.enum(["five_singles", "single_double_single", "custom", "all"]);
+
+// Query params for GET individual matches
 export const getMatchesQuerySchema = z.object({
   context: z.enum(["casual", "tournament", "all"]).optional(),
-  status: matchStatusSchema.optional(),
+  type: matchTypeQuerySchema.optional(),
+  status: z.enum(["all", "not_started", "in_progress", "completed", "cancelled"]).optional(),
+  search: z.string().max(200).optional(),
+  dateFrom: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateFrom format").optional(),
+  dateTo: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateTo format").optional(),
+  sortBy: z.enum(["createdAt", "status"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  limit: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
+  skip: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
+}).strict();
+
+// Query params for GET team matches
+export const getTeamMatchesQuerySchema = z.object({
+  format: teamMatchFormatSchema.optional(),
+  status: z.enum(["all", "not_started", "in_progress", "completed", "cancelled"]).optional(),
+  search: z.string().max(200).optional(),
+  dateFrom: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateFrom format").optional(),
+  dateTo: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateTo format").optional(),
+  sortBy: z.enum(["createdAt", "status"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
   limit: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
   skip: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
 }).strict();
@@ -173,3 +198,4 @@ export type UpdateMatchStatusInput = z.infer<typeof updateMatchStatusSchema>;
 export type ServerConfigInput = z.infer<typeof serverConfigSchema>;
 export type SwapPlayersInput = z.infer<typeof swapPlayersSchema>;
 export type GetMatchesQuery = z.infer<typeof getMatchesQuerySchema>;
+export type GetTeamMatchesQuery = z.infer<typeof getTeamMatchesQuerySchema>;

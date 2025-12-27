@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Loader2, Info } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isIndividualMatch } from "@/types/match.type";
@@ -13,6 +13,7 @@ import GamesHistory from "@/components/match-details/GameHistory";
 import MatchActions from "@/components/match-details/MatchActions";
 import MatchScore from "@/components/match-details/MatchScore";
 import MatchStatusBadge from "@/components/MatchStatusBadge";
+import { axiosInstance } from "@/lib/axiosInstance";
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -26,6 +27,8 @@ export default function MatchDetailsPage() {
   const user = useAuthStore((state) => state.user);
   const fetchUser = useAuthStore((state) => state.fetchUser);
   const authLoading = useAuthStore((state) => state.authLoading);
+  const [isTournamentScorer, setIsTournamentScorer] = useState(false);
+  const [checkingTournamentScorer, setCheckingTournamentScorer] = useState(false);
 
   useEffect(() => {
     fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
@@ -36,6 +39,67 @@ export default function MatchDetailsPage() {
       fetchUser().catch(() => {});
     }
   }, [authLoading, user, fetchUser]);
+
+  // Check if user is a tournament scorer when match is loaded
+  useEffect(() => {
+    const checkTournamentScorer = async () => {
+      if (!match || !user || !match.tournament) {
+        setIsTournamentScorer(false);
+        return;
+      }
+
+      const tournament = match.tournament as any;
+      
+      // If tournament is already populated with organizer/scorers, use that data
+      if (tournament.organizer || tournament.scorers) {
+        const isOrganizer = tournament.organizer?._id === user._id || 
+                           tournament.organizer?.toString() === user._id ||
+                           (typeof tournament.organizer === "string" && tournament.organizer === user._id);
+        const isInScorersArray = tournament.scorers?.some((scorer: any) => 
+          scorer._id === user._id || 
+          scorer.toString() === user._id ||
+          (typeof scorer === "string" && scorer === user._id)
+        );
+        
+        setIsTournamentScorer(isOrganizer || isInScorersArray);
+        return;
+      }
+
+      // Otherwise, fetch tournament to check scorer permissions
+      const tournamentId = typeof match.tournament === "string" 
+        ? match.tournament 
+        : tournament?._id || tournament?.id;
+
+      if (!tournamentId) {
+        setIsTournamentScorer(false);
+        return;
+      }
+
+      setCheckingTournamentScorer(true);
+      try {
+        const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
+        const fetchedTournament = data.tournament;
+        
+        // Check if user is organizer or in scorers array
+        const isOrganizer = fetchedTournament.organizer?._id === user._id || 
+                           fetchedTournament.organizer?.toString() === user._id;
+        const isInScorersArray = fetchedTournament.scorers?.some((scorer: any) => 
+          scorer._id === user._id || 
+          scorer.toString() === user._id ||
+          (typeof scorer === "string" && scorer === user._id)
+        );
+        
+        setIsTournamentScorer(isOrganizer || isInScorersArray);
+      } catch (err) {
+        console.error("Error checking tournament scorer:", err);
+        setIsTournamentScorer(false);
+      } finally {
+        setCheckingTournamentScorer(false);
+      }
+    };
+
+    checkTournamentScorer();
+  }, [match, user]);
 
   if (fetchingMatch) {
     return (
@@ -67,11 +131,17 @@ export default function MatchDetailsPage() {
     return scorer._id ? String(scorer._id) : null;
   };
 
-  const isScorer = !!(
+  // Check if user is the assigned match scorer
+  const isMatchScorer = !!(
     getScorerId(match.scorer) &&
     user?._id &&
     getScorerId(match.scorer) === String(user._id)
   );
+
+  // User can score if they are:
+  // 1. The assigned match scorer, OR
+  // 2. A tournament scorer (organizer or in scorers array)
+  const isScorer = isMatchScorer || isTournamentScorer;
   const router = useRouter();
 
   return (

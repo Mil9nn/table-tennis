@@ -2,10 +2,8 @@
  * Qualification Service
  *
  * Determines which participants qualify from round-robin phase to knockout phase
- * in hybrid tournaments. Supports multiple qualification methods:
- * - Top N overall (based on overall standings)
+ * in hybrid tournaments. Supports the following qualification method:
  * - Top N per group (takes top performers from each group)
- * - Percentage-based (top X% of all participants)
  */
 
 import mongoose from "mongoose";
@@ -25,41 +23,7 @@ export interface QualificationResult {
   qualifiedCount: number;
 }
 
-/**
- * Qualify participants based on overall standings (all groups combined)
- */
-function qualifyTopNOverall(
-  tournament: Tournament,
-  count: number
-): QualificationResult {
-  if (!tournament.standings || tournament.standings.length === 0) {
-    throw new Error("No standings available for qualification");
-  }
 
-  // Sort standings by rank (already sorted, but ensure)
-  const sortedStandings = [...tournament.standings].sort(
-    (a, b) => a.rank - b.rank
-  );
-
-  // Take top N
-  const qualified = sortedStandings
-    .slice(0, count)
-    .map((standing) => standing.participant);
-
-  const qualificationRankings = sortedStandings.slice(0, count).map((s) => ({
-    participant: s.participant,
-    rank: s.rank,
-    points: s.points,
-  }));
-
-  return {
-    qualified,
-    qualificationRankings,
-    method: "top_n_overall",
-    totalParticipants: tournament.standings.length,
-    qualifiedCount: qualified.length,
-  };
-}
 
 /**
  * Qualify top N participants from each group
@@ -118,30 +82,7 @@ function qualifyTopNPerGroup(
   };
 }
 
-/**
- * Qualify top percentage of participants
- */
-function qualifyByPercentage(
-  tournament: Tournament,
-  percentage: number
-): QualificationResult {
-  if (!tournament.standings || tournament.standings.length === 0) {
-    throw new Error("No standings available for qualification");
-  }
 
-  // Calculate how many qualify based on percentage
-  const totalParticipants = tournament.standings.length;
-  const qualifyingCount = Math.ceil((percentage / 100) * totalParticipants);
-
-  // Ensure at least 2 qualify and it's a reasonable number
-  const finalCount = Math.max(2, Math.min(qualifyingCount, totalParticipants - 1));
-
-  // Use top N overall logic
-  return {
-    ...qualifyTopNOverall(tournament, finalCount),
-    method: "percentage",
-  };
-}
 
 /**
  * Main function to determine qualified participants
@@ -161,12 +102,6 @@ export function determineQualifiedParticipants(
 
   // Determine qualification based on method
   switch (config.qualificationMethod) {
-    case "top_n_overall":
-      if (!config.qualifyingCount) {
-        throw new Error("Qualifying count is required for top_n_overall method");
-      }
-      return qualifyTopNOverall(tournament, config.qualifyingCount);
-
     case "top_n_per_group":
       if (!config.qualifyingPerGroup) {
         throw new Error(
@@ -174,12 +109,6 @@ export function determineQualifiedParticipants(
         );
       }
       return qualifyTopNPerGroup(tournament, config.qualifyingPerGroup);
-
-    case "percentage":
-      if (!config.qualifyingPercentage) {
-        throw new Error("Qualifying percentage is required for percentage method");
-      }
-      return qualifyByPercentage(tournament, config.qualifyingPercentage);
 
     default:
       throw new Error(
@@ -277,16 +206,6 @@ export function validateQualificationConfig(tournament: Tournament): {
   let expectedQualifiedCount = 0;
 
   switch (config.qualificationMethod) {
-    case "top_n_overall":
-      expectedQualifiedCount = config.qualifyingCount || 0;
-      if (expectedQualifiedCount < 2) {
-        errors.push("Must qualify at least 2 participants");
-      }
-      if (expectedQualifiedCount >= totalParticipants) {
-        errors.push("Cannot qualify all participants (must eliminate at least one)");
-      }
-      break;
-
     case "top_n_per_group":
       if (!config.qualifyingPerGroup) {
         errors.push("Qualifying per group is required");
@@ -299,19 +218,6 @@ export function validateQualificationConfig(tournament: Tournament): {
       expectedQualifiedCount = config.qualifyingPerGroup * tournament.groups.length;
       if (expectedQualifiedCount >= totalParticipants) {
         errors.push("Too many qualifiers per group (would qualify almost everyone)");
-      }
-      break;
-
-    case "percentage":
-      if (!config.qualifyingPercentage) {
-        errors.push("Qualifying percentage is required");
-        break;
-      }
-      expectedQualifiedCount = Math.ceil(
-        (config.qualifyingPercentage / 100) * totalParticipants
-      );
-      if (expectedQualifiedCount < 2) {
-        errors.push("Percentage too low (must qualify at least 2 participants)");
       }
       break;
   }

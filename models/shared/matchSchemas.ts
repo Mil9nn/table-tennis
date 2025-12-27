@@ -1,4 +1,12 @@
 import mongoose from "mongoose";
+import { shotCategories } from "../../constants/constants";
+
+// Extract all shot values from shotCategories
+const getAllShotValues = (): string[] => {
+  return Object.values(shotCategories)
+    .flatMap((category) => category.shots)
+    .map((shot) => shot.value);
+};
 
 // Base shot schema factory - configurable for different side enums
 export function createShotSchema(sideEnum: string[]) {
@@ -10,28 +18,7 @@ export function createShotSchema(sideEnum: string[]) {
 
     stroke: {
       type: String,
-      enum: [
-        "forehand_drive",
-        "backhand_drive",
-        "forehand_topspin",
-        "backhand_topspin",
-        "forehand_loop",
-        "backhand_loop",
-        "forehand_smash",
-        "backhand_smash",
-        "forehand_push",
-        "backhand_push",
-        "forehand_chop",
-        "backhand_chop",
-        "forehand_flick",
-        "backhand_flick",
-        "forehand_block",
-        "backhand_block",
-        "forehand_drop",
-        "backhand_drop",
-        "net_point",
-        "serve_point",
-      ],
+      enum: getAllShotValues(),
       default: null,
     },
 
@@ -122,27 +109,22 @@ export function createServerConfigSchema(sideEnum: string[], extendedEnums: stri
 }
 
 // Player stats schema for detailed shot analysis
+// Build schema dynamically from shotCategories (excluding serve_point and net_point)
+const buildDetailedShotsSchema = () => {
+  const detailedShots: Record<string, { type: typeof mongoose.Schema.Types.Number; default: number }> = {};
+  
+  Object.values(shotCategories)
+    .flatMap((category) => category.shots)
+    .filter((shot) => shot.value !== "serve_point" && shot.value !== "net_point")
+    .forEach((shot) => {
+      detailedShots[shot.value] = { type: Number, default: 0 };
+    });
+  
+  return detailedShots;
+};
+
 export const playerStatsSchema = new mongoose.Schema({
-  detailedShots: {
-    forehand_drive: { type: Number, default: 0 },
-    backhand_drive: { type: Number, default: 0 },
-    forehand_topspin: { type: Number, default: 0 },
-    backhand_topspin: { type: Number, default: 0 },
-    forehand_loop: { type: Number, default: 0 },
-    backhand_loop: { type: Number, default: 0 },
-    forehand_smash: { type: Number, default: 0 },
-    backhand_smash: { type: Number, default: 0 },
-    forehand_push: { type: Number, default: 0 },
-    backhand_push: { type: Number, default: 0 },
-    forehand_chop: { type: Number, default: 0 },
-    backhand_chop: { type: Number, default: 0 },
-    forehand_flick: { type: Number, default: 0 },
-    backhand_flick: { type: Number, default: 0 },
-    forehand_block: { type: Number, default: 0 },
-    backhand_block: { type: Number, default: 0 },
-    forehand_drop: { type: Number, default: 0 },
-    backhand_drop: { type: Number, default: 0 },
-  },
+  detailedShots: buildDetailedShotsSchema(),
 });
 
 // Team info schema for team matches
