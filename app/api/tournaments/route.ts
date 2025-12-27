@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
     // Note: Validation for groups + round-robin is now handled by Zod schema
 
     // Get subscription tier and features for tournament metadata
-    const userTier = subscription.tier;
-    const maxScorersAllowed = subscription.features.maxScorers;
+    const userTier = subscription?.tier || "free";
+    const maxScorersAllowed = subscription?.features?.maxScorers || 1;
 
     const tournament = new Tournament({
       name,

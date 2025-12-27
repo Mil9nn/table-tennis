@@ -83,7 +83,7 @@ export default function CustomMatchingPage() {
     );
   }
 
-  const currentRound = tournament.bracket.rounds.find(
+  const currentRound = tournament.bracket?.rounds.find(
     (r) => r.roundNumber === selectedRound
   );
 
@@ -114,7 +114,7 @@ export default function CustomMatchingPage() {
 
           {/* Round Selector Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {tournament.bracket.rounds.map((round) => {
+            {tournament.bracket?.rounds.map((round) => {
               const hasCompleted = round.matches?.some(
                 (match: any) => match.completed
               );
@@ -162,7 +162,7 @@ export default function CustomMatchingPage() {
       >
         <CustomKnockoutMatcher
           tournamentId={tournamentId}
-          bracket={tournament.bracket}
+          bracket={tournament.bracket!}
           participants={
             // For hybrid tournaments in knockout phase, use qualified participants only
             // For pure knockout tournaments, use all participants

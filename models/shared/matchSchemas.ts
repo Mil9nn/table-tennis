@@ -117,7 +117,7 @@ const buildDetailedShotsSchema = () => {
     .flatMap((category) => category.shots)
     .filter((shot) => shot.value !== "serve_point" && shot.value !== "net_point")
     .forEach((shot) => {
-      detailedShots[shot.value] = { type: Number, default: 0 };
+      detailedShots[shot.value] = { type: Number as any, default: 0 };
     });
   
   return detailedShots;

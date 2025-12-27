@@ -198,7 +198,7 @@ export async function cancelRazorpaySubscription(
   if (cancelAtPeriodEnd) {
     // Pause subscription (will cancel at period end)
     const subscription = await razorpay.subscriptions.pause(subscriptionId, {
-      pause_at: "next_cycle",
+      pause_at: "next_cycle" as any,
     });
     return subscription;
   } else {
@@ -243,18 +243,19 @@ export async function syncSubscriptionFromRazorpay(
   const subscription = await razorpay.subscriptions.fetch(razorpaySubscriptionId);
 
   // Convert Razorpay timestamps to Date objects
-  const currentPeriodStart = new Date(subscription.current_start * 1000);
-  const currentPeriodEnd = new Date(subscription.current_end * 1000);
+  const currentPeriodStart = new Date((subscription.current_start || 0) * 1000);
+  const currentPeriodEnd = new Date((subscription.current_end || 0) * 1000);
 
   // Map Razorpay status to our status
+  const subscriptionStatus = subscription.status as string;
   let status = "active";
-  if (subscription.status === "active") {
+  if (subscriptionStatus === "active") {
     status = "active";
-  } else if (subscription.status === "pending" || subscription.status === "authenticated") {
+  } else if (subscriptionStatus === "pending" || subscriptionStatus === "authenticated") {
     status = "pending";
-  } else if (subscription.status === "paused") {
+  } else if (subscriptionStatus === "paused") {
     status = "cancelled";
-  } else if (subscription.status === "cancelled" || subscription.status === "expired") {
+  } else if (subscriptionStatus === "cancelled" || subscriptionStatus === "expired") {
     status = "cancelled";
   }
 
@@ -262,7 +263,7 @@ export async function syncSubscriptionFromRazorpay(
     status,
     currentPeriodStart,
     currentPeriodEnd,
-    cancelAtPeriodEnd: subscription.status === "paused",
+    cancelAtPeriodEnd: subscriptionStatus === "paused",
   };
 }
 

@@ -135,8 +135,8 @@ export function ExampleFullComponent() {
  * Example 10: Conditional Rendering with Different States
  */
 export function ExampleConditionalRendering() {
-  // @ts-ignore - Example file showing all possible states
-  const state: "loading" | "empty" | "data" | "error" = "empty";
+  // Example file showing all possible states - using 'as' to allow demonstration of all states
+  const state = "empty" as "loading" | "empty" | "data" | "error";
 
   return (
     <div>

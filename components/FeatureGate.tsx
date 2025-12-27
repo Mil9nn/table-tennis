@@ -1,12 +1,14 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, type SubscriptionData } from "@/hooks/useSubscription";
 import { LockedContent } from "./paywall/LockedContent";
 import { SubscriptionTier } from "@/models/Subscription";
 
+type FeatureKey = keyof SubscriptionData['features'];
+
 interface FeatureGateProps {
-  feature?: keyof ReturnType<typeof useSubscription>['subscription']['features'];
+  feature?: FeatureKey;
   requiredTier?: SubscriptionTier;
   fallback?: ReactNode;
   children: ReactNode;
@@ -44,12 +46,12 @@ export function FeatureGate({
               {children}
             </div>
             <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-              <LockedContent feature={feature} />
+              <LockedContent feature={feature as string} />
             </div>
           </div>
         );
       }
-      return fallback || <LockedContent feature={feature} />;
+      return fallback || <LockedContent feature={feature as string} />;
     }
     return <>{children}</>;
   }
