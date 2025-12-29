@@ -79,9 +79,15 @@ export class MatchGenerationOrchestrator {
       }
 
       // Prepare seeding
-      const participantIds = tournament.participants.map((p: any) =>
-        p.toString()
-      );
+      // Filter out any null/undefined participants (e.g., deleted users)
+      const participantIds = tournament.participants
+        .filter((p: any) => p != null)
+        .map((p: any) => p.toString());
+      
+      if (participantIds.length === 0) {
+        throw new Error("Tournament has no valid participants");
+      }
+      
       const seeding = prepareSeeding(tournament, participantIds);
 
       // Update tournament seeding
@@ -219,7 +225,7 @@ export class MatchGenerationOrchestrator {
   ): Promise<{ totalMatches: number; totalRounds: number }> {
     const isDoubles =
       (tournament as any).matchType === "doubles" ||
-      (tournament as any).matchType === "mixed_doubles";
+      (tournament as any).category === "doubles";
 
     if (tournament.useGroups && tournament.numberOfGroups) {
       // Generate group matches
@@ -259,19 +265,64 @@ export class MatchGenerationOrchestrator {
     const isTeamCategory = (tournament as any).category === "team";
     const isDoubles =
       (tournament as any).matchType === "doubles" ||
-      (tournament as any).matchType === "mixed_doubles";
+      (tournament as any).category === "doubles";
+
+    // Validate doubles tournament has pairs configured
+    if (isDoubles && !isTeamCategory) {
+      const doublesPairs = (tournament as any).doublesPairs || [];
+      if (doublesPairs.length === 0) {
+        throw new Error(
+          "Doubles tournament must have pairs configured before generating matches. " +
+          "Please configure pairs in the tournament management page."
+        );
+      }
+      console.log("🔵 [ORCHESTRATOR] Doubles pairs found:", {
+        pairsCount: doublesPairs.length,
+        participantsCount: participantIds.length,
+      });
+    }
+
+    // For doubles tournaments, use pair IDs for scheduling instead of individual player IDs
+    let scheduleParticipants = participantIds;
+    if (isDoubles && !isTeamCategory) {
+      const doublesPairs = (tournament as any).doublesPairs || [];
+      // Filter out any null/undefined pairs
+      const validPairs = doublesPairs.filter((pair: any) => pair != null && pair._id != null);
+      
+      if (validPairs.length === 0) {
+        throw new Error(
+          "No valid doubles pairs found. Please reconfigure pairs in the tournament management page."
+        );
+      }
+      
+      // CRITICAL: Deduplicate pair IDs to prevent duplicate entries
+      const pairIds = validPairs.map((pair: any) => pair._id.toString());
+      scheduleParticipants = Array.from(new Set(pairIds));
+      
+      console.log("🟢 [ORCHESTRATOR] Using pair IDs for scheduling:", {
+        originalParticipants: participantIds.length,
+        totalPairs: doublesPairs.length,
+        validPairs: validPairs.length,
+        schedulePairs: scheduleParticipants.length,
+        pairDetails: validPairs.map((p: any) => ({
+          pairId: p._id?.toString(),
+          player1: p.player1?.toString(),
+          player2: p.player2?.toString(),
+        })),
+      });
+    }
 
     const schedule =
       seeding.length > 0
         ? generateSeededRoundRobinSchedule(
-            participantIds,
+            scheduleParticipants,
             seeding,
             options.courtsAvailable || 1,
             tournament.startDate,
             options.matchDuration || 60
           )
         : generateRoundRobinSchedule(
-            participantIds,
+            scheduleParticipants,
             options.courtsAvailable || 1,
             tournament.startDate,
             options.matchDuration || 60
@@ -370,9 +421,25 @@ export class MatchGenerationOrchestrator {
           roundMatchIds.push(String(match._id));
         } else {
           // Get match participants
+          const doublesPairs = (tournament as any).doublesPairs || [];
           const matchParticipants = isDoubles
-            ? this.getDoublesParticipants(pairing, participantIds)
+            ? this.getDoublesParticipants(pairing, participantIds, doublesPairs)
             : [pairing.player1, pairing.player2];
+
+          // Validate match participants
+          if (matchParticipants.some((p: any) => p == null)) {
+            console.error("🔴 [ORCHESTRATOR] Invalid match participants:", {
+              pairing,
+              matchParticipants,
+              participantIds,
+              isDoubles,
+              doublesPairs,
+            });
+            throw new Error(
+              `Invalid match participants. Pairing: ${JSON.stringify(pairing)}. ` +
+              `This usually happens when doubles pairs are not properly configured.`
+            );
+          }
 
           const match = await this.matchRepo.createIndividualMatch(
             {
@@ -409,11 +476,16 @@ export class MatchGenerationOrchestrator {
     });
 
     // Update tournament with rounds and standings
+    // For doubles, use pair IDs for standings instead of individual player IDs
+    const standingsParticipantIds = isDoubles && !isTeamCategory
+      ? scheduleParticipants
+      : participantIds;
+      
     await this.tournamentRepo.updateById(
       String(tournament._id),
       {
         rounds,
-        standings: this.initializeStandings(participantIds),
+        standings: this.initializeStandings(standingsParticipantIds),
       } as any,
       session
     );
@@ -605,7 +677,7 @@ export class MatchGenerationOrchestrator {
     
     // Check if this is a doubles tournament
     const matchType = (tournament as any).matchType;
-    const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+    const isDoubles = matchType === "doubles";
 
     // Generate bracket structure
     // For doubles with custom matching, the bracket size should be based on pair count (players / 2)
@@ -711,12 +783,56 @@ export class MatchGenerationOrchestrator {
   }
 
   /**
-   * Get doubles participants
+   * Get doubles participants from pairing
+   * Pairing contains pair IDs, we need to extract the actual player IDs
    */
   private getDoublesParticipants(
     pairing: any,
-    participantIds: string[]
+    participantIds: string[],
+    doublesPairs?: any[]
   ): any[] {
+    // If doublesPairs are provided, use them to look up players
+    if (doublesPairs && doublesPairs.length > 0) {
+      const pair1 = doublesPairs.find(
+        (p: any) => p._id.toString() === pairing.player1.toString()
+      );
+      const pair2 = doublesPairs.find(
+        (p: any) => p._id.toString() === pairing.player2.toString()
+      );
+
+      if (!pair1 || !pair2) {
+        throw new Error(
+          `Could not find doubles pairs for pairing. ` +
+          `Pair1 ID: ${pairing.player1}, Pair2 ID: ${pairing.player2}`
+        );
+      }
+
+      // Handle both populated (objects) and unpopulated (ObjectIds) player references
+      const getPlayerId = (player: any) => {
+        if (!player) return null;
+        // If it's already a string, return it
+        if (typeof player === 'string') return player;
+        // If it's an ObjectId or has toString, convert it
+        return player.toString ? player.toString() : String(player);
+      };
+
+      const player1_1 = getPlayerId(pair1.player1);
+      const player1_2 = getPlayerId(pair1.player2);
+      const player2_1 = getPlayerId(pair2.player1);
+      const player2_2 = getPlayerId(pair2.player2);
+
+      if (!player1_1 || !player1_2 || !player2_1 || !player2_2) {
+        throw new Error(
+          `Invalid player IDs in doubles pairs. ` +
+          `Pair1: ${player1_1}, ${player1_2}. Pair2: ${player2_1}, ${player2_2}`
+        );
+      }
+
+      return [player1_1, player1_2, player2_1, player2_2];
+    }
+
+    // Fallback to legacy consecutive indexing (shouldn't happen with new system)
+    console.warn("⚠️ [ORCHESTRATOR] Using legacy consecutive indexing for doubles pairs");
     const team1Idx = participantIds.findIndex(
       (id: any) => id === pairing.player1.toString()
     );
@@ -734,9 +850,15 @@ export class MatchGenerationOrchestrator {
 
   /**
    * Initialize standings
+   * CRITICAL: Deduplicates participant IDs to ensure unique standings entries
    */
   private initializeStandings(participantIds: string[]) {
-    return participantIds.map((pId: string) => ({
+    // Filter out any undefined/null values that might have been passed
+    const validParticipantIds = participantIds.filter((pId) => pId != null);
+    // CRITICAL: Deduplicate to prevent duplicate standings entries
+    const uniqueParticipantIds = Array.from(new Set(validParticipantIds));
+    
+    return uniqueParticipantIds.map((pId: string) => ({
       participant: pId,
       played: 0,
       won: 0,

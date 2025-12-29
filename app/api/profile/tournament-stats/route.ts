@@ -161,9 +161,27 @@ export async function GET(request: NextRequest) {
       0
     );
 
-    // Count tournament wins (1st place finishes)
+    // Count tournament wins (1st place finishes) - ONLY for completed tournaments
     const tournamentWins = tournamentStats.filter(
-      (t) => t.stats.position === 1
+      (t) => t.tournament.status === "completed" && t.stats.position === 1
+    ).length;
+
+    // Count finals reached (1st and 2nd place finishes) - ONLY for completed tournaments
+    const finalsReached = tournamentStats.filter(
+      (t) =>
+        t.tournament.status === "completed" &&
+        typeof t.stats.position === "number" &&
+        t.stats.position > 0 &&
+        t.stats.position <= 2
+    ).length;
+
+    // Count semifinals reached (1st, 2nd, 3rd place finishes) - ONLY for completed tournaments
+    const semifinalsReached = tournamentStats.filter(
+      (t) =>
+        t.tournament.status === "completed" &&
+        typeof t.stats.position === "number" &&
+        t.stats.position > 0 &&
+        t.stats.position <= 3
     ).length;
 
     // Count podium finishes (top 3)
@@ -199,6 +217,8 @@ export async function GET(request: NextRequest) {
           ongoingTournaments,
           upcomingTournaments,
           tournamentWins,
+          finalsReached,
+          semifinalsReached,
           podiumFinishes,
           totalMatches,
           totalWins,

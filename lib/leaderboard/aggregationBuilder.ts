@@ -138,28 +138,19 @@ export function buildLeaderboardPipeline(options: AggregationOptions): mongoose.
   // Stage 7: Calculate match result for this player
   pipeline.push(buildMatchResultCalculationStage());
 
-  // Stage 8: Calculate age category
-  pipeline.push(buildAgeCategoryStage());
-
-  // Stage 9: Group by player to aggregate stats
+  // Stage 8: Group by player to aggregate stats
   pipeline.push(buildGroupingStage());
 
   // Stage 10: Calculate computed metrics (win rate, streaks, etc.)
   pipeline.push(buildComputedMetricsStage());
 
-  // Stage 11: Apply player-based filters (gender, age category, handedness)
+  // Stage 11: Apply player-based filters (gender, handedness)
   const playerFilterStage = buildPlayerFilterStage(filters);
   if (playerFilterStage) {
     pipeline.push(playerFilterStage);
   }
 
-  // Stage 12: Apply player type filter (singles_only, doubles_only, both)
-  const playerTypeFilterStage = buildPlayerTypeFilterStage(filters);
-  if (playerTypeFilterStage) {
-    pipeline.push(playerTypeFilterStage);
-  }
-
-  // Stage 13: Sort by selected metric
+  // Stage 12: Sort by selected metric
   pipeline.push(buildSortStage(filters));
 
   // Stage 14: Pagination and total count using $facet
@@ -184,13 +175,13 @@ function buildMatchFilterStage(
   // Handle match type filter - optional, supports 'all' option
   if (filters.type && filters.type !== 'all') {
     // Specific match type selected
-    if (!['singles', 'doubles', 'mixed_doubles'].includes(filters.type)) {
+    if (!['singles', 'doubles'].includes(filters.type)) {
       throw new Error(`Invalid match type filter: ${filters.type}`);
     }
     matchFilter.matchType = filters.type;
   } else {
     // 'all' or not specified - include all individual match types
-    matchFilter.matchType = { $in: ['singles', 'doubles', 'mixed_doubles'] };
+    matchFilter.matchType = { $in: ['singles', 'doubles'] };
   }
 
   // Handle competition format filter
@@ -443,94 +434,6 @@ function buildMatchResultCalculationStage(): mongoose.PipelineStage.AddFields {
 }
 
 /**
- * Stage 6: Calculate age category from dateOfBirth
- * Safety: Handle null/undefined dateOfBirth gracefully
- */
-function buildAgeCategoryStage(): mongoose.PipelineStage.AddFields {
-  const now = new Date();
-  const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
-
-  return {
-    $addFields: {
-      ageCategory: {
-        $cond: [
-          {
-            $and: [
-              { $ne: ['$playerData.dateOfBirth', null] },
-              { $ne: ['$playerData.dateOfBirth', undefined] },
-            ],
-          },
-          {
-            $switch: {
-              branches: [
-                {
-                  case: {
-                    $lt: [
-                      {
-                        $divide: [
-                          { $subtract: [now, '$playerData.dateOfBirth'] },
-                          msPerYear,
-                        ],
-                      },
-                      13,
-                    ],
-                  },
-                  then: 'U13',
-                },
-                {
-                  case: {
-                    $lt: [
-                      {
-                        $divide: [
-                          { $subtract: [now, '$playerData.dateOfBirth'] },
-                          msPerYear,
-                        ],
-                      },
-                      15,
-                    ],
-                  },
-                  then: 'U15',
-                },
-                {
-                  case: {
-                    $lt: [
-                      {
-                        $divide: [
-                          { $subtract: [now, '$playerData.dateOfBirth'] },
-                          msPerYear,
-                        ],
-                      },
-                      18,
-                    ],
-                  },
-                  then: 'U18',
-                },
-                {
-                  case: {
-                    $gte: [
-                      {
-                        $divide: [
-                          { $subtract: [now, '$playerData.dateOfBirth'] },
-                          msPerYear,
-                        ],
-                      },
-                      40,
-                    ],
-                  },
-                  then: '40+',
-                },
-              ],
-              default: 'Open',
-            },
-          },
-          'Open', // Default to 'Open' if dateOfBirth is missing
-        ],
-      },
-    },
-  };
-}
-
-/**
  * Stage 8: Group by player to aggregate statistics
  */
 function buildGroupingStage(): mongoose.PipelineStage.Group {
@@ -734,18 +637,7 @@ function buildPlayerFilterStage(
 
   // Gender filter
   if (filters.gender) {
-    if (filters.gender === 'mixed') {
-      // For mixed, we need to check if it's a mixed_doubles match
-      // This is handled at match level, so we don't filter here
-      // Instead, we'll need to check match type in the grouping stage
-    } else {
-      matchFilter['player.gender'] = filters.gender;
-    }
-  }
-
-  // Age category filter
-  if (filters.ageCategory) {
-    matchFilter.ageCategory = filters.ageCategory;
+    matchFilter['player.gender'] = filters.gender;
   }
 
   // Handedness filter
@@ -762,73 +654,7 @@ function buildPlayerFilterStage(
 }
 
 /**
- * Stage 12: Filter by player type (singles_only, doubles_only, both)
- * 
- * This filters players based on the types of matches they've played.
- * - singles_only: Player has ONLY played singles matches
- * - doubles_only: Player has ONLY played doubles/mixed_doubles matches
- * - both: No filter (player can have any mix)
- */
-function buildPlayerTypeFilterStage(
-  filters: LeaderboardFilters
-): mongoose.PipelineStage.AddFields | mongoose.PipelineStage.Match | null {
-  if (!filters.playerType || filters.playerType === 'both') {
-    return null;
-  }
-
-  // We need to check if ALL matches are of the specified type
-  // Use $setIsSubset to check if matchTypes array contains only the allowed types
-  if (filters.playerType === 'singles_only') {
-    // Check that matchTypes array contains only 'singles'
-    return {
-      $match: {
-        $expr: {
-          $eq: [
-            {
-              $size: {
-                $filter: {
-                  input: '$matchTypes',
-                  as: 'type',
-                  cond: { $ne: ['$$type', 'singles'] },
-                },
-              },
-            },
-            0,
-          ],
-        },
-      },
-    };
-  } else if (filters.playerType === 'doubles_only') {
-    // Check that matchTypes array contains only 'doubles' or 'mixed_doubles'
-    return {
-      $match: {
-        $expr: {
-          $eq: [
-            {
-              $size: {
-                $filter: {
-                  input: '$matchTypes',
-                  as: 'type',
-                  cond: {
-                    $not: {
-                      $in: ['$$type', ['doubles', 'mixed_doubles']],
-                    },
-                  },
-                },
-              },
-            },
-            0,
-          ],
-        },
-      },
-    };
-  }
-
-  return null;
-}
-
-/**
- * Stage 11: Sort by selected metric
+ * Stage 12: Sort by selected metric
  */
 function buildSortStage(filters: LeaderboardFilters): mongoose.PipelineStage.Sort {
   const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;

@@ -33,7 +33,7 @@ const userSchema = z.object({
 });
 
 const schema = z.object({
-  matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
+  matchType: z.enum(["singles", "doubles"]),
   numberOfSets: z.enum(["1", "3", "5", "7", "9"]),
   player1: userSchema.optional(),
   player2: userSchema.optional(),
@@ -109,15 +109,14 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
                 render={({ field }) => (
                   <FormItem className="space-y-1.5">
                     <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">Format</FormLabel>
-                    <div className="grid grid-cols-3 gap-2">
-                      {["singles", "doubles", "mixed"].map((type) => {
-                        const value = type === "mixed" ? "mixed_doubles" : type;
-                        const active = field.value === value;
+                    <div className="grid grid-cols-2 gap-2">
+                      {["singles", "doubles"].map((type) => {
+                        const active = field.value === type;
                         return (
                           <button
                             key={type}
                             type="button"
-                            onClick={() => field.onChange(value)}
+                            onClick={() => field.onChange(type)}
                             className={cn(
                               "py-2 text-xs font-bold uppercase rounded border-2 transition-all",
                               active

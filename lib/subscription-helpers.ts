@@ -306,7 +306,7 @@ export async function getSubscriptionSummary(userId: string) {
     daysUntilRenewal,
     tournamentsCreated: subscription.tournamentsCreatedThisPeriod,
     tournamentsLimit: subscription.features.maxTournaments,
-    canUpgrade: subscription.tier !== "enterprise",
+    canUpgrade: false, // Pro is the highest tier now
   };
 }
 
@@ -317,6 +317,5 @@ export function getFeatureComparison(): Record<SubscriptionTier, ISubscriptionFe
   return {
     free: getFeaturesByTier("free"),
     pro: getFeaturesByTier("pro"),
-    enterprise: getFeaturesByTier("enterprise"),
   };
 }

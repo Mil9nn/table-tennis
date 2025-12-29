@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import {
   History as HistoryIcon,
-  Trophy,
-  Users,
-  Calendar,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -15,7 +11,11 @@ import Image from "next/image";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import { EmptyState } from "../components/EmptyState";
 
-const MatchHistoryPage = () => {
+interface MatchHistoryPageProps {
+  userId?: string;
+}
+
+const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
   const router = useRouter();
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,9 +62,9 @@ const MatchHistoryPage = () => {
 
   return (
     <div className="min-h-screen bg-[#ffffff]">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto py-8">
         {/* Page Title */}
-        <div className="mb-8">
+        <div className="mb-8 px-4">
           <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
             Match History
           </h1>
@@ -85,8 +85,8 @@ const MatchHistoryPage = () => {
         ) : (
           <div className="space-y-8">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
                   Total Matches
                 </h3>
@@ -95,14 +95,14 @@ const MatchHistoryPage = () => {
                 </p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
                   Wins
                 </h3>
                 <p className="text-3xl font-bold text-[#353535]">{wins}</p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
+              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
                   Losses
                 </h3>
@@ -112,7 +112,7 @@ const MatchHistoryPage = () => {
 
             {/* Match List */}
             <div className="space-y-4">
-              <div>
+              <div className="px-4">
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
                   Recent Matches
                 </h2>
@@ -121,112 +121,87 @@ const MatchHistoryPage = () => {
                 </p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9]">
-                <div className="divide-y divide-[#d9d9d9]">
-                  {matches.map((match, index) => (
-                    <div
-                      key={index}
-                      onClick={() => router.push(`/matches/${match._id}`)}
-                      className={`px-6 py-4 hover:bg-[#f5f5f5] transition-colors cursor-pointer group border-l-4 ${
-                        match.result === "win"
-                          ? "border-l-[#10B981]"
-                          : "border-l-[#EF4444]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Match Info */}
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                          {/* Opponent/Team Avatar */}
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] flex items-center justify-center text-white flex-shrink-0">
-                            {match.type === "individual" ? (
-                              match.opponentImage ? (
-                                <Image
-                                  src={match.opponentImage}
-                                  alt={match.opponent || "Opponent"}
-                                  width={40}
-                                  height={40}
-                                  className="object-cover w-full h-full"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] text-white font-bold text-sm">
-                                  {(match.opponent?.[0] || "?").toUpperCase()}
-                                </div>
-                              )
-                            ) : match.teamLogo ? (
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
+                {matches.map((match, index) => (
+                  <div
+                    key={index}
+                    onClick={() => router.push(`/matches/${match._id}`)}
+                    className="group block border border-[#d9d9d9] bg-[#ffffff] p-3 px-4 transition-colors hover:bg-[#3c6e71]"
+                  >
+                    {/* Line 1: Opponent, Score, Result */}
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
+                      {/* Opponent Avatar + Name */}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="relative w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] flex items-center justify-center text-white flex-shrink-0">
+                          {match.type === "individual" ? (
+                            match.opponentImage ? (
                               <Image
-                                src={match.teamLogo}
-                                alt={match.teams || "Team"}
+                                src={match.opponentImage}
+                                alt={match.opponent || "Opponent"}
                                 width={40}
                                 height={40}
                                 className="object-cover w-full h-full"
                               />
                             ) : (
-                              <GroupWorkIcon
-                                className="w-5 h-5"
-                                style={{
-                                  fontSize: "inherit",
-                                  width: "inherit",
-                                  height: "inherit",
-                                }}
-                              />
-                            )}
-                          </div>
-
-                          {/* Match Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <h4 className="font-bold text-[#353535] text-sm truncate">
-                                {match.type === "individual" ? (
-                                  <span>
-                                    vs {match.opponent || "Unknown Opponent"}
-                                  </span>
-                                ) : (
-                                  <span>{match.teams || "Team Match"}</span>
-                                )}
-                              </h4>
-                              {match.matchType && (
-                                <span className="px-2 py-0.5 bg-[#e5e7eb] text-[#353535] text-[9px] rounded font-semibold">
-                                  {match.matchType
-                                    .replace(/_/g, " ")
-                                    .replace(/\b\w/g, (l: string) =>
-                                      l.toUpperCase()
-                                    )}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-[#666666]">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>{formatDate(match.date)}</span>
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] text-white font-bold text-sm">
+                                {(match.opponent?.[0] || "?").toUpperCase()}
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span>•</span>
-                                <span className="font-bold text-[#353535]">
-                                  {match.score}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                            )
+                          ) : match.teamLogo ? (
+                            <Image
+                              src={match.teamLogo}
+                              alt={match.teams || "Team"}
+                              width={40}
+                              height={40}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <GroupWorkIcon
+                              className="w-5 h-5"
+                              style={{
+                                fontSize: "inherit",
+                                width: "inherit",
+                                height: "inherit",
+                              }}
+                            />
+                          )}
                         </div>
-
-                        {/* Result Badge and Arrow */}
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span
-                            className={`px-3 py-1 rounded font-bold text-xs ${
-                              match.result === "win"
-                                ? "bg-[#d1f4e6] text-[#065f46]"
-                                : "bg-[#fee2e2] text-[#7f1d1d]"
-                            }`}
-                          >
-                            {match.result === "win" ? "Win" : "Loss"}
-                          </span>
-                          <ChevronRight className="w-5 h-5 text-[#d9d9d9] group-hover:text-[#3c6e71] group-hover:translate-x-1 transition-all" />
-                        </div>
+                        <span
+                          className={`font-medium text-sm transition-colors group-hover:text-[#ffffff] ${
+                            match.result === "win"
+                              ? "text-green-600 group-hover:text-green-200"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          {match.type === "individual"
+                            ? `${match.opponent || "Unknown"}`
+                            : match.teams || "Team Match"}
+                        </span>
                       </div>
+
+                      {/* Score */}
+                      <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff] shrink-0">
+                        {match.score}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </div>
+
+                    {/* Line 2: Meta info */}
+                    <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+                      <span className="capitalize">
+                        {match.matchType?.replace(/_/g, " ")}
+                      </span>
+                      <span>•</span>
+                      <span>{formatDate(match.date)}</span>
+                      {match.city && (
+                        <>
+                          <span>•</span>
+                          <span>{match.city}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </section>
             </div>
           </div>
         )}

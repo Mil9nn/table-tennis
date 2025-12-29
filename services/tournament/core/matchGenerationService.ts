@@ -36,17 +36,39 @@ interface MatchGenerationResult {
 
 /**
  * Get match participants for singles or doubles matches
+ * For doubles, uses tournament.doublesPairs if available, falls back to consecutive indexing
  */
 export function getMatchParticipants(
   pairing: any,
   isDoubles: boolean,
-  participantIds: string[]
+  participantIds: string[],
+  doublesPairs?: any[]
 ): mongoose.Types.ObjectId[] {
   if (!isDoubles) {
     return [pairing.player1, pairing.player2];
   }
 
-  // For doubles, find the team pairs
+  // For doubles, try to use doublesPairs first (new approach)
+  if (doublesPairs && doublesPairs.length > 0) {
+    // pairing.player1 and pairing.player2 are pair IDs
+    const pair1 = doublesPairs.find(
+      (p: any) => p._id.toString() === pairing.player1.toString()
+    );
+    const pair2 = doublesPairs.find(
+      (p: any) => p._id.toString() === pairing.player2.toString()
+    );
+
+    if (pair1 && pair2) {
+      return [
+        new mongoose.Types.ObjectId(pair1.player1.toString()),
+        new mongoose.Types.ObjectId(pair1.player2.toString()),
+        new mongoose.Types.ObjectId(pair2.player1.toString()),
+        new mongoose.Types.ObjectId(pair2.player2.toString()),
+      ];
+    }
+  }
+
+  // Fallback: Legacy consecutive array indexing
   const team1Idx = participantIds.findIndex(
     (id: any) => id === pairing.player1.toString()
   );
@@ -526,10 +548,8 @@ export async function createBracketMatch(
     return null;
   }
 
-  // Check if this is a doubles or mixed_doubles match
-  const isDoubles =
-    (tournament as any).matchType === "doubles" ||
-    (tournament as any).matchType === "mixed_doubles";
+  // Check if this is a doubles match
+  const isDoubles = (tournament as any).matchType === "doubles";
 
   // Get match participants - for doubles, we need 4 participants
   let matchParticipants: mongoose.Types.ObjectId[];
@@ -606,9 +626,13 @@ export async function createBracketMatch(
 
 /**
  * Initialize standings for participants
+ * CRITICAL: Deduplicates participant IDs to ensure unique standings entries
  */
 export function initializeStandings(participantIds: string[]) {
-  return participantIds.map((pId: string) => ({
+  // Deduplicate participant IDs to prevent duplicate standings
+  const uniqueParticipantIds = Array.from(new Set(participantIds));
+  
+  return uniqueParticipantIds.map((pId: string) => ({
     participant: pId,
     played: 0,
     won: 0,
@@ -677,12 +701,25 @@ export async function generateGroupMatches(
   scorerId: string,
   options: MatchGenerationOptions
 ): Promise<void> {
-  const isDoubles =
-    (tournament as any).matchType === "doubles" ||
-    (tournament as any).matchType === "mixed_doubles";
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  const doublesPairs = (tournament as any).doublesPairs || [];
+
+  // For doubles with pairs, use pair IDs as participants for group allocation
+  let allocationParticipants = participantIds;
+  if (isDoubles && doublesPairs.length > 0) {
+    // CRITICAL: Deduplicate pair IDs to prevent duplicate entries
+    const pairIds = doublesPairs.map((pair: any) => pair._id.toString());
+    allocationParticipants = Array.from(new Set(pairIds));
+  }
+
+  // CRITICAL: Ensure participant IDs are deduplicated before allocation
+  allocationParticipants = Array.from(new Set(
+    allocationParticipants.map((p: any) => typeof p === 'string' ? p : String(p))
+  ));
 
   const groupAllocations = allocateGroups(
-    participantIds,
+    allocationParticipants,
     tournament.numberOfGroups!,
     seeding.length > 0 ? seeding : undefined
   );
@@ -692,7 +729,7 @@ export async function generateGroupMatches(
   for (const groupAlloc of groupAllocations) {
     // Generate round-robin schedule for this group
     const schedule =
-      seeding.length > 0
+      seeding.length > 0 && !isDoubles // Don't use seeded schedule for doubles (pairs don't have seeding yet)
         ? generateSeededRoundRobinSchedule(
             groupAlloc.participants,
             seeding,
@@ -725,7 +762,8 @@ export async function generateGroupMatches(
           const matchParticipants = getMatchParticipants(
             pairing,
             isDoubles,
-            participantIds
+            participantIds,
+            doublesPairs
           );
           const match = await createScheduledMatch(
             matchParticipants,
@@ -750,7 +788,9 @@ export async function generateGroupMatches(
     }
 
     // Initialize group standings
-    const groupStandings = initializeStandings(groupAlloc.participants);
+    // For doubles, use pair IDs for standings
+    const standingsParticipants = groupAlloc.participants;
+    const groupStandings = initializeStandings(standingsParticipants);
 
     // Validate schedule completeness
     const groupSize = groupAlloc.participants.length;
@@ -788,21 +828,37 @@ export async function generateSingleRoundRobinMatches(
   scorerId: string,
   options: MatchGenerationOptions
 ): Promise<void> {
-  const isDoubles =
-    (tournament as any).matchType === "doubles" ||
-    (tournament as any).matchType === "mixed_doubles";
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  const doublesPairs = (tournament as any).doublesPairs || [];
+
+  // For doubles with pairs, use pair IDs as participants for scheduling
+  let scheduleParticipants = participantIds;
+  let scheduleSeeding = seeding;
+
+  if (isDoubles && doublesPairs.length > 0) {
+    // Use pair IDs instead of individual player IDs
+    scheduleParticipants = doublesPairs.map((pair: any) => pair._id.toString());
+    
+    // Map seeding to pairs (if seeding exists)
+    // For now, we'll use pair order as seeding
+    scheduleSeeding = scheduleParticipants.map((pairId: any, index: number) => ({
+      participant: new mongoose.Types.ObjectId(pairId),
+      seedNumber: index + 1,
+    })) as ISeeding[];
+  }
 
   const schedule =
-    seeding.length > 0
+    scheduleSeeding.length > 0 && !isDoubles // Don't use seeded schedule for doubles (we created custom seeding above)
       ? generateSeededRoundRobinSchedule(
-          participantIds,
-          seeding,
+          scheduleParticipants,
+          scheduleSeeding,
           options.courtsAvailable || 1,
           tournament.startDate,
           options.matchDuration || 60
         )
       : generateRoundRobinSchedule(
-          participantIds,
+          scheduleParticipants,
           options.courtsAvailable || 1,
           tournament.startDate,
           options.matchDuration || 60
@@ -825,7 +881,8 @@ export async function generateSingleRoundRobinMatches(
         const matchParticipants = getMatchParticipants(
           pairing,
           isDoubles,
-          participantIds
+          participantIds,
+          doublesPairs
         );
         const match = await createScheduledMatch(
           matchParticipants,
@@ -849,13 +906,21 @@ export async function generateSingleRoundRobinMatches(
   }
 
   // Initialize standings
+  // For doubles, use pair IDs for standings
+  const standingsParticipants = isDoubles && doublesPairs.length > 0 
+    ? scheduleParticipants 
+    : participantIds;
+  
   tournament.rounds = rounds as any;
-  tournament.standings = initializeStandings(participantIds) as any;
+  tournament.standings = initializeStandings(standingsParticipants) as any;
+  
+  // CRITICAL: Mark standings as modified so Mongoose saves the changes
+  tournament.markModified("standings");
 
   // Validate schedule completeness
   const actualMatches = rounds.reduce((sum, r) => sum + r.matches.length, 0);
   validateScheduleCompleteness(
-    participantIds.length,
+    scheduleParticipants.length,
     actualMatches,
     "Round-robin"
   );

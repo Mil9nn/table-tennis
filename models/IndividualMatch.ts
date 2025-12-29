@@ -11,14 +11,14 @@ import {
  * Individual Match Model
  *
  * Extends the base Match model with individual-specific fields
- * Supports: singles, doubles, mixed_doubles
+ * Supports: singles, doubles
  *
  * Uses MongoDB discriminators for proper type separation
  */
 
 export interface IIndividualMatch extends IMatchBase {
   matchCategory: 'individual';
-  matchType: 'singles' | 'doubles' | 'mixed_doubles';
+  matchType: 'singles' | 'doubles';
   numberOfSets: number;
   participants: mongoose.Types.ObjectId[];
   currentGame: number;
@@ -50,7 +50,7 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     matchType: {
       type: String,
-      enum: ["singles", "doubles", "mixed_doubles"],
+      enum: ["singles", "doubles"],
       required: true,
     },
 
@@ -115,7 +115,7 @@ IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
 
 // Validation: Doubles requires even number of participants (2 or 4)
 IndividualMatchSchema.pre('save', function(next) {
-  if (this.matchType === 'doubles' || this.matchType === 'mixed_doubles') {
+  if (this.matchType === 'doubles') {
     if (this.participants.length !== 4) {
       return next(new Error('Doubles matches require exactly 4 participants'));
     }

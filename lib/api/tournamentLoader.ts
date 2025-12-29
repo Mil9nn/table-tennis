@@ -3,9 +3,13 @@
  *
  * Centralized tournament fetching with permission checks and population.
  * Replaces duplicated tournament loading patterns across 18+ routes.
+ *
+ * IMPORTANT: Uses TournamentIndividual and TournamentTeam models (not the deprecated Tournament model)
+ * to ensure consistency with TournamentRepository and proper schema handling for fields like doublesPairs.
  */
 
-import Tournament, { ITournament } from "@/models/Tournament";
+import TournamentIndividual, { ITournamentIndividual } from "@/models/TournamentIndividual";
+import TournamentTeam, { ITournamentTeam } from "@/models/TournamentTeam";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
 import BracketState from "@/models/BracketState";
@@ -13,6 +17,9 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import { connectDB } from "@/lib/mongodb";
 import { ApiError } from "./http";
+
+// Union type for tournament documents
+export type TournamentDocument = ITournamentIndividual | ITournamentTeam;
 
 export interface TournamentLoadOptions {
   /** Require the user to be the tournament organizer */
@@ -38,7 +45,7 @@ export interface TournamentLoadOptions {
 }
 
 export interface LoadedTournament {
-  tournament: ITournament;
+  tournament: TournamentDocument;
   isTeamTournament: boolean;
 }
 
@@ -70,14 +77,26 @@ export async function loadTournament(
   void User;
   void Team;
 
-  // First fetch to check category and permissions
-  const tournamentRaw = await Tournament.findById(tournamentId);
+  // First do a lean query to check category (using TournamentIndividual since both share the same collection)
+  const categoryCheck = await TournamentIndividual.findById(tournamentId)
+    .select("category organizer scorers")
+    .lean<{ category?: "team" | "individual"; organizer: any; scorers?: any[] } | null>();
+
+  if (!categoryCheck) {
+    throw ApiError.notFound("Tournament");
+  }
+
+  const isTeamTournament = categoryCheck.category === "team";
+
+  // Use the correct model based on category
+  const TournamentModel = isTeamTournament ? TournamentTeam : TournamentIndividual;
+
+  // Fetch the full tournament document with the correct model
+  const tournamentRaw = await (TournamentModel as any).findById(tournamentId);
 
   if (!tournamentRaw) {
     throw ApiError.notFound("Tournament");
   }
-
-  const isTeamTournament = tournamentRaw.category === "team";
 
   // Permission checks
   if (options.requireOrganizer) {
@@ -112,96 +131,33 @@ export async function loadTournament(
     !options.populateBracket &&
     !options.populateRounds
   ) {
-    return { tournament: tournamentRaw, isTeamTournament };
+    return { tournament: tournamentRaw as TournamentDocument, isTeamTournament };
   }
 
-  // Build populated query
-  let query = Tournament.findById(tournamentId).populate(
-    "organizer",
-    "username fullName profileImage"
-  );
+  // Build populated query using the correct model
+  let query = (TournamentModel as any).findById(tournamentId).populate("organizer");
 
   if (options.populateScorers) {
-    query = query.populate("scorers", "username fullName profileImage");
+    query = query.populate("scorers");
   }
 
   // Populate based on category
   if (options.populateParticipants) {
-    if (isTeamTournament) {
-      query = query.populate({
-        path: "participants",
-        model: Team,
-        select: "name logo city captain players",
-        populate: [
-          { path: "captain", select: "username fullName profileImage" },
-          { path: "players.user", select: "username fullName profileImage" },
-        ],
-      });
-    } else {
-      query = query.populate({
-        path: "participants",
-        model: User,
-        select: "username fullName profileImage",
-        options: { strictPopulate: false },
-      });
-    }
+    query = query.populate("participants");
   }
 
   if (options.populateStandings) {
-    if (isTeamTournament) {
-      query = query.populate({
-        path: "standings.participant",
-        model: Team,
-        select: "name logo city captain",
-      });
-    } else {
-      query = query.populate(
-        "standings.participant",
-        "username fullName profileImage"
-      );
-    }
+    query = query.populate("standings.participant");
   }
 
   if (options.populateGroups) {
-    if (isTeamTournament) {
-      query = query
-        .populate({
-          path: "groups.standings.participant",
-          model: Team,
-          select: "name logo city captain",
-        })
-        .populate({
-          path: "groups.participants",
-          model: Team,
-          select: "name logo city captain players",
-          populate: [
-            { path: "captain", select: "username fullName profileImage" },
-            { path: "players.user", select: "username fullName profileImage" },
-          ],
-        });
-    } else {
-      query = query
-        .populate(
-          "groups.standings.participant",
-          "username fullName profileImage"
-        )
-        .populate("groups.participants", "username fullName profileImage");
-    }
+    query = query
+      .populate("groups.standings.participant")
+      .populate("groups.participants");
   }
 
   if (options.populateSeeding) {
-    if (isTeamTournament) {
-      query = query.populate({
-        path: "seeding.participant",
-        model: Team,
-        select: "name logo city captain",
-      });
-    } else {
-      query = query.populate(
-        "seeding.participant",
-        "username fullName profileImage"
-      );
-    }
+    query = query.populate("seeding.participant");
   }
 
   if (options.populateRounds) {
@@ -251,17 +207,17 @@ export async function loadTournament(
     options.populateBracket &&
     (tournament.format === "knockout" || tournament.format === "hybrid")
   ) {
-    await loadBracketData(tournament, isTeamTournament);
+    await loadBracketData(tournament as TournamentDocument, isTeamTournament);
   }
 
-  return { tournament, isTeamTournament };
+  return { tournament: tournament as TournamentDocument, isTeamTournament };
 }
 
 /**
  * Load bracket data from BracketState and populate matches
  */
 async function loadBracketData(
-  tournament: ITournament,
+  tournament: TournamentDocument,
   isTeamTournament: boolean
 ): Promise<void> {
   // If bracket not in tournament document, try BracketState
@@ -305,15 +261,13 @@ async function loadBracketData(
 
   if (isTeamTournament) {
     bracketMatchesQuery = (MatchModel as any).find({ _id: { $in: matchIds } })
-      .populate("team1.captain", "username fullName profileImage")
-      .populate("team2.captain", "username fullName profileImage")
-      .populate("subMatches.playerTeam1", "username fullName profileImage")
-      .populate("subMatches.playerTeam2", "username fullName profileImage");
+      .populate("team1.captain")
+      .populate("team2.captain")
+      .populate("subMatches.playerTeam1")
+      .populate("subMatches.playerTeam2");
   } else {
-    bracketMatchesQuery = (MatchModel as any).find({ _id: { $in: matchIds } }).populate(
-      "participants",
-      "username fullName profileImage"
-    );
+    bracketMatchesQuery = (MatchModel as any).find({ _id: { $in: matchIds } })
+      .populate("participants");
   }
 
   const bracketMatches = await bracketMatchesQuery;
@@ -355,7 +309,7 @@ async function loadBracketData(
  * Populate team info in bracket participants
  */
 async function populateBracketParticipants(
-  tournament: ITournament
+  tournament: TournamentDocument
 ): Promise<void> {
   if (!tournament.bracket?.rounds) return;
 

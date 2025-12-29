@@ -16,7 +16,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { EmptyState } from "../components/EmptyState";
 
-const MyTeamsPage = () => {
+interface MyTeamsPageProps {
+  userId?: string;
+}
+
+const MyTeamsPage = ({ userId }: MyTeamsPageProps = {}) => {
   const router = useRouter();
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -196,37 +200,39 @@ const MyTeamsPage = () => {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#ffffff] border border-[#d9d9d9]">
                 <Link
                   href="/teams"
-                  className="flex items-center gap-3 px-6 py-4 bg-[#ffffff] hover:bg-[#f5f5f5] rounded border border-[#d9d9d9] transition-all group"
+                  className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-[#f5f5f5] transition-colors cursor-pointer group border-b border-[#d9d9d9]"
                 >
-                  <div className="p-2 bg-[#e0f2fe] group-hover:bg-[#bfdbfe] rounded">
-                    <Compass className="w-5 h-5 text-[#3c6e71] flex-shrink-0" />
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <Compass className="w-5 h-5 text-[#3c6e71] group-hover:text-[#3c6e71] flex-shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="font-bold text-[#353535] text-sm">
+                        Browse Teams
+                      </p>
+                      <p className="text-xs text-[#666666]">
+                        Find and join new teams
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left min-w-0">
-                    <p className="font-bold text-[#353535] text-sm">
-                      Browse Teams
-                    </p>
-                    <p className="text-xs text-[#666666]">
-                      Find and join new teams
-                    </p>
-                  </div>
+                  <ChevronRight className="w-5 h-5 text-[#d9d9d9] group-hover:text-[#3c6e71] group-hover:translate-x-1 transition-all flex-shrink-0" />
                 </Link>
 
                 <Link
                   href="/teams/create"
-                  className="flex items-center gap-3 px-6 py-4 bg-[#ffffff] hover:bg-[#f5f5f5] rounded border border-[#d9d9d9] transition-all group"
+                  className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-[#f5f5f5] transition-colors cursor-pointer group"
                 >
-                  <div className="p-2 bg-[#fef3c7] group-hover:bg-[#fde68a] rounded">
-                    <Sparkles className="w-5 h-5 text-[#92400e] flex-shrink-0" />
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <Sparkles className="w-5 h-5 text-[#3c6e71] group-hover:text-[#3c6e71] flex-shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="font-bold text-[#353535] text-sm">
+                        Create Team
+                      </p>
+                      <p className="text-xs text-[#666666]">Start your own team</p>
+                    </div>
                   </div>
-                  <div className="text-left min-w-0">
-                    <p className="font-bold text-[#353535] text-sm">
-                      Create Team
-                    </p>
-                    <p className="text-xs text-[#666666]">Start your own team</p>
-                  </div>
+                  <ChevronRight className="w-5 h-5 text-[#d9d9d9] group-hover:text-[#3c6e71] group-hover:translate-x-1 transition-all flex-shrink-0" />
                 </Link>
               </div>
             </div>

@@ -126,7 +126,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
         };
       }
 
-      // Doubles / mixed_doubles
+      // Doubles
       return {
         p1: [
           {

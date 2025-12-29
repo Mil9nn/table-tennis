@@ -66,38 +66,31 @@ export const POST = withDBAndErrorHandling(async (req, context) => {
 
   // Add participant to tournament
   tournament.participants.push(participantId as any);
+
+  // Clear doubles pairs if this is a doubles tournament
+  // Pairs must be recreated after adding participants
+  if (
+    !isTeamTournament &&
+    (tournament as any).matchType === "doubles" &&
+    (tournament as any).doublesPairs &&
+    (tournament as any).doublesPairs.length > 0
+  ) {
+    (tournament as any).doublesPairs = [];
+    (tournament as any).markModified("doublesPairs");
+  }
+
   await tournament.save();
 
   // Populate tournament data based on category
-  if (isTeamTournament) {
-    await tournament.populate([
-      {
-        path: "participants",
-        model: Team,
-        select: "name logo city captain players",
-        populate: [
-          { path: "captain", select: "username fullName profileImage" },
-          { path: "players.user", select: "username fullName profileImage" },
-        ],
-      },
-      { path: "organizer", select: "username fullName profileImage" },
-      {
-        path: "seeding.participant",
-        model: Team,
-        select: "name logo city captain",
-      },
-    ]);
-  } else {
-    await tournament.populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "organizer", select: "username fullName profileImage" },
-      { path: "seeding.participant", select: "username fullName profileImage" },
-    ]);
-  }
+  await (tournament as any).populate("participants");
+  await (tournament as any).populate("organizer");
+  await (tournament as any).populate("seeding.participant");
 
   return jsonOk({
     message: isTeamTournament
       ? "Team added successfully!"
+      : (tournament as any).matchType === "doubles"
+      ? "Participant added successfully! Note: Doubles pairs have been cleared and must be recreated."
       : "Participant added successfully!",
     tournament,
   });
@@ -168,38 +161,36 @@ export const DELETE = withDBAndErrorHandling(async (req, context) => {
     (s: any) => s.participant.toString() !== participantId
   );
 
+  // Clear doubles pairs if this is a doubles tournament
+  // Pairs must be recreated after removing participants
+  if (
+    !isTeamTournament &&
+    (tournament as any).matchType === "doubles" &&
+    (tournament as any).doublesPairs &&
+    (tournament as any).doublesPairs.length > 0
+  ) {
+    // Remove pairs that include the removed participant
+    const updatedPairs = (tournament as any).doublesPairs.filter(
+      (pair: any) =>
+        pair.player1.toString() !== participantId &&
+        pair.player2.toString() !== participantId
+    );
+    (tournament as any).doublesPairs = updatedPairs;
+    (tournament as any).markModified("doublesPairs");
+  }
+
   await tournament.save();
 
   // Populate tournament data based on category
-  if (isTeamTournament) {
-    await tournament.populate([
-      {
-        path: "participants",
-        model: Team,
-        select: "name logo city captain players",
-        populate: [
-          { path: "captain", select: "username fullName profileImage" },
-          { path: "players.user", select: "username fullName profileImage" },
-        ],
-      },
-      { path: "organizer", select: "username fullName profileImage" },
-      {
-        path: "seeding.participant",
-        model: Team,
-        select: "name logo city captain",
-      },
-    ]);
-  } else {
-    await tournament.populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "organizer", select: "username fullName profileImage" },
-      { path: "seeding.participant", select: "username fullName profileImage" },
-    ]);
-  }
+  await (tournament as any).populate("participants");
+  await (tournament as any).populate("organizer");
+  await (tournament as any).populate("seeding.participant");
 
   return jsonOk({
     message: isTeamTournament
       ? "Team removed successfully!"
+      : (tournament as any).matchType === "doubles"
+      ? "Participant removed successfully! Note: Affected doubles pairs have been removed."
       : "Participant removed successfully!",
     tournament,
   });

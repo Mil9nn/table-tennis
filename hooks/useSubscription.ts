@@ -100,7 +100,6 @@ export function useSubscription() {
     const tierHierarchy: Record<SubscriptionTier, number> = {
       free: 0,
       pro: 1,
-      enterprise: 2,
     };
     return tierHierarchy[subscription.tier] >= tierHierarchy[requiredTier];
   };

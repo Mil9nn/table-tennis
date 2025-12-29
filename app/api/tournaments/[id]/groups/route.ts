@@ -178,9 +178,7 @@ export async function PUT(
 
     // If matches are already generated, check if any have been played
     const matchesGenerated = tournament.drawGenerated;
-    const isDoubles =
-      tournament.matchType === "doubles" ||
-      tournament.matchType === "mixed_doubles";
+    const isDoubles = tournament.matchType === "doubles";
 
     // Check if any matches have been played (not just scheduled)
     if (matchesGenerated && tournament.groups) {
@@ -261,10 +259,18 @@ export async function PUT(
     // Update groups
     tournament.groups = updatedGroups.map((group: any) => {
       const existingGroup = existingGroupsMap.get(group.groupId);
+      
+      // CRITICAL: Deduplicate group participants to prevent duplicate entries
+      // Normalize participant IDs to strings and remove duplicates
+      const participantIds = (group.participants || []).map((p: any) => 
+        typeof p === 'string' ? p : (p._id ? p._id.toString() : p.toString())
+      );
+      const uniqueParticipantIds = Array.from(new Set(participantIds));
+      
       return {
         groupId: group.groupId,
         groupName: group.groupName,
-        participants: group.participants || [],
+        participants: uniqueParticipantIds,
         rounds: matchesGenerated
           ? []
           : existingGroup?.rounds || [], // Preserve if not regenerating
@@ -338,7 +344,9 @@ export async function PUT(
       }
 
       // Initialize group standings
-      const groupStandings = groupParticipantIds.map((pId: string) => ({
+      // CRITICAL: Deduplicate participant IDs to prevent duplicate standings entries
+      const uniqueGroupParticipantIds = Array.from(new Set(groupParticipantIds));
+      const groupStandings = uniqueGroupParticipantIds.map((pId) => ({
         participant: pId,
         played: 0,
         won: 0,
@@ -359,6 +367,9 @@ export async function PUT(
       group.rounds = groupRounds;
       group.standings = groupStandings;
     }
+
+    // CRITICAL: Mark groups as modified so Mongoose saves the changes
+    tournament.markModified("groups");
 
     // Mark draw as generated since we've created matches
     tournament.drawGenerated = true;

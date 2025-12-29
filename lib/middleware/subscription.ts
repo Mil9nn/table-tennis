@@ -72,7 +72,6 @@ export async function requireTier(
     const tierHierarchy: Record<SubscriptionTier, number> = {
       free: 0,
       pro: 1,
-      enterprise: 2,
     };
 
     const userTierLevel = tierHierarchy[subscription.tier];

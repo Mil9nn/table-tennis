@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Standing,
   TeamPlayerStats,
@@ -98,6 +99,8 @@ interface Props {
   groupName?: string;
   tournamentId?: string;
   category?: "individual" | "team";
+  matchType?: "singles" | "doubles";
+  isCompleted?: boolean;
 }
 
 export function EnhancedStandingsTable({
@@ -107,6 +110,8 @@ export function EnhancedStandingsTable({
   groupName,
   tournamentId,
   category = "individual",
+  matchType = "singles",
+  isCompleted = false,
 }: Props) {
   const [selectedPlayer, setSelectedPlayer] =
     useState<DetailedPlayerStats | null>(null);
@@ -115,6 +120,34 @@ export function EnhancedStandingsTable({
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   const isTeamTournament = category === "team";
+  const isDoubles = matchType === "doubles";
+
+  // CRITICAL: Deduplicate standings by participant ID to prevent duplicate entries
+  // This is a safety net in case duplicates exist in the data
+  const deduplicatedStandings = React.useMemo(() => {
+    const seen = new Map<string, Standing>();
+    
+    return standings.filter((s) => {
+      if (!s.participant || !s.participant._id) return false;
+      
+      // Normalize participant ID to string for consistent comparison
+      const participantId = typeof s.participant._id === 'string' 
+        ? s.participant._id 
+        : String(s.participant._id);
+      
+      // Keep only the first occurrence of each participant
+      if (!seen.has(participantId)) {
+        seen.set(participantId, s);
+        return true;
+      }
+      
+      // Log duplicate for debugging
+      console.warn(
+        `[EnhancedStandingsTable] Duplicate standing entry found for participant ${participantId}. Keeping first occurrence.`
+      );
+      return false;
+    });
+  }, [standings]);
 
   const formChip = (r: string) => {
     const base =
@@ -128,15 +161,6 @@ export function EnhancedStandingsTable({
       default:
         return <div className={`${base} bg-slate-200 text-slate-600`}>D</div>;
     }
-  };
-
-  const rankChip = (rank: number) => {
-    if (rank <= highlightTop)
-      return (
-        <div className="text-indigo-600 font-semibold text-[12px]">{rank}</div>
-      );
-
-    return <div className="text-slate-400 text-[12px]">{rank}</div>;
   };
 
   const calculateWinRate = (won: number, played: number) => {
@@ -203,6 +227,31 @@ export function EnhancedStandingsTable({
   const getDisplayName = (p: any): string => {
     if (!p) return "Unknown";
     if (p.name && !p.username) return p.name;
+    
+    // Check if this is a doubles pair
+    if (isDoubles) {
+      // First check if participant has pair info directly (preferred method)
+      if (p.isPair || (p.player1 && p.player2)) {
+        const player1Name = p.player1?.fullName || p.player1?.username || "Player 1";
+        const player2Name = p.player2?.fullName || p.player2?.username || "Player 2";
+        return `${player1Name}/${player2Name}`;
+      }
+      
+      // Fallback: Check if fullName is already in "Player1 / Player2" format (from API)
+      // and convert it to "Player1/Player2" format
+      if (p.fullName && typeof p.fullName === 'string' && p.fullName.includes(" / ")) {
+        return p.fullName.replace(" / ", "/");
+      }
+      
+      // Another fallback: Check if username is in "p1 & p2" format and try to extract names
+      if (p.username && typeof p.username === 'string' && p.username.includes(" & ")) {
+        // If we have fullName with spaces, use that
+        if (p.fullName && p.fullName.includes(" / ")) {
+          return p.fullName.replace(" / ", "/");
+        }
+      }
+    }
+    
     return p.fullName || p.username || p.name || "Unknown";
   };
 
@@ -211,16 +260,38 @@ export function EnhancedStandingsTable({
     if (p.name && !p.username) {
       return p.city || `${p.players?.length || 0} players`;
     }
+    
+    // For doubles pairs, show usernames
+    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
+      const player1Username = p.player1?.username || "p1";
+      const player2Username = p.player2?.username || "p2";
+      return `@${player1Username} & @${player2Username}`;
+    }
+    
     return `@${p.username || "unknown"}`;
   };
 
   const getImage = (p: any): string | undefined => {
     if (!p) return undefined;
     if (p.name && !p.username) return p.logo;
+    
+    // For doubles pairs, prefer first player's image
+    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
+      return p.player1?.profileImage || p.player2?.profileImage;
+    }
+    
     return p.profileImage;
   };
 
   const getInitial = (p: any): string => {
+    if (!p) return "?";
+    
+    // For doubles pairs, use first letter of first player
+    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
+      const player1Name = p.player1?.fullName || p.player1?.username || "Player 1";
+      return player1Name.charAt(0).toUpperCase() || "?";
+    }
+    
     const name = getDisplayName(p);
     return name.charAt(0).toUpperCase() || "?";
   };
@@ -323,7 +394,7 @@ export function EnhancedStandingsTable({
           </TableHeader>
 
           <TableBody>
-            {standings.map((s) => {
+            {deduplicatedStandings.map((s, index) => {
               const highlight = s.rank <= highlightTop;
               const participantLink = isTeamTournament
                 ? `/teams/${s.participant._id}`
@@ -332,8 +403,13 @@ export function EnhancedStandingsTable({
               const hasPlayerStats =
                 isTeamTournament && s.playerStats && s.playerStats.length > 0;
 
+              // Use index as the primary key to ensure uniqueness even with duplicate entries
+              // This handles cases where the same participant/rank appears multiple times
+              // Index is always unique in the array, so this guarantees unique keys
+              const uniqueKey = `standing-${index}`;
+
               return (
-                <React.Fragment key={s.participant._id}>
+                <React.Fragment key={uniqueKey}>
                   <TableRow
                     className={cn(
                       "transition-all",
@@ -342,7 +418,7 @@ export function EnhancedStandingsTable({
                   >
                     {/* Rank */}
                     <TableCell className="text-center">
-                      {rankChip(s.rank)}
+                      {s.rank}
                     </TableCell>
 
                     {/* Player/Team */}

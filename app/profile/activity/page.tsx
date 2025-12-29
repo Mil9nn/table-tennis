@@ -21,7 +21,11 @@ import {
 } from "recharts";
 import { EmptyState } from "../components/EmptyState";
 
-const ActivityTrendsPage = () => {
+interface ActivityTrendsPageProps {
+  userId?: string;
+}
+
+const ActivityTrendsPage = ({ userId }: ActivityTrendsPageProps) => {
   const router = useRouter();
   const [detailedStats, setDetailedStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);

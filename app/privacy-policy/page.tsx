@@ -178,7 +178,7 @@ export default function PrivacyPolicyPage() {
           }} />
         </div>
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="relative max-w-4xl mx-auto px-2 sm:px-4">
           {/* Back Link */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -219,7 +219,7 @@ export default function PrivacyPolicyPage() {
 
       {/* Content Section */}
       <section className="pb-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto px-2">
           <motion.div
             variants={staggerChildren}
             initial="initial"
@@ -258,8 +258,7 @@ export default function PrivacyPolicyPage() {
             {/* Contact Section */}
             <motion.div
               variants={fadeInUp}
-              className="rounded-2xl p-6 md:p-8 text-center"
-              style={{ backgroundColor: "rgba(60, 110, 113, 0.1)", border: "1px solid rgba(60, 110, 113, 0.2)" }}
+              className="text-center"
             >
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4" style={{ backgroundColor: "rgba(60, 110, 113, 0.2)" }}>
                 <Mail className="w-6 h-6" style={{ color: "#3c6e71" }} />
@@ -272,7 +271,7 @@ export default function PrivacyPolicyPage() {
               </p>
               <a
                 href="mailto:app.ttpro@gmail.com"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105"
                 style={{ backgroundColor: "#3c6e71", color: "white" }}
               >
                 <Mail className="w-4 h-4" />

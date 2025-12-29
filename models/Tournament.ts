@@ -81,7 +81,7 @@ export interface ITournament extends Document {
   name: string;
   format: "round_robin" | "knockout" | "hybrid";
   category: "individual" | "team";
-  matchType: "singles" | "doubles" | "mixed_doubles";
+  matchType: "singles" | "doubles";
   startDate: Date;
   endDate?: Date;
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
@@ -90,7 +90,7 @@ export interface ITournament extends Document {
   scorers: mongoose.Types.ObjectId[]; // Users who can score matches (max 10)
 
   // Subscription tracking
-  createdWithTier: "free" | "pro" | "enterprise";
+  createdWithTier: "free" | "pro";
   customBranding?: {
     logo?: string;
     primaryColor?: string;
@@ -185,6 +185,13 @@ export interface ITournament extends Document {
   maxParticipants?: number;
   minParticipants?: number;
 
+  // Doubles pairs (for individual doubles tournaments)
+  doublesPairs?: Array<{
+    _id: mongoose.Types.ObjectId;
+    player1: mongoose.Types.ObjectId;
+    player2: mongoose.Types.ObjectId;
+  }>;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -204,7 +211,7 @@ const tournamentSchema = new Schema<ITournament>(
     },
     matchType: {
       type: String,
-      enum: ["singles", "doubles", "mixed_doubles"],
+      enum: ["singles", "doubles"],
       required: true,
     },
     startDate: { type: Date, required: true },
@@ -227,7 +234,7 @@ const tournamentSchema = new Schema<ITournament>(
     // Subscription tracking
     createdWithTier: {
       type: String,
-      enum: ["free", "pro", "enterprise"],
+      enum: ["free", "pro"],
       required: true,
       default: "free",
     },
@@ -365,6 +372,10 @@ const tournamentSchema = new Schema<ITournament>(
     city: { type: String, required: true },
     maxParticipants: { type: Number },
     minParticipants: { type: Number, default: 2 },
+
+    // Doubles pairs (for individual doubles tournaments)
+    // Using Mixed type to allow flexible handling across different tournament types
+    doublesPairs: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );

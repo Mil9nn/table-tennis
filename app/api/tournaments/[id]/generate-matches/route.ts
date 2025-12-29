@@ -59,6 +59,66 @@ export async function POST(
     const drawError = handleValidationResult(drawCheck);
     if (drawError) return drawError;
 
+    // Additional validation for doubles tournaments
+    if (
+      (tournament as any).category === "individual" &&
+      (tournament as any).matchType === "doubles"
+    ) {
+      const participants = tournament.participants;
+      const doublesPairs = (tournament as any).doublesPairs || [];
+
+      // Validate even number of participants
+      if (participants.length % 2 !== 0) {
+        return NextResponse.json(
+          {
+            error: "Doubles tournament requires an even number of participants",
+            details: `Current participant count: ${participants.length}. Please add or remove one participant.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate all participants are paired
+      if (doublesPairs.length === 0) {
+        return NextResponse.json(
+          {
+            error: "Doubles pairs not configured",
+            details:
+              "Please create doubles pairs before generating the draw. Go to the tournament page and click 'Manage Pairs'.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate all participants are paired
+      const pairedPlayerCount = doublesPairs.length * 2;
+      if (pairedPlayerCount !== participants.length) {
+        return NextResponse.json(
+          {
+            error: "Not all participants are paired",
+            details: `You have ${participants.length} participants but only ${pairedPlayerCount} players in pairs. Please update your pairs.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate no player appears in multiple pairs
+      const playerIds = doublesPairs.flatMap((pair: any) => [
+        pair.player1.toString(),
+        pair.player2.toString(),
+      ]);
+      const uniquePlayerIds = new Set(playerIds);
+      if (playerIds.length !== uniquePlayerIds.size) {
+        return NextResponse.json(
+          {
+            error: "Invalid pairs configuration",
+            details: "One or more players appear in multiple pairs.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if draw already generated
     if (tournament.drawGenerated) {
       return NextResponse.json(

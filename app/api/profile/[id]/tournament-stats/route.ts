@@ -67,19 +67,22 @@ export async function GET(
           });
         });
 
-        // Get user's position/rank in tournament standings
-        let position = null;
-        let totalParticipants = tournament.participants.length;
+    // Get user's position/rank in tournament standings
+    let position = null;
+    let totalParticipants = tournament.participants.length;
 
-        // Check in round-robin standings
-        if (tournament.format === "round_robin" && tournament.standings) {
-          const userStanding = tournament.standings.find(
-            (s: any) => s.participant.toString() === userId.toString()
-          );
-          if (userStanding) {
-            position = userStanding.rank;
-          }
-        }
+    // Check in round-robin standings
+    if (tournament.format === "round_robin" && tournament.standings) {
+      const userStanding = tournament.standings.find(
+        (s: any) => s.participant.toString() === userId.toString()
+      );
+      if (userStanding) {
+        position = userStanding.rank;
+        console.log(`[Tournament Stats] User ${userId} in tournament ${tournament._id}: rank=${userStanding.rank}, tournament.status=${tournament.status}`);
+      } else {
+        console.log(`[Tournament Stats] User ${userId} NOT FOUND in standings for tournament ${tournament._id}, status=${tournament.status}`);
+      }
+    }
 
         // Check in group standings for multi-stage/grouped tournaments
         if (tournament.useGroups && tournament.groups) {
@@ -148,10 +151,40 @@ export async function GET(
       0
     );
 
-    // Count tournament wins (1st place finishes)
+    // Count tournament wins (1st place finishes) - ONLY for completed tournaments
     const tournamentWins = tournamentStats.filter(
-      (t) => t.stats.position === 1
+      (t) => t.tournament.status === "completed" && t.stats.position === 1
     ).length;
+
+    // Count finals reached (1st and 2nd place finishes) - ONLY for completed tournaments
+    const finalsReached = tournamentStats.filter(
+      (t) =>
+        t.tournament.status === "completed" &&
+        typeof t.stats.position === "number" &&
+        t.stats.position > 0 &&
+        t.stats.position <= 2
+    ).length;
+
+    // Count semifinals reached (1st, 2nd, 3rd place finishes) - ONLY for completed tournaments
+    const semifinalsReached = tournamentStats.filter(
+      (t) =>
+        t.tournament.status === "completed" &&
+        typeof t.stats.position === "number" &&
+        t.stats.position > 0 &&
+        t.stats.position <= 3
+    ).length;
+
+    console.log(`[Tournament Stats Summary] User ${id}:`, {
+      totalTournaments: tournaments.length,
+      tournamentWins,
+      finalsReached,
+      semifinalsReached,
+      positionsFound: tournamentStats.map(t => ({ 
+        tournamentId: t.tournament._id, 
+        position: t.stats.position, 
+        status: t.tournament.status 
+      }))
+    });
 
     // Count podium finishes (top 3)
     const podiumFinishes = tournamentStats.filter(
@@ -186,6 +219,8 @@ export async function GET(
           ongoingTournaments,
           upcomingTournaments,
           tournamentWins,
+          finalsReached,
+          semifinalsReached,
           podiumFinishes,
           totalMatches,
           totalWins,

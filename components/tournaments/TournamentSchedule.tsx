@@ -29,7 +29,7 @@ interface TeamInfo {
 interface IndividualMatch {
   _id: string;
   matchCategory?: "individual";
-  matchType?: "singles" | "doubles" | "mixed_doubles";
+  matchType?: "singles" | "doubles";
   participants: Participant[];
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
   finalScore?: { side1Sets: number; side2Sets: number };
@@ -147,7 +147,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
   const getMatchType = (
     match: Match
-  ): "singles" | "doubles" | "mixed_doubles" => {
+  ): "singles" | "doubles" => {
     if (isTeamMatch(match)) return "singles";
     const indMatch = match as IndividualMatch;
     return indMatch.matchType || "singles";
@@ -155,7 +155,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
   const isDoubles = (match: Match): boolean => {
     const type = getMatchType(match);
-    return type === "doubles" || type === "mixed_doubles";
+    return type === "doubles";
   };
 
   const getParticipant1 = (

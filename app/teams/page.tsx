@@ -822,7 +822,7 @@ export default function TeamsPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-[#3c6e71] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             My Teams
           </TabsTrigger>
@@ -836,7 +836,7 @@ export default function TeamsPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-[#3c6e71] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             All Teams
           </TabsTrigger>

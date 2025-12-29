@@ -15,6 +15,7 @@ interface GroupsViewProps {
   advancePerGroup?: number;
   showDetailedStats?: boolean;
   category?: "individual" | "team";
+  matchType?: "singles" | "doubles";
 }
 
 export function GroupsView({
@@ -22,6 +23,7 @@ export function GroupsView({
   advancePerGroup = 2,
   showDetailedStats = false,
   category = "individual",
+  matchType = "singles",
 }: GroupsViewProps) {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]?.groupId || "");
 
@@ -89,6 +91,7 @@ export function GroupsView({
                 showDetailedStats={showDetailedStats}
                 highlightTop={advancePerGroup}
                 category={category}
+                matchType={matchType}
               />
             </div>
           </TabsContent>

@@ -149,7 +149,7 @@ export default function MatchStatsPage() {
 
     const isSingles = match.matchType === "singles";
     const isDoubles =
-      match.matchType === "doubles" || match.matchType === "mixed_doubles";
+      match.matchType === "doubles";
 
     const side1Name = isSingles
       ? match.participants?.[0]?.fullName ||

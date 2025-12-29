@@ -2,7 +2,8 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import Tournament from "@/models/Tournament";
 import mongoose from "mongoose";
-import { calculateStandings } from "./core/standingsService";
+import { calculateStandings as calculateStandingsLegacy } from "./core/standingsService";
+import { StandingsCalculator } from "./core/standings/standingsCalculator";
 import {
   updateBracketAfterMatch,
   getMatchesNeedingDocuments,
@@ -583,7 +584,67 @@ async function updateKnockoutBracket(tournament: any, match: any) {
  * Update standings for Round Robin tournaments
  */
 export async function updateRoundRobinStandings(tournament: any) {
-  const participantIds = tournament.participants.map((p: any) => p.toString());
+  const tournamentId = tournament._id?.toString() || "unknown";
+  console.log(`\n🔵 [STANDINGS DEBUG] Starting standings update for tournament ${tournamentId}`);
+  console.log(`🔵 [STANDINGS DEBUG] Tournament name: ${tournament.name}`);
+  console.log(`🔵 [STANDINGS DEBUG] Format: ${tournament.format}, MatchType: ${tournament.matchType}`);
+  
+  // Determine match type
+  const matchType = tournament.matchType || "singles";
+  const isDoubles = matchType === "doubles";
+  
+  console.log(`🔵 [STANDINGS DEBUG] isDoubles: ${isDoubles}`);
+  
+  // Create standings calculator with appropriate service
+  const doublesPairs = isDoubles && tournament.doublesPairs 
+    ? tournament.doublesPairs 
+    : undefined;
+  
+  console.log(`🔵 [STANDINGS DEBUG] doublesPairs count: ${doublesPairs?.length || 0}`);
+  if (doublesPairs && doublesPairs.length > 0) {
+    console.log(`🔵 [STANDINGS DEBUG] doublesPairs details:`, doublesPairs.map((p: any) => ({
+      pairId: p._id?.toString(),
+      player1: p.player1?.toString(),
+      player2: p.player2?.toString()
+    })));
+  }
+  
+  const calculator = StandingsCalculator.create(matchType, doublesPairs);
+  const normalizer = calculator.getNormalizer();
+
+  // Get participant IDs and normalize them
+  // For singles: participant IDs are player IDs
+  // For doubles: participant IDs should be pair IDs (or will be normalized)
+  let participantIds: string[];
+  
+  if (isDoubles && doublesPairs && doublesPairs.length > 0) {
+    // For doubles with pairs, use pair IDs
+    participantIds = doublesPairs.map((pair: any) => 
+      pair._id?.toString() || pair._id?.toString() || pair.toString()
+    );
+    console.log(`🔵 [STANDINGS DEBUG] Initial participantIds (from pairs):`, participantIds);
+  } else {
+    // For singles or doubles without pairs, use player IDs
+    participantIds = tournament.participants.map((p: any) => p.toString());
+    console.log(`🔵 [STANDINGS DEBUG] Initial participantIds (from participants):`, participantIds);
+  }
+
+  // Normalize all participant IDs using the normalizer
+  // This ensures canonical form (especially important for doubles teams)
+  // CRITICAL: For doubles, normalize each ID first (player IDs → pair IDs), then deduplicate
+  if (isDoubles) {
+    const beforeNormalize = [...participantIds];
+    participantIds = participantIds.map((id: string) => {
+      const normalized = normalizer.normalizeParticipant(id);
+      console.log(`🔵 [STANDINGS DEBUG] Normalized ${id} → ${normalized}`);
+      return normalized;
+    });
+    console.log(`🔵 [STANDINGS DEBUG] After individual normalization:`, participantIds);
+    console.log(`🔵 [STANDINGS DEBUG] Before normalization:`, beforeNormalize);
+  }
+  participantIds = normalizer.getUniqueParticipants(participantIds);
+  console.log(`🔵 [STANDINGS DEBUG] Final unique participantIds:`, participantIds);
+  console.log(`🔵 [STANDINGS DEBUG] Participant count: ${participantIds.length}`);
 
   // Determine if tournament uses groups
   // Check both regular useGroups and hybrid config
@@ -616,17 +677,54 @@ export async function updateRoundRobinStandings(tournament: any) {
       // Convert team matches to MatchResult format if needed
       const convertedMatches = await convertMatchesToStandingsFormat(
         matches,
-        tournament
+        tournament,
+        normalizer
       );
 
-      // Calculate standings using ITTF rules
-      const standingsData = calculateStandings(
-        group.participants.map((p: any) => p.toString()),
-        convertedMatches,
+      // Filter out null matches (conversion failures)
+      const validMatches = convertedMatches.filter((m: any) => m !== null);
+
+      // Get group participants and normalize them
+      // CRITICAL: For doubles, group.participants might be player IDs, not pair IDs
+      // We need to normalize them to ensure we get canonical team IDs
+      let groupParticipantIds = group.participants.map((p: any) => p.toString());
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Raw participants:`, groupParticipantIds);
+      
+      // For doubles tournaments, normalize each participant ID (might be a player ID that needs to map to a pair)
+      if (isDoubles) {
+        const beforeNormalize = [...groupParticipantIds];
+        groupParticipantIds = groupParticipantIds.map((id: string) => {
+          const normalized = normalizer.normalizeParticipant(id);
+          console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Normalized ${id} → ${normalized}`);
+          return normalized;
+        });
+        console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Before normalization:`, beforeNormalize);
+        console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - After normalization:`, groupParticipantIds);
+      }
+      
+      // Get unique participants (deduplicate after normalization)
+      const normalizedGroupParticipants = normalizer.getUniqueParticipants(groupParticipantIds);
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Final unique participants:`, normalizedGroupParticipants);
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Participant count: ${normalizedGroupParticipants.length}`);
+
+      // Calculate standings using the new architecture
+      // The service handles deduplication internally
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Calculating standings with ${validMatches.length} matches`);
+      const standingsData = calculator.calculateStandings(
+        normalizedGroupParticipants,
+        validMatches,
         tournament.rules
       );
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Standings calculated: ${standingsData.length} entries`);
+      console.log(`🔵 [STANDINGS DEBUG] Group ${group.groupId || group._id} - Standings details:`, standingsData.map((s: any) => ({
+        participant: s.participant,
+        rank: s.rank,
+        played: s.played,
+        points: s.points
+      })));
 
-      // Update group standings
+      // Convert standings to tournament format
+      // The new service already ensures no duplicates, but we still need to convert format
       group.standings = standingsData.map((s) => ({
         participant: s.participant,
         played: s.played,
@@ -644,6 +742,9 @@ export async function updateRoundRobinStandings(tournament: any) {
         form: s.form,
         headToHead: s.headToHead ? Object.fromEntries(s.headToHead) : {},
       }));
+      
+      // CRITICAL: Mark group standings as modified so Mongoose saves the changes
+      tournament.markModified("groups");
     }
 
     // Generate overall standings from group winners
@@ -668,10 +769,28 @@ export async function updateRoundRobinStandings(tournament: any) {
       );
     });
 
-    tournament.standings = qualifiers.map((q: any, idx: number) => ({
+    // CRITICAL: Deduplicate qualifiers by participant ID before creating overall standings
+    // This prevents the same participant from appearing multiple times if they somehow
+    // qualified from multiple groups (shouldn't happen, but safety check)
+    const qualifiersMap = new Map<string, any>();
+    qualifiers.forEach((q: any) => {
+      // Normalize participant ID to string
+      const participantId = typeof q.participant === 'string' 
+        ? q.participant 
+        : (q.participant?._id ? q.participant._id.toString() : q.participant.toString());
+      
+      if (participantId && !qualifiersMap.has(participantId)) {
+        qualifiersMap.set(participantId, q);
+      }
+    });
+
+    tournament.standings = Array.from(qualifiersMap.values()).map((q: any, idx: number) => ({
       ...q,
       rank: idx + 1,
     }));
+    
+    // CRITICAL: Mark standings as modified so Mongoose saves the changes
+    tournament.markModified("standings");
   }
   // CASE 2: Single Round Robin (no groups)
   else {
@@ -681,15 +800,32 @@ export async function updateRoundRobinStandings(tournament: any) {
     // Convert team matches to MatchResult format if needed
     const convertedMatches = await convertMatchesToStandingsFormat(
       matches,
-      tournament
+      tournament,
+      normalizer
     );
 
-    const standingsData = calculateStandings(
+    // Filter out null matches (conversion failures)
+    const validMatches = convertedMatches.filter((m: any) => m !== null);
+
+    // Calculate standings using the new architecture
+    // The service handles deduplication internally
+    console.log(`🔵 [STANDINGS DEBUG] Single round-robin - Calculating standings with ${validMatches.length} matches`);
+    console.log(`🔵 [STANDINGS DEBUG] Single round-robin - Participants:`, participantIds);
+    const standingsData = calculator.calculateStandings(
       participantIds,
-      convertedMatches,
+      validMatches,
       tournament.rules
     );
+    console.log(`🔵 [STANDINGS DEBUG] Single round-robin - Standings calculated: ${standingsData.length} entries`);
+    console.log(`🔵 [STANDINGS DEBUG] Single round-robin - Standings details:`, standingsData.map((s: any) => ({
+      participant: s.participant,
+      rank: s.rank,
+      played: s.played,
+      points: s.points
+    })));
 
+    // Convert standings to tournament format
+    // The new service already ensures no duplicates
     tournament.standings = standingsData.map((s) => ({
       participant: s.participant,
       played: s.played,
@@ -707,6 +843,9 @@ export async function updateRoundRobinStandings(tournament: any) {
       form: s.form,
       headToHead: s.headToHead ? Object.fromEntries(s.headToHead) : {},
     }));
+    
+    // CRITICAL: Mark standings as modified so Mongoose saves the changes
+    tournament.markModified("standings");
   }
 
   // Update round completion status
@@ -776,20 +915,38 @@ export async function updateRoundRobinStandings(tournament: any) {
 
 /**
  * Convert matches (IndividualMatch or TeamMatch) to MatchResult format for standings calculation
+ * @param normalizer - Participant normalizer for converting match participants to canonical form
  */
 async function convertMatchesToStandingsFormat(
   matches: any[],
-  tournament: any
+  tournament: any,
+  normalizer: any
 ): Promise<any[]> {
   return Promise.all(
     matches.map(async (match) => {
       // If it's already in the right format (IndividualMatch), return as-is
       if (match.matchCategory === "individual") {
+        let participants = match.participants.map((p: any) =>
+          typeof p === "string" ? p : p._id ? p._id.toString() : p.toString()
+        );
+
+        // Normalize match participants using the normalizer
+        // This handles both singles (2 participants) and doubles (2 or 4 participants)
+        console.log(`🔵 [STANDINGS DEBUG] Match ${match._id} - Raw participants:`, participants);
+        const normalized = normalizer.normalizeMatchParticipants(participants);
+        if (normalized) {
+          console.log(`🔵 [STANDINGS DEBUG] Match ${match._id} - Normalized participants:`, normalized);
+          participants = normalized;
+        } else {
+          console.warn(
+            `🔵 [STANDINGS DEBUG] Match ${match._id} - Could not normalize match participants. ` +
+            `Participants: [${participants.join(", ")}]`
+          );
+        }
+
         return {
           _id: match._id.toString(),
-          participants: match.participants.map((p: any) =>
-            typeof p === "string" ? p : p._id ? p._id.toString() : p.toString()
-          ),
+          participants,
           winnerSide: match.winnerSide,
           finalScore: {
             side1Sets: match.finalScore?.side1Sets || 0,

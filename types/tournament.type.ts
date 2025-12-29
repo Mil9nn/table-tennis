@@ -108,7 +108,7 @@ export function getParticipantLink(participant: Participant, category: "individu
 }
 
 // ============================================
-// Doubles Pair (for doubles/mixed_doubles tournaments)
+// Doubles Pair (for doubles tournaments)
 // ============================================
 
 /**
@@ -153,7 +153,7 @@ export interface Tournament {
   name: string;
   format: "round_robin" | "knockout" | "hybrid";
   category: "individual" | "team";
-  matchType: "singles" | "doubles" | "mixed_doubles";
+  matchType: "singles" | "doubles";
   startDate: Date;
   endDate?: Date;
   status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
@@ -176,7 +176,7 @@ export interface Tournament {
   knockoutConfig?: KnockoutConfig;
   bracket?: KnockoutBracket;
 
-  // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+  // Doubles pairs (for doubles knockout with custom matching)
   doublesPairs?: DoublesPair[];
 
   // Team tournament specific

@@ -14,11 +14,9 @@ import type { PlayerStats } from "@/app/leaderboard/types";
  * 
  * Query Parameters:
  * - type (optional): 'singles' | 'doubles' | 'mixed_doubles' | 'all' (defaults to 'all' if not provided)
- * - gender (optional): 'male' | 'female' | 'mixed'
- * - ageCategory (optional): 'U13' | 'U15' | 'U18' | 'Open' | '40+'
- * - playerType (optional): 'singles_only' | 'doubles_only' | 'both'
+ * - gender (optional): 'male' | 'female'
  * - handedness (optional): 'left' | 'right'
- * - timeRange (optional): 'all_time' | 'this_year' | 'this_month' | 'last_30_days'
+ * - timeRange (optional): 'all_time' | 'this_year' | 'this_month'
  * - dateFrom (optional): ISO date string
  * - dateTo (optional): ISO date string
  * - tournamentId (optional): MongoDB ObjectId

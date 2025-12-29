@@ -94,7 +94,6 @@ export function LeaderboardFilters({
                     <SelectItem value="all">All</SelectItem>
                     <SelectItem value="singles">Singles</SelectItem>
                     <SelectItem value="doubles">Doubles</SelectItem>
-                    <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -116,7 +115,6 @@ export function LeaderboardFilters({
                   <SelectItem value="all_time">All Time</SelectItem>
                   <SelectItem value="this_year">This Year</SelectItem>
                   <SelectItem value="this_month">This Month</SelectItem>
-                  <SelectItem value="last_30_days">Last 30 Days</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -137,32 +135,6 @@ export function LeaderboardFilters({
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
-                  {tabType === "individual" && (filters.type === "mixed_doubles" || filters.type === "all" || !filters.type) && (
-                    <SelectItem value="mixed">Mixed</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Age Category */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
-                Age Category
-              </label>
-              <Select
-                value={filters.ageCategory || "all"}
-                onValueChange={(v) => updateFilter("ageCategory", v)}
-              >
-                <SelectTrigger className="bg-white border-[#d9d9d9] text-[#353535] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ages</SelectItem>
-                  <SelectItem value="U13">Under 13</SelectItem>
-                  <SelectItem value="U15">Under 15</SelectItem>
-                  <SelectItem value="U18">Under 18</SelectItem>
-                  <SelectItem value="Open">Open (18-39)</SelectItem>
-                  <SelectItem value="40+">40+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,28 +161,6 @@ export function LeaderboardFilters({
               </Select>
             </div>
 
-            {/* Player Type - Only for Individual tab */}
-            {tabType === "individual" && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
-                  Player Type
-                </label>
-                <Select
-                  value={filters.playerType || "both"}
-                  onValueChange={(v) => updateFilter("playerType", v === "both" ? undefined : v)}
-                >
-                  <SelectTrigger className="bg-white border-[#d9d9d9] text-[#353535] h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="both">Both</SelectItem>
-                    <SelectItem value="singles_only">Singles Only</SelectItem>
-                    <SelectItem value="doubles_only">Doubles Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* Handedness */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
@@ -234,7 +184,7 @@ export function LeaderboardFilters({
             {/* Competition Format */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
-                Competition Format
+                Format
               </label>
               <Select
                 value={filters.matchFormat || "all"}

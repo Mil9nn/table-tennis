@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X, LogIn, LogOut, Plus, ChevronRight } from "lucide-react";
+import { X, LogIn, Plus, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HouseIcon from "@mui/icons-material/House";
 import JoinRightIcon from "@mui/icons-material/JoinRight";
@@ -16,13 +16,6 @@ import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import SportsMmaIcon from "@mui/icons-material/SportsMma";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useProfileStore } from "@/hooks/useProfileStore";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 
 export default function Navbar() {
@@ -35,7 +28,6 @@ export default function Navbar() {
   const quickActionsButtonRef = useRef<HTMLButtonElement>(null);
 
   const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
   const previewUrl = useProfileStore((state) => state.previewUrl);
 
   const fallbackInitial = user?.fullName?.charAt(0).toUpperCase() || "?";
@@ -48,6 +40,9 @@ export default function Navbar() {
     { label: "Leaderboard", href: "/leaderboard", icon: LeaderboardIcon },
     { label: "Scorer", href: "/scorer", icon: EditNoteIcon },
   ];
+
+  // Desktop nav (excludes Home since logo links to /)
+  const desktopNavItems = navItems.slice(1);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -90,9 +85,9 @@ export default function Navbar() {
   return (
     <header className="w-full fixed top-0 left-0 z-50">
       {/* Top Navbar */}
-      <nav className="h-14 flex items-center justify-between px-4 border-b bg-white shadow-sm">
-        {/* Left: Hamburger + Logo + Desktop Nav */}
-        <div className="flex items-center gap-2">
+      <nav className="h-14 flex items-center justify-between px-4 border-b bg-white shadow-sm gap-2 lg:gap-4">
+        {/* Left: Hamburger + Logo + Quick Actions */}
+        <div className="flex items-center gap-2 lg:gap-3">
           {/* Hamburger Menu (mobile) */}
           <button
             className="sm:hidden p-2 text-gray-700 hover:text-indigo-600"
@@ -118,35 +113,6 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 font-medium text-sm transition-all duration-300 relative",
-                    active
-                      ? "text-indigo-600"
-                      : "text-gray-700 hover:text-indigo-600"
-                  )}
-                >
-                  <Icon sx={{ fontSize: 18 }} />
-                  {item.label}
-                  {active && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right: Quick Actions + Profile/Login */}
-        <div className="flex items-center gap-3">
           {/* Quick Actions */}
           <button
             ref={quickActionsButtonRef}
@@ -168,58 +134,56 @@ export default function Navbar() {
               )}
             />
           </button>
+        </div>
+
+        {/* Right: Desktop Nav + Profile/Login */}
+        <div className="flex items-center gap-2 lg:gap-3">
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center gap-1 lg:gap-2 flex-wrap">
+            {desktopNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-1 px-2 lg:px-3 py-2 font-medium text-xs lg:text-sm transition-all duration-300 relative",
+                    active
+                      ? "text-indigo-600"
+                      : "text-gray-700 hover:text-indigo-600"
+                  )}
+                >
+                  <Icon sx={{ fontSize: 18 }} />
+                  {item.label}
+                  {active && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
 
           {/* Profile */}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="cursor-pointer size-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden">
-                  {user?.profileImage ? (
-                    <Image
-                      src={previewUrl || user.profileImage}
-                      alt="Profile"
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-bold text-gray-600">
-                      {fallbackInitial}
-                    </span>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48" align="end">
-                <div className="px-3 py-2 text-sm text-gray-700 border-b">
-                  <div className="font-medium">
-                    {user.fullName || user.username}
-                  </div>
-                  <div className="text-xs text-gray-500">{user.email}</div>
-                </div>
-
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 font-semibold"
-                  >
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    logout();
-                    router.push("/");
-                  }}
-                  className="flex items-center gap-2 text-red-500 focus:text-red-600"
-                >
-                  <span className="font-semibold text-sm">Logout</span>
-                  <LogOut className="size-5 text-red-500" />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/profile"
+              className="cursor-pointer size-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden"
+            >
+              {user?.profileImage ? (
+                <Image
+                  src={previewUrl || user.profileImage}
+                  alt="Profile"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-sm font-bold text-gray-600">
+                  {fallbackInitial}
+                </span>
+              )}
+            </Link>
           ) : (
             <Link
               href="/auth/login"
@@ -284,21 +248,16 @@ export default function Navbar() {
         }`}
       >
         {/* Sidebar Quick Actions - Secondary/Utility Panel */}
-        <div className="border-b-2 border-black/50 bg-gray-200">
-          <div className="px-4 py-2">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Quick Actions
-            </div>
-          </div>
-          <div className="flex flex-col gap-px">
-            <button
-              onClick={() => {
-                router.push("/match/create");
-                setOpen(false);
-              }}
-              className="group bg-white/50 text-left w-full transition-colors hover:bg-[#3c6e71]"
-            >
-              <div className="px-6 py-2 flex items-center gap-3">
+        <div className="flex flex-col gap-px border-b border-[#d9d9d9]">
+          <button
+            onClick={() => {
+              router.push("/match/create");
+              setOpen(false);
+            }}
+            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
+          >
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <AddCircleOutlineIcon
                   sx={{ fontSize: 22, color: "#3c6e71" }}
                   className="group-hover:!text-white transition-colors"
@@ -307,16 +266,18 @@ export default function Navbar() {
                   Create Match
                 </span>
               </div>
-            </button>
+            </div>
+          </button>
 
-            <button
-              onClick={() => {
-                router.push("/teams/create");
-                setOpen(false);
-              }}
-              className="group bg-white/50 text-left w-full transition-colors hover:bg-[#3c6e71]"
-            >
-              <div className="px-6 py-2 flex items-center gap-3">
+          <button
+            onClick={() => {
+              router.push("/teams/create");
+              setOpen(false);
+            }}
+            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
+          >
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <GroupAddIcon
                   sx={{ fontSize: 22, color: "#3c6e71" }}
                   className="group-hover:!text-white transition-colors"
@@ -325,16 +286,18 @@ export default function Navbar() {
                   Create Team
                 </span>
               </div>
-            </button>
+            </div>
+          </button>
 
-            <button
-              onClick={() => {
-                router.push("/tournaments/create");
-                setOpen(false);
-              }}
-              className="group bg-white/50 text-left w-full transition-colors hover:bg-[#3c6e71]"
-            >
-              <div className="px-6 py-2 flex items-center gap-3">
+          <button
+            onClick={() => {
+              router.push("/tournaments/create");
+              setOpen(false);
+            }}
+            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
+          >
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <SportsMmaIcon
                   sx={{ fontSize: 22, color: "#3c6e71" }}
                   className="group-hover:!text-white transition-colors"
@@ -343,12 +306,12 @@ export default function Navbar() {
                   Create Tournament
                 </span>
               </div>
-            </button>
-          </div>
+            </div>
+          </button>
         </div>
 
         {/* Sidebar Navigation */}
-        <div className="flex flex-col gap-px">
+        <div className="flex flex-col gap-px mt-1">
           {sidebarNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);

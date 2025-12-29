@@ -48,8 +48,6 @@ export function useLeaderboard(
       // Add filters if provided
       if (filters) {
         if (filters.gender) params.append("gender", filters.gender);
-        if (filters.ageCategory) params.append("ageCategory", filters.ageCategory);
-        if (filters.playerType) params.append("playerType", filters.playerType);
         if (filters.handedness) params.append("handedness", filters.handedness);
         if (filters.timeRange) params.append("timeRange", filters.timeRange);
         if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);

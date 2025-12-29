@@ -51,7 +51,7 @@ interface ManageParticipantsDialogProps {
   tournamentId: string;
   participants: Participant[];
   category: "individual" | "team";
-  matchType?: "singles" | "doubles" | "mixed_doubles";
+  matchType?: "singles" | "doubles";
   onUpdate: (participants: Participant[]) => void;
 }
 
@@ -78,7 +78,7 @@ export function ManageParticipantsDialog({
   const [localParticipants, setLocalParticipants] = useState<Participant[]>([]);
 
   const isTeamTournament = category === "team";
-  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+  const isDoubles = matchType === "doubles";
 
   // Initialize local participants when dialog opens or participants change
   useEffect(() => {

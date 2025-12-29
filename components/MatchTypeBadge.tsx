@@ -1,7 +1,7 @@
 import React from "react";
 import { User, Users, HeartHandshake } from "lucide-react";
 
-export type MatchType = "singles" | "doubles" | "mixed_doubles";
+export type MatchType = "singles" | "doubles";
 
 type Props = React.ComponentProps<"span"> & {
   type: MatchType;
@@ -19,11 +19,6 @@ const TYPE_CONFIG: Record<MatchType, { label: string; icon: React.ElementType; c
     label: "Doubles",
     icon: Users,
     className: "text-[#284b63] dark:text-[#284b63]",
-  },
-  mixed_doubles: {
-    label: "Mixed Doubles",
-    icon: HeartHandshake,
-    className: "text-[#3c6e71] dark:text-[#3c6e71]",
   },
 };
 
@@ -60,7 +55,6 @@ Usage examples:
 
 <MatchTypeBadge type="singles" />
 <MatchTypeBadge type="doubles" size="sm" />
-<MatchTypeBadge type="mixed_doubles" showIcon={false} />
 
 Notes:
 - This expects shadcn's Badge component at `@/components/ui/badge` and lucide-react installed.

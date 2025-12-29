@@ -24,8 +24,11 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { motion } from "framer-motion";
 
-import WhatshotIcon from '@mui/icons-material/Whatshot';
+import WhatshotIcon from "@mui/icons-material/Whatshot";
+import SportsTennisIcon from "@mui/icons-material/SportsTennis";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { EmptyState } from "../components/EmptyState";
 
 // Helper function to format tournament type for display
@@ -43,7 +46,11 @@ const formatTournamentType = (type: string | null | undefined): string => {
   }
 };
 
-const PlayerStatsPage = () => {
+interface PlayerStatsPageProps {
+  userId?: string;
+}
+
+const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
   const router = useRouter();
   const [statsData, setStatsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -79,20 +86,25 @@ const PlayerStatsPage = () => {
   const doublesStats = singlesDoubles.doubles;
 
   // Calculate win rates
-  const singlesTotalMatches = (singlesStats.wins || 0) + (singlesStats.losses || 0);
-  const doublesTotalMatches = (doublesStats.wins || 0) + (doublesStats.losses || 0);
-  const singlesWinRate = singlesTotalMatches > 0 
-    ? ((singlesStats.wins || 0) / singlesTotalMatches * 100).toFixed(1)
-    : "0.0";
-  const doublesWinRate = doublesTotalMatches > 0
-    ? ((doublesStats.wins || 0) / doublesTotalMatches * 100).toFixed(1)
-    : "0.0";
+  const singlesTotalMatches =
+    (singlesStats.wins || 0) + (singlesStats.losses || 0);
+  const doublesTotalMatches =
+    (doublesStats.wins || 0) + (doublesStats.losses || 0);
+  const singlesWinRate =
+    singlesTotalMatches > 0
+      ? (((singlesStats.wins || 0) / singlesTotalMatches) * 100).toFixed(1)
+      : "0.0";
+  const doublesWinRate =
+    doublesTotalMatches > 0
+      ? (((doublesStats.wins || 0) / doublesTotalMatches) * 100).toFixed(1)
+      : "0.0";
 
   // Calculate avg points per match
   const totalMatches = singlesTotalMatches + doublesTotalMatches;
-  const avgPointsPerMatch = totalMatches > 0 
-    ? ((scoring.totalPointsScored || 0) / totalMatches).toFixed(1)
-    : "0.0";
+  const avgPointsPerMatch =
+    totalMatches > 0
+      ? ((scoring.totalPointsScored || 0) / totalMatches).toFixed(1)
+      : "0.0";
 
   // Calculate best win streak from match performance
   let bestWinStreak = 0;
@@ -111,9 +123,9 @@ const PlayerStatsPage = () => {
 
   return (
     <div className="min-h-screen bg-[#ffffff]">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto py-8">
         {/* Page Title */}
-        <div className="mb-8">
+        <div className="mb-8 px-4">
           <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
             Player Statistics
           </h1>
@@ -128,11 +140,15 @@ const PlayerStatsPage = () => {
             </div>
           </div>
         ) : !statsData || tables.matchPerformance.length === 0 ? (
-          <EmptyState icon={BarChart3} title="No statistics available." description="Player statistics will appear after matches are played!" />
+          <EmptyState
+            icon={BarChart3}
+            title="No statistics available."
+            description="Player statistics will appear after matches are played!"
+          />
         ) : (
           <div className="space-y-8">
             {/* Performance Highlights */}
-            <div>
+            <div className="px-4">
               <div className="mb-4">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Performance Highlights
@@ -149,130 +165,261 @@ const PlayerStatsPage = () => {
                     </p>
                   </div>
                   <div>
-                    <WhatshotIcon fontSize="large" className="text-[#3c6e71]" sx={{ fontSize: 48 }} />
+                    <WhatshotIcon
+                      fontSize="large"
+                      className="text-[#3c6e71]"
+                      sx={{ fontSize: 48 }}
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* A. Singles and Doubles Stats */}
-            <div>
+            <div className="px-4">
               <div className="mb-4">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Singles & Doubles Performance
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-[1px] bg-[#d9d9d9]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Singles */}
-                <div className="bg-[#ffffff] p-6">
-                  <h3 className="text-sm font-bold text-[#353535] mb-4 uppercase tracking-wider">
+                <div className="bg-[#ffffff] p-4">
+                  <h3 className="text-sm font-bold text-[#353535] mb-6 uppercase tracking-wider">
                     Singles
                   </h3>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Wins</p>
-                      <p className="text-2xl font-bold text-[#353535]">{singlesStats.wins || 0}</p>
+                  <div className="space-y-6">
+                    {/* Match Win Rate Progress Bar */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-[#353535]">
+                          Match Performance
+                        </span>
+                        <span className="text-xs text-[#3c6e71] font-semibold">
+                          {singlesStats.wins || 0}W / {singlesStats.losses || 0}
+                          L
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${singlesWinRate}%` }}
+                          transition={{ duration: 0.8, delay: 0.1 }}
+                          className="h-full bg-blue-500 rounded-full"
+                        />
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        {singlesWinRate}% win rate • {singlesTotalMatches}{" "}
+                        matches
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Losses</p>
-                      <p className="text-2xl font-bold text-[#353535]">{singlesStats.losses || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Sets Won</p>
-                      <p className="text-2xl font-bold text-[#353535]">{singlesStats.setsWon || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Sets Lost</p>
-                      <p className="text-2xl font-bold text-[#353535]">{singlesStats.setsLost || 0}</p>
-                    </div>
-                  </div>
 
-                  {/* Win Rate */}
-                  {singlesTotalMatches > 0 && (
-                    <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">Win Rate</p>
-                      <p className="text-3xl font-bold text-[#353535]">{singlesWinRate}%</p>
-                    </div>
-                  )}
-
-                  {/* Tournament breakdown */}
-                  {singlesStats?.matchesByTournamentType &&
-                    Object.keys(singlesStats.matchesByTournamentType).length > 0 && (
-                      <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
-                          Tournament Types
-                        </p>
-                        <div className="space-y-2">
-                          {Object.entries(singlesStats.matchesByTournamentType).map(([type, count]) => (
-                            <div key={type} className="flex justify-between items-center text-xs">
-                              <span className="text-[#353535]">{formatTournamentType(type)}</span>
-                              <span className="font-semibold text-[#353535]">{count as number}</span>
-                            </div>
-                          ))}
+                    {/* Sets Win Rate Progress Bar */}
+                    {(singlesStats.setsWon || 0) +
+                      (singlesStats.setsLost || 0) >
+                      0 && (
+                      <div className="pl-3 border-l-2 border-[#d9d9d9] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-[#3c6e71]">
+                            Sets
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-semibold">
+                            {singlesStats.setsWon || 0}W /{" "}
+                            {singlesStats.setsLost || 0}L
+                          </span>
                         </div>
+                        <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{
+                              width: `${
+                                (singlesStats.setsWon || 0) +
+                                  (singlesStats.setsLost || 0) >
+                                0
+                                  ? Math.round(
+                                      ((singlesStats.setsWon || 0) /
+                                        ((singlesStats.setsWon || 0) +
+                                          (singlesStats.setsLost || 0))) *
+                                        100
+                                    )
+                                  : 0
+                              }%`,
+                            }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                            className="h-full bg-blue-500 opacity-70 rounded-full"
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-500">
+                          {(singlesStats.setsWon || 0) +
+                            (singlesStats.setsLost || 0) >
+                          0
+                            ? Math.round(
+                                ((singlesStats.setsWon || 0) /
+                                  ((singlesStats.setsWon || 0) +
+                                    (singlesStats.setsLost || 0))) *
+                                  100
+                              )
+                            : 0}
+                          % win rate •{" "}
+                          {(singlesStats.setsWon || 0) +
+                            (singlesStats.setsLost || 0)}{" "}
+                          sets
+                        </p>
                       </div>
                     )}
+
+                    {/* Tournament breakdown */}
+                    {singlesStats?.matchesByTournamentType &&
+                      Object.keys(singlesStats.matchesByTournamentType).length >
+                        0 && (
+                        <div className="border-t border-[#d9d9d9] pt-4 mt-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
+                            Tournament Types
+                          </p>
+                          <div className="space-y-2">
+                            {Object.entries(
+                              singlesStats.matchesByTournamentType
+                            ).map(([type, count]) => (
+                              <div
+                                key={type}
+                                className="flex justify-between items-center text-xs"
+                              >
+                                <span className="text-[#353535]">
+                                  {formatTournamentType(type)}
+                                </span>
+                                <span className="font-semibold text-[#353535]">
+                                  {count as number}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
                 </div>
 
                 {/* Doubles */}
-                <div className="bg-[#ffffff] p-6">
-                  <h3 className="text-sm font-bold text-[#353535] mb-4 uppercase tracking-wider">
+                <div className="bg-[#ffffff] p-4">
+                  <h3 className="text-sm font-bold text-[#353535] mb-6 uppercase tracking-wider">
                     Doubles
                   </h3>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Wins</p>
-                      <p className="text-2xl font-bold text-[#353535]">{doublesStats.wins || 0}</p>
+                  <div className="space-y-6">
+                    {/* Match Win Rate Progress Bar */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-[#353535]">
+                          Match Performance
+                        </span>
+                        <span className="text-xs text-[#3c6e71] font-semibold">
+                          {doublesStats.wins || 0}W / {doublesStats.losses || 0}
+                          L
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${doublesWinRate}%` }}
+                          transition={{ duration: 0.8, delay: 0.2 }}
+                          className="h-full bg-purple-500 rounded-full"
+                        />
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        {doublesWinRate}% win rate • {doublesTotalMatches}{" "}
+                        matches
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Losses</p>
-                      <p className="text-2xl font-bold text-[#353535]">{doublesStats.losses || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Sets Won</p>
-                      <p className="text-2xl font-bold text-[#353535]">{doublesStats.setsWon || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-1">Sets Lost</p>
-                      <p className="text-2xl font-bold text-[#353535]">{doublesStats.setsLost || 0}</p>
-                    </div>
-                  </div>
 
-                  {/* Win Rate */}
-                  {doublesTotalMatches > 0 && (
-                    <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">Win Rate</p>
-                      <p className="text-3xl font-bold text-[#353535]">{doublesWinRate}%</p>
-                    </div>
-                  )}
-
-                  {doublesStats?.matchesByTournamentType &&
-                    Object.keys(doublesStats.matchesByTournamentType).length > 0 && (
-                      <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
-                          Tournament Types
-                        </p>
-                        <div className="space-y-2">
-                          {Object.entries(doublesStats.matchesByTournamentType).map(([type, count]) => (
-                            <div key={type} className="flex justify-between items-center text-xs">
-                              <span className="text-[#353535]">{formatTournamentType(type)}</span>
-                              <span className="font-semibold text-[#353535]">{count as number}</span>
-                            </div>
-                          ))}
+                    {/* Sets Win Rate Progress Bar */}
+                    {(doublesStats.setsWon || 0) +
+                      (doublesStats.setsLost || 0) >
+                      0 && (
+                      <div className="pl-3 border-l-2 border-[#d9d9d9] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-[#3c6e71]">
+                            Sets
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-semibold">
+                            {doublesStats.setsWon || 0}W /{" "}
+                            {doublesStats.setsLost || 0}L
+                          </span>
                         </div>
+                        <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{
+                              width: `${
+                                (doublesStats.setsWon || 0) +
+                                  (doublesStats.setsLost || 0) >
+                                0
+                                  ? Math.round(
+                                      ((doublesStats.setsWon || 0) /
+                                        ((doublesStats.setsWon || 0) +
+                                          (doublesStats.setsLost || 0))) *
+                                        100
+                                    )
+                                  : 0
+                              }%`,
+                            }}
+                            transition={{ duration: 0.8, delay: 0.4 }}
+                            className="h-full bg-purple-500 opacity-70 rounded-full"
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-500">
+                          {(doublesStats.setsWon || 0) +
+                            (doublesStats.setsLost || 0) >
+                          0
+                            ? Math.round(
+                                ((doublesStats.setsWon || 0) /
+                                  ((doublesStats.setsWon || 0) +
+                                    (doublesStats.setsLost || 0))) *
+                                  100
+                              )
+                            : 0}
+                          % win rate •{" "}
+                          {(doublesStats.setsWon || 0) +
+                            (doublesStats.setsLost || 0)}{" "}
+                          sets
+                        </p>
                       </div>
                     )}
+
+                    {/* Tournament breakdown */}
+                    {doublesStats?.matchesByTournamentType &&
+                      Object.keys(doublesStats.matchesByTournamentType).length >
+                        0 && (
+                        <div className="border-t border-[#d9d9d9] pt-4 mt-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
+                            Tournament Types
+                          </p>
+                          <div className="space-y-2">
+                            {Object.entries(
+                              doublesStats.matchesByTournamentType
+                            ).map(([type, count]) => (
+                              <div
+                                key={type}
+                                className="flex justify-between items-center text-xs"
+                              >
+                                <span className="text-[#353535]">
+                                  {formatTournamentType(type)}
+                                </span>
+                                <span className="font-semibold text-[#353535]">
+                                  {count as number}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* B. Scoring Stats */}
-            <div>
+            <div className="px-4">
               <div className="mb-4">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Scoring Statistics
@@ -323,7 +470,7 @@ const PlayerStatsPage = () => {
             </div>
 
             {/* C. Server Stats */}
-            <div>
+            <div className="px-4">
               <div className="mb-4">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Serve Statistics
@@ -352,7 +499,8 @@ const PlayerStatsPage = () => {
                       Serve Win %
                     </p>
                     <p className="text-2xl font-bold text-[#353535]">
-                      {server.serveWinPercentage || 0}<span className="text-sm">%</span>
+                      {server.serveWinPercentage || 0}
+                      <span className="text-sm">%</span>
                     </p>
                   </div>
                 </div>
@@ -361,7 +509,7 @@ const PlayerStatsPage = () => {
 
             {/* E. Points Per Match Chart */}
             {charts.pointsPerMatch.length > 0 && (
-              <div>
+              <div className="px-4">
                 <div className="mb-4">
                   <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                     Points Scored Per Match
@@ -392,87 +540,6 @@ const PlayerStatsPage = () => {
               </div>
             )}
 
-            {/* E. Match-by-Match Performance Table */}
-            {tables.matchPerformance.length > 0 && (
-              <div>
-                <div className="mb-4">
-                  <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                    Match-by-Match Performance
-                  </h2>
-                </div>
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[#d9d9d9]">
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            #
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Type
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Opponent
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Result
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Score
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Points
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Tournament
-                          </th>
-                          <th className="text-left py-3 px-4 font-bold text-[#353535] text-[10px] uppercase tracking-wider">
-                            Date
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tables.matchPerformance
-                          .slice(0, 25)
-                          .map((match: any, index: number) => (
-                            <tr
-                              key={index}
-                              className="border-b border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] transition-colors"
-                            >
-                              <td className="py-3 px-4">
-                                {match.matchNumber}
-                              </td>
-                              <td className="py-3 px-4 capitalize">
-                                {match.type}
-                              </td>
-                              <td className="py-3 px-4 font-medium">
-                                {match.opponent}
-                              </td>
-                              <td className="py-3 px-4 font-semibold">
-                                {match.result}
-                              </td>
-                              <td className="py-3 px-4 font-semibold">
-                                {match.score}
-                              </td>
-                              <td className="py-3 px-4">
-                                {match.pointsScored} - {match.pointsConceded}
-                              </td>
-                              <td className="py-3 px-4 text-xs">
-                                {match.tournamentName && match.tournamentType
-                                  ? `${match.tournamentName} (${formatTournamentType(match.tournamentType)})`
-                                  : match.tournamentName || formatTournamentType(match.tournamentType)}
-                              </td>
-                              <td className="py-3 px-4 text-xs">
-                                {new Date(match.date).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
 
           </div>
         )}

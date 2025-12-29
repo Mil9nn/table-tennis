@@ -91,11 +91,9 @@ export const PUT = withDBAndErrorHandling(async (req, context) => {
   await tournament.save();
 
   // Populate tournament data
-  await tournament.populate([
-    { path: "organizer", select: "username fullName profileImage" },
-    { path: "participants", select: "username fullName profileImage" },
-    { path: "seeding.participant", select: "username fullName profileImage" },
-  ]);
+  await (tournament as any).populate("organizer");
+  await (tournament as any).populate("participants");
+  await (tournament as any).populate("seeding.participant");
 
   return jsonOk({
     message: "Seeding updated successfully",

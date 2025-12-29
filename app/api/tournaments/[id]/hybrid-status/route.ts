@@ -30,29 +30,8 @@ export const GET = withDBAndErrorHandling(async (req, context) => {
   });
 
   // Populate participants based on tournament category
-  if (isTeamTournament) {
-    await tournament.populate({
-      path: "participants",
-      model: Team,
-      select: "name logo city captain",
-    });
-    await tournament.populate({
-      path: "qualifiedParticipants",
-      model: Team,
-      select: "name logo city captain",
-    });
-  } else {
-    await tournament.populate({
-      path: "participants",
-      model: User,
-      select: "username fullName profileImage",
-    });
-    await tournament.populate({
-      path: "qualifiedParticipants",
-      model: User,
-      select: "username fullName profileImage",
-    });
-  }
+  await (tournament as any).populate("participants");
+  await (tournament as any).populate("qualifiedParticipants");
 
   // If not hybrid, return basic info
   if (tournament.format !== "hybrid") {

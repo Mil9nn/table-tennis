@@ -17,7 +17,7 @@ export interface IRankingEntry {
 }
 
 export interface ILeaderboardCache extends Document {
-  type: "individual_singles" | "individual_doubles" | "individual_mixed_doubles" | "team";
+  type: "individual_singles" | "individual_doubles" | "team";
   rankings: IRankingEntry[];
   generatedAt: Date;
   expiresAt: Date;
@@ -49,7 +49,6 @@ const leaderboardCacheSchema = new Schema<ILeaderboardCache>(
       enum: [
         "individual_singles",
         "individual_doubles",
-        "individual_mixed_doubles",
         "team",
       ],
       required: true,

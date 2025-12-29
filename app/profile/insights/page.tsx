@@ -37,7 +37,11 @@ import {
 import { EmptyState } from "../components/EmptyState";
 import { TrendingUpOutlined } from "@mui/icons-material";
 
-const PerformanceInsightsPage = () => {
+interface PerformanceInsightsPageProps {
+  userId?: string;
+}
+
+const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) => {
   const router = useRouter();
   const { user } = useAuthStore();
   const [data, setData] = useState<any>(null);

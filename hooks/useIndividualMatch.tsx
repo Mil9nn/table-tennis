@@ -69,7 +69,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     if (!match) return "side1";
 
     const isDoubles =
-      match.matchType === "doubles" || match.matchType === "mixed_doubles";
+      match.matchType === "doubles";
 
     // Try to read server config from a few possible locations for flexibility/compatibility
     const serverConfig: InitialServerConfig = {
@@ -292,8 +292,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
         if (!shotPlayerId) {
           const isDoubles =
-            match.matchType === "doubles" ||
-            match.matchType === "mixed_doubles";
+            (match.matchType as string) === "doubles" ||
+            (match.matchType as string) === "mixed_doubles";
           if (isDoubles) {
             shotPlayerId =
               player === "side1"

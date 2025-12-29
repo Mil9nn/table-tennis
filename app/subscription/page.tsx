@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSubscription } from "@/hooks/useSubscription";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, Loader2, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, Loader2, ArrowLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -16,6 +16,8 @@ export default function SubscriptionPage() {
   const searchParams = useSearchParams();
   const { subscription, loading } = useSubscription();
   const [processing, setProcessing] = useState(false);
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const feature = searchParams.get("feature");
 
   const handleUpgrade = async (billingPeriod: "monthly" | "yearly") => {
@@ -61,6 +63,25 @@ export default function SubscriptionPage() {
     { text: "Advanced analytics", included: false },
     { text: "Data exports", included: false },
     { text: "Multi-scorer", included: false },
+  ];
+
+  const faqs = [
+    {
+      question: "What's the difference between Monthly and Yearly?",
+      answer: "Both plans include the same Pro features. The yearly plan offers better value with a discount compared to monthly billing.",
+    },
+    {
+      question: "Can I switch between plans?",
+      answer: "Yes! You can switch between monthly and yearly plans. The new billing cycle starts at your next renewal date.",
+    },
+    {
+      question: "What happens if I cancel my subscription?",
+      answer: "Your data is never deleted. If you cancel a subscription, you'll keep Pro features until the end of your billing period, then return to the Free tier.",
+    },
+    {
+      question: "Do you offer refunds?",
+      answer: "Refunds are not available. However, you can cancel your subscription at any time, and you'll keep access to Pro features until the end of your current billing period.",
+    },
   ];
 
 
@@ -113,7 +134,7 @@ export default function SubscriptionPage() {
         )}
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Free Tier */}
           <div className="bg-[#ffffff] border-2 border-[#d9d9d9] rounded-lg p-6">
             <div className="mb-4">
@@ -158,16 +179,50 @@ export default function SubscriptionPage() {
               </Button>
             )}
           </div>
-          {/* Pro Monthly */}
-          <div className="bg-[#ffffff] border-2 border-[#d9d9d9] rounded-lg p-6">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold text-[#353535] mb-2">Pro - Monthly</h3>
+
+          {/* Pro Tier with Toggle */}
+          <div className="bg-[#ffffff] border-2 border-[#3c6e71] rounded-lg p-6 relative">
+            {billingPeriod === "yearly" && (
+              <div className="absolute top-4 right-4 bg-[#3c6e71] text-white text-xs px-2 py-1 rounded">
+                Best Value
+              </div>
+            )}
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-[#353535] mb-4">Pro</h3>
               <p className="text-sm text-[#353535]/70 mb-4">
                 Perfect for serious players and regular competitors
               </p>
-              <div className="flex items-baseline gap-2">
+
+              {/* Billing Toggle */}
+              <div className="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded w-fit">
+                <button
+                  onClick={() => setBillingPeriod("monthly")}
+                  className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                    billingPeriod === "monthly"
+                      ? "bg-[#3c6e71] text-white"
+                      : "text-[#353535] hover:bg-[#e0e0e0]"
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingPeriod("yearly")}
+                  className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                    billingPeriod === "yearly"
+                      ? "bg-[#3c6e71] text-white"
+                      : "text-[#353535] hover:bg-[#e0e0e0]"
+                  }`}
+                >
+                  Yearly
+                </button>
+              </div>
+
+              {/* Price Display */}
+              <div className="flex items-baseline gap-2 mt-4">
                 <span className="text-3xl font-bold text-[#353535]">₹2</span>
-                <span className="text-sm text-[#353535]/70">/month</span>
+                <span className="text-sm text-[#353535]/70">
+                  {billingPeriod === "monthly" ? "/month" : "/year"}
+                </span>
                 <span className="text-xs text-[#3c6e71] ml-2">Testing</span>
               </div>
             </div>
@@ -182,7 +237,7 @@ export default function SubscriptionPage() {
             </ul>
 
             <Button
-              onClick={() => handleUpgrade("monthly")}
+              onClick={() => handleUpgrade(billingPeriod)}
               disabled={processing || subscription?.tier === "pro"}
               className="w-full bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
             >
@@ -196,54 +251,7 @@ export default function SubscriptionPage() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Subscribe Monthly
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Pro Yearly */}
-          <div className="bg-[#ffffff] border-2 border-[#3c6e71] rounded-lg p-6 relative">
-            <div className="absolute top-4 right-4 bg-[#3c6e71] text-white text-xs px-2 py-1 rounded">
-              Best Value
-            </div>
-            <div className="mb-4">
-              <h3 className="text-xl font-bold text-[#353535] mb-2">Pro - Yearly</h3>
-              <p className="text-sm text-[#353535]/70 mb-4">
-                Best value for regular users
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-[#353535]">₹2</span>
-                <span className="text-sm text-[#353535]/70">/year</span>
-                <span className="text-xs text-[#3c6e71] ml-2">Testing Price</span>
-              </div>
-            </div>
-
-            <ul className="space-y-2 mb-6">
-              {proFeatures.map((feature, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-[#3c6e71] flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-[#353535]">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              onClick={() => handleUpgrade("yearly")}
-              disabled={processing || subscription?.tier === "pro"}
-              className="w-full bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
-            >
-              {subscription?.tier === "pro" ? (
-                "Current Plan"
-              ) : processing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Subscribe Yearly
+                  Subscribe {billingPeriod === "monthly" ? "Monthly" : "Yearly"}
                 </>
               )}
             </Button>
@@ -252,68 +260,38 @@ export default function SubscriptionPage() {
 
         {/* FAQ Section */}
         <div className="mt-16 mb-8">
-          <h2 className="text-2xl font-bold text-[#353535] mb-8 text-center">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1 text-center">
             Frequently Asked Questions
           </h2>
+          <div className="h-[1px] bg-[#d9d9d9] w-24 mx-auto mb-8"></div>
 
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <div>
-              <h3 className="text-lg font-semibold text-[#353535] mb-2">
-                What's the difference between Monthly and Yearly?
-              </h3>
-              <p className="text-[#353535]/70">
-                Both plans include the same Pro features. The yearly plan offers better value
-                with a discount compared to monthly billing.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-[#353535] mb-2">
-                Can I switch between plans?
-              </h3>
-              <p className="text-[#353535]/70">
-                Yes! You can switch between monthly and yearly plans. The new billing cycle
-                starts at your next renewal date.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-[#353535] mb-2">
-                What happens if I cancel my subscription?
-              </h3>
-              <p className="text-[#353535]/70">
-                Your data is never deleted. If you cancel a subscription, you'll keep Pro
-                features until the end of your billing period, then return to the Free tier.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-[#353535] mb-2">
-                Do you offer refunds?
-              </h3>
-              <p className="text-[#353535]/70">
-                Yes, we offer a 30-day money-back guarantee for all paid plans.
-              </p>
-            </div>
+          <div className="space-y-px max-w-4xl mx-auto bg-[#d9d9d9]">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="bg-[#ffffff]">
+                <button
+                  onClick={() => setExpandedFAQ(expandedFAQ === idx ? null : idx)}
+                  className="w-full text-left px-6 py-3 hover:bg-[#f5f5f5] transition-colors flex items-center justify-between group"
+                >
+                  <h3 className="text-sm font-semibold text-[#353535] group-hover:text-[#3c6e71] transition-colors">
+                    {faq.question}
+                  </h3>
+                  <ChevronDown
+                    size={16}
+                    className={`text-[#d9d9d9] group-hover:text-[#3c6e71] transition-all flex-shrink-0 ${
+                      expandedFAQ === idx ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {expandedFAQ === idx && (
+                  <div className="px-6 py-3 border-t border-[#d9d9d9] bg-[#f5f5f5]">
+                    <p className="text-xs text-[#353535]/70 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-[#353535] mb-4">
-            Ready to elevate your game?
-          </h2>
-          <p className="text-[#353535]/70 mb-8 max-w-2xl mx-auto">
-            Join thousands of players and organizers using our platform to track,
-            analyze, and improve their table tennis performance.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-white"
-          >
-            <Link href="/auth/register">Get Started Free</Link>
-          </Button>
         </div>
       </div>
     </div>

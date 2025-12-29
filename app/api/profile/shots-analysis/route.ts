@@ -95,11 +95,23 @@ export async function GET(request: NextRequest) {
       no_spin: 0,
     };
 
-    // Heatmap data - divide table into zones (10x10 grid)
-    // Track both total count and shot types per zone
-    const heatmapZones: number[][] = Array(10).fill(0).map(() => Array(10).fill(0));
-    const heatmapShotTypes: Record<string, number>[][] = Array(10).fill(null).map(() =>
-      Array(10).fill(null).map(() => ({}))
+    // Heatmap data - divide table into zones (20x9 grid matching zone-sector analysis)
+    // X-axis: 20 columns (5% width each) aligned with zone boundaries:
+    //   - Columns 0-4 (0-25%): Left Deep
+    //   - Columns 5-7 (25-40%): Left Mid
+    //   - Columns 8-9 (40-50%): Left Short
+    //   - Columns 10-11 (50-60%): Right Short
+    //   - Columns 12-14 (60-75%): Right Mid
+    //   - Columns 15-19 (75-100%): Right Deep
+    // Y-axis: 9 rows (~11.11% height each) aligned with sector boundaries:
+    //   - Rows 0-2 (0-33.33%): Top/Backhand
+    //   - Rows 3-5 (33.33-66.67%): Middle/Crossover
+    //   - Rows 6-8 (66.67-100%): Bottom/Forehand
+    const GRID_COLS = 20;
+    const GRID_ROWS = 9;
+    const heatmapZones: number[][] = Array(GRID_ROWS).fill(0).map(() => Array(GRID_COLS).fill(0));
+    const heatmapShotTypes: Record<string, number>[][] = Array(GRID_ROWS).fill(null).map(() =>
+      Array(GRID_COLS).fill(null).map(() => ({}))
     );
 
     // Collect individual shots for wagon wheel visualization
@@ -141,8 +153,10 @@ export async function GET(request: NextRequest) {
             if (shot.landingX !== undefined && shot.landingY !== undefined) {
               // Normalize coordinates to side1 perspective
               const normalizedX = normalizeLandingX(shot.landingX, shot.side);
-              const zoneX = Math.min(Math.floor(normalizedX / 10), 9);
-              const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
+              // X: 20 columns, 5% width each
+              const zoneX = Math.min(GRID_COLS - 1, Math.floor(normalizedX / 5));
+              // Y: 9 rows, ~11.11% height each
+              const zoneY = Math.min(GRID_ROWS - 1, Math.floor(shot.landingY / (100 / GRID_ROWS)));
               heatmapZones[zoneY][zoneX]++;
 
               // Track shot type for this zone
@@ -235,8 +249,10 @@ export async function GET(request: NextRequest) {
                     shotSide = userSide;
                   }
                   const normalizedX = normalizeLandingX(shot.landingX, shotSide);
-                  const zoneX = Math.min(Math.floor(normalizedX / 10), 9);
-                  const zoneY = Math.min(Math.floor(shot.landingY / 10), 9);
+                  // X: 20 columns, 5% width each
+                  const zoneX = Math.min(GRID_COLS - 1, Math.floor(normalizedX / 5));
+                  // Y: 9 rows, ~11.11% height each
+                  const zoneY = Math.min(GRID_ROWS - 1, Math.floor(shot.landingY / (100 / GRID_ROWS)));
                   heatmapZones[zoneY][zoneX]++;
 
                   // Track shot type for this zone
@@ -341,8 +357,8 @@ export async function GET(request: NextRequest) {
     // Convert heatmap to format suitable for visualization
     const heatmapData = heatmapZones.flatMap((row, y) =>
       row.map((value, x) => ({
-        x: x * 10 + 5, // Center of zone
-        y: y * 10 + 5, // Center of zone
+        x: x * 5 + 2.5, // Center of zone (5% width each)
+        y: y * (100 / GRID_ROWS) + (100 / GRID_ROWS) / 2, // Center of zone
         value,
       }))
     ).filter(zone => zone.value > 0);

@@ -87,7 +87,7 @@ export default function LiveScorer({
       return <SinglesScorer match={match} />;
     }
 
-    if (match.matchType === "doubles" || match.matchType === "mixed_doubles") {
+    if (match.matchType === "doubles") {
       return <DoublesScorer match={match} />;
     }
   }

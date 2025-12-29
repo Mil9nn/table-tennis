@@ -58,7 +58,7 @@ export class TournamentValidationService {
   validateDoublesRequirements(tournament: ITournamentIndividual): ValidationResult {
     const errors: string[] = [];
 
-    if (tournament.matchType === 'doubles' || tournament.matchType === 'mixed_doubles') {
+    if (tournament.matchType === 'doubles') {
       const count = tournament.participants.length;
 
       if (count % 2 !== 0) {

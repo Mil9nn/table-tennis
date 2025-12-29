@@ -15,12 +15,11 @@ import {
   Calendar,
   ChevronRight,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import ProfileHeader from "./components/ProfileHeader";
-import MatchTypeBreakdown from "./components/MatchTypeBreakdown";
-import PlayingStyle from "./components/PlayingStyle";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Lock } from "lucide-react";
 
@@ -33,7 +32,7 @@ interface ProfilePageContentProps {
 }
 
 export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, logout } = useAuthStore();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
@@ -220,25 +219,6 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
         </div>
       )}
 
-      {/* Stats Section - Match Type Breakdown & Playing Style */}
-      {stats && !loadingStats && (
-        <div className="max-w-6xl mx-auto px-4 py-12">
-          {/* Section Title */}
-          <div className="mb-8">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
-              Performance Overview
-            </h2>
-            <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
-          </div>
-
-          {/* Match Type & Playing Style Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-            <MatchTypeBreakdown data={matchTypeData} />
-            <PlayingStyle shotAnalysis={stats.shotAnalysis} />
-          </div>
-        </div>
-      )}
-
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Section Title */}
         <div className="mb-8">
@@ -258,7 +238,9 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
               if (isLocked) {
                 router.push("/subscription?feature=" + encodeURIComponent(card.title));
               } else {
-                router.push(card.route);
+                // If viewing another user's profile, include their ID in the route
+                const route = isOwnProfile ? card.route : `/profile/${targetUserId}${card.route.replace('/profile', '')}`;
+                router.push(route);
               }
             };
             
@@ -288,6 +270,22 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
             );
           })}
         </div>
+
+        {/* Logout Button - Only show on own profile */}
+        {isOwnProfile && (
+          <div className="mt-12 pt-8 border-t border-[#d9d9d9]">
+            <button
+              onClick={() => {
+                logout();
+                router.push("/");
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

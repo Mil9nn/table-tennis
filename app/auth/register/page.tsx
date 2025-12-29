@@ -64,9 +64,13 @@ const RegisterPage = () => {
   async function onSubmit(values: RegisterInput) {
     try {
       const response = await register(values);
-      // Redirect to email verification page with email param
+      // TEMPORARILY DISABLED: Email verification redirect
+      // After Amazon SES is set up, uncomment the verification redirect
       if (response?.requiresVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(values.email)}`);
+      } else {
+        // Redirect to login page after successful registration
+        router.push("/auth/login?registered=true");
       }
     } catch {
       // Error is handled by the store

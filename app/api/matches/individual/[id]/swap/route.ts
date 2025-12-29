@@ -60,7 +60,7 @@ export async function POST(
     }
 
     // Determine if singles or doubles
-    const isDoubles = match.matchType === "doubles" || match.matchType === "mixed_doubles";
+    const isDoubles = match.matchType === "doubles";
 
     if (isDoubles) {
       // Doubles: swap [p0, p1, p2, p3] → [p2, p3, p0, p1]

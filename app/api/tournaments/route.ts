@@ -53,19 +53,20 @@ export async function POST(request: NextRequest) {
       knockoutConfig,
       hybridConfig,
       teamConfig,
+      doublesPairs,
     } = validation.data;
 
     // Check subscription limits and restrictions
     const subscription = await getUserSubscription(auth.userId);
     
-    // Check tournament creation limit
-    const tournamentLimitCheck = await checkLimit(auth.userId, "tournaments", 0);
-    if (!tournamentLimitCheck.allowed) {
-      return NextResponse.json(
-        { error: tournamentLimitCheck.error },
-        { status: 403 }
-      );
-    }
+    // Check tournament creation limit - DISABLED FOR DEVELOPMENT
+    // const tournamentLimitCheck = await checkLimit(auth.userId, "tournaments", 0);
+    // if (!tournamentLimitCheck.allowed) {
+    //   return NextResponse.json(
+    //     { error: tournamentLimitCheck.error },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Check participant limit if participants are provided
     if (participants && participants.length > 0) {
@@ -153,6 +154,35 @@ export async function POST(request: NextRequest) {
       }) : undefined,
       currentPhase: format === "hybrid" ? "round_robin" : undefined,
       seeding: initialSeeding,
+      // Include doublesPairs if provided (for doubles)
+      // CRITICAL: Deduplicate pairs to prevent duplicate entries
+      doublesPairs:
+        category === "individual" &&
+        matchType === "doubles" &&
+        doublesPairs
+          ? (() => {
+              // Deduplicate pairs by pair ID or canonical player combination
+              const uniquePairsMap = new Map<string, typeof doublesPairs[0]>();
+              for (const pair of doublesPairs) {
+                const pairId = pair._id?.toString() || null;
+                const player1Id = pair.player1?.toString() || '';
+                const player2Id = pair.player2?.toString() || '';
+                const canonicalKey = player1Id < player2Id 
+                  ? `${player1Id}:${player2Id}` 
+                  : `${player2Id}:${player1Id}`;
+                const key = pairId || canonicalKey;
+                
+                if (!uniquePairsMap.has(key)) {
+                  uniquePairsMap.set(key, pair);
+                }
+              }
+              return Array.from(uniquePairsMap.values()).map((pair: any) => ({
+                _id: pair._id,
+                player1: pair.player1,
+                player2: pair.player2,
+              }));
+            })()
+          : undefined,
       rules: {
         pointsForWin: rules?.pointsForWin || 2,
         pointsForLoss: rules?.pointsForLoss || 0,

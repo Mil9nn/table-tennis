@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Github, Twitter } from "lucide-react";
+import { Twitter, Facebook, Instagram } from "lucide-react";
 
 export default function MarketingFooter() {
   const currentYear = new Date().getFullYear();
@@ -17,7 +17,7 @@ export default function MarketingFooter() {
               TTPro
             </h3>
             <p className="text-sm text-white/60 leading-relaxed">
-              The operating system for competitive table tennis. Real-time scoring, shot analysis, and tournament management.
+              The platform for competitive table tennis. Real-time scoring, shot analysis, and tournament management.
             </p>
             <div className="flex items-center gap-4 mt-4">
               <a
@@ -29,18 +29,29 @@ export default function MarketingFooter() {
                 <Twitter className="w-5 h-5" />
               </a>
               <a
-                href="https://github.com"
+                href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/40 hover:text-white/80 transition-colors"
               >
-                <Github className="w-5 h-5" />
+                <Facebook className="w-5 h-5" />
               </a>
               <a
-                href="mailto:app.ttpro@gmail.com"
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white/40 hover:text-white/80 transition-colors"
               >
-                <Mail className="w-5 h-5" />
+                <Instagram className="w-5 h-5" />
+              </a>
+            </div>
+
+            <div className="mt-4">
+              <a
+                href="mailto:app.ttpro@gmail.com"
+                className="text-xs text-white/50 hover:text-white/80 transition-colors"
+              >
+                app.ttpro@gmail.com
               </a>
             </div>
           </div>
@@ -58,14 +69,6 @@ export default function MarketingFooter() {
                     className="text-sm text-white/60 hover:text-white transition-colors"
                   >
                     Features
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/#how-it-works"
-                    className="text-sm text-white/60 hover:text-white transition-colors"
-                  >
-                    How It Works
                   </Link>
                 </li>
                 <li>

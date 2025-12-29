@@ -92,6 +92,11 @@ export async function GET(request: NextRequest) {
       if (isWin) headToHead[oppId].wins++;
       else headToHead[oppId].losses++;
 
+      // Get all opponents
+      const opponents = matchType === "singles" 
+        ? [match.participants[opponentIndex]] 
+        : [match.participants[opponentIndex], match.participants[opponentIndex + 1]];
+
       recentMatches.push({
         _id: match._id,
         type: "individual",
@@ -100,6 +105,11 @@ export async function GET(request: NextRequest) {
         result: isWin ? "win" : "loss",
         opponent: opponent.fullName || opponent.username,
         opponentImage: opponent.profileImage,
+        participants: opponents.map((p: any) => ({
+          _id: p._id,
+          fullName: p.fullName || p.username,
+          profileImage: p.profileImage,
+        })),
         score: `${match.finalScore?.side1Sets || 0}-${match.finalScore?.side2Sets || 0}`,
       });
 
@@ -149,14 +159,23 @@ export async function GET(request: NextRequest) {
       const opponentTeamName = opponentTeam.name || "Unknown Team";
       const opponentTeamLogo = opponentTeam.logo;
       
+      // Get opponent team players
+      const opponentPlayers = (opponentTeam.players || []).slice(0, 2).map((p: any) => ({
+        _id: typeof p.user === 'object' ? p.user._id : p.user,
+        fullName: typeof p.user === 'object' ? (p.user.fullName || p.user.username) : "Unknown",
+        profileImage: typeof p.user === 'object' ? p.user.profileImage : undefined,
+      }));
+      
       recentMatches.push({
         _id: match._id,
         type: "team",
+        matchType: "doubles",
         matchFormat: match.matchFormat,
         date: match.createdAt,
         result: isWin ? "win" : "loss",
-        teams: `${match.team1.name} vs ${opponentTeamName}`,
+        teams: opponentTeamName,
         teamLogo: opponentTeamLogo,
+        participants: opponentPlayers,
         score: `${match.finalScore?.team1Matches || 0}-${match.finalScore?.team2Matches || 0}`,
       });
 

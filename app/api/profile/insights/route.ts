@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       if (matchType === "singles") {
         singlesMatches++;
         if (isWin) singlesWins++;
-      } else if (matchType === "doubles" || matchType === "mixed_doubles") {
+      } else if (matchType === "doubles") {
         doublesMatches++;
         if (isWin) doublesWins++;
       }

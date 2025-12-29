@@ -50,7 +50,7 @@ export default function MatchesList({
   }
 
   return (
-    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
+    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
         const side1Won = match.winnerSide === "side1";
@@ -73,9 +73,9 @@ export default function MatchesList({
             className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71]"
           >
             {/* Line 1: Players & Score */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
               {/* Side 1: Avatars + Name */}
-              <div className={`flex items-center gap-1.5`}>
+              <div className={`flex items-center gap-1.5 min-w-0`}>
                 <div className="flex items-center -space-x-1 shrink-0">
                   <PlayerAvatar
                     name={match.participants?.[0]?.fullName}
@@ -91,7 +91,7 @@ export default function MatchesList({
                   )}
                 </div>
                 <span
-                  className={`font-medium text-sm truncate transition-colors group-hover:text-[#ffffff] ${
+                  className={`font-medium text-sm transition-colors group-hover:text-[#ffffff] ${
                     side1Won ? "text-green-600 group-hover:text-green-200" : "text-gray-800"
                   }`}
                 >
@@ -101,17 +101,17 @@ export default function MatchesList({
 
               {/* Score */}
               {isCompleted && match.finalScore ? (
-                <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff]">
+                <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff] shrink-0">
                   {match.finalScore.side1Sets} - {match.finalScore.side2Sets}
                 </span>
               ) : (
-                <span className="text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">vs</span>
+                <span className="text-xs text-gray-400 transition-colors group-hover:text-[#ffffff] shrink-0">vs</span>
               )}
 
               {/* Side 2: Name + Avatars */}
-              <div className={`flex items-center gap-1.5`}>
+              <div className={`flex items-center gap-1.5 min-w-0`}>
                 <span
-                  className={`font-medium text-sm truncate transition-colors group-hover:text-[#ffffff] ${
+                  className={`font-medium text-sm transition-colors group-hover:text-[#ffffff] ${
                     side2Won ? "text-green-600 group-hover:text-green-200" : "text-gray-800"
                   }`}
                 >

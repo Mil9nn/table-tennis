@@ -108,28 +108,19 @@ const envSchema = z.object({
   // AWS SES (for email verification and password reset)
   AWS_ACCESS_KEY_ID: z
     .string()
-    .min(1, "AWS_ACCESS_KEY_ID is required for email functionality")
     .optional(),
   AWS_SECRET_ACCESS_KEY: z
     .string()
-    .min(1, "AWS_SECRET_ACCESS_KEY is required for email functionality")
     .optional(),
   AWS_SES_REGION: z
     .string()
-    .optional()
-    .default("us-east-1")
-    .describe("AWS region for SES (default: us-east-1)"),
+    .optional(),
   AWS_SES_FROM_EMAIL: z
     .string()
-    .email("AWS_SES_FROM_EMAIL must be a valid email address")
-    .optional()
-    .describe("Verified sender email address for SES"),
+    .optional(),
   NEXT_PUBLIC_APP_URL: z
     .string()
-    .url("NEXT_PUBLIC_APP_URL must be a valid URL")
-    .optional()
-    .default("http://localhost:3000")
-    .describe("Public URL of the application for email links"),
+    .optional(),
 });
 
 export const env = (() => {

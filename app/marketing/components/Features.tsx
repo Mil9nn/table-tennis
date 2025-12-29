@@ -1,85 +1,145 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Zap, Trophy, Users, TrendingUp, Target, BarChart3 } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const FEATURES = [
   {
-    icon: Zap,
+    id: 1,
     title: "Live Match Scoring",
-    description: "Fast, referee-friendly, real-time scoring.",
-    color: "#3c6e71",
+    description:
+      "Fast, referee-friendly, real-time scoring built for competitive table tennis.",
+    image: "/features/live-scoring.png", // real screenshot later
   },
   {
-    icon: Trophy,
+    id: 2,
     title: "Tournament Management",
-    description: "Run leagues, knockouts, and multi-stage tournaments.",
-    color: "#284b63",
+    description:
+      "Create leagues, knockouts, and multi-stage tournaments effortlessly.",
+    image: "/features/tournaments.png",
   },
   {
-    icon: Users,
+    id: 3,
     title: "Player & Team Profiles",
-    description: "Match history, stats, and rankings in one place.",
-    color: "#3c6e71",
+    description:
+      "Complete match history, performance stats, and rankings in one place.",
+    image: "/features/profiles.png",
   },
   {
-    icon: TrendingUp,
+    id: 4,
     title: "Rankings & Leaderboards",
-    description: "Automatically updated rankings across competitions.",
-    color: "#284b63",
+    description:
+      "Auto-updated player rankings across tournaments.",
+    image: "/features/leaderboards.png",
   },
   {
-    icon: Target,
-    title: "Flexible Match Formats",
-    description: "Singles, doubles, and team matches supported.",
-    color: "#3c6e71",
-  },
-  {
-    icon: BarChart3,
+    id: 5,
     title: "Performance Analytics",
-    description: "Track trends, streaks, and long-term improvement.",
-    color: "#284b63",
+    description:
+      "Track form, streaks, and long-term improvement with clear insights.",
+    image: "/features/analytics.png",
   },
 ];
 
-export default function Features() {
+export default function FeaturesCarousel() {
+  const [index, setIndex] = useState(0);
+
+  const next = () => setIndex((i) => (i + 1) % FEATURES.length);
+  const prev = () =>
+    setIndex((i) => (i - 1 + FEATURES.length) % FEATURES.length);
+
+  const feature = FEATURES[index];
+
   return (
-    <section className="marketing py-20 sm:py-32 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-semibold text-white mb-4">
-            Everything You Need to Run Matches
+    <section className="py-20 sm:py-28">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-10 px-4">
+          <h2 className="text-xl md:text-4xl font-semibold text-white">
+            Built for Serious Table Tennis
           </h2>
-          <p className="text-white/70 max-w-xl mx-auto">
-            One platform for scoring, tournaments, and rankings.
+          <p className="text-white/70 mt-2 text-sm max-w-xl mx-auto">
+            Everything you need to score matches, run tournaments, and track
+            performance.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map((f, i) => {
-            const Icon = f.icon;
-            return (
+        {/* Carousel */}
+        <div className="relative">
+          {/* Navigation */}
+          <button
+            onClick={prev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex
+                       h-10 w-10 items-center justify-center rounded-full
+                       border border-white/10 bg-white/5 text-white
+                       hover:bg-white/10 transition"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={next}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex
+                       h-10 w-10 items-center justify-center rounded-full
+                       border border-white/10 bg-white/5 text-white
+                       hover:bg-white/10 transition"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+
+          {/* Feature Card */}
+          <div className="overflow-hidden">
+            <AnimatePresence mode="wait">
               <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6"
+                key={feature.id}
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center
+                            border border-white/10 bg-white/5
+                            "
               >
+                {/* Screenshot Placeholder */}
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-                  style={{ backgroundColor: f.color }}
+                  className="relative aspect-[16/10] overflow-hidden
+                                bg-gradient-to-br from-white/10 to-white/5
+                                flex items-center justify-center h-full"
                 >
-                  <Icon className="w-6 h-6 text-white" />
+                  {/* Replace this with <Image /> later */}
+                  <span className="text-white/40 text-sm">
+                    Feature Screenshot
+                  </span>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {f.title}
-                </h3>
-                <p className="text-sm text-white/70">{f.description}</p>
+
+                {/* Content */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-white/70 text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
+
+                  {/* Progress Indicator - Clickable on all screens */}
+                  <div className="mt-6 flex gap-2">
+                    {FEATURES.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setIndex(i)}
+                        className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                          i === index
+                            ? "w-8 bg-white"
+                            : "w-3 bg-white/30 hover:bg-white/50"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </motion.div>
-            );
-          })}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </section>

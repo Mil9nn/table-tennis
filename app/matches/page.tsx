@@ -319,7 +319,6 @@ export default function MatchesPage() {
                         <SelectItem value="all">All Types</SelectItem>
                         <SelectItem value="singles">Singles</SelectItem>
                         <SelectItem value="doubles">Doubles</SelectItem>
-                        <SelectItem value="mixed_doubles">Mixed Doubles</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -462,7 +461,7 @@ export default function MatchesPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-[#284b63] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             Individual
           </TabsTrigger>
@@ -475,7 +474,7 @@ export default function MatchesPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-[#284b63] data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#d9d9d9]"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             Team
           </TabsTrigger>

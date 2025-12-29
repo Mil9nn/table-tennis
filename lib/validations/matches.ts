@@ -158,8 +158,8 @@ export const swapPlayersSchema = z.object({
   }),
 }).strict();
 
-// Extended match type schema for queries (includes mixed_doubles and 'all')
-export const matchTypeQuerySchema = z.enum(["singles", "doubles", "mixed_doubles", "all"]);
+// Extended match type schema for queries (includes 'all')
+export const matchTypeQuerySchema = z.enum(["singles", "doubles", "all"]);
 
 // Team match format schema
 export const teamMatchFormatSchema = z.enum(["five_singles", "single_double_single", "custom", "all"]);

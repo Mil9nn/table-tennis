@@ -21,7 +21,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Eye, Award, Flame } from "lucide-react";
+import { Trophy, Eye, Award, Flame, Medal } from "lucide-react";
 
 interface DetailedPlayerStats {
   participant: {
@@ -224,18 +224,18 @@ export default function TournamentLeaderboard({
                   >
                     <TableCell className="text-center">
                       {player.standing.rank === 1 ? (
-                        <div className="flex items-center justify-center gap-1 text-amber-600 font-semibold">
-                          <Award className="w-3 h-3" />
+                        <div className="flex items-center justify-center gap-1 text-amber-500 font-semibold">
+                          <Medal className="w-3 h-3 fill-amber-500" />
                           1
                         </div>
                       ) : player.standing.rank === 2 ? (
-                        <div className="flex items-center justify-center gap-1 text-slate-500 font-semibold text-[12px]">
-                          <Award className="w-3 h-3" />
+                        <div className="flex items-center justify-center gap-1 text-slate-400 font-semibold text-[12px]">
+                          <Medal className="w-3 h-3 fill-slate-400" />
                           2
                         </div>
                       ) : player.standing.rank === 3 ? (
-                        <div className="flex items-center justify-center gap-1 text-amber-700 font-semibold text-[12px]">
-                          <Award className="w-3 h-3" />
+                        <div className="flex items-center justify-center gap-1 text-orange-600 font-semibold text-[12px]">
+                          <Medal className="w-3 h-3 fill-orange-600" />
                           3
                         </div>
                       ) : (

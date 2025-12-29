@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export type SubscriptionTier = "free" | "pro" | "enterprise";
+export type SubscriptionTier = "free" | "pro";
 export type SubscriptionStatus = "active" | "past_due" | "cancelled" | "expired";
 
 export interface ISubscriptionFeatures {
@@ -51,7 +51,7 @@ export interface ISubscription extends Document {
 }
 
 const subscriptionFeaturesSchema = new Schema<ISubscriptionFeatures>({
-  maxTournaments: { type: Number, required: true, default: 2 },
+  maxTournaments: { type: Number, required: true, default: -1 }, // Unlimited by default
   maxParticipants: { type: Number, required: true, default: 16 },
   maxScorers: { type: Number, required: true, default: 0 },
   advancedAnalytics: { type: Boolean, required: true, default: false },
@@ -60,7 +60,7 @@ const subscriptionFeaturesSchema = new Schema<ISubscriptionFeatures>({
   tournamentFormats: {
     type: [String],
     required: true,
-    default: ["round_robin"]
+    default: ["round_robin", "knockout", "hybrid"]
   },
   statsPageAccess: { 
     type: String, 
@@ -83,7 +83,7 @@ const subscriptionSchema = new Schema<ISubscription>(
     },
     tier: {
       type: String,
-      enum: ["free", "pro", "enterprise"],
+      enum: ["free", "pro"],
       required: true,
       default: "free",
     },
@@ -115,13 +115,13 @@ const subscriptionSchema = new Schema<ISubscription>(
       type: subscriptionFeaturesSchema,
       required: true,
       default: () => ({
-        maxTournaments: 2,
+        maxTournaments: -1, // Unlimited - only participants are limited
         maxParticipants: 16,
         maxScorers: 0,
         advancedAnalytics: false,
         exportData: false,
         customBranding: false,
-        tournamentFormats: ["round_robin"],
+        tournamentFormats: ["round_robin", "knockout", "hybrid"],
         statsPageAccess: 'free',
         profileInsightsAccess: false,
         shotAnalysisAccess: false,
@@ -141,13 +141,13 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
   switch (tier) {
     case "free":
       return {
-        maxTournaments: 2,
+        maxTournaments: -1, // Unlimited - only participants are limited
         maxParticipants: 16,
         maxScorers: 0,
         advancedAnalytics: false,
         exportData: false,
         customBranding: false,
-        tournamentFormats: ["round_robin"],
+        tournamentFormats: ["round_robin", "knockout", "hybrid"],
         statsPageAccess: 'free',
         profileInsightsAccess: false,
         shotAnalysisAccess: false,
@@ -155,23 +155,9 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
       };
     case "pro":
       return {
-        maxTournaments: 10,
-        maxParticipants: 50,
-        maxScorers: 3,
-        advancedAnalytics: true,
-        exportData: true,
-        customBranding: false,
-        tournamentFormats: ["round_robin", "knockout", "hybrid"],
-        statsPageAccess: 'pro',
-        profileInsightsAccess: true,
-        shotAnalysisAccess: true,
-        aiInsights: false,
-      };
-    case "enterprise":
-      return {
         maxTournaments: -1, // Unlimited
         maxParticipants: -1, // Unlimited
-        maxScorers: 10,
+        maxScorers: -1, // Unlimited
         advancedAnalytics: true,
         exportData: true,
         customBranding: true,
@@ -183,13 +169,13 @@ export function getFeaturesByTier(tier: SubscriptionTier): ISubscriptionFeatures
       };
     default:
       return {
-        maxTournaments: 2,
+        maxTournaments: -1, // Unlimited - only participants are limited
         maxParticipants: 16,
         maxScorers: 0,
         advancedAnalytics: false,
         exportData: false,
         customBranding: false,
-        tournamentFormats: ["round_robin"],
+        tournamentFormats: ["round_robin", "knockout", "hybrid"],
         statsPageAccess: 'free',
         profileInsightsAccess: false,
         shotAnalysisAccess: false,

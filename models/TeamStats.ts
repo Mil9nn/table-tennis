@@ -59,9 +59,6 @@ const teamStatsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Unique index on team
-teamStatsSchema.index({ team: 1 }, { unique: true });
-
 // Index for leaderboard sorting
 teamStatsSchema.index({ wins: -1, winRate: -1 });
 

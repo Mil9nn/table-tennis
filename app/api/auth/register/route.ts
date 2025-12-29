@@ -51,15 +51,21 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // TEMPORARILY DISABLED: Email verification
+    // TODO: Remove isEmailVerified: true after Amazon SES verification is complete
     const newUser = new User({
       username,
       fullName,
       email,
       password: hashedPassword,
+      isEmailVerified: true, // Temporarily auto-verified
     });
 
     await newUser.save();
 
+    // TEMPORARILY DISABLED: Email verification token generation and sending
+    // TODO: Re-enable after Amazon SES verification is complete
+    /*
     // Generate verification token
     const verificationToken = generateVerificationToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -83,12 +89,13 @@ export async function POST(request: NextRequest) {
       console.error("Failed to send verification email during registration");
       // Don't fail registration, user can request a new email later
     }
+    */
 
-    // Return success without setting auth cookie - user must verify email first
+    // Return success and allow immediate login
     return NextResponse.json(
       {
-        message: "Registration successful! Please check your email to verify your account.",
-        requiresVerification: true,
+        message: "Registration successful! You can now log in.",
+        requiresVerification: false,
         user: {
           _id: newUser._id,
           username: newUser.username,

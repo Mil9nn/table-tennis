@@ -45,7 +45,7 @@ interface CustomKnockoutMatcherProps {
   qualifiedParticipantIds?: Set<string>; // Set of qualified participant IDs (for hybrid tournaments)
   currentRound: number;
   onSuccess?: () => void;
-  matchType?: "singles" | "doubles" | "mixed_doubles";
+  matchType?: "singles" | "doubles";
   existingPairs?: PersistedPair[]; // Pairs from tournament.doublesPairs
 }
 
@@ -65,7 +65,7 @@ export default function CustomKnockoutMatcher({
   const [showPairBuilder, setShowPairBuilder] = useState(false);
 
   // Check if this is a doubles tournament
-  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+  const isDoubles = matchType === "doubles";
 
   // Initialize pairs from existing data
   useEffect(() => {

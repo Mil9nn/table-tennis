@@ -4,16 +4,14 @@
 
 export interface LeaderboardFilters {
   // Match type (optional - for Individual tab with "All" option)
-  type?: 'singles' | 'doubles' | 'mixed_doubles' | 'all';
+  type?: 'singles' | 'doubles' | 'all';
   
   // Player filters
-  gender?: 'male' | 'female' | 'mixed';
-  ageCategory?: 'U13' | 'U15' | 'U18' | 'Open' | '40+';
-  playerType?: 'singles_only' | 'doubles_only' | 'both';
+  gender?: 'male' | 'female';
   handedness?: 'left' | 'right';
   
   // Time filters
-  timeRange?: 'all_time' | 'this_year' | 'this_month' | 'last_30_days';
+  timeRange?: 'all_time' | 'this_year' | 'this_month';
   dateFrom?: string; // ISO date string
   dateTo?: string;   // ISO date string
   
@@ -21,7 +19,7 @@ export interface LeaderboardFilters {
   tournamentId?: string;
   tournamentSeason?: number; // Year
   matchFormat?: 'league' | 'knockout' | 'friendly';
-  eventCategory?: 'singles' | 'doubles' | 'mixed_doubles';
+  eventCategory?: 'singles' | 'doubles';
   
   // Sorting
   sortBy?: 'winRate' | 'wins' | 'pointDifference' | 'winStreak' | 'matchesPlayed';
@@ -32,12 +30,10 @@ export interface LeaderboardFilters {
   skip?: number;
 }
 
-const VALID_MATCH_TYPES = ['singles', 'doubles', 'mixed_doubles'] as const;
-const VALID_GENDERS = ['male', 'female', 'mixed'] as const;
-const VALID_AGE_CATEGORIES = ['U13', 'U15', 'U18', 'Open', '40+'] as const;
-const VALID_PLAYER_TYPES = ['singles_only', 'doubles_only', 'both'] as const;
+const VALID_MATCH_TYPES = ['singles', 'doubles'] as const;
+const VALID_GENDERS = ['male', 'female'] as const;
 const VALID_HANDEDNESS = ['left', 'right'] as const;
-const VALID_TIME_RANGES = ['all_time', 'this_year', 'this_month', 'last_30_days'] as const;
+const VALID_TIME_RANGES = ['all_time', 'this_year', 'this_month'] as const;
 const VALID_MATCH_FORMATS = ['league', 'knockout', 'friendly'] as const;
 const VALID_SORT_BY = ['winRate', 'wins', 'pointDifference', 'winStreak', 'matchesPlayed'] as const;
 const VALID_SORT_ORDERS = ['asc', 'desc'] as const;
@@ -74,22 +70,6 @@ export function validateFilters(params: URLSearchParams): {
     errors.push(`Invalid 'gender'. Must be one of: ${VALID_GENDERS.join(', ')}`);
   } else if (gender) {
     filters.gender = gender as LeaderboardFilters['gender'];
-  }
-
-  // Optional: ageCategory
-  const ageCategory = params.get('ageCategory');
-  if (ageCategory && !VALID_AGE_CATEGORIES.includes(ageCategory as any)) {
-    errors.push(`Invalid 'ageCategory'. Must be one of: ${VALID_AGE_CATEGORIES.join(', ')}`);
-  } else if (ageCategory) {
-    filters.ageCategory = ageCategory as LeaderboardFilters['ageCategory'];
-  }
-
-  // Optional: playerType
-  const playerType = params.get('playerType');
-  if (playerType && !VALID_PLAYER_TYPES.includes(playerType as any)) {
-    errors.push(`Invalid 'playerType'. Must be one of: ${VALID_PLAYER_TYPES.join(', ')}`);
-  } else if (playerType) {
-    filters.playerType = playerType as LeaderboardFilters['playerType'];
   }
 
   // Optional: handedness
@@ -263,12 +243,6 @@ export function getDateRange(filters: LeaderboardFilters): DateRange | null {
       
       case 'this_month':
         from = new Date(now.getFullYear(), now.getMonth(), 1);
-        from.setHours(0, 0, 0, 0);
-        return { from, to };
-      
-      case 'last_30_days':
-        from = new Date(now);
-        from.setDate(from.getDate() - 30);
         from.setHours(0, 0, 0, 0);
         return { from, to };
       

@@ -10,6 +10,8 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 // 3. Import other models
 import Tournament from "@/models/Tournament";
+import TournamentIndividual from "@/models/TournamentIndividual";
+import TournamentTeam from "@/models/TournamentTeam";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
 import BracketState from "@/models/BracketState";
@@ -57,7 +59,7 @@ export async function GET(
 
     const { id } = await context.params;
 
-    // First, fetch tournament to check its category
+    // Use base Tournament model to fetch and determine category
     const tournamentRaw = await Tournament.findById(id);
     if (!tournamentRaw) {
       return NextResponse.json(
@@ -71,7 +73,7 @@ export async function GET(
     // Use the actual model instead of string name to ensure it's registered
     const MatchModel = isTeamTournament ? TeamMatch : IndividualMatch;
 
-    // Build the populate configuration dynamically
+    // Build the populate configuration dynamically using base Tournament model
     let query = Tournament.findById(id)
       .populate("organizer", "username fullName profileImage")
       .populate("scorers", "username fullName profileImage");
@@ -119,15 +121,26 @@ export async function GET(
         });
     } else {
       // For individual tournaments, populate participants from User model
+      const isDoublesTournament = 
+        tournamentRaw.matchType === "doubles";
+      
       query = query
         .populate({
           path: "participants",
           model: User,
           select: "username fullName profileImage",
           options: { strictPopulate: false } // Don't fail if some users don't exist
-        })
-        .populate("standings.participant", "username fullName profileImage")
-        .populate("groups.standings.participant", "username fullName profileImage")
+        });
+      
+      // For doubles tournaments, don't populate standings.participant as User
+      // because it's actually a pair ID, not a user ID. We'll handle it manually later.
+      if (!isDoublesTournament) {
+        query = query
+          .populate("standings.participant", "username fullName profileImage")
+          .populate("groups.standings.participant", "username fullName profileImage");
+      }
+      
+      query = query
         .populate("groups.participants", "username fullName profileImage")
         .populate("seeding.participant", "username fullName profileImage")
         .populate("qualifiedParticipants", "username fullName profileImage");
@@ -344,6 +357,173 @@ export async function GET(
           }
         }
       );
+    }
+
+    // Manually populate doublesPairs for individual doubles tournaments
+    const isDoublesTournament = !isTeamTournament &&
+      tournamentData.matchType === "doubles";
+    
+    if (
+      isDoublesTournament &&
+      tournamentData.doublesPairs &&
+      tournamentData.doublesPairs.length > 0
+    ) {
+      const playerIds = tournamentData.doublesPairs.flatMap((pair: any) => [
+        pair.player1,
+        pair.player2,
+      ]);
+      const users = await User.find({ _id: { $in: playerIds } }).select(
+        "username fullName profileImage"
+      );
+
+      // Create a map for quick lookup
+      const userMap = new Map(users.map((u) => [u._id.toString(), u.toObject()]));
+
+      // Populate the pairs
+      tournamentData.doublesPairs = tournamentData.doublesPairs.map((pair: any) => ({
+        _id: pair._id,
+        player1: userMap.get(pair.player1?.toString()),
+        player2: userMap.get(pair.player2?.toString()),
+      }));
+
+      // Create a map of pair ID -> populated pair for standings lookup
+      const pairMap = new Map(
+        tournamentData.doublesPairs.map((pair: any) => [pair._id?.toString(), pair])
+      );
+
+      // For doubles tournaments, standings use pair IDs instead of player IDs
+      // We need to populate standings.participant with pair info
+      // NOTE: The new standings architecture ensures no duplicates at the source,
+      // so we only need to populate pair information here
+      if (tournamentData.standings && tournamentData.standings.length > 0) {
+
+        // Create a reverse map: player ID -> pair (for cases where participant was populated as User)
+        const playerToPairMap = new Map<string, any>();
+        tournamentData.doublesPairs.forEach((pair: any) => {
+          if (pair.player1?._id) {
+            playerToPairMap.set(pair.player1._id.toString(), pair);
+          }
+          if (pair.player2?._id) {
+            playerToPairMap.set(pair.player2._id.toString(), pair);
+          }
+        });
+
+        tournamentData.standings = tournamentData.standings.map((standing: any) => {
+          let pair: any = null;
+          let pairId: string | null = null;
+
+          // Check if participant is already a populated User object (from mongoose populate)
+          if (standing.participant && typeof standing.participant === 'object' && standing.participant._id) {
+            const participantId = standing.participant._id.toString();
+            // Try to find pair by participant ID (could be a user ID)
+            pair = playerToPairMap.get(participantId);
+            if (pair) {
+              pairId = pair._id?.toString();
+            } else {
+              // If not found by user ID, try as pair ID
+              pair = pairMap.get(participantId);
+              if (pair) {
+                pairId = participantId;
+              }
+            }
+          } else {
+            // Participant is still an ID string (pair ID)
+            pairId = standing.participant?.toString();
+            pair = pairMap.get(pairId || '');
+          }
+          
+          if (pair && pairId) {
+            // Create a pseudo-participant object for the pair
+            const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+            const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+            return {
+              ...standing,
+              participant: {
+                _id: pairId,
+                fullName: `${player1Name} / ${player2Name}`,
+                username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
+                profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
+                // Store original pair info for reference
+                isPair: true,
+                player1: pair.player1,
+                player2: pair.player2,
+              },
+            };
+          }
+          
+          // If pair not found, return standing as is (might be filtered on frontend)
+          return standing;
+        });
+      }
+
+      // Also populate group standings with pair info
+      if (tournamentData.groups && Array.isArray(tournamentData.groups)) {
+        // Create a reverse map: player ID -> pair (for cases where participant was populated as User)
+        const playerToPairMap = new Map<string, any>();
+        tournamentData.doublesPairs.forEach((pair: any) => {
+          if (pair.player1?._id) {
+            playerToPairMap.set(pair.player1._id.toString(), pair);
+          }
+          if (pair.player2?._id) {
+            playerToPairMap.set(pair.player2._id.toString(), pair);
+          }
+        });
+
+        tournamentData.groups = tournamentData.groups.map((group: any) => {
+          if (group.standings && Array.isArray(group.standings)) {
+            // NOTE: The new standings architecture ensures no duplicates at the source,
+            // so we only need to populate pair information here
+
+            group.standings = group.standings.map((standing: any) => {
+              let pair: any = null;
+              let pairId: string | null = null;
+
+              // Check if participant is already a populated User object (from mongoose populate)
+              if (standing.participant && typeof standing.participant === 'object' && standing.participant._id) {
+                const participantId = standing.participant._id.toString();
+                // Try to find pair by participant ID (could be a user ID)
+                pair = playerToPairMap.get(participantId);
+                if (pair) {
+                  pairId = pair._id?.toString();
+                } else {
+                  // If not found by user ID, try as pair ID
+                  pair = pairMap.get(participantId);
+                  if (pair) {
+                    pairId = participantId;
+                  }
+                }
+              } else {
+                // Participant is still an ID string (pair ID)
+                pairId = standing.participant?.toString();
+                pair = pairMap.get(pairId || '');
+              }
+              
+              if (pair && pairId) {
+                // Create a pseudo-participant object for the pair
+                const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+                const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+                return {
+                  ...standing,
+                  participant: {
+                    _id: pairId,
+                    fullName: `${player1Name} / ${player2Name}`,
+                    username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
+                    profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
+                    // Store original pair info for reference
+                    isPair: true,
+                    player1: pair.player1,
+                    player2: pair.player2,
+                  },
+                };
+              }
+              
+              // If pair not found, return standing as is
+              return standing;
+            });
+          }
+          return group;
+        });
+      }
     }
     
     return NextResponse.json({ tournament: tournamentData }, { status: 200 });

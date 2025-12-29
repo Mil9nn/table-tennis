@@ -64,15 +64,6 @@ export default function FinalCTA() {
               View Plans
             </Link>
           </div>
-
-          {/* Supporting Copy */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-white/60">
-            <span>✓ No credit card required</span>
-            <span className="hidden sm:inline">•</span>
-            <span>✓ Join thousands of players and organizers</span>
-            <span className="hidden sm:inline">•</span>
-            <span>✓ 30-day money-back guarantee on paid plans</span>
-          </div>
         </motion.div>
       </div>
     </section>

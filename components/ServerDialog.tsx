@@ -40,7 +40,7 @@ export default function InitialServerDialog({
   const [loading, setLoading] = useState(false);
 
   const isSingles = matchType === "singles";
-  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+  const isDoubles = matchType === "doubles";
 
   const handleSave = async () => {
     if (!selectedFirstServer || !match) {

@@ -30,14 +30,20 @@ export function allocateGroups(
     throw new Error("At least 1 group required");
   }
 
-  if (participants.length < numberOfGroups) {
+  // CRITICAL: Deduplicate participants to prevent duplicate entries in groups
+  // Normalize all participant IDs to strings and remove duplicates
+  const uniqueParticipants = Array.from(new Set(
+    participants.map((p: any) => typeof p === 'string' ? p : String(p))
+  ));
+
+  if (uniqueParticipants.length < numberOfGroups) {
     throw new Error(
-      `Not enough participants (${participants.length}) for ${numberOfGroups} groups`
+      `Not enough unique participants (${uniqueParticipants.length}) for ${numberOfGroups} groups`
     );
   }
 
   // Sort by seeding if provided, otherwise use original order
-  let sortedParticipants = [...participants];
+  let sortedParticipants = [...uniqueParticipants];
   if (seeding && seeding.length > 0) {
     const seedMap = new Map(
       seeding.map((s) => [s.participant.toString(), s.seedNumber])

@@ -21,8 +21,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EmptyState } from "../components/EmptyState";
+import { getAvatarFallbackStyle } from "@/lib/utils";
 
-const HeadToHeadPage = () => {
+interface HeadToHeadPageProps {
+  userId?: string;
+}
+
+const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
   const router = useRouter();
   const { user } = useAuthStore();
   const [headToHead, setHeadToHead] = useState<any[]>([]);
@@ -194,101 +199,98 @@ const HeadToHeadPage = () => {
                 </p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9]">
-                <div className="divide-y divide-[#d9d9d9]">
-                  {headToHead.map((record, index) => (
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+                {headToHead.map((record, index) => {
+                  const isWinning = record.wins > record.losses;
+                  const isLosing = record.wins < record.losses;
+                  
+                  return (
                     <div
                       key={index}
                       onClick={() => handleOpponentClick(record.opponent)}
-                      className={`px-6 py-4 hover:bg-[#f5f5f5] transition-colors cursor-pointer border-l-4 ${getRecordBorderColor(
-                        record.wins,
-                        record.losses
-                      )}`}
+                      className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71] cursor-pointer"
                     >
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Opponent Info */}
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                      {/* Line 1: Opponent & Record */}
+                      <div className="flex items-center justify-between">
+                        {/* Opponent: Avatar + Name */}
+                        <div className="flex items-center gap-2">
                           {/* Avatar */}
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-[#d9d9d9] flex-shrink-0">
-                            {record.opponent.profileImage ? (
-                              <Image
-                                src={record.opponent.profileImage}
-                                alt={
-                                  record.opponent.fullName ||
-                                  record.opponent.username
-                                }
-                                width={40}
-                                height={40}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] text-white font-bold text-sm">
-                                {(
-                                  record.opponent.fullName?.[0] ||
-                                  record.opponent.username?.[0] ||
-                                  "?"
-                                ).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Name and username */}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-[#353535] text-sm truncate">
+                          {record.opponent.profileImage ? (
+                            <Image
+                              src={record.opponent.profileImage}
+                              alt={
+                                record.opponent.fullName ||
+                                record.opponent.username
+                              }
+                              width={24}
+                              height={24}
+                              className="w-6 h-6 rounded-full object-cover bg-white border shrink-0"
+                            />
+                          ) : (
+                            <div
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border shrink-0"
+                              style={getAvatarFallbackStyle(record.opponent._id)}
+                            >
+                              {(
+                                record.opponent.fullName?.[0] ||
+                                record.opponent.username?.[0] ||
+                                "?"
+                              ).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="">
+                            <span
+                              className={`font-medium text-sm transition-colors group-hover:text-[#ffffff] block ${
+                                isWinning
+                                  ? "text-green-600 group-hover:text-green-200"
+                                  : isLosing
+                                  ? "text-red-600 group-hover:text-red-200"
+                                  : "text-gray-800"
+                              }`}
+                            >
                               {record.opponent.fullName ||
                                 record.opponent.username}
-                            </h4>
-                            {record.opponent.fullName && (
-                              <p className="text-xs text-[#666666] truncate">
+                            </span>
+                            {record.opponent.fullName && record.opponent.username && (
+                              <span className="text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
                                 @{record.opponent.username}
-                              </p>
+                              </span>
                             )}
                           </div>
+                        </div>
 
-                          {/* Record Icon */}
+                        {/* Record Score */}
+                        <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff] shrink-0">
+                          {record.wins} - {record.losses}
+                        </span>
+
+                        {/* Win Rate */}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span
+                            className={`text-xs font-semibold transition-colors group-hover:text-[#ffffff] shrink-0 ${
+                              parseFloat(record.winRate) >= 60
+                                ? "text-green-600 group-hover:text-green-200"
+                                : parseFloat(record.winRate) >= 40
+                                ? "text-gray-700"
+                                : "text-red-600 group-hover:text-red-200"
+                            }`}
+                          >
+                            {record.winRate}%
+                          </span>
                           <div className="flex-shrink-0">
                             {getRecordIcon(record.wins, record.losses)}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-right flex-shrink-0">
-                          <div>
-                            <p className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">
-                              Record
-                            </p>
-                            <p className="text-sm font-bold text-[#353535]">
-                              {record.wins}-{record.losses}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">
-                              Win Rate
-                            </p>
-                            <p
-                              className={`text-sm font-bold ${getWinRateColor(
-                                parseFloat(record.winRate)
-                              )}`}
-                            >
-                              {record.winRate}%
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">
-                              Matches
-                            </p>
-                            <p className="text-sm font-bold text-[#353535]">
-                              {record.total}
-                            </p>
-                          </div>
-                        </div>
+                      {/* Line 2: Meta info */}
+                      <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+                        <span>{record.total} match{record.total > 1 ? "es" : ""}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  );
+                })}
+              </section>
             </div>
           </div>
         )}

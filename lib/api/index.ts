@@ -30,6 +30,7 @@ export {
   filterValidParticipants,
   type TournamentLoadOptions,
   type LoadedTournament,
+  type TournamentDocument,
 } from "./tournamentLoader";
 
 // Route wrappers

@@ -58,7 +58,7 @@ interface KnockoutBracketViewProps {
   onMatchClick?: (matchId: string) => void;
   showThirdPlace?: boolean;
   category?: "individual" | "team";
-  matchType?: "singles" | "doubles" | "mixed_doubles";
+  matchType?: "singles" | "doubles";
   doublesPairs?: PersistedDoublesPair[]; // Persisted pairs from tournament.doublesPairs
 }
 
@@ -121,7 +121,7 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   doublesPairs = [],
 }) => {
   // Check if this is a doubles tournament
-  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+  const isDoubles = matchType === "doubles";
 
   // Build pairs map for doubles tournaments
   // Use persisted pairs from tournament.doublesPairs if available

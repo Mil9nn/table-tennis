@@ -27,7 +27,11 @@ import { EmptyState } from "../components/EmptyState";
 
 import Diversity3Icon from '@mui/icons-material/Diversity3';
 
-const TeamStatsPage = () => {
+interface TeamStatsPageProps {
+  userId?: string;
+}
+
+const TeamStatsPage = ({ userId }: TeamStatsPageProps = {}) => {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);

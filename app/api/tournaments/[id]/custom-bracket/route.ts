@@ -298,7 +298,7 @@ export async function POST(
 
     // Check if this is a doubles tournament
     const matchType = tournament.matchType;
-    const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
+    const isDoubles = matchType === "doubles";
 
     // Create a mapping from temporary pair IDs to their ObjectId counterparts
     // This is needed because the frontend sends temporary 'pair-id-id' IDs that will be converted to ObjectIds

@@ -19,7 +19,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
   }
 
   return (
-    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
+    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
         const team1Won = match.winnerTeam === "team1";
@@ -98,20 +98,6 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
               <span>
                 {match.city || match.venue || "—"}
               </span>
-              {match.status !== "completed" && (
-                <>
-                  <span>•</span>
-                  <div
-                    style={{
-                      width: '0.375rem',
-                      height: '0.375rem',
-                      backgroundColor: match.status === "scheduled" ? '#284b63' : match.status === "in_progress" ? '#3c6e71' : '#353535'
-                    }}
-                    className="rounded-full shrink-0"
-                    title={match.status}
-                  />
-                </>
-              )}
             </div>
           </Link>
         );

@@ -30,8 +30,9 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-center max-w-4xl mx-auto"
+          className="max-w-4xl mx-auto"
         >
+          {/* Badge */}
           <div className="inline-block mb-6">
             <div className="px-4 py-2 rounded-full backdrop-blur-xl bg-white/5 border border-white/10">
               <p className="text-xs sm:text-sm font-medium text-white/70">
@@ -40,31 +41,36 @@ export default function Hero() {
             </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
-            Real-Time Table Tennis{" "}
-            <span style={{ color: "#3c6e71" }}>Scoring & Tournaments</span>
+          {/* Heading */}
+          <h1 className="font-bold text-white mb-6">
+            <span>TTPro - </span>
+            <span className="text-[#3c6e71]">
+              For matches that matter
+            </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto mb-12">
-            Live scoring, tournaments, and player stats — built for competitive
-            table tennis.
+          {/* Subheading */}
+          <p className="text-left text-md sm:text-xl text-white/70 max-w-2xl mx-auto mb-12">
+            Score matches, run tournaments, and build verified player history —
+            all in one platform designed for serious competition.
           </p>
 
+          {/* CTAs */}
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/auth/register"
               className="group px-8 py-4 rounded-lg text-white font-semibold flex items-center gap-2 hover:scale-105 transition"
               style={{ backgroundColor: "#3c6e71" }}
             >
-              Start Scoring Free
+              Start Scoring Matches
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
             </Link>
 
             <Link
-              href="/demo"
+              href="/matches"
               className="px-8 py-4 rounded-lg border border-white/20 text-white/80 font-semibold hover:bg-white/5 transition"
             >
-              View Demo
+              View Matches
             </Link>
           </div>
         </motion.div>

@@ -36,6 +36,9 @@ import UserSearchInput from "@/app/match/componets/UserSearchInput";
 import TeamSearchInput from "@/components/search/TeamSearchInput";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import DoublesPairBuilder, {
+  DoublesPairData,
+} from "@/components/tournaments/DoublesPairBuilder";
 
 import {
   RoundRobinConfig,
@@ -68,7 +71,7 @@ const tournamentSchema = z
     // MATCH SETTINGS
     // ═══════════════════════════════════════════
     // Note: matchType is always required (even for teams)
-    matchType: z.enum(["singles", "doubles", "mixed_doubles"]),
+    matchType: z.enum(["singles", "doubles"]),
     // setsPerMatch only used for individual tournaments (team tournaments use teamConfig.setsPerSubMatch)
     setsPerMatch: z.enum(["1", "3", "5", "7", "9"]).optional(),
 
@@ -78,6 +81,17 @@ const tournamentSchema = z
     participants: z
       .array(z.string())
       .min(2, "At least 2 participants are required"),
+
+    // Doubles pairs (optional, for doubles)
+    doublesPairs: z
+      .array(
+        z.object({
+          _id: z.string(),
+          player1: z.string(),
+          player2: z.string(),
+        })
+      )
+      .optional(),
 
     // ═══════════════════════════════════════════
     // TEAM CONFIG (only when category === "team")
@@ -189,6 +203,7 @@ export default function CreateTournamentPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [doublesPairs, setDoublesPairs] = useState<DoublesPairData[]>([]);
   const [startDateOpen, setStartDateOpen] = useState(false);
 
   const form = useForm<TournamentFormValues>({
@@ -247,6 +262,7 @@ export default function CreateTournamentPage() {
 
   const watchFormat = form.watch("format");
   const watchCategory = form.watch("category");
+  const watchMatchType = form.watch("matchType");
   const watchUseGroups = form.watch("useGroups");
   const watchHybridUseGroups = form.watch("hybridRoundRobin.useGroups");
   const watchQualMethod = form.watch("qualification.method");
@@ -280,6 +296,26 @@ export default function CreateTournamentPage() {
       updated.map((p) => p._id),
       { shouldValidate: true }
     );
+
+    // Clear pairs if removing a participant from doubles tournament
+    if (
+      watchMatchType === "doubles"
+    ) {
+      // Remove pairs that include the removed participant
+      const updatedPairs = doublesPairs.filter(
+        (pair) =>
+          pair.player1._id !== userId && pair.player2._id !== userId
+      );
+      setDoublesPairs(updatedPairs);
+      form.setValue(
+        "doublesPairs",
+        updatedPairs.map((p) => ({
+          _id: p._id,
+          player1: p.player1._id,
+          player2: p.player2._id,
+        }))
+      );
+    }
   };
 
   // ═══════════════════════════════════════════
@@ -371,11 +407,22 @@ export default function CreateTournamentPage() {
         };
       }
 
+      // Doubles pairs
+      if (
+        data.category === "individual" &&
+        data.matchType === "doubles" &&
+        data.doublesPairs &&
+        data.doublesPairs.length > 0
+      ) {
+        payload.doublesPairs = data.doublesPairs;
+      }
+
       // DEBUG: Log payload being sent
       console.log("🟢 [CREATE FORM] Payload being sent to API:", {
         category: payload.category,
         teamConfig: payload.teamConfig,
         rules_setsPerMatch: payload.rules.setsPerMatch,
+        doublesPairs: payload.doublesPairs,
       });
 
       const response = await axiosInstance.post("/tournaments", payload);
@@ -748,7 +795,6 @@ export default function CreateTournamentPage() {
                             {[
                               { label: "Singles", value: "singles" },
                               { label: "Doubles", value: "doubles" },
-                              { label: "Mixed", value: "mixed_doubles" },
                             ].map((opt) => {
                               const isActive = field.value === opt.value;
                               return (
@@ -959,6 +1005,50 @@ export default function CreateTournamentPage() {
                   {watchCategory === "team" ? "teams" : "participants"}
                 </p>
               </div>
+
+              {/* ═══════════════════════════════════════════
+                SECTION 6: DOUBLES PAIRS (Conditional)
+            ═══════════════════════════════════════════ */}
+              {watchCategory === "individual" &&
+                watchMatchType === "doubles" &&
+                participants.length >= 2 && (
+                  <div className="p-4 space-y-4 border-t border-[#d9d9d9]">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
+                      Doubles Pairs
+                    </h2>
+
+                    <div className="text-sm text-[#353535]/70 space-y-1 mb-4">
+                      <p>
+                        Create pairs for your doubles tournament. All{" "}
+                        {participants.length} players should be paired before
+                        submitting.
+                      </p>
+                      {participants.length % 2 !== 0 && (
+                        <p className="text-amber-600 font-medium">
+                          ⚠️ You have an odd number of players. Please add or
+                          remove one player.
+                        </p>
+                      )}
+                    </div>
+
+                    <DoublesPairBuilder
+                      participants={participants}
+                      existingPairs={doublesPairs}
+                      onPairsChange={(pairs) => {
+                        setDoublesPairs(pairs);
+                        // Update form value
+                        form.setValue(
+                          "doublesPairs",
+                          pairs.map((p) => ({
+                            _id: p._id,
+                            player1: p.player1._id,
+                            player2: p.player2._id,
+                          }))
+                        );
+                      }}
+                    />
+                  </div>
+                )}
             </div>
 
             {/* Submit Button */}

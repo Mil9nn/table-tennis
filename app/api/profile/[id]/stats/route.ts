@@ -47,7 +47,7 @@ export async function GET(
     // Organize player stats by match type
     const singlesStats = playerStats.find((s) => s.matchType === "singles") || null;
     const doublesStats = playerStats.find((s) => s.matchType === "doubles") || null;
-    const mixedStats = playerStats.find((s) => s.matchType === "mixed_doubles") || null;
+    const mixedStats = playerStats.find((s) => s.matchType === "mixed") || null;
 
     // Calculate overall individual stats (aggregate across all match types)
     const totalIndividualMatches = playerStats.reduce(
@@ -270,3 +270,4 @@ export async function GET(
     );
   }
 }
+

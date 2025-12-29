@@ -153,6 +153,7 @@ export interface ITournamentTeam extends Document {
   city: string;
   maxParticipants?: number;
   minParticipants?: number;
+  scorers: mongoose.Types.ObjectId[]; // Users who can score matches
   createdAt: Date;
   updatedAt: Date;
 }

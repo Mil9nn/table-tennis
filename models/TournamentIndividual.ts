@@ -13,7 +13,7 @@ import type { KnockoutStatistics } from "@/types/knockoutStatistics.type";
  * Individual Tournament Model
  *
  * For tournaments where participants are individual users (not teams)
- * Supports: singles, doubles, mixed_doubles match types
+ * Supports: singles, doubles match types
  *
  * Benefits of separate model:
  * - Proper type refs (User instead of mixed User/Team)
@@ -73,12 +73,12 @@ export interface ITournamentIndividual extends Document {
   category: 'individual';
 
   // Individual-specific fields
-  matchType: 'singles' | 'doubles' | 'mixed_doubles';
+  matchType: 'singles' | 'doubles';
 
   // Participants (Users)
   participants: mongoose.Types.ObjectId[];
 
-  // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+  // Doubles pairs (for doubles knockout with custom matching)
   doublesPairs?: IDoublesPair[];
 
   // Seeding (Users)
@@ -154,6 +154,7 @@ export interface ITournamentIndividual extends Document {
   city: string;
   maxParticipants?: number;
   minParticipants?: number;
+  scorers: mongoose.Types.ObjectId[]; // Users who can score matches
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,7 +184,7 @@ const tournamentIndividualSchema = new Schema(
     // Individual-specific: match type
     matchType: {
       type: String,
-      enum: ["singles", "doubles", "mixed_doubles"],
+      enum: ["singles", "doubles"],
       required: true,
     },
 
@@ -194,7 +195,7 @@ const tournamentIndividualSchema = new Schema(
       required: true
     }],
 
-    // Doubles pairs (for doubles/mixed_doubles knockout with custom matching)
+    // Doubles pairs (for doubles knockout with custom matching)
     doublesPairs: [{
       _id: { type: Schema.Types.ObjectId, auto: true },
       player1: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -244,7 +245,7 @@ tournamentIndividualSchema.index({ participants: 1 });
 
 // Validation: Doubles requires even number of participants
 tournamentIndividualSchema.pre('save', function(next) {
-  if ((this as any).matchType === 'doubles' || (this as any).matchType === 'mixed_doubles') {
+  if ((this as any).matchType === 'doubles') {
     if ((this as any).participants.length % 2 !== 0) {
       return next(new Error('Doubles tournaments require an even number of participants'));
     }

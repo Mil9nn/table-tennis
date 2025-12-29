@@ -16,19 +16,29 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ChevronLeft } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const LoginPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
 
   const login = useAuthStore((state: any) => state.login);
   const authLoading = useAuthStore((state) => state.authLoading);
+
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setShowRegistrationSuccess(true);
+      // Hide the message after 5 seconds
+      setTimeout(() => setShowRegistrationSuccess(false), 5000);
+    }
+  }, [searchParams]);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -106,6 +116,13 @@ const LoginPage = () => {
 
             {/* Form Section */}
             <div className="p-6 space-y-5">
+              {/* Registration Success Message */}
+              {showRegistrationSuccess && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                  ✓ Registration successful! You can now log in with your credentials.
+                </div>
+              )}
+              
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   {/* Email */}

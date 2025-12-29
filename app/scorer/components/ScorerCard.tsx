@@ -41,7 +41,6 @@ export function ScorerCard({ tournament }: ScorerCardProps) {
 
   const phaseLabel = getPhaseLabel();
   const getMatchTypeLabel = () => {
-    if (tournament.matchType === "mixed_doubles") return "Mixed";
     if (!tournament.matchType) return "Singles";
     return tournament.matchType.charAt(0).toUpperCase() + tournament.matchType.slice(1);
   };

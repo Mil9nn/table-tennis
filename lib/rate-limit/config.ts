@@ -98,13 +98,13 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
 
   // Tournament Management Routes
   "POST:/api/tournaments": {
-    limit: 5,
+    limit: 9999, // Effectively disabled for development
     window: "1 h",
     algorithm: "fixedWindow",
     identifier: "user", // Per authenticated user
   },
   "POST:/api/tournaments/[id]/generate-matches": {
-    limit: 10,
+    limit: 9999, // Effectively disabled for development
     window: "1 h",
     algorithm: "fixedWindow",
     identifier: "user",

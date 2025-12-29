@@ -59,20 +59,23 @@ export function calculateStandings(
   const completedMatches = matches.filter((m) => m.status === "completed");
 
   completedMatches.forEach((match) => {
-    // For doubles: participants[0] and participants[1] are team 1, participants[2] and participants[3] are team 2
-    // For singles: participants[0] is player 1, participants[1] is player 2
-    const isDoubles = match.participants && match.participants.length === 4;
+    // CRITICAL: If match has 2 participants, they are already pair IDs (for doubles with pairs)
+    // or individual player IDs (for singles). If it has 4 participants, it's doubles without pairs.
+    const isDoublesWith4Players = match.participants && match.participants.length === 4;
+    const isDoublesWithPairIds = match.participants && match.participants.length === 2;
 
     // Get team/player IDs for standings
     let p1Id: string;
     let p2Id: string;
 
-    if (isDoubles) {
-      // For doubles, use the first player of each team as the team identifier
-      // Both players in a team share the same stats
+    if (isDoublesWith4Players) {
+      // Legacy format: doubles without pair IDs - use first player of each team
+      // Both players in a team share the same stats (handled via syncPartnerStats)
       p1Id = match.participants[0]?.toString();
       p2Id = match.participants[2]?.toString();
     } else {
+      // Either singles (2 player IDs) or doubles with pair IDs (2 pair IDs)
+      // In both cases, treat as single entities - no partner syncing needed
       p1Id = match.participants[0]?.toString();
       p2Id = match.participants[1]?.toString();
     }
@@ -88,10 +91,11 @@ export function calculateStandings(
       return;
     }
 
-    // For doubles, get partner IDs for syncing stats later
+    // For legacy doubles format (4 players), get partner IDs for syncing stats
+    // For doubles with pair IDs (2 participants), no syncing needed - each pair is already unique
     let p1PartnerId: string | null = null;
     let p2PartnerId: string | null = null;
-    if (isDoubles) {
+    if (isDoublesWith4Players) {
       p1PartnerId = match.participants[1]?.toString() || null;
       p2PartnerId = match.participants[3]?.toString() || null;
     }
@@ -164,8 +168,9 @@ export function calculateStandings(
     if (p1Stats.form.length > 5) p1Stats.form.shift();
     if (p2Stats.form.length > 5) p2Stats.form.shift();
 
-    // For doubles, sync partner stats (they share the same team record)
-    if (isDoubles && p1PartnerId && p2PartnerId) {
+    // For legacy doubles format (4 players), sync partner stats (they share the same team record)
+    // For doubles with pair IDs (2 participants), NO syncing needed - pairs are already unique entities
+    if (isDoublesWith4Players && p1PartnerId && p2PartnerId) {
       syncPartnerStats(standingsMap, p1Id, p1PartnerId);
       syncPartnerStats(standingsMap, p2Id, p2PartnerId);
     }

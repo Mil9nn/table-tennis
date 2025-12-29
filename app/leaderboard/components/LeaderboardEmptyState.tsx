@@ -27,8 +27,8 @@ const emptyStateConfig = {
   mixed_doubles: {
     icon: Users,
     title: "No mixed doubles rankings yet",
-    description: "Find a partner and compete in mixed doubles.",
-    subtext: "Mixed doubles matches will appear once you compete.",
+    description: "Compete in mixed doubles matches.",
+    subtext: "Win matches to earn points and improve your ranking.",
   },
   teams: {
     icon: Trophy,

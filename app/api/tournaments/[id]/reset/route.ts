@@ -87,10 +87,8 @@ export const POST = withDBAndErrorHandling(async (req, context) => {
   await tournament.save();
 
   // Populate tournament data for response
-  await tournament.populate([
-    { path: "organizer", select: "username fullName profileImage" },
-    { path: "participants", select: "username fullName profileImage" },
-  ]);
+  await (tournament as any).populate("organizer");
+  await (tournament as any).populate("participants");
 
   return jsonOk({
     message: "Tournament reset successfully. You can now regenerate the draw.",

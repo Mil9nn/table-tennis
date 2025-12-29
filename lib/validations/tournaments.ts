@@ -118,6 +118,15 @@ export const createTournamentSchema = z.object({
     .optional()
     .default([]),
 
+  // Doubles pairs (optional, for doubles)
+  doublesPairs: z.array(
+    z.object({
+      _id: z.string(),
+      player1: objectIdSchema,
+      player2: objectIdSchema,
+    })
+  ).optional(),
+
   // Note: setsPerMatch only applies to individual tournaments
   // Team tournaments use teamConfig.setsPerSubMatch for each submatch
   rules: tournamentRulesSchema.optional(),

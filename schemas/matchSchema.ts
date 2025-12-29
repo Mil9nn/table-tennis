@@ -14,7 +14,7 @@ export const TeamSchema = z.object({
 
 export const CreateMatchSchema = z.object({
   category: z.enum(["individual", "team"]),
-  type: z.enum(["singles", "doubles", "mixed-doubles"]).optional(),
+  type: z.enum(["singles", "doubles"]).optional(),
   teamFormat: z.enum(["5-singles", "olympic", "3-singles", "custom"]).optional(),
   bestOfGames: z.enum(["1", "3", "5", "7", "9"]),
   city: z.string().optional(),

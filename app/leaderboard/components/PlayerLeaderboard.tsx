@@ -26,7 +26,7 @@ interface PlayerLeaderboardProps {
   data: PlayerStats[];
   loading: boolean;
   emptyMessage: string;
-  matchType: "singles" | "doubles" | "mixed_doubles" | "all";
+  matchType: "singles" | "doubles" | "all";
   currentUserId?: string;
 }
 
@@ -180,7 +180,7 @@ const PlayerStatsModal = ({
   onClose,
 }: {
   player: PlayerStats | null;
-  matchType: "singles" | "doubles" | "mixed_doubles" | "all";
+  matchType: "singles" | "doubles" | "all";
   onClose: () => void;
 }) => {
   const [detailedStats, setDetailedStats] =
@@ -663,7 +663,7 @@ const PlayerStatsModal = ({
           {/* {detailedStats && detailedStats.recentMatches.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Recent {matchType === 'singles' ? 'Singles' : matchType === 'doubles' ? 'Doubles' : matchType === 'mixed_doubles' ? 'Mixed' : 'Individual'} Matches
+                Recent {matchType === 'singles' ? 'Singles' : matchType === 'doubles' ? 'Doubles' : 'Individual'} Matches
               </h3>
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="divide-y divide-slate-200">

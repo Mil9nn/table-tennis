@@ -9,7 +9,7 @@ export type MatchStatus =
 
 export type Match = IndividualMatch | TeamMatch;
 
-export type IndividualMatchType = "singles" | "doubles" | "mixed_doubles";
+export type IndividualMatchType = "singles" | "doubles";
 export type MatchCategory = "individual" | "team";
 export type WinnerSide = "side1" | "side2" | null;
 
