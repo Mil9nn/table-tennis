@@ -40,7 +40,9 @@ const TeamStatsPage = ({ userId }: TeamStatsPageProps = {}) => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
         setStats(response.data.stats);
       } catch (error) {
         console.error("Failed to fetch team stats:", error);
@@ -50,7 +52,7 @@ const TeamStatsPage = ({ userId }: TeamStatsPageProps = {}) => {
     };
 
     fetchStats();
-  }, []);
+  }, [userId]);
 
   const teamStats = stats?.team || {
     total: 0,

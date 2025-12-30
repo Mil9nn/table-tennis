@@ -34,7 +34,9 @@ const ActivityTrendsPage = ({ userId }: ActivityTrendsPageProps) => {
     const fetchDetailedStats = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
         setDetailedStats(response.data.stats);
       } catch (error) {
         console.error("Failed to fetch detailed stats:", error);
@@ -44,7 +46,7 @@ const ActivityTrendsPage = ({ userId }: ActivityTrendsPageProps) => {
     };
 
     fetchDetailedStats();
-  }, []);
+  }, [userId]);
 
   const monthlyActivity = detailedStats?.monthlyActivity || [];
   const totalMatches = monthlyActivity.reduce(

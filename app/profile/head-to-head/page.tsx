@@ -41,7 +41,9 @@ const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
     const fetchHeadToHead = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
         setHeadToHead(response.data.stats.headToHead || []);
       } catch (error) {
         console.error("Failed to fetch head to head:", error);
@@ -51,7 +53,7 @@ const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
     };
 
     fetchHeadToHead();
-  }, []);
+  }, [userId]);
 
   const getRecordIcon = (wins: number, losses: number) => {
     if (wins > losses)
@@ -74,11 +76,13 @@ const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
   };
 
   const fetchMatchHistory = async (opponentId: string) => {
-    if (!user?._id) return;
+    // Use userId prop if provided, otherwise use current user's ID
+    const targetUserId = userId || user?._id;
+    if (!targetUserId) return;
     try {
       setLoadingHistory(true);
       const res = await axiosInstance.get(
-        `/profile/${user._id}/head-to-head/${opponentId}`
+        `/profile/${targetUserId}/head-to-head/${opponentId}`
       );
       if (res.data.success) {
         setMatchHistory(res.data.matches);

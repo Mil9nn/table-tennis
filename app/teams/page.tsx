@@ -36,6 +36,8 @@ import TeamListSkeleton from "@/components/skeletons/TeamListSkeleton";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isAxiosError } from "axios";
 import { useTeamsFilters } from "@/hooks/useFilters";
+import { EmptyState } from "../tournaments/components/EmptyState";
+import GroupsIcon from "@mui/icons-material/Groups";
 
 type Team = {
   _id: string;
@@ -230,93 +232,42 @@ export default function TeamsPage() {
 
     return (
       <>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            borderBottom: "1px solid #d9d9d9",
-            cursor: "pointer",
-            transition: "background-color 0.15s",
-          }}
-          className="hover:bg-[#f5f5f5] p-2"
+        <button
           onClick={() => setSelectedTeam(team)}
+          className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71] w-full text-left"
         >
-          <Image
-            src={team.logo || "/imgs/logo.png"}
-            alt={team.name}
-            width={40}
-            height={40}
-            style={{ width: "2.5rem", height: "2.5rem", objectFit: "cover" }}
-            className="rounded-full shrink-0"
-          />
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span
-                style={{
-                  fontWeight: "600",
-                  fontSize: "0.9375rem",
-                  color: "#353535",
-                  letterSpacing: "-0.01em",
-                }}
-                className="truncate"
-              >
-                {team.name}
-              </span>
-              {team.city && (
-                <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
-                  • {team.city}
+          {/* Line 1: Logo + Team Name + City */}
+          <div className="flex items-center gap-2 mb-2">
+            <Image
+              src={team.logo || "/imgs/logo.png"}
+              alt={team.name}
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-full object-cover shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm text-gray-800 group-hover:text-white transition-colors truncate">
+                  {team.name}
                 </span>
-              )}
-            </div>
-            <div
-              className="flex items-center gap-3"
-              style={{ marginTop: "0.25rem" }}
-            >
-              <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
-                {team.players?.length || 0} players
-              </span>
-              <span style={{ fontSize: "0.8125rem", color: "#d9d9d9" }}>
-                {team.record?.wins || 0}W - {team.record?.losses || 0}L
-              </span>
+                {team.city && (
+                  <span className="text-xs text-gray-400 group-hover:text-white/70 transition-colors">
+                    • {team.city}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {team.captain?.profileImage ? (
-            <Image
-              src={team.captain.profileImage}
-              alt={team.captain.fullName || team.captain.username || "Captain"}
-              width={28}
-              height={28}
-              style={{ width: "1.75rem", height: "1.75rem", objectFit: "cover" }}
-              className="rounded-full shrink-0"
-            />
-          ) : (
-            <div
-              style={{
-                width: "1.75rem",
-                height: "1.75rem",
-                backgroundColor: "#d9d9d9",
-                fontSize: "0.75rem",
-                fontWeight: "600",
-                color: "#353535",
-              }}
-              className="rounded-full flex items-center justify-center shrink-0"
-            >
-              {(
-                team.captain?.fullName?.[0] ||
-                team.captain?.username?.[0] ||
-                "?"
-              ).toUpperCase()}
-            </div>
-          )}
-
-          <ArrowRight
-            style={{ width: "1rem", height: "1rem", color: "#d9d9d9" }}
-            className="shrink-0"
-          />
-        </div>
+          {/* Line 2: Meta info */}
+          <div className="flex items-center gap-1 text-xs text-gray-400 group-hover:text-white/70 transition-colors">
+            <span>{team.players?.length || 0} players</span>
+            <span>•</span>
+            <span>
+              {team.record?.wins || 0}W - {team.record?.losses || 0}L
+            </span>
+          </div>
+        </button>
 
         <Dialog
           open={selectedTeam?._id === team._id}
@@ -843,15 +794,15 @@ export default function TeamsPage() {
         </TabsList>
 
         <TabsContent value="my-teams" style={{ margin: 0 }}>
-          {loading ? (
-            <TeamListSkeleton />
-          ) : myTeams.length ? (
-            <>
-              <div style={{ borderTop: "1px solid #d9d9d9" }}>
-                {myTeams.map((team) => (
-                  <TeamCard key={team._id} team={team} />
-                ))}
-              </div>
+           {loading ? (
+             <TeamListSkeleton />
+           ) : myTeams.length ? (
+             <>
+               <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+                 {myTeams.map((team) => (
+                   <TeamCard key={team._id} team={team} />
+                 ))}
+               </section>
               <div
                 ref={myTeamsObserverTarget}
                 style={{
@@ -875,28 +826,38 @@ export default function TeamsPage() {
               </div>
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
-                {!user
-                  ? "Please log in to see your teams."
+            <EmptyState
+              icon={GroupsIcon}
+              title={
+                !user
+                  ? "Please log in"
                   : hasActiveFilters
-                  ? "No teams found matching your filters."
-                  : "You are not part of any teams yet."}
-              </p>
-            </div>
+                  ? "No teams found"
+                  : "No teams yet"
+              }
+              description={
+                !user
+                  ? "Log in to see your teams."
+                  : hasActiveFilters
+                  ? "Try adjusting your filters."
+                  : "You are not part of any teams yet."
+              }
+              actionLabel={!user ? undefined : "Create a team"}
+              actionHref={!user ? undefined : "/teams/create"}
+            />
           )}
         </TabsContent>
 
         <TabsContent value="all-teams" style={{ margin: 0 }}>
-          {loading ? (
-            <TeamListSkeleton />
-          ) : teams.length ? (
-            <>
-              <div style={{ borderTop: "1px solid #d9d9d9" }}>
-                {teams.map((team) => (
-                  <TeamCard key={team._id} team={team} />
-                ))}
-              </div>
+           {loading ? (
+             <TeamListSkeleton />
+           ) : teams.length ? (
+             <>
+               <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+                 {teams.map((team) => (
+                   <TeamCard key={team._id} team={team} />
+                 ))}
+               </section>
               <div
                 ref={allTeamsObserverTarget}
                 style={{
@@ -920,18 +881,17 @@ export default function TeamsPage() {
               </div>
             </>
           ) : (
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "#d9d9d9",
-                textAlign: "center",
-                padding: "2rem",
-              }}
-            >
-              {hasActiveFilters
-                ? "No teams found matching your filters."
-                : "No teams found."}
-            </p>
+            <EmptyState
+              icon={GroupsIcon}
+              title="No teams found"
+              description={
+                hasActiveFilters
+                  ? "Try adjusting your filters."
+                  : "Browse all teams to find one to join."
+              }
+              actionLabel="Explore teams"
+              actionHref="/teams"
+            />
           )}
         </TabsContent>
       </Tabs>

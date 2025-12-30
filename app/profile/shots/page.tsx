@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { Loader2, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FeatureGate } from "@/components/FeatureGate";
-import { LockedContent } from "@/components/paywall/LockedContent";
 import {
   BarChart,
   Bar,
@@ -488,23 +486,19 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
           <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
-        <FeatureGate
-          feature="shotAnalysisAccess"
-          fallback={<LockedContent feature="shotAnalysisAccess" />}
-        >
-          {/* Content */}
-          {loading ? (
-            <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
-              <Loader2 className="animate-spin text-[#3c6e71]" />
-            </div>
-          ) : totalShots === 0 ? (
-            <EmptyState
-              icon={BubbleChart}
-              title="No shot data available."
-              description="Shot statistics will appear after matches are played!"
-            />
-          ) : (
-            <div className="space-y-8">
+        {/* Content */}
+        {loading ? (
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin text-[#3c6e71]" />
+          </div>
+        ) : totalShots === 0 ? (
+          <EmptyState
+            icon={BubbleChart}
+            title="No shot data available."
+            description="Shot statistics will appear after matches are played!"
+          />
+        ) : (
+          <div className="space-y-8">
             {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
@@ -984,11 +978,10 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
               </div>
             )}
           </div>
-        )}
-        </FeatureGate>
-      </div>
-    </div>
-  );
+          )}
+          </div>
+          </div>
+          );
 };
 
 export default ShotAnalysisPage;

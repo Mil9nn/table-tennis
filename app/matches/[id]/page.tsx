@@ -35,10 +35,10 @@ export default function MatchDetailsPage() {
   }, [matchId, categoryParam, fetchMatch]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!user && !authLoading) {
       fetchUser().catch(() => {});
     }
-  }, [authLoading, user, fetchUser]);
+  }, []);
 
   // Check if user is a tournament scorer when match is loaded
   useEffect(() => {

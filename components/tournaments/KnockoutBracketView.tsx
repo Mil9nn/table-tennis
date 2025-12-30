@@ -5,8 +5,7 @@ import type { FC } from "react";
 import type { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, Award } from "lucide-react";
+import { Trophy, Calendar } from "lucide-react";
 import {
   createParticipantMap,
   resolveParticipant,
@@ -20,7 +19,6 @@ import {
   getParticipantImage,
 } from "@/types/tournament.type";
 
-// Local participant type for internal use (compatible with both users and teams)
 interface Participant {
   _id: string;
   username?: string;
@@ -44,7 +42,6 @@ interface MatchDetails {
   };
 }
 
-// Persisted doubles pair from tournament.doublesPairs
 interface PersistedDoublesPair {
   _id: string;
   player1: TournamentParticipant;
@@ -53,13 +50,13 @@ interface PersistedDoublesPair {
 
 interface KnockoutBracketViewProps {
   bracket: KnockoutBracket;
-  participants: TournamentParticipant[]; // All tournament participants (users or teams)
-  matches: MatchDetails[]; // Created match documents
+  participants: TournamentParticipant[];
+  matches: MatchDetails[];
   onMatchClick?: (matchId: string) => void;
   showThirdPlace?: boolean;
   category?: "individual" | "team";
   matchType?: "singles" | "doubles";
-  doublesPairs?: PersistedDoublesPair[]; // Persisted pairs from tournament.doublesPairs
+  doublesPairs?: PersistedDoublesPair[];
 }
 
 interface DoublesPair {
@@ -67,43 +64,30 @@ interface DoublesPair {
   players: TournamentParticipant[];
 }
 
-/**
- * Enhanced match data combining bracket structure and match documents
- */
 interface EnhancedMatchData {
-  // From bracket structure
   bracketMatch: BracketMatch;
   participant1: Participant | null;
   participant2: Participant | null;
-
-  // From match document (if exists)
   matchDoc: MatchDetails | null;
-
-  // Computed state
   displayState: "bye" | "tbd" | "ready" | "scheduled" | "live" | "completed";
   canClick: boolean;
   showScore: boolean;
 }
 
-// Helper to get display name for a local participant
 const getLocalParticipantName = (p: Participant | null): string => {
   if (!p) return "TBD";
-  // Team: has 'name' but no 'username'
   if (p.name && !p.username) return p.name;
   return p.fullName || p.username || "Unknown";
 };
 
-// Helper to get image for a local participant
 const getLocalParticipantImage = (
   p: Participant | null
 ): string | undefined => {
   if (!p) return undefined;
-  // Team: has 'logo' instead of 'profileImage'
   if (p.name && !p.username) return p.logo;
   return p.profileImage;
 };
 
-// Helper to get initials for a local participant
 const getLocalParticipantInitials = (p: Participant | null): string => {
   if (!p) return "?";
   const name = getLocalParticipantName(p);
@@ -120,17 +104,12 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   matchType = "singles",
   doublesPairs = [],
 }) => {
-  // Check if this is a doubles tournament
   const isDoubles = matchType === "doubles";
 
-  // Build pairs map for doubles tournaments
-  // Use persisted pairs from tournament.doublesPairs if available
-  // Fallback to consecutive array indexing for backward compatibility
   const pairsMap = useMemo(() => {
     const map = new Map<string, DoublesPair>();
     if (!isDoubles) return map;
 
-    // Use persisted pairs if available
     if (doublesPairs && doublesPairs.length > 0) {
       for (const pair of doublesPairs) {
         map.set(pair._id, {
@@ -141,7 +120,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       return map;
     }
 
-    // Fallback: consecutive array indexing (legacy behavior)
     const userParticipants = participants.filter(isUserParticipant);
     for (let i = 0; i < userParticipants.length; i += 2) {
       const player1 = userParticipants[i];
@@ -155,9 +133,7 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     }
     return map;
   }, [participants, isDoubles, doublesPairs]);
-  // Create participant lookup map for O(1) access
-  // Convert TournamentParticipant[] to ParticipantBase[] for internal use
-  // Only include user participants (teams are handled separately in rendering)
+
   const participantMap = useMemo(() => {
     const userParticipants = participants.filter(isUserParticipant);
     const converted = userParticipants
@@ -176,7 +152,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return createParticipantMap(converted);
   }, [participants]);
 
-  // Create match lookup by bracket position
   const matchByPosition = useMemo(() => {
     const map = new Map<string, MatchDetails>();
     matches.forEach((match) => {
@@ -188,18 +163,10 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return map;
   }, [matches]);
 
-  /**
-   * Enhance bracket match with all necessary display data
-   */
   const enhanceMatchData = (bracketMatch: BracketMatch): EnhancedMatchData => {
-    // Get match document if exists
     const positionKey = `${bracketMatch.bracketPosition.round}-${bracketMatch.bracketPosition.matchNumber}`;
     const matchDoc = matchByPosition.get(positionKey) || null;
 
-    // For doubles, participant IDs are pair IDs, not user IDs
-    // We don't need to resolve them to individual participants here
-    // The rendering logic (renderParticipantRow) will handle looking up the pair
-    // For singles, resolve participants from bracket structure
     let participant1: Participant | null = null;
     let participant2: Participant | null = null;
 
@@ -213,14 +180,9 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
         participantMap
       );
     }
-    // For doubles, participant1/participant2 in enhancedMatch will be null
-    // but bracketMatch.participant1/2 will have the pair IDs
-    // which are used by renderParticipantRow to lookup in pairsMap
 
-    // Determine display state
     let displayState: EnhancedMatchData["displayState"] = "tbd";
 
-    // Check if it's a bye match (one participant is assigned, other is null)
     const isByeMatch =
       (bracketMatch.participant1 !== null &&
         bracketMatch.participant2 === null) ||
@@ -232,13 +194,10 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     } else if (bracketMatch.completed) {
       displayState = "completed";
     } else if (matchDoc) {
-      // Match document exists
       if (matchDoc.status === "completed") displayState = "completed";
       else if (matchDoc.status === "in_progress") displayState = "live";
       else displayState = "scheduled";
     } else if (bracketMatch.participant1 && bracketMatch.participant2) {
-      // Both participant IDs known (pairs for doubles, users for singles)
-      // For doubles, we need to check if the pair lookup works
       if (isDoubles) {
         const pair1 = pairsMap.get(bracketMatch.participant1 as string);
         const pair2 = pairsMap.get(bracketMatch.participant2 as string);
@@ -253,7 +212,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
         displayState = "tbd";
       }
     } else {
-      // At least one participant unknown
       displayState = "tbd";
     }
 
@@ -272,46 +230,25 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     };
   };
 
-  /**
-   * Get status badge for a match
-   */
-  const getStatusBadge = (displayState: EnhancedMatchData["displayState"]) => {
+  const getStatusIndicator = (
+    displayState: EnhancedMatchData["displayState"]
+  ) => {
     switch (displayState) {
-      case "bye":
-        return <Badge className="text-xs bg-amber-500 text-white">BYE</Badge>;
-      case "completed":
-        return (
-          <Badge className="text-xs bg-green-500 text-white">Completed</Badge>
-        );
       case "live":
         return (
-          <Badge className="text-xs bg-red-500 text-white animate-pulse">
-            Live
-          </Badge>
+          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
         );
-      case "scheduled":
-        return (
-          <Badge className="text-xs bg-blue-500 text-white">Scheduled</Badge>
-        );
-      case "ready":
-        return (
-          <Badge className="text-xs bg-purple-500 text-white">Ready</Badge>
-        );
-      case "tbd":
-        return <Badge className="text-xs bg-gray-400 text-white">TBD</Badge>;
+      default:
+        return null;
     }
   };
 
-  /**
-   * Check if a participant won the match
-   */
   const isWinner = (
     enhanced: EnhancedMatchData,
     participantIndex: number
   ): boolean => {
     const { bracketMatch, matchDoc } = enhanced;
 
-    // Check from bracket structure
     if (bracketMatch.completed && bracketMatch.winner) {
       const participant =
         participantIndex === 0
@@ -320,7 +257,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       return bracketMatch.winner === participant;
     }
 
-    // Check from match document
     if (matchDoc?.status === "completed" && matchDoc.winnerSide) {
       return (
         (matchDoc.winnerSide === "side1" && participantIndex === 0) ||
@@ -331,9 +267,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return false;
   };
 
-  /**
-   * Get pair for a participant ID (for doubles)
-   */
   const getPairForParticipant = (
     participantId: string | null
   ): DoublesPair | null => {
@@ -341,9 +274,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return pairsMap.get(participantId) || null;
   };
 
-  /**
-   * Get display name for singles or doubles
-   */
   const getDisplayName = (
     participant: Participant | null,
     participantId: string | null
@@ -359,18 +289,14 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return getLocalParticipantName(participant);
   };
 
-  /**
-   * Render participant/pair display for match cards
-   */
   const renderParticipantRow = (
     participant: Participant | null,
     participantId: string | null,
     isWinnerSide: boolean,
     matchParticipants: any[] | undefined,
-    sideIndex: number, // 0 for side1, 1 for side2
+    sideIndex: number,
     score?: number
   ) => {
-    // For doubles, try to use match participants directly
     if (isDoubles && matchParticipants && matchParticipants.length === 4) {
       const startIdx = sideIndex === 0 ? 0 : 2;
       const players = [
@@ -379,23 +305,24 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       ].filter(Boolean);
 
       if (players.length === 2) {
-        // Render doubles pair from match participants
         return (
           <>
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               {players.map((player: any) => (
-                <div key={player._id} className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6 shrink-0">
+                <div key={player._id} className="flex items-center gap-1">
+                  <Avatar className="h-4 w-4 shrink-0">
                     <AvatarImage src={getParticipantImage(player)} />
-                    <AvatarFallback className="bg-blue-500 text-white text-[10px]">
+                    <AvatarFallback className="bg-slate-200 text-slate-700 text-[7px] font-medium">
                       {getParticipantDisplayName(player)
                         .substring(0, 2)
                         .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span
-                    className={`text-xs font-medium truncate ${
-                      isWinnerSide ? "text-green-700" : "text-slate-700"
+                    className={`text-[10px] truncate ${
+                      isWinnerSide
+                        ? "font-semibold text-green-600"
+                        : "text-slate-600"
                     }`}
                   >
                     {getParticipantDisplayName(player)}
@@ -404,39 +331,41 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
               ))}
             </div>
             {score !== undefined && (
-              <span className="text-sm font-bold text-slate-700">{score}</span>
+              <span className="text-xs font-semibold text-slate-900 ml-1">
+                {score}
+              </span>
             )}
           </>
         );
       }
     }
 
-    // Fallback to pair lookup for doubles
     const pair = getPairForParticipant(participantId);
     const hasPair = isDoubles && pair && pair.players.length >= 2;
 
     if (!participant && !hasPair) {
-      return <div className="flex-1 text-sm text-slate-400 italic">TBD</div>;
+      return <div className="flex-1 text-[10px] text-slate-400">TBD</div>;
     }
 
     if (hasPair && pair) {
-      // Render doubles pair from pairsMap
       return (
         <>
           <div className="flex flex-col gap-1 flex-1 min-w-0">
-            {pair.players.map((player, idx) => (
-              <div key={player._id} className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 shrink-0">
+            {pair.players.map((player) => (
+              <div key={player._id} className="flex items-center gap-1">
+                <Avatar className="h-4 w-4 shrink-0">
                   <AvatarImage src={getParticipantImage(player)} />
-                  <AvatarFallback className="bg-blue-500 text-white text-[10px]">
+                  <AvatarFallback className="bg-slate-200 text-slate-700 text-[7px] font-medium">
                     {getParticipantDisplayName(player)
                       .substring(0, 2)
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <span
-                  className={`text-xs font-medium truncate ${
-                    isWinnerSide ? "text-green-700" : "text-slate-700"
+                  className={`text-[10px] truncate ${
+                    isWinnerSide
+                      ? "font-semibold text-green-600"
+                      : "text-slate-600"
                   }`}
                 >
                   {getParticipantDisplayName(player)}
@@ -445,43 +374,43 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
             ))}
           </div>
           {score !== undefined && (
-            <span className="text-sm font-bold text-slate-700">{score}</span>
+            <span className="text-xs font-semibold text-slate-900 ml-1">
+              {score}
+            </span>
           )}
         </>
       );
     }
 
-    // Render singles participant
     return (
       <>
-        <Avatar className="h-8 w-8 shrink-0">
+        <Avatar className="h-5 w-5 shrink-0">
           {getLocalParticipantImage(participant) ? (
             <AvatarImage src={getLocalParticipantImage(participant)} />
           ) : (
-            <AvatarFallback className="bg-blue-500 text-white text-xs">
+            <AvatarFallback className="bg-slate-200 text-slate-700 text-[8px] font-medium">
               {getLocalParticipantInitials(participant)}
             </AvatarFallback>
           )}
         </Avatar>
         <div className="flex-1 min-w-0">
           <div
-            className={`text-sm font-medium truncate ${
-              isWinnerSide ? "text-green-700" : "text-slate-700"
+            className={`text-xs truncate ${
+              isWinnerSide ? "font-semibold text-green-600" : "text-slate-600"
             }`}
           >
             {getLocalParticipantName(participant)}
           </div>
         </div>
         {score !== undefined && (
-          <span className="text-sm font-bold text-slate-700">{score}</span>
+          <span className="text-xs font-semibold text-slate-900 ml-1">
+            {score}
+          </span>
         )}
       </>
     );
   };
 
-  /**
-   * Render a single match card
-   */
   const renderMatchCard = (bracketMatch: BracketMatch, roundNumber: number) => {
     const enhanced = enhanceMatchData(bracketMatch);
     const {
@@ -496,42 +425,57 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return (
       <div
         onClick={() => canClick && matchDoc && onMatchClick?.(matchDoc._id)}
-        className={`
-          relative w-full min-w-65
-          ${canClick ? "cursor-pointer" : ""}
-        `}
+        className={`relative w-full min-w-48 ${
+          canClick ? "cursor-pointer" : ""
+        }`}
       >
         <Card
           className={`
-            bg-white backdrop-blur-sm border transition-all duration-200
-            ${canClick ? "hover:shadow-lg hover:scale-[1.02]" : ""}
+            bg-white border transition-all duration-200
+            ${canClick ? "hover:border-slate-400 hover:shadow-md" : ""}
             ${
-              displayState === "completed"
-                ? "border-green-200 bg-green-50/30"
-                : displayState === "live"
-                ? "border-red-300 bg-red-50/30"
-                : displayState === "bye"
-                ? "border-amber-200 bg-amber-50/30"
-                : displayState === "ready"
-                ? "border-purple-200 bg-purple-50/30"
+              displayState === "live"
+                ? "border-red-300 bg-red-50"
                 : "border-slate-200"
             }
           `}
         >
-          <CardContent className="p-3 space-y-2">
+          <CardContent className="p-2 space-y-1">
             {/* Header with status and time */}
-            <div className="flex justify-between items-center mb-2">
-              {getStatusBadge(displayState)}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {matchDoc?.time && <span>{matchDoc.time}</span>}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {getStatusIndicator(displayState)}
+                {displayState !== "completed" && (
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    {displayState === "bye"
+                      ? "Bye"
+                      : displayState === "live"
+                      ? "Live"
+                      : displayState === "scheduled"
+                      ? "Scheduled"
+                      : displayState === "ready"
+                      ? "Ready"
+                      : "TBD"}
+                  </span>
+                )}
               </div>
+              {matchDoc?.date && (
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <Calendar className="w-3 h-3" />
+                  <span>
+                    {new Date(matchDoc.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Bye Match Special Display */}
+            {/* Bye Match Display */}
             {displayState === "bye" && (
-              <div className="py-4 text-center">
-                <Award className="w-8 h-8 mx-auto text-amber-500 mb-2" />
-                <div className="text-sm font-semibold text-amber-700">
+              <div className="py-1 text-center">
+                <div className="text-xs font-semibold text-slate-700">
                   {participant1 || bracketMatch.participant1 ? (
                     <>
                       {getDisplayName(participant1, bracketMatch.participant1)}{" "}
@@ -546,26 +490,14 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                     "BYE"
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  (Automatic advancement)
-                </div>
               </div>
             )}
 
             {/* Normal Match Display */}
             {displayState !== "bye" && (
               <>
-                {/* Participant/Pair 1 */}
-                <div
-                  className={`
-                    flex items-center gap-2 p-2 rounded-lg transition-colors
-                    ${
-                      isWinner(enhanced, 0)
-                        ? "bg-green-100 border border-green-300"
-                        : "bg-slate-50"
-                    }
-                  `}
-                >
+                {/* Participant 1 */}
+                <div className="flex items-center gap-1 p-1 rounded transition-colors hover:bg-slate-50">
                   {renderParticipantRow(
                     participant1,
                     bracketMatch.participant1,
@@ -578,24 +510,17 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                   )}
                 </div>
 
-                {/* VS Divider */}
-                <div className="text-center">
-                  <span className="text-xs font-semibold text-slate-400">
+                {/* Divider */}
+                <div className="flex items-center gap-1 px-1">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-[10px] font-medium text-slate-400">
                     VS
                   </span>
+                  <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
-                {/* Participant/Pair 2 */}
-                <div
-                  className={`
-                    flex items-center gap-2 p-2 rounded-lg transition-colors
-                    ${
-                      isWinner(enhanced, 1)
-                        ? "bg-green-100 border border-green-300"
-                        : "bg-slate-50"
-                    }
-                  `}
-                >
+                {/* Participant 2 */}
+                <div className="flex items-center gap-1 p-1 rounded transition-colors hover:bg-slate-50">
                   {renderParticipantRow(
                     participant2,
                     bracketMatch.participant2,
@@ -612,22 +537,21 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
           </CardContent>
         </Card>
 
-        {/* Connector line to next round */}
+        {/* Connector line */}
         {roundNumber < bracket.rounds.length && (
-          <div className="absolute top-1/2 -right-8 w-8 h-0.5 bg-slate-300 -translate-y-1/2 z-0" />
+          <div className="absolute top-1/2 -right-8 w-8 h-px bg-slate-300 -translate-y-1/2" />
         )}
       </div>
     );
   };
 
-  // Empty state
   if (!bracket || bracket.rounds.length === 0) {
     return (
-      <Card className="bg-white/60 backdrop-blur-sm border border-white/10">
-        <CardContent className="p-12 text-center text-muted-foreground">
-          <Trophy className="w-16 h-16 mx-auto opacity-40" />
-          <p className="mt-4 text-base font-medium">No bracket generated</p>
-          <p className="text-sm mt-2 text-muted-foreground">
+      <Card className="bg-white border-slate-200">
+        <CardContent className="p-6 text-center text-slate-500">
+          <Trophy className="w-8 h-8 mx-auto opacity-30 mb-2" />
+          <p className="text-xs font-medium">No bracket generated</p>
+          <p className="text-[10px] mt-1 text-slate-400">
             Generate a knockout bracket to view the tournament structure
           </p>
         </CardContent>
@@ -639,19 +563,19 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     <div className="space-y-6">
       {/* Main Bracket */}
       <div className="overflow-x-auto pb-4">
-        <div className="inline-flex gap-16 min-w-max px-4">
+        <div className="inline-flex gap-12 min-w-max px-4">
           {bracket.rounds.map((round, roundIndex) => (
             <div
               key={round.roundNumber}
-              className="flex flex-col items-center gap-4"
+              className="flex flex-col items-center gap-3"
             >
               {/* Round Header */}
-              <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm py-3 px-4 rounded-lg shadow-sm border border-slate-200">
-                <h3 className="text-base font-bold text-indigo-700 text-center">
+              <div className="py-1 px-2 text-center">
+                <h3 className="text-xs font-semibold text-slate-900">
                   {round.roundName}
                 </h3>
                 {round.scheduledDate && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground justify-center">
+                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 justify-center">
                     <Calendar className="w-3 h-3" />
                     <span>
                       {new Date(round.scheduledDate).toLocaleDateString(
@@ -666,52 +590,49 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
                 )}
               </div>
 
-              {/* Matches in this round */}
+              {/* Matches */}
               <div
-                className="flex flex-col justify-around gap-8"
+                className="flex flex-col justify-around gap-4"
                 style={{
-                  minHeight: `${Math.max(400, round.matches.length * 140)}px`,
+                  minHeight: `${Math.max(300, round.matches.length * 110)}px`,
                 }}
               >
                 {round.matches.map((bracketMatch, matchIndex) => (
                   <div key={matchIndex} className="relative flex items-center">
                     {renderMatchCard(bracketMatch, round.roundNumber)}
 
-                    {/* Vertical connector lines for subsequent rounds */}
+                    {/* Vertical connector lines */}
                     {roundIndex > 0 &&
                       matchIndex % 2 === 0 &&
                       matchIndex < round.matches.length - 1 && (
-                        <div className="absolute -left-8 top-1/2 w-8">
+                        <div className="absolute -left-6 top-1/2 w-6">
                           <svg
                             className="absolute top-0 left-0 w-full overflow-visible"
-                            style={{ height: `${140 * 2}px` }}
+                            style={{ height: `${110 * 2}px` }}
                           >
-                            {/* Top horizontal */}
                             <line
                               x1="0"
                               y1="0"
-                              x2="8"
+                              x2="6"
                               y2="0"
-                              stroke="#CBD5E1"
-                              strokeWidth="2"
+                              stroke="#cbd5e1"
+                              strokeWidth="1"
                             />
-                            {/* Vertical connector */}
                             <line
                               x1="0"
                               y1="0"
                               x2="0"
-                              y2={140 * 2}
-                              stroke="#CBD5E1"
-                              strokeWidth="2"
+                              y2={110 * 2}
+                              stroke="#cbd5e1"
+                              strokeWidth="1"
                             />
-                            {/* Bottom horizontal */}
                             <line
                               x1="0"
-                              y1={140 * 2}
-                              x2="8"
-                              y2={140 * 2}
-                              stroke="#CBD5E1"
-                              strokeWidth="2"
+                              y1={110 * 2}
+                              x2="6"
+                              y2={110 * 2}
+                              stroke="#cbd5e1"
+                              strokeWidth="1"
                             />
                           </svg>
                         </div>
@@ -726,12 +647,12 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
 
       {/* Third Place Match */}
       {showThirdPlace && bracket.thirdPlaceMatch && (
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-bold text-amber-600 inline-flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Third Place Match
+        <div className="mt-4 pt-3 border-t border-slate-200">
+          <div className="max-w-sm mx-auto">
+            <div className="text-center mb-2">
+              <h3 className="text-xs font-semibold text-slate-900 inline-flex items-center gap-1">
+                <Trophy className="w-3 h-3" />
+                Third Place
               </h3>
             </div>
             {renderMatchCard(bracket.thirdPlaceMatch, -1)}
@@ -739,32 +660,16 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
         </div>
       )}
 
-      {/* Bracket Legend */}
-      <div className="mt-6 pt-4 border-t border-slate-200">
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span>Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+      {/* Legend */}
+      <div className="mt-3 pt-2 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] text-slate-600">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
             <span>Live</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span>Scheduled</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span>Ready</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span>Bye</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-400" />
-            <span>TBD</span>
+          <div className="flex items-center gap-1">
+            <span className="text-green-600 font-semibold">●</span>
+            <span>Winner</span>
           </div>
         </div>
       </div>

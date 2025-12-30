@@ -8,8 +8,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FeatureGate } from "@/components/FeatureGate";
-import { LockedContent } from "@/components/paywall/LockedContent";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import {
   BarChart,
@@ -53,7 +51,9 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
     const fetchInsights = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/insights`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/insights` : `/profile/insights`;
+        const response = await axiosInstance.get(apiPath);
         setData(response.data.data);
       } catch (error) {
         console.error("Failed to fetch insights:", error);
@@ -65,6 +65,7 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
     const fetchWeaknesses = async () => {
       setWeaknessLoading(true);
       try {
+        // Note: weaknesses-analysis route may also need userId support in the future
         const response = await axiosInstance.get(`/profile/weaknesses-analysis?matchLimit=20`);
         if (response.data.success && response.data.data) {
           setWeaknessData(response.data.data);
@@ -78,7 +79,7 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
 
     fetchInsights();
     fetchWeaknesses();
-  }, []);
+  }, [userId]);
 
   const stats = data?.stats || {};
   const graphs = data?.graphs || { matchPoints: [], serveAccuracy: [] };
@@ -94,12 +95,8 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
           <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
         </div>
 
-        <FeatureGate
-          feature="profileInsightsAccess"
-          fallback={<LockedContent feature="profileInsightsAccess" />}
-        >
-          {/* Content */}
-          {loading ? (
+        {/* Content */}
+        {loading ? (
           <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
             <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
@@ -257,11 +254,10 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
               </div>
             </div>
           </div>
-        )}
-        </FeatureGate>
-      </div>
-    </div>
-  );
+          )}
+          </div>
+          </div>
+          );
 };
 
 export default PerformanceInsightsPage;

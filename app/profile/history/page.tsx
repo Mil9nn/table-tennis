@@ -24,7 +24,9 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
     const fetchMatchHistory = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
         setMatches(response.data.stats.recentMatches || []);
       } catch (error) {
         console.error("Failed to fetch match history:", error);
@@ -34,7 +36,7 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
     };
 
     fetchMatchHistory();
-  }, []);
+  }, [userId]);
 
   const formatDate = (dateString: string) => {
     try {

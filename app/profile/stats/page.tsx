@@ -59,7 +59,9 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/player-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/player-stats` : `/profile/player-stats`;
+        const response = await axiosInstance.get(apiPath);
         setStatsData(response.data.data);
       } catch (error) {
         console.error("Failed to fetch stats:", error);
@@ -69,7 +71,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
     };
 
     fetchStats();
-  }, []);
+  }, [userId]);
 
   const singlesDoubles = statsData?.singlesDoubles || {
     singles: {},

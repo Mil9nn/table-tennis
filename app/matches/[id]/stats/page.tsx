@@ -61,9 +61,7 @@ import { formatStrokeName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share } from "@mui/icons-material";
 import { toast } from "sonner";
-import { FeatureGate } from "@/components/FeatureGate";
-import { LockedContent } from "@/components/paywall/LockedContent";
-import { useSubscription } from "@/hooks/useSubscription";
+
 
 const SECTIONS: Section[] = [
   { id: "overview", label: "Overview", icon: <Sparkles className="h-4 w-4" /> },
@@ -82,11 +80,10 @@ const SECTIONS: Section[] = [
 
 export default function MatchStatsPage() {
   const params = useParams();
-  const router = useRouter();
-  const matchId = params.id as string;
-  const { match, fetchingMatch, fetchMatch } = useMatchStore();
-  const { canAccessStatsPage, loading: subscriptionLoading } = useSubscription();
-  const { user } = useAuthStore();
+   const router = useRouter();
+   const matchId = params.id as string;
+   const { match, fetchingMatch, fetchMatch } = useMatchStore();
+   const { user } = useAuthStore();
 
   // Section tracking
   const [activeSection, setActiveSection] = useState("overview");
@@ -395,20 +392,7 @@ export default function MatchStatsPage() {
   }
 
 
-  // Subscription check - lock entire stats page for free users
-  if (!subscriptionLoading && !canAccessStatsPage()) {
-    return (
-      <div className="min-h-screen bg-[#ffffff]">
-        <div className="max-w-4xl mx-auto px-4 py-16">
-          <LockedContent
-            feature="statsPageAccess"
-            title="Advanced Match Analytics"
-            description="Unlock full match analysis with detailed shot placement, weakness analysis, and AI-powered insights"
-          />
-        </div>
-      </div>
-    );
-  }
+
 
   const handleShare = async () => {
     const matchCategory = match.matchCategory;

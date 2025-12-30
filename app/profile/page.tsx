@@ -20,8 +20,6 @@ import {
 import { useState, useEffect } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import ProfileHeader from "./components/ProfileHeader";
-import { useSubscription } from "@/hooks/useSubscription";
-import { Lock } from "lucide-react";
 
 import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -37,7 +35,6 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
   const [stats, setStats] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const { hasFeature } = useSubscription();
 
   // Determine which user ID to use: provided userId or current authenticated user
   const targetUserId = userId || currentUser?._id;
@@ -85,63 +82,54 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
       title: "Player Stats",
       icon: BarChart3,
       route: "/profile/stats",
-      requiresPro: true,
     },
     {
       id: "match-history",
       title: "Match History",
       icon: History,
       route: "/profile/history",
-      requiresPro: false,
     },
     {
       id: "performance-insights",
       title: "Performance Insights",
       icon: TrendingUp,
       route: "/profile/insights",
-      requiresPro: true,
     },
     {
       id: "shot-analysis",
       title: "Shot Analysis",
       icon: ScatterPlotIcon,
       route: "/profile/shots",
-      requiresPro: true,
     },
     {
       id: "my-teams",
       title: "My Teams",
       icon: GroupWorkIcon,
       route: "/profile/my-teams",
-      requiresPro: false,
     },
     {
       id: "team-stats",
       title: "Team Stats",
       icon: Diversity3Icon,
       route: "/profile/team",
-      requiresPro: true,
     },
     {
       id: "tournaments",
       title: "Tournaments",
       icon: Trophy,
       route: "/profile/tournaments",
-      requiresPro: true,
     },
     {
       id: "head-to-head",
       title: "Head to Head",
       icon: Swords,
       route: "/profile/head-to-head",
-      requiresPro: true,
     },
     {
       id: "activity-trends",
       title: "Activity & Trends",
       icon: Calendar,
       route: "/profile/activity",
-      requiresPro: true,
     },
   ];
 
@@ -232,16 +220,11 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#d9d9d9]">
           {navigationCards.map((card) => {
             const Icon = card.icon;
-            const isLocked = card.requiresPro && !hasFeature("profileInsightsAccess");
             
             const handleClick = () => {
-              if (isLocked) {
-                router.push("/subscription?feature=" + encodeURIComponent(card.title));
-              } else {
-                // If viewing another user's profile, include their ID in the route
-                const route = isOwnProfile ? card.route : `/profile/${targetUserId}${card.route.replace('/profile', '')}`;
-                router.push(route);
-              }
+              // If viewing another user's profile, include their ID in the route
+              const route = isOwnProfile ? card.route : `/profile/${targetUserId}${card.route.replace('/profile', '')}`;
+              router.push(route);
             };
             
             return (
@@ -259,9 +242,6 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
                       </h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isLocked && (
-                        <Lock className="w-3 h-3 text-[#3c6e71] group-hover:text-[#ffffff] transition-colors" />
-                      )}
                       <ChevronRight className="w-4 h-4 text-[#d9d9d9] group-hover:text-[#ffffff] transition-all group-hover:translate-x-1" />
                     </div>
                   </div>

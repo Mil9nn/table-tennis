@@ -1,16 +1,28 @@
-// app/api/profile/insights/route.ts
+// app/api/profile/[id]/insights/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
-import { requireFeature } from "@/lib/middleware/subscription";
+import { User } from "@/models/User";
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     // Connect to database
     await connectDB();
 
+    const { id } = await context.params;
+
+    // Verify the user exists
+    const user = await User.findById(id).select("username fullName profileImage").lean();
+    if (!user) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
+    // Verify authentication (user must be logged in to view profiles)
     const token = getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
@@ -21,21 +33,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
     }
 
-    const userId = decoded.userId;
-
-    // TEMPORARILY DISABLED: Subscription check for frontend development
-    // const featureCheck = await requireFeature(request, "profileInsightsAccess");
-    // if (!featureCheck.allowed) {
-    //   return NextResponse.json(
-    //     {
-    //       success: false,
-    //       message: "This feature requires a Pro subscription",
-    //       error: "UPGRADE_REQUIRED",
-    //       tier: featureCheck.subscription?.tier || "free",
-    //     },
-    //     { status: 403 }
-    //   );
-    // }
+    // Use the id from the URL parameter instead of the JWT userId
+    const userId = id;
 
     // Fetch all completed matches
     const individualMatches = await IndividualMatch.find({
@@ -283,3 +282,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: "Something went wrong" }, { status: 500 });
   }
 }
+
+

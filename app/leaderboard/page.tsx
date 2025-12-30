@@ -13,18 +13,15 @@ import {
 import type { LeaderboardType } from "./types";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import type { LeaderboardFilters as FilterType } from "@/lib/leaderboard/filterUtils";
-import { useSubscription } from "@/hooks/useSubscription";
-import { LockedContent } from "@/components/paywall/LockedContent";
 
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 export default function LeaderboardPage() {
-  const { user } = useAuthStore();
-  const { hasFeature } = useSubscription();
-  const [activeTab, setActiveTab] = useState<LeaderboardType>("individual");
-  const [filters, setFilters] = useState<Partial<FilterType>>({});
+   const { user } = useAuthStore();
+   const [activeTab, setActiveTab] = useState<LeaderboardType>("individual");
+   const [filters, setFilters] = useState<Partial<FilterType>>({});
   
   const {
     leaderboard,
@@ -75,58 +72,21 @@ export default function LeaderboardPage() {
     };
   }, [loadingMore, loading, hasMore, activeTab, fetchMore]);
 
-  // Check if user has Pro subscription
-  const hasProAccess = hasFeature("profileInsightsAccess");
-
-  if (!hasProAccess) {
-    return (
-      <div className="min-h-screen bg-lb-white">
-        <header className="bg-[#353535] border-b border-[#d9d9d9]">
-          <div className="max-w-6xl mx-auto px-6 py-8">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl md:text-5xl font-bold text-lb-white tracking-tight">
-                Leaderboards
-              </h1>
-            </div>
+  return (
+     <div className="min-h-screen bg-lb-white">
+       <header className="bg-[#353535] border-b border-[#d9d9d9]">
+         <div className="max-w-6xl mx-auto px-6 py-8">
+           <div className="flex items-center gap-3 mb-2">
+             <h1 className="text-2xl md:text-5xl font-bold text-lb-white tracking-tight">
+               Leaderboards
+             </h1>
+           </div>
             <div className="h-1 w-20 bg-[#3c6e71] mb-2" />
             <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
             Compete, rank, and dominate—track your performance across every match category and tournament.
             </p>
           </div>
         </header>
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <LockedContent
-            feature="leaderboard"
-            requiredTier="pro"
-            title="Leaderboard Access"
-            description="Upgrade to Pro to access leaderboards and see how you rank against other players"
-            showUpgradeButton={true}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-lb-white">
-      {/* Hero Header */}
-      <header className="bg-[#353535] border-b border-[#d9d9d9]">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl md:text-5xl font-bold text-lb-white tracking-tight">
-              Leaderboards
-            </h1>
-          </div>
-          <div className="h-1 w-20 bg-[#3c6e71] mb-2" />
-          <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
-            Compete, rank and dominate.
-          </p>
-          <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
-            Track your performance across all match
-            categories and tournaments.
-          </p>
-        </div>
-      </header>
 
       {/* Sticky Tabs */}
       <div className="sticky top-0 z-20 bg-lb-white shadow-sm">

@@ -29,7 +29,9 @@ const MyTeamsPage = ({ userId }: MyTeamsPageProps = {}) => {
     const fetchTeams = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/detailed-stats`);
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
         const teamsData = response.data.stats.teams || [];
 
         setTeams(teamsData);
@@ -41,7 +43,7 @@ const MyTeamsPage = ({ userId }: MyTeamsPageProps = {}) => {
     };
 
     fetchTeams();
-  }, []);
+  }, [userId]);
 
   const totalTeams = teams.length;
   const captainOf = teams.filter((t) => t.role === "Captain").length;
