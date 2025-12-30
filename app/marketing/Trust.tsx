@@ -29,10 +29,10 @@ export default function Trust() {
   return (
     <section className="marketing py-20 sm:py-32 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto text-center mb-16">
-        <h2 className="text-3xl md:text-4xl font-semibold text-white mb-4">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 leading-tight">
           Trusted for Competitive Play
         </h2>
-        <p className="text-white/70 max-w-xl mx-auto">
+        <p className="text-sm sm:text-base text-white/70 max-w-xl mx-auto leading-relaxed">
           Built with real tournaments in mind.
         </p>
       </div>
@@ -46,10 +46,10 @@ export default function Trust() {
               className="rounded-2xl border border-white/10 bg-white/5 p-6"
             >
               <Icon className="w-6 h-6 text-white mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
                 {t.title}
               </h3>
-              <p className="text-sm text-white/70">{t.description}</p>
+              <p className="text-sm text-white/70 leading-relaxed">{t.description}</p>
             </div>
           );
         })}

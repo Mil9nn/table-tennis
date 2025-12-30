@@ -85,7 +85,7 @@ export default function Navbar() {
   return (
     <header className="w-full fixed top-0 left-0 z-50">
       {/* Top Navbar */}
-      <nav className="h-14 flex items-center justify-between px-4 border-b bg-white shadow-sm gap-2 lg:gap-4">
+      <nav className="h-14 flex items-center justify-between px-4 border-b bg-zinc-900 shadow-sm gap-2 lg:gap-4">
         {/* Left: Hamburger + Logo + Quick Actions */}
         <div className="flex items-center gap-2 lg:gap-3">
           {/* Hamburger Menu (mobile) */}
@@ -98,17 +98,17 @@ export default function Navbar() {
               alt="menu-icon"
               width={25}
               height={25}
-              className="w-5 h-5"
+              className="w-5 h-5 bg-white"
             />
           </button>
 
           {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center shrink-0"
-          >
+          <Link href="/" className="flex items-center shrink-0">
             <Image src="/imgs/logo.png" alt="logo" width={50} height={50} />
-            <span className="text-base font-bold bg-linear-to-r from-[#3c6e71] to-[#284b63] bg-clip-text text-transparent tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <span
+              className="text-base font-bold bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent tracking-tight"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
               TTPro
             </span>
           </Link>

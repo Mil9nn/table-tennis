@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
@@ -20,11 +21,28 @@ export async function POST(request: NextRequest) {
 
     const { token } = validationResult.data;
 
-    // Find the token
-    const verificationToken = await VerificationToken.findOne({
-      token,
+    // Find verification tokens by type
+    // Since tokens are hashed, we need to compare against all tokens
+    // Optimize: Get tokens that haven't expired yet
+    const verificationTokens = await VerificationToken.find({
       type: "email_verification",
+      expiresAt: { $gt: new Date() }, // Only check non-expired tokens
     });
+
+    // Find the matching token by comparing hashes
+    let verificationToken = null;
+    for (const tokenDoc of verificationTokens) {
+      try {
+        const isMatch = await bcrypt.compare(token, tokenDoc.token);
+        if (isMatch) {
+          verificationToken = tokenDoc;
+          break;
+        }
+      } catch (error) {
+        // Skip invalid tokens (not bcrypt hashes)
+        continue;
+      }
+    }
 
     if (!verificationToken) {
       return NextResponse.json(
@@ -61,12 +79,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark email as verified
+    // 6. Verify token → set isEmailVerified = true
     user.isEmailVerified = true;
     user.emailVerifiedAt = new Date();
     await user.save();
 
-    // Delete the used token
+    // 7. Delete the used token
     await VerificationToken.deleteOne({ _id: verificationToken._id });
 
     return NextResponse.json(

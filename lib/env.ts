@@ -105,7 +105,7 @@ const envSchema = z.object({
     .optional()
     .describe("Razorpay Plan ID for Pro yearly subscription"),
 
-  // AWS SES (for email verification and password reset)
+  // AWS SES (deprecated - kept for backward compatibility during migration)
   AWS_ACCESS_KEY_ID: z
     .string()
     .optional(),
@@ -118,6 +118,31 @@ const envSchema = z.object({
   AWS_SES_FROM_EMAIL: z
     .string()
     .optional(),
+  
+  // Zoho ZeptoMail (for email verification, password reset, and OTP)
+  ZEPTOMAIL_API_HOST: z
+    .string()
+    .optional()
+    .default("api.zeptomail.com")
+    .describe("ZeptoMail API host (api.zeptomail.com for global, api.zeptomail.in for India, api.zeptomail.eu for Europe)"),
+  ZEPTOMAIL_SEND_TOKEN: z
+    .string()
+    .min(1, "ZEPTOMAIL_SEND_TOKEN is required for email sending")
+    .optional(),
+  ZEPTOMAIL_FROM_EMAIL: z
+    .string()
+    .email("ZEPTOMAIL_FROM_EMAIL must be a valid email address")
+    .min(1, "ZEPTOMAIL_FROM_EMAIL is required")
+    .optional(),
+  ZEPTOMAIL_FROM_NAME: z
+    .string()
+    .optional()
+    .describe("Display name for email sender"),
+  SKIP_EMAIL_IN_DEV: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false")
+    .describe("Skip email sending in development (set to 'true' to bypass email sending)"),
   NEXT_PUBLIC_APP_URL: z
     .string()
     .optional(),

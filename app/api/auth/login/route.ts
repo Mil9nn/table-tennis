@@ -50,18 +50,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // TEMPORARILY DISABLED: Check if email is verified
-    // TODO: Re-enable after Amazon SES verification is complete
-    // if (!user.isEmailVerified) {
-    //   return NextResponse.json(
-    //     {
-    //       message: "Please verify your email before logging in.",
-    //       requiresVerification: true,
-    //       email: user.email,
-    //     },
-    //     { status: 403 }
-    //   );
-    // }
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return NextResponse.json(
+        {
+          message: "Please verify your email before logging in.",
+          requiresVerification: true,
+          email: user.email,
+        },
+        { status: 403 }
+      );
+    }
 
     let token;
     try {

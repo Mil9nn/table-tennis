@@ -141,7 +141,7 @@ function ResetPasswordContent() {
             <div className="p-6 border-b border-[#d9d9d9] text-center">
               <Link href="/" className="flex items-center justify-center shrink-0 gap-2 mb-4">
                 <Image src="/imgs/logo.png" alt="logo" width={40} height={40} />
-                <span className="font-semibold text-sm italic bg-gradient-to-r from-[#284b63] to-[#353535] bg-clip-text text-transparent">
+                <span className="font-semibold text-sm bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent">
                   TTPro
                 </span>
               </Link>

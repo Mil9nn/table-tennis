@@ -49,6 +49,13 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
+**Email Service (ZeptoMail):**
+```env
+ZEPTOMAIL_SEND_TOKEN=your_send_mail_token_from_zeptomail
+ZEPTOMAIL_FROM_EMAIL=noreply@yourdomain.com
+ZEPTOMAIL_FROM_NAME=TTPro
+```
+
 **Optional:**
 ```env
 # Rate Limiting (requires Upstash Redis)
@@ -68,6 +75,7 @@ GLITCHTIP_ENVIRONMENT=development
 # Server Configuration
 HOSTNAME=localhost
 PORT=3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### Development

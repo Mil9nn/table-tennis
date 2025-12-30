@@ -18,6 +18,7 @@ import { LockedContent } from "@/components/paywall/LockedContent";
 
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 export default function LeaderboardPage() {
   const { user } = useAuthStore();
@@ -89,11 +90,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="h-1 w-20 bg-[#3c6e71] mb-2" />
             <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
-              Compete, rank and dominate.
-            </p>
-            <p className="text-[#d9d9d9] text-sm leading-relaxed max-w-2xl">
-              Track your performance across all match
-              categories and tournaments.
+            Compete, rank, and dominate—track your performance across every match category and tournament.
             </p>
           </div>
         </header>
@@ -152,7 +149,10 @@ export default function LeaderboardPage() {
                   data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
               >
-                <span>Individual</span>
+                <div className="flex items-center justify-center gap-2">
+                  <AutoAwesomeIcon className="w-4 h-4" />
+                  <span>Individual</span>
+                </div>
               </TabsTrigger>
 
               {/* Teams Tab */}

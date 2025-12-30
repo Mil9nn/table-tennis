@@ -16,7 +16,7 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
     identifier: "ip", // Per IP to prevent brute force
   },
   "POST:/api/auth/register": {
-    limit: 3,
+    limit: 9999, // High limit for development - reduce in production
     window: "1 h",
     algorithm: "fixedWindow",
     identifier: "ip", // Per IP to prevent spam registrations

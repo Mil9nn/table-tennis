@@ -13,7 +13,7 @@ export default function MarketingFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
           {/* Brand Column */}
           <div>
-            <h3 className="text-lg font-bold mb-4" style={{ color: "var(--brand-teal, #3c6e71)" }}>
+            <h3 className="text-lg font-bold mb-4 bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent">
               TTPro
             </h3>
             <p className="text-sm text-white/60 leading-relaxed">
@@ -171,7 +171,7 @@ export default function MarketingFooter() {
           {/* Bottom Section */}
           <div className="flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm text-white/50">
-              © {currentYear} TTPro. All rights reserved.
+              © {currentYear} <span className="bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent font-bold">TTPro</span>. All rights reserved.
             </p>
           </div>
         </div>

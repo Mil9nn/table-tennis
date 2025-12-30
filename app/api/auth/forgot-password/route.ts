@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
-import { generateVerificationToken, sendPasswordResetEmail } from "@/lib/ses";
+import { generateVerificationToken, sendPasswordResetEmail } from "@/lib/zeptomail";
 
 export async function POST(request: NextRequest) {
   // Rate limiting - very strict for password reset
@@ -45,14 +46,17 @@ export async function POST(request: NextRequest) {
       type: "password_reset",
     });
 
-    // Generate new token
+    // Generate new token (plain text for email)
     const token = generateVerificationToken();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // Save token
+    // Hash token before storing (security best practice)
+    const hashedToken = await bcrypt.hash(token, 10);
+
+    // Save hashed token
     await VerificationToken.create({
       userId: user._id,
-      token,
+      token: hashedToken, // Store hashed token
       type: "password_reset",
       expiresAt,
     });

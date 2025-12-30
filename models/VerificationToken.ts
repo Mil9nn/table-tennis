@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export type TokenType = "email_verification" | "password_reset";
+export type TokenType = "email_verification" | "password_reset" | "otp";
 
 const verificationTokenSchema = new mongoose.Schema(
   {
@@ -16,7 +16,7 @@ const verificationTokenSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["email_verification", "password_reset"],
+      enum: ["email_verification", "password_reset", "otp"],
       required: true,
     },
     expiresAt: {

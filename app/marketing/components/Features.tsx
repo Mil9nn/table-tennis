@@ -56,10 +56,10 @@ export default function FeaturesCarousel() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-10 px-4">
-          <h2 className="text-xl md:text-4xl font-semibold text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 leading-tight">
             Built for Serious Table Tennis
           </h2>
-          <p className="text-white/70 mt-2 text-sm max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-white/70 mt-2 max-w-xl mx-auto leading-relaxed">
             Everything you need to score matches, run tournaments, and track
             performance.
           </p>
@@ -115,10 +115,10 @@ export default function FeaturesCarousel() {
 
                 {/* Content */}
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-3">
                     {feature.title}
                   </h3>
-                  <p className="text-white/70 text-sm leading-relaxed">
+                  <p className="text-sm text-white/70 leading-relaxed">
                     {feature.description}
                   </p>
 

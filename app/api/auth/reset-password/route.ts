@@ -26,11 +26,26 @@ export async function POST(request: NextRequest) {
 
     const { token, password } = validationResult.data;
 
-    // Find the token
-    const resetToken = await VerificationToken.findOne({
-      token,
+    // Find password reset tokens (need to compare hashes)
+    const resetTokens = await VerificationToken.find({
       type: "password_reset",
+      expiresAt: { $gt: new Date() }, // Only check non-expired tokens
     });
+
+    // Find the matching token by comparing hashes
+    let resetToken = null;
+    for (const tokenDoc of resetTokens) {
+      try {
+        const isMatch = await bcrypt.compare(token, tokenDoc.token);
+        if (isMatch) {
+          resetToken = tokenDoc;
+          break;
+        }
+      } catch (error) {
+        // Skip invalid tokens (not bcrypt hashes)
+        continue;
+      }
+    }
 
     if (!resetToken) {
       return NextResponse.json(
@@ -39,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if expired
+    // Check if expired (double check)
     if (new Date() > resetToken.expiresAt) {
       await VerificationToken.deleteOne({ _id: resetToken._id });
       return NextResponse.json(
@@ -105,11 +120,26 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // Find the token
-    const resetToken = await VerificationToken.findOne({
-      token,
+    // Find password reset tokens (need to compare hashes)
+    const resetTokens = await VerificationToken.find({
       type: "password_reset",
+      expiresAt: { $gt: new Date() }, // Only check non-expired tokens
     });
+
+    // Find the matching token by comparing hashes
+    let resetToken = null;
+    for (const tokenDoc of resetTokens) {
+      try {
+        const isMatch = await bcrypt.compare(token, tokenDoc.token);
+        if (isMatch) {
+          resetToken = tokenDoc;
+          break;
+        }
+      } catch (error) {
+        // Skip invalid tokens (not bcrypt hashes)
+        continue;
+      }
+    }
 
     if (!resetToken) {
       return NextResponse.json(
@@ -118,7 +148,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if expired
+    // Check if expired (double check)
     if (new Date() > resetToken.expiresAt) {
       await VerificationToken.deleteOne({ _id: resetToken._id });
       return NextResponse.json(

@@ -42,35 +42,28 @@ export default function Hero() {
           </div>
 
           {/* Heading */}
-          <h1 className="font-bold text-white mb-6">
-            <span>TTPro - </span>
+          <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            <span className="bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent">TTPro</span>
+            <span> - </span>
             <span className="text-[#3c6e71]">
-              For matches that matter
+              score matches & run tournaments
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-left text-md sm:text-xl text-white/70 max-w-2xl mx-auto mb-12">
-            Score matches, run tournaments, and build verified player history —
-            all in one platform designed for serious competition.
+          <p className="text-left text-base sm:text-lg text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
+            Build verified player history and track performance — all in one platform designed for serious competition.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/auth/register"
-              className="group px-8 py-4 rounded-lg text-white font-semibold flex items-center gap-2 hover:scale-105 transition"
+              className="group px-8 py-4 text-sm rounded-lg text-white font-semibold flex items-center gap-2 hover:scale-105 transition"
               style={{ backgroundColor: "#3c6e71" }}
             >
               Start Scoring Matches
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
-            </Link>
-
-            <Link
-              href="/matches"
-              className="px-8 py-4 rounded-lg border border-white/20 text-white/80 font-semibold hover:bg-white/5 transition"
-            >
-              View Matches
             </Link>
           </div>
         </motion.div>

@@ -26,6 +26,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 const RegisterPage = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const register = useAuthStore((state) => state.register);
   const authLoading = useAuthStore((state) => state.authLoading);
@@ -37,6 +38,7 @@ const RegisterPage = () => {
       fullName: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -79,40 +81,20 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-[#ffffff] flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]/95 backdrop-blur-sm">
-        <div className="mx-auto px-4 py-3 flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
-              Register
-            </h1>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center py-8">
         <div className="w-full max-w-sm">
           {/* Card */}
           <div className="bg-[#ffffff] border border-[#d9d9d9]">
             {/* Header Section */}
-            <div className="p-6 border-b border-[#d9d9d9] text-center">
-              <Link href="/" className="flex items-center justify-center shrink-0 gap-2 mb-4">
-                <Image src="/imgs/logo.png" alt="logo" width={40} height={40} />
-                <span className="font-semibold text-sm italic bg-gradient-to-r from-[#284b63] to-[#353535] bg-clip-text text-transparent">
-                  TTPro
-                </span>
-              </Link>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
-                Create Account
-              </h2>
-              <p className="text-xs text-[#353535]/60 mt-1">Join our community</p>
+            <div className="p-6 border-b border-[#d9d9d9] flex items-center gap-4">
+              <Image src="/imgs/logo.png" alt="logo" width={50} height={50} className="shrink-0" />
+              <div>
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
+                  Create Account
+                </h2>
+                <p className="text-xs text-[#353535]/60 mt-1">Join our community</p>
+              </div>
             </div>
 
             {/* Form Section */}
@@ -254,6 +236,41 @@ const RegisterPage = () => {
                           </ul>
                         )}
 
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Confirm Password */}
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
+                          Confirm Password
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71] pr-12"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword((p) => !p)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#353535]/60 hover:text-[#3c6e71] transition"
+                            >
+                              {showConfirmPassword ? (
+                                <VisibilityOff fontSize="small" />
+                              ) : (
+                                <Visibility fontSize="small" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
                         <FormMessage className="text-xs" />
                       </FormItem>
                     )}

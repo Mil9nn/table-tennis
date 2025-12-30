@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { resendVerificationSchema } from "@/lib/validations/auth";
-import { generateVerificationToken, sendVerificationEmail } from "@/lib/ses";
+import { generateVerificationToken, sendVerificationEmail } from "@/lib/zeptomail";
 
 export async function POST(request: NextRequest) {
   // Rate limiting - stricter for email sending
@@ -51,19 +52,22 @@ export async function POST(request: NextRequest) {
       type: "email_verification",
     });
 
-    // Generate new token
+    // Generate new token (plain text for email)
     const token = generateVerificationToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Save token
+    // Hash token before storing (security best practice)
+    const hashedToken = await bcrypt.hash(token, 10);
+
+    // Save hashed token
     await VerificationToken.create({
       userId: user._id,
-      token,
+      token: hashedToken, // Store hashed token
       type: "email_verification",
       expiresAt,
     });
 
-    // Send verification email
+    // Send verification email (async - don't block)
     const emailSent = await sendVerificationEmail(user.email, user.fullName, token);
 
     if (!emailSent) {

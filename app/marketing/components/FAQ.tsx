@@ -51,7 +51,7 @@ export default function FAQ() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 sm:mb-20"
         >
-          <h2 className="text-3xl md:text-4xl font-semibold text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 leading-tight">
             Questions? We Have Answers
           </h2>
         </motion.div>
@@ -73,7 +73,7 @@ export default function FAQ() {
                 }
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors"
               >
-                <span className="text-left font-semibold text-white">
+                <span className="text-left text-sm sm:text-base font-semibold text-white">
                   {faq.question}
                 </span>
                 <motion.div

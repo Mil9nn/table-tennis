@@ -32,12 +32,12 @@ export default function FinalCTA() {
           </motion.div>
 
           {/* Heading */}
-          <h2 className="text-3xl md:text-4xl font-semibold text-white mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 leading-tight">
             Ready to Track Every Point?
           </h2>
 
           {/* Subheadline */}
-          <p className="text-lg text-white/70 mb-10 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
             Start scoring today. Free forever on the Basic plan.
           </p>
 

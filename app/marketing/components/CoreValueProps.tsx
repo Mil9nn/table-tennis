@@ -31,10 +31,10 @@ export default function CoreValueProps() {
     <section className="marketing py-20 sm:py-32 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h2 className="text-xl md:text-4xl font-semibold text-white mb-2">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 leading-tight">
             Designed for leagues, tournaments and organized play.
           </h2>
-          <p className="text-white/70 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-white/70 max-w-xl mx-auto">
             Match-ready table tennis workflows.
           </p>
         </div>
@@ -51,7 +51,7 @@ export default function CoreValueProps() {
                 transition={{ delay: i * 0.1 }}
                 className="rounded-2xl border border-white/10 bg-white/5 p-6"
               >
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-4">
+                <h3 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-white mb-3">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center"
                     style={{ backgroundColor: v.color }}
@@ -60,7 +60,7 @@ export default function CoreValueProps() {
                   </div>
                   {v.title}
                 </h3>
-                <p className="text-sm text-white/70">{v.description}</p>
+                <p className="text-sm text-white/70 leading-relaxed">{v.description}</p>
               </motion.div>
             );
           })}

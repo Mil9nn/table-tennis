@@ -5,7 +5,7 @@ import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { registerSchema } from "@/lib/validations/auth";
-import { generateVerificationToken, sendVerificationEmail } from "@/lib/ses";
+import { generateVerificationToken, sendVerificationEmail } from "@/lib/zeptomail";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -51,51 +51,47 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // TEMPORARILY DISABLED: Email verification
-    // TODO: Remove isEmailVerified: true after Amazon SES verification is complete
+    // PRODUCTION-GRADE SECURITY FLOW:
+    // 1. Create user first (isEmailVerified = false)
     const newUser = new User({
       username,
       fullName,
       email,
       password: hashedPassword,
-      isEmailVerified: true, // Temporarily auto-verified
+      isEmailVerified: false, // Email verification required before login
     });
 
     await newUser.save();
 
-    // TEMPORARILY DISABLED: Email verification token generation and sending
-    // TODO: Re-enable after Amazon SES verification is complete
-    /*
-    // Generate verification token
+    // 2. Generate verification token (plain text for email)
     const verificationToken = generateVerificationToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Save verification token
+    // 3. Hash token before storing in database (security best practice)
+    const hashedToken = await bcrypt.hash(verificationToken, 10);
+
+    // 4. Save hashed verification token
     await VerificationToken.create({
       userId: newUser._id,
-      token: verificationToken,
+      token: hashedToken, // Store hashed token
       type: "email_verification",
       expiresAt,
     });
 
-    // Send verification email
-    const emailSent = await sendVerificationEmail(
-      newUser.email,
-      newUser.fullName,
-      verificationToken
-    );
+    // 5. Send email asynchronously (don't block registration)
+    // User can register even if email service is temporarily down
+    // They can request a new verification email later
+    sendVerificationEmail(email, fullName, verificationToken).catch((error) => {
+      console.error("Failed to send verification email (async):", error);
+      // Don't fail registration - email can be resent later via /api/auth/send-verification
+    });
 
-    if (!emailSent) {
-      console.error("Failed to send verification email during registration");
-      // Don't fail registration, user can request a new email later
-    }
-    */
-
-    // Return success and allow immediate login
+    // Return success - user created but NOT verified yet
+    // User cannot log in until email is verified (login route checks isEmailVerified)
     return NextResponse.json(
       {
-        message: "Registration successful! You can now log in.",
-        requiresVerification: false,
+        message: "Account created! Please check your email to verify your account. You cannot log in until your email is verified.",
+        requiresVerification: true,
         user: {
           _id: newUser._id,
           username: newUser.username,
