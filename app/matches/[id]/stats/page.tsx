@@ -477,7 +477,7 @@ export default function MatchStatsPage() {
 
             {/* Key Insights Grid */}
             {stats.insights.length > 0 && (
-              <div className="grid md:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.insights.map((insight, idx) => (
                   <InsightCard
                     key={idx}
@@ -517,7 +517,7 @@ export default function MatchStatsPage() {
             )}
 
             {/* Charts Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
               <ServeReceiveChart data={stats.serveData} />
               {stats.serveTypeData && stats.serveTypeData.length > 0 && <ServeTypeChart data={stats.serveTypeData} />}
               <ShotTypeChart data={stats.strokeData} />
@@ -531,7 +531,7 @@ export default function MatchStatsPage() {
                 side2Name={side2Name}
               />
             )}
-          </StatsSectionContainer>
+            </StatsSectionContainer>
 
           {/* SECTION 3: GAME DETAILS */}
           <StatsSectionContainer
@@ -658,7 +658,7 @@ export default function MatchStatsPage() {
 
             {/* Key Insights Grid */}
             {stats.insights.length > 0 && (
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.insights.map((insight, idx) => (
                   <InsightCard
                     key={idx}
@@ -698,7 +698,7 @@ export default function MatchStatsPage() {
             )}
 
             {/* Charts Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
               <ServeReceiveChart data={stats.serveData} />
               {stats.serveTypeData && stats.serveTypeData.length > 0 && <ServeTypeChart data={stats.serveTypeData} />}
               <ShotTypeChart data={stats.strokeData} />
@@ -712,7 +712,7 @@ export default function MatchStatsPage() {
                 side2Name={team2Name}
               />
             )}
-          </StatsSectionContainer>
+            </StatsSectionContainer>
 
           {/* SECTION 3: GAME DETAILS */}
           <StatsSectionContainer

@@ -227,6 +227,9 @@ const tournamentTeamSchema = new Schema(
 
     // All base fields
     ...baseTournamentFields,
+    
+    // Explicitly ensure scorers field is included (in case baseTournamentFields spread doesn't work)
+    scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

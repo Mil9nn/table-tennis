@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, Loader2, Info } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { isIndividualMatch } from "@/types/match.type";
@@ -18,6 +18,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 export default function MatchDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const matchId = params.id as string;
   const categoryParam = searchParams.get("category");
 
@@ -29,16 +30,35 @@ export default function MatchDetailsPage() {
   const authLoading = useAuthStore((state) => state.authLoading);
   const [isTournamentScorer, setIsTournamentScorer] = useState(false);
   const [checkingTournamentScorer, setCheckingTournamentScorer] = useState(false);
+  const hasAttemptedFetch = useRef(false);
 
   useEffect(() => {
     fetchMatch(matchId, categoryParam === "team" ? "team" : "individual");
   }, [matchId, categoryParam, fetchMatch]);
 
+  // Only fetch user once if it's still null after AuthProvider has had a chance to initialize
+  // AuthProvider sets user from server-side data, so we only fetch as a fallback
   useEffect(() => {
-    if (!user && !authLoading) {
-      fetchUser().catch(() => {});
-    }
-  }, []);
+    // Only attempt once per component mount
+    if (hasAttemptedFetch.current) return;
+    hasAttemptedFetch.current = true;
+    
+    // Use a small delay to let AuthProvider's useEffect run first
+    const timer = setTimeout(() => {
+      // Check current state at the time the timer fires
+      const currentUser = useAuthStore.getState().user;
+      const currentAuthLoading = useAuthStore.getState().authLoading;
+      
+      if (!currentUser && !currentAuthLoading) {
+        fetchUser().catch(() => {
+          // Errors are handled silently - 404/401 are expected for unauthenticated users
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Check if user is a tournament scorer when match is loaded
   useEffect(() => {
@@ -142,7 +162,6 @@ export default function MatchDetailsPage() {
   // 1. The assigned match scorer, OR
   // 2. A tournament scorer (organizer or in scorers array)
   const isScorer = isMatchScorer || isTournamentScorer;
-  const router = useRouter();
 
   return (
     <div className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">

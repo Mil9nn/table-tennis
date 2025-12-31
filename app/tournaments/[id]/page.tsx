@@ -55,7 +55,7 @@ import { KnockoutStatistics as KnockoutStatisticsComponent } from "@/components/
 
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
-import PersonIcon from "@mui/icons-material/PersonAdd";
+import ScoreboardIcon from "@mui/icons-material/Scoreboard";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import CancelIcon from "@mui/icons-material/Cancel";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -91,6 +91,7 @@ export default function TournamentDetailPage() {
         );
         const tournament = data.tournament;
         console.log("Tournament doublesPairs:", tournament.doublesPairs);
+        console.log("Tournament scorers:", tournament.scorers, "Length:", tournament.scorers?.length || 0);
         setTournament(tournament);
       } catch (err) {
         console.error("Error fetching tournament:", err);
@@ -174,7 +175,8 @@ export default function TournamentDetailPage() {
     );
   };
 
-  const handleScorersUpdate = (scorers: any[]) => {
+  const handleScorersUpdate = async (scorers: any[]) => {
+    // Update local state immediately for responsive UI
     setTournament((prev) =>
       prev
         ? {
@@ -183,6 +185,8 @@ export default function TournamentDetailPage() {
           }
         : null
     );
+    // Also refresh tournament data to ensure consistency
+    await fetchTournament(true);
   };
 
   const handleGroupsUpdate = async (groups: any[]) => {
@@ -556,6 +560,7 @@ export default function TournamentDetailPage() {
                 <MapPin className="size-3.5 text-[#3c6e71]" />
                 <p className="text-xs font-medium text-[#353535]">
                   {tournament.city || "N/A"}
+                  {tournament.venue && `, ${tournament.venue}`}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -746,7 +751,7 @@ export default function TournamentDetailPage() {
                           size="sm"
                           className="text-[10px] font-semibold px-2.5 py-1.5 border border-[#d9d9d9] text-[#353535] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] disabled:opacity-50"
                         >
-                          <PersonIcon className="w-3 h-3 mr-1" />
+                          <ScoreboardIcon className="w-3 h-3 mr-1" />
                           Scorers
                         </Button>
 

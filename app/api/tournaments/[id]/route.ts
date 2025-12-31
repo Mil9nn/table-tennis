@@ -72,11 +72,18 @@ export async function GET(
     const participantConfig = getParticipantPopulateConfig(tournamentRaw.category);
     // Use the actual model instead of string name to ensure it's registered
     const MatchModel = isTeamTournament ? TeamMatch : IndividualMatch;
+    
+    // Use category-specific model for proper population (like loadTournament does)
+    const TournamentModel = isTeamTournament ? TournamentTeam : TournamentIndividual;
 
-    // Build the populate configuration dynamically using base Tournament model
-    let query = Tournament.findById(id)
+    // Build the populate configuration using category-specific model for proper schema support
+    let query = TournamentModel.findById(id)
       .populate("organizer", "username fullName profileImage")
-      .populate("scorers", "username fullName profileImage");
+      .populate({
+        path: "scorers",
+        select: "username fullName profileImage",
+        options: { strictPopulate: false } // Don't fail if scorers field doesn't exist in some documents
+      });
 
     // Populate participants based on category
     if (isTeamTournament) {
@@ -333,6 +340,29 @@ export async function GET(
 
     // Convert Mongoose document to plain object to ensure proper serialization
     const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+    
+    // Filter out null/invalid scorers (deleted users) and ensure they're populated objects
+    if (tournamentData.scorers && Array.isArray(tournamentData.scorers)) {
+      tournamentData.scorers = tournamentData.scorers.filter(
+        (s: any) => {
+          // Filter out null, undefined, and ObjectIds (unpopulated references)
+          // Only keep populated objects
+          if (!s || typeof s !== 'object' || Array.isArray(s)) {
+            return false;
+          }
+          
+          // Must have an ID
+          if (!s._id && !s.id) {
+            return false;
+          }
+          
+          // Must have username or fullName (User fields)
+          return !!(s.username || s.fullName);
+        }
+      );
+    } else if (!tournamentData.scorers) {
+      tournamentData.scorers = [];
+    }
     
     // Filter out null participants (deleted users/teams) and ensure they're populated objects
     if (tournamentData.participants && Array.isArray(tournamentData.participants)) {

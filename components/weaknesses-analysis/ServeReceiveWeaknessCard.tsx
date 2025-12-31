@@ -32,7 +32,6 @@ export function ServeReceiveWeaknessCard({
 
   // Get top 3 weakest receive types
   const weakestReceiveTypes = Object.entries(receiveStats.vsStrokeType)
-    .filter(([_, stats]) => stats.received >= 3)
     .sort((a, b) => a[1].winRate - b[1].winRate)
     .slice(0, 3);
 
@@ -67,11 +66,6 @@ export function ServeReceiveWeaknessCard({
             }`}>
               <RecommendationText text={serveStats.recommendation} />
             </p>
-            {serveStats.totalServes > 0 && serveStats.totalServes < 3 && (
-              <p className="text-xs text-[#d9d9d9] mt-1">
-                (Minimum 3 serves needed for accurate analysis)
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -133,11 +127,6 @@ export function ServeReceiveWeaknessCard({
             }`}>
               <RecommendationText text={receiveStats.recommendation} />
             </p>
-            {receiveStats.totalReceives > 0 && receiveStats.totalReceives < 3 && (
-              <p className="text-xs text-[#d9d9d9] mt-1">
-                (Minimum 3 receives needed for accurate analysis)
-              </p>
-            )}
           </div>
         </div>
       </div>

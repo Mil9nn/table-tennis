@@ -156,22 +156,24 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                   Performance Highlights
                 </h2>
               </div>
-              <div className="bg-lb-white border border-[#d9d9d9] p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
-                      Best Win Streak
-                    </h3>
-                    <p className="text-4xl font-bold text-[#353535]">
-                      {bestWinStreak}
-                    </p>
-                  </div>
-                  <div>
-                    <WhatshotIcon
-                      fontSize="large"
-                      className="text-[#3c6e71]"
-                      sx={{ fontSize: 48 }}
-                    />
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="lg:col-span-1 bg-lb-white border border-[#d9d9d9] p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                        Best Win Streak
+                      </h3>
+                      <p className="text-4xl font-bold text-[#353535]">
+                        {bestWinStreak}
+                      </p>
+                    </div>
+                    <div>
+                      <WhatshotIcon
+                        fontSize="large"
+                        className="text-[#3c6e71]"
+                        sx={{ fontSize: 48 }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -427,8 +429,8 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                   Scoring Statistics
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-[1px] bg-[#d9d9d9]">
-                <div className="bg-[#ffffff] p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
                     Total Points Scored
                   </p>
@@ -436,7 +438,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {scoring.totalPointsScored || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] p-5">
+                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
                     Total Points Conceded
                   </p>
@@ -444,7 +446,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {scoring.totalPointsConceded || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] p-5">
+                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
                     Avg Points Per Set
                   </p>
@@ -452,7 +454,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {scoring.avgPointsPerSet || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] p-5">
+                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
                     Avg Points/Match
                   </p>
@@ -460,7 +462,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {avgPointsPerMatch}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] p-5">
+                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
                     Total Sets
                   </p>
@@ -479,33 +481,33 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                 </h2>
               </div>
               <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                      Total Serves
-                    </p>
-                    <p className="text-2xl font-bold text-[#353535]">
-                      {server.totalServes || 0}
-                    </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
+                        Total Serves
+                      </p>
+                      <p className="text-2xl font-bold text-[#353535]">
+                        {server.totalServes || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
+                        Points Won on Serve
+                      </p>
+                      <p className="text-2xl font-bold text-[#353535]">
+                        {server.pointsWonOnServe || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
+                        Serve Win %
+                      </p>
+                      <p className="text-2xl font-bold text-[#353535]">
+                        {server.serveWinPercentage || 0}
+                        <span className="text-sm">%</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                      Points Won on Serve
-                    </p>
-                    <p className="text-2xl font-bold text-[#353535]">
-                      {server.pointsWonOnServe || 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                      Serve Win %
-                    </p>
-                    <p className="text-2xl font-bold text-[#353535]">
-                      {server.serveWinPercentage || 0}
-                      <span className="text-sm">%</span>
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
 

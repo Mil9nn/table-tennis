@@ -154,6 +154,10 @@ export const baseTournamentFields = {
 
   // Knockout tournament statistics (cached on completion)
   knockoutStatistics: { type: Schema.Types.Mixed, default: undefined },
+
+  // Scorers - users who can score matches in this tournament (max 10)
+  // Organizer is implicitly a scorer and doesn't need to be in this array
+  scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
 };
 
 /**

@@ -118,7 +118,7 @@ export default function Navbar() {
             ref={quickActionsButtonRef}
             onClick={() => setQuickActionsOpen(!quickActionsOpen)}
             className={cn(
-              "hidden sm:flex size-9 rounded-full items-center justify-center transition-all duration-200",
+              "hidden sm:flex ml-2 size-8 rounded-full items-center justify-center transition-all duration-200",
               quickActionsOpen
                 ? "bg-indigo-600 text-white shadow-md"
                 : "bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
@@ -129,7 +129,7 @@ export default function Navbar() {
           >
             <Plus
               className={cn(
-                "size-5 transition-transform duration-200",
+                "size-4 transition-transform duration-200",
                 quickActionsOpen && "rotate-45"
               )}
             />
@@ -150,14 +150,14 @@ export default function Navbar() {
                   className={cn(
                     "flex items-center gap-1 px-2 lg:px-3 py-2 font-medium text-xs lg:text-sm transition-all duration-300 relative",
                     active
-                      ? "text-indigo-600"
-                      : "text-gray-700 hover:text-indigo-600"
+                      ? "text-blue-500"
+                      : "text-gray-400 hover:text-blue-400"
                   )}
                 >
                   <Icon sx={{ fontSize: 18 }} />
                   {item.label}
                   {active && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
+                    <div className="absolute -bottom-3 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
                   )}
                 </Link>
               );
@@ -203,12 +203,9 @@ export default function Navbar() {
           id="quick-actions-panel"
           role="region"
           aria-label="Quick Actions Menu"
-          className="hidden sm:block absolute top-full left-0 right-0 bg-linear-to-b from-white to-gray-50 border-b border-gray-100 shadow-md z-40 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="hidden sm:block absolute top-full left-0 right-0 bg-zinc-900 shadow-md z-40 animate-in fade-in slide-in-from-top-2 duration-200"
         >
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-              Quick Actions
-            </div>
+          <div className="max-w-7xl mx-auto px-4 py-2">
             <div className="flex gap-2 flex-wrap">
               <Link
                 href="/match/create"

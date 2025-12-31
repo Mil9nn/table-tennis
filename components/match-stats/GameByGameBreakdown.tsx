@@ -147,118 +147,138 @@ export function GameByGameBreakdown({
                 </button>
 
                 {isExpanded && (
-                  <ul className="divide-y divide-[#d9d9d9]">
-                    {gameShots.length ? (
-                      gameShots.map((shot, i) => {
-                      const playerName =
-                        shot.player.fullName ||
-                        shot.player.username ||
-                        "Unknown Player";
+                   <ul className="divide-y divide-[#d9d9d9] px-4 py-2">
+                     {gameShots.length ? (
+                       [...gameShots].reverse().map((shot, i) => {
+                       const playerName =
+                         shot.player.fullName ||
+                         shot.player.username ||
+                         "Unknown Player";
 
-                      const shotType = formatShotType(shot.stroke);
-                      const hasCoordinates =
-                        shot.originX != null &&
-                        shot.originY != null &&
-                        shot.landingX != null &&
-                        shot.landingY != null;
-                      
-                      // Calculate game score at the time of this shot
-                      // Count shots by side up to and including this shot
-                      let gameScoreSide1 = 0;
-                      let gameScoreSide2 = 0;
-                      for (let j = 0; j <= i; j++) {
-                        if (gameShots[j].side === "side1") {
-                          gameScoreSide1++;
-                        } else if (gameShots[j].side === "side2") {
-                          gameScoreSide2++;
-                        }
-                      }
-                      const currentGameScore = {
-                        side1Score: gameScoreSide1,
-                        side2Score: gameScoreSide2,
-                      };
-                      
-                      // Generate full commentary with server, game score, and set score if available
-                      let commentary: string | null = null;
-                      if (hasCoordinates) {
-                        if (participants && finalScore) {
-                          // Calculate set score at the time of this shot
-                          // Count completed games before this one
-                          let setsWonSide1 = 0;
-                          let setsWonSide2 = 0;
-                          for (let j = 0; j < idx; j++) {
-                            if (games[j].winnerSide === "side1") setsWonSide1++;
-                            if (games[j].winnerSide === "side2") setsWonSide2++;
-                          }
-                          // For current game, the set score is what it was at the start
-                          // (since this shot is part of this game)
-                          const currentSetScore = {
-                            side1Sets: setsWonSide1,
-                            side2Sets: setsWonSide2,
-                          };
-                          
-                          commentary = generateFullCommentary(
-                            shot,
-                            participants,
-                            games,
-                            currentSetScore,
-                            side1Name,
-                            side2Name,
-                            currentGameScore
-                          );
-                        } else {
-                          // Fallback to short commentary
-                          commentary = generateShortCommentary(shot);
-                        }
-                      }
+                       const shotType = formatShotType(shot.stroke);
+                       const hasCoordinates =
+                         shot.originX != null &&
+                         shot.originY != null &&
+                         shot.landingX != null &&
+                         shot.landingY != null;
+                       
+                       // Calculate game score at the time of this shot
+                       // Since array is reversed, calculate the original index
+                       const originalIndex = gameShots.length - 1 - i;
+                       let gameScoreSide1 = 0;
+                       let gameScoreSide2 = 0;
+                       for (let j = 0; j <= originalIndex; j++) {
+                         if (gameShots[j].side === "side1") {
+                           gameScoreSide1++;
+                         } else if (gameShots[j].side === "side2") {
+                           gameScoreSide2++;
+                         }
+                       }
+                       const currentGameScore = {
+                         side1Score: gameScoreSide1,
+                         side2Score: gameScoreSide2,
+                       };
+                       
+                       // Generate full commentary with server, game score, and set score if available
+                       let commentary: string | null = null;
+                       if (hasCoordinates) {
+                         if (participants && finalScore) {
+                           // Calculate set score at the time of this shot
+                           // Count completed games before this one
+                           let setsWonSide1 = 0;
+                           let setsWonSide2 = 0;
+                           for (let j = 0; j < idx; j++) {
+                             if (games[j].winnerSide === "side1") setsWonSide1++;
+                             if (games[j].winnerSide === "side2") setsWonSide2++;
+                           }
+                           // For current game, the set score is what it was at the start
+                           // (since this shot is part of this game)
+                           const currentSetScore = {
+                             side1Sets: setsWonSide1,
+                             side2Sets: setsWonSide2,
+                           };
+                           
+                           commentary = generateFullCommentary(
+                             shot,
+                             participants,
+                             games,
+                             currentSetScore,
+                             side1Name,
+                             side2Name,
+                             currentGameScore
+                           );
+                         } else {
+                           // Fallback to short commentary
+                           commentary = generateShortCommentary(shot);
+                         }
+                       }
 
-                      return (
-                        <li
-                          key={i}
-                          className="flex flex-col gap-1.5 text-xs sm:text-sm py-2 hover:bg-[#f8f8f8] transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-[#d9d9d9] font-mono text-xs">
-                              {i + 1}.
-                            </span>
-                            <span className="flex-1">
-                              <strong className="text-[#353535]">
-                                {playerName}
-                              </strong>{" "}
-                              <span className="text-[#d9d9d9] text-xs">
-                                ({shot.side})
-                              </span>{" "}
-                              →{" "}
-                              <span className="text-[#3c6e71] font-medium">
-                                {shotType}
-                              </span>
-                            </span>
-                          </div>
+                       return (
+                         <li
+                           key={originalIndex}
+                           className="flex gap-3 text-xs sm:text-sm py-3 hover:bg-[#f8f8f8] transition-colors rounded-lg px-2"
+                         >
+                           {/* Shot number */}
+                           <span className="text-[#d9d9d9] font-mono text-xs pt-0.5">
+                             {gameShots.length - i}.
+                           </span>
 
-                          {/* Advanced Commentary */}
-                          {commentary && (
-                            <div className="flex items-start gap-2 ml-8 text-xs">
-                              <MessageSquare className="w-3 h-3 text-[#284b63] mt-0.5 shrink-0" />
-                              <span 
-                                className="text-[#353535]/70 italic leading-relaxed"
-                                dangerouslySetInnerHTML={{ 
-                                  __html: commentary.replace(
-                                    /<strong>(.*?)<\/strong>/g, 
-                                    '<strong class="font-bold text-[#353535] not-italic">$1</strong>'
-                                  )
-                                }}
-                              />
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })
-                    ) : (
-                      <li className="px-3 py-3 text-sm text-[#d9d9d9] italic">
-                        No shots recorded…
-                      </li>
-                    )}
-                  </ul>
+                           {/* Shot commentary with color accent */}
+                           <div className="flex-1 flex gap-2.5">
+                             {/* Color accent bar */}
+                             <div
+                               className={`w-1 rounded-full flex-shrink-0 ${
+                                 shot.side === "side1"
+                                   ? "bg-gradient-to-b from-[#3c6e71] to-[#2a5056]"
+                                   : "bg-gradient-to-b from-[#284b63] to-[#1a3547]"
+                               }`}
+                             />
+
+                             {/* Commentary content */}
+                             <div className="flex-1 space-y-1">
+                               {commentary ? (
+                                 <div
+                                   className="text-[#353535] leading-relaxed"
+                                   dangerouslySetInnerHTML={{
+                                     __html: commentary.replace(
+                                       /<strong>(.*?)<\/strong>/g,
+                                       '<strong class="font-semibold text-[#353535]">$1</strong>'
+                                     ),
+                                   }}
+                                 />
+                               ) : (
+                                 // Fallback if no commentary available
+                                 <div className="text-[#353535]">
+                                   <strong className="font-semibold text-[#353535]">
+                                     {playerName}
+                                   </strong>{" "}
+                                   <span className="text-[#d9d9d9] text-xs">
+                                     ({shot.side})
+                                   </span>{" "}
+                                   →{" "}
+                                   <span
+                                     className={`font-medium ${
+                                       shot.side === "side1"
+                                         ? "text-[#3c6e71]"
+                                         : "text-[#284b63]"
+                                     }`}
+                                   >
+                                     {shotType}
+                                   </span>
+                                 </div>
+                               )}
+                             </div>
+                           </div>
+                         </li>
+                       );
+                     })
+                     ) : (
+                       <li className="flex items-center gap-2 text-sm text-[#d9d9d9] italic py-3">
+                         <span className="w-2 h-2 bg-[#d9d9d9] rounded-full" />
+                         No shots recorded…
+                       </li>
+                     )}
+                   </ul>
                 )}
               </div>
             </div>

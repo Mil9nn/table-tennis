@@ -15,14 +15,16 @@
 // If running directly, this script assumes env vars are already loaded
 import mongoose from "mongoose";
 import { connectDB } from "../lib/mongodb";
-import Tournament from "../models/Tournament";
+import TournamentIndividual from "../models/TournamentIndividual";
 import IndividualMatch from "../models/IndividualMatch";
 import PlayerStats from "../models/PlayerStats";
 import { User } from "../models/User";
 import { generateKnockoutMatches, createBracketMatch } from "../services/tournament/core/matchGenerationService";
 import { advanceWinner } from "../services/tournament/core/bracketProgressionService";
+import { onTournamentCompleted } from "../services/tournament/core/statusTransitionService";
 import type { KnockoutBracket } from "../types/tournamentDraw";
 import { shotCategories } from "../constants/constants";
+import BracketState from "../models/BracketState";
 
 // Shot type definitions
 type Stroke =
@@ -197,19 +199,19 @@ function generateShot(
       landingX = 85 + Math.random() * 15;
     }
   } else {
-    // Side2 player hitting (position on right)
+    // Side2 player hitting (position on right, X: 50-100)
     if (isServe) {
-      originX = Math.random() * 60 + 40;
+      originX = 50 + Math.random() * 50;
       originY = Math.random() * 30 - 25;
     } else {
       if (distanceZone === "close") {
-        originX = Math.random() * 76 + 24;
+        originX = 50 + Math.random() * 50;
         originY = Math.random() * 48 + 26;
       } else if (distanceZone === "mid") {
-        originX = Math.random() * 76 + 24;
+        originX = 50 + Math.random() * 50;
         originY = Math.random() * 130 - 15;
       } else {
-        originX = Math.random() * 76 + 24;
+        originX = 50 + Math.random() * 50;
         originY = Math.random() * 200 - 100;
       }
     }
@@ -428,7 +430,7 @@ async function createTournament(
   organizerId: string,
   participantIds: string[]
 ): Promise<string> {
-  const tournament = new Tournament({
+  const tournament = new TournamentIndividual({
     name,
     format: "knockout",
     category: "individual",
@@ -470,12 +472,9 @@ async function createTournament(
 async function playRound(
   tournament: any,
   roundNumber: number,
-  organizerId: string
+  organizerId: string,
+  bracket: KnockoutBracket
 ): Promise<void> {
-  const bracket: KnockoutBracket = tournament.bracket;
-  if (!bracket) {
-    throw new Error("Tournament bracket not found");
-  }
 
   const round = bracket.rounds.find((r) => r.roundNumber === roundNumber);
   if (!round) {
@@ -499,15 +498,31 @@ async function playRound(
     // If no match document exists, create it
     if (!matchId) {
       try {
+        // Ensure bracketPosition is set on bracketMatch before creating match
+        if (!bracketMatch.bracketPosition) {
+          bracketMatch.bracketPosition = {
+            round: roundNumber,
+            matchNumber: bracketMatch.bracketPosition?.matchNumber || round.matches.indexOf(bracketMatch) + 1,
+          };
+        }
+        
         const newMatch = await createBracketMatch(bracketMatch, tournament, organizerId);
         if (newMatch) {
           matchId = newMatch._id.toString();
           bracketMatch.matchId = matchId;
           tournament.markModified("bracket");
           await tournament.save();
+          
+          // Verify the match was created with bracketPosition
+          const savedMatch = await IndividualMatch.findById(matchId);
+          if (savedMatch && !savedMatch.bracketPosition) {
+            console.log(`   ⚠️  Warning: Match ${matchId} created without bracketPosition, updating...`);
+            savedMatch.bracketPosition = bracketMatch.bracketPosition;
+            await savedMatch.save();
+          }
         }
       } catch (err) {
-        console.log(`   ⚠️  Could not create match document for ${bracketMatch.bracketPosition.matchNumber}`);
+        console.log(`   ⚠️  Could not create match document for ${bracketMatch.bracketPosition?.matchNumber || 'unknown'}:`, err);
         continue;
       }
     }
@@ -563,7 +578,11 @@ async function playRound(
       winnerId
     );
 
-    // Mark bracket as modified and save
+    // Update BracketState with the updated bracket
+    const { createOrUpdateBracketState } = await import("../services/tournament/core/bracketGenerationService");
+    await createOrUpdateBracketState(tournament._id.toString(), bracket);
+
+    // Also update tournament bracket field if it exists
     tournament.markModified("bracket");
     await tournament.save();
   }
@@ -573,15 +592,32 @@ async function playRound(
  * Display tournament bracket
  */
 async function displayBracket(tournamentId: string): Promise<void> {
-  const tournament = await Tournament.findById(tournamentId)
+  const tournament = await TournamentIndividual.findById(tournamentId)
     .populate({ path: "participants", model: "User", select: "username fullName" })
     .populate("organizer", "username fullName");
 
-  if (!tournament || !tournament.bracket) {
-    throw new Error("Tournament or bracket not found");
+  if (!tournament) {
+    throw new Error("Tournament not found");
   }
 
-  const bracket: KnockoutBracket = tournament.bracket;
+  // Load bracket from BracketState if not in tournament document
+  let bracket: KnockoutBracket = tournament.bracket as any;
+  if (!bracket) {
+    const bracketState = await BracketState.findOne({ tournament: tournamentId });
+    if (bracketState) {
+      bracket = {
+        size: bracketState.size,
+        rounds: bracketState.rounds,
+        currentRound: bracketState.currentRound,
+        completed: bracketState.completed,
+        thirdPlaceMatch: bracketState.thirdPlaceMatch,
+      } as KnockoutBracket;
+    }
+  }
+
+  if (!bracket) {
+    throw new Error("Bracket not found");
+  }
 
   console.log("\n" + "=".repeat(60));
   console.log(`🏆 Tournament: ${tournament.name}`);
@@ -709,7 +745,7 @@ async function main() {
     console.log(`\n✅ Tournament created: ${tournamentId}`);
 
     // Load tournament (populate participants so we can display names)
-    const tournament = await Tournament.findById(tournamentId).populate({
+    const tournament = await TournamentIndividual.findById(tournamentId).populate({
       path: "participants",
       model: "User",
       select: "username fullName",
@@ -720,7 +756,7 @@ async function main() {
 
     // Generate knockout bracket and matches
     console.log("\n🔨 Generating bracket and matches...");
-    await generateKnockoutMatches(
+    const bracket = await generateKnockoutMatches(
       tournament as any,
       participantIds,
       [], // No seeding
@@ -731,11 +767,16 @@ async function main() {
       }
     );
 
+    // Create/update BracketState (required for TournamentIndividual virtual bracket)
+    const { createOrUpdateBracketState } = await import("../services/tournament/core/bracketGenerationService");
+    await createOrUpdateBracketState(tournamentId, bracket);
+    console.log("✅ BracketState created/updated");
+
     // Save tournament after bracket generation
     await tournament.save();
 
     // Reload tournament to get updated bracket and populated participants
-    const updatedTournament = await Tournament.findById(tournamentId).populate({
+    const updatedTournament = await TournamentIndividual.findById(tournamentId).populate({
       path: "participants",
       model: "User",
       select: "username fullName",
@@ -744,11 +785,8 @@ async function main() {
       throw new Error("Tournament not found after bracket generation");
     }
 
-    // Check if bracket was generated
-    const bracket: KnockoutBracket = updatedTournament.bracket as any;
-    if (!bracket) {
-      throw new Error("Bracket not generated - check generateKnockoutMatches function");
-    }
+    // We already have the bracket from generateKnockoutMatches, so we can use it directly
+    // The bracket is now stored in BracketState, so it will be available via the virtual property
 
     console.log(`✅ Bracket generated with ${bracket.rounds.length} round(s)`);
 
@@ -761,7 +799,8 @@ async function main() {
 
     // Play each round
     for (let roundNum = 1; roundNum <= bracket.rounds.length; roundNum++) {
-      const currentTournament = await Tournament.findById(tournamentId).populate({
+      // Reload tournament and bracket from BracketState to get latest state
+      const currentTournament = await TournamentIndividual.findById(tournamentId).populate({
         path: "participants",
         model: "User",
         select: "username fullName",
@@ -770,14 +809,76 @@ async function main() {
         throw new Error("Tournament not found");
       }
 
-      await playRound(currentTournament, roundNum, organizerId);
+      // Load bracket from BracketState (source of truth)
+      const bracketState = await BracketState.findOne({ tournament: tournamentId });
+      if (!bracketState) {
+        throw new Error("BracketState not found");
+      }
+      
+      const currentBracket: KnockoutBracket = {
+        size: bracketState.size,
+        rounds: bracketState.rounds,
+        currentRound: bracketState.currentRound,
+        completed: bracketState.completed,
+        thirdPlaceMatch: bracketState.thirdPlaceMatch,
+      } as KnockoutBracket;
 
-      // Check if tournament is completed
-      const updatedBracket: KnockoutBracket = currentTournament.bracket;
+      // Pass the bracket to playRound
+      await playRound(currentTournament, roundNum, organizerId, currentBracket);
+
+      // Reload bracket state to check completion
+      const updatedBracketState = await BracketState.findOne({ tournament: tournamentId });
+      if (!updatedBracketState) {
+        throw new Error("BracketState not found after round");
+      }
+      
+      const updatedBracket: KnockoutBracket = {
+        size: updatedBracketState.size,
+        rounds: updatedBracketState.rounds,
+        currentRound: updatedBracketState.currentRound,
+        completed: updatedBracketState.completed,
+        thirdPlaceMatch: updatedBracketState.thirdPlaceMatch,
+      } as KnockoutBracket;
+      
       if (updatedBracket.completed) {
         currentTournament.status = "completed";
         currentTournament.endDate = new Date();
         await currentTournament.save();
+
+        // Sync bracket state to BracketState model (required for statistics generation)
+        try {
+          const bracketState = await BracketState.findOne({ tournament: tournamentId });
+          if (bracketState) {
+            bracketState.rounds = updatedBracket.rounds;
+            bracketState.currentRound = updatedBracket.currentRound;
+            bracketState.completed = updatedBracket.completed;
+            bracketState.thirdPlaceMatch = updatedBracket.thirdPlaceMatch;
+            await bracketState.save();
+          } else {
+            // Create BracketState if it doesn't exist
+            const newBracketState = new BracketState({
+              tournament: tournamentId,
+              rounds: updatedBracket.rounds,
+              currentRound: updatedBracket.currentRound,
+              completed: updatedBracket.completed,
+              thirdPlaceMatch: updatedBracket.thirdPlaceMatch,
+            });
+            await newBracketState.save();
+          }
+        } catch (bracketStateErr) {
+          console.error("⚠️  Warning: Failed to sync BracketState:", bracketStateErr);
+        }
+
+        // Generate tournament statistics
+        try {
+          console.log("\n📊 Generating tournament statistics...");
+          await onTournamentCompleted(tournamentId, organizerId);
+          console.log("✅ Tournament statistics generated successfully!");
+        } catch (statsError: any) {
+          console.error("⚠️  Warning: Failed to generate statistics:", statsError.message || statsError);
+          // Continue even if statistics generation fails
+        }
+
         break;
       }
     }

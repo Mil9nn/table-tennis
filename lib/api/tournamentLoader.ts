@@ -138,7 +138,10 @@ export async function loadTournament(
   let query = (TournamentModel as any).findById(tournamentId).populate("organizer");
 
   if (options.populateScorers) {
-    query = query.populate("scorers");
+    query = query.populate({
+      path: "scorers",
+      options: { strictPopulate: false } // Don't fail if scorers field doesn't exist in some documents
+    });
   }
 
   // Populate based on category

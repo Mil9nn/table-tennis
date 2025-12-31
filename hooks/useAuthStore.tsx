@@ -42,9 +42,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const response = await axiosInstance.get("auth/me");
             set({ user: response.data.user });
-        } catch (error) {
+        } catch (error: AxiosError | any) {
             set({ user: null });
-            console.error("Fetch user error:", error);
+            // Don't log 404 errors - they're expected for unauthenticated users
+            if (error?.response?.status !== 404 && error?.response?.status !== 401) {
+                console.error("Fetch user error:", error);
+            }
         } finally {
             set({ authLoading: false });
         }

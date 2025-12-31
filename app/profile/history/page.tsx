@@ -123,7 +123,7 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
                 </p>
               </div>
 
-              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-4">
                 {matches.map((match, index) => (
                   <div
                     key={index}

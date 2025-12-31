@@ -43,7 +43,7 @@ export const StatsSectionContainer = forwardRef<
         )}
 
         {/* Section Content */}
-        <div className="space-y-6">{children}</div>
+        <div className="grid grid-cols-1 gap-6">{children}</div>
       </div>
     </section>
   );

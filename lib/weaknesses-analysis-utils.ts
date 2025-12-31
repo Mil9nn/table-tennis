@@ -23,10 +23,10 @@ import { analyzeShotPlacement, getZone, getSector } from "@/lib/shot-commentary-
 import { getAbsoluteSector, getRelativeSector } from "@/lib/sector-utils";
 
 // Minimum sample sizes for statistical significance
-const MIN_SHOT_ATTEMPTS = 5; // Minimum shots for shot weakness analysis
-const MIN_ZONE_SHOTS = 3; // Minimum shots per zone for zone analysis
-const MIN_SERVE_ATTEMPTS = 3; // Minimum serves for serve analysis
-const MIN_RECEIVE_ATTEMPTS = 3; // Minimum receives for receive analysis
+const MIN_SHOT_ATTEMPTS = 1; // Minimum shots for shot weakness analysis
+const MIN_ZONE_SHOTS = 1; // Minimum shots per zone for zone analysis
+const MIN_SERVE_ATTEMPTS = 1; // Minimum serves for serve analysis
+const MIN_RECEIVE_ATTEMPTS = 1; // Minimum receives for receive analysis
 
 /**
  * Core algorithm: Determine point winners from shot sequences

@@ -40,12 +40,17 @@ export const DELETE = withDBAndErrorHandling(async (req, context) => {
 
   // Remove scorer
   tournament.scorers.splice(scorerIndex, 1);
+  // Mark the scorers array as modified to ensure Mongoose tracks the change
+  tournament.markModified("scorers");
   await tournament.save();
 
-  // Return updated tournament with populated scorers
-  const updatedTournament = await Tournament.findById(id)
-    .populate("organizer", "username fullName profileImage")
-    .populate("scorers", "username fullName profileImage");
+  // Reload tournament using the same model type to ensure consistency
+  // Use loadTournament to get the correct model (TournamentIndividual or TournamentTeam)
+  const { tournament: updatedTournament } = await loadTournament(id, authUserId, {
+    requireOrganizer: true,
+    skipConnect: true,
+    populateScorers: true,
+  });
 
   return jsonOk({
     message: "Scorer removed successfully",

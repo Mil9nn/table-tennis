@@ -12,6 +12,7 @@ import {
   createBracketMatch,
   createBracketTeamMatch,
 } from "./core/matchGenerationService";
+import { onTournamentCompleted } from "./core/statusTransitionService";
 
 /**
  * Fetch matches by IDs (handles both IndividualMatch and TeamMatch)
@@ -526,6 +527,11 @@ async function updateKnockoutBracket(tournament: any, match: any) {
         allBracketMatches.every((m: any) => m && m.status === "completed");
 
       // Update tournament status
+      const wasJustCompleted = 
+        updatedBracket.completed && 
+        allBracketMatchesCompleted && 
+        freshTournament.status !== "completed";
+        
       if (updatedBracket.completed && allBracketMatchesCompleted) {
         freshTournament.status = "completed";
         freshTournament.endDate = freshTournament.endDate || new Date();
@@ -542,7 +548,7 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       // Save with optimistic locking protection
       await freshTournament.save();
 
-      // Sync bracket state to BracketState model
+      // Sync bracket state to BracketState model (required before generating statistics)
       try {
         const BracketState = (await import("@/models/BracketState")).default;
         const bracketState = await BracketState.findOne({ tournament: tournament._id });
@@ -560,6 +566,26 @@ async function updateKnockoutBracket(tournament: any, match: any) {
           bracketStateErr
         );
         // Continue - Tournament.bracket is the source of truth
+      }
+
+      // Automatically generate statistics if tournament was just completed
+      // and statistics don't exist yet
+      if (wasJustCompleted && !freshTournament.knockoutStatistics) {
+        try {
+          // Get the match scorer's user ID, or fall back to organizer
+          const userId = match.scorer?.toString() || freshTournament.organizer.toString();
+          await onTournamentCompleted(freshTournament._id.toString(), userId);
+          console.log(
+            `[updateKnockoutBracket] ✅ Automatically generated statistics for tournament ${freshTournament._id}`
+          );
+        } catch (statsError: any) {
+          // Log error but don't fail the tournament completion
+          console.error(
+            `[updateKnockoutBracket] ⚠️ Failed to auto-generate statistics:`,
+            statsError.message || statsError
+          );
+          // Tournament is still marked as completed, statistics can be generated manually later
+        }
       }
 
       return; // Success, exit retry loop

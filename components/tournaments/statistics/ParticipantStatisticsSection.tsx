@@ -120,6 +120,18 @@ export function ParticipantStatisticsSection({
     setSortKey(key);
   };
 
+  // Get display text for position
+  const getPositionDisplayText = (position: string) => {
+    switch (position) {
+      case "Champion":
+        return "Gold";
+      case "Runner-up":
+        return "Silver";
+      default:
+        return position;
+    }
+  };
+
   // Get badge color for position
   const getPositionBadgeClass = (position: string) => {
     switch (position) {
@@ -189,11 +201,23 @@ export function ParticipantStatisticsSection({
                  Sets
                </TableHead>
 
+               {/* Set +/- */}
+               <TableHead className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500">
+                 Set +/-
+               </TableHead>
+
                {/* Points */}
                <TableHead
                  className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
                >
                  Points
+               </TableHead>
+
+               {/* Point +/- */}
+               <TableHead
+                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
+               >
+                 Point +/-
                </TableHead>
 
                {/* Avg PTS/Set */}
@@ -211,6 +235,11 @@ export function ParticipantStatisticsSection({
               {/* Peak Win */}
               <TableHead className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500">
                 Peak Win
+              </TableHead>
+
+              {/* Peak Round */}
+              <TableHead className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500">
+                Peak Round
               </TableHead>
 
               {/* Eliminated By */}
@@ -246,7 +275,7 @@ export function ParticipantStatisticsSection({
                     "inline-flex items-center px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-tight whitespace-nowrap",
                     getPositionBadgeClass(participant.roundReached)
                   )}>
-                    {participant.roundReached}
+                    {getPositionDisplayText(participant.roundReached)}
                   </span>
                 </TableCell>
 
@@ -270,33 +299,38 @@ export function ParticipantStatisticsSection({
 
                 {/* Sets */}
                 <TableCell className="py-1.5 px-2 text-center">
-                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] font-mono text-slate-600 leading-none">
-                      {participant.setsWon}-{participant.setsLost}
-                    </span>
-                    <span className={cn(
-                      "text-[9px] font-bold",
-                      participant.setsDiff > 0 ? "text-blue-600" :
-                      participant.setsDiff < 0 ? "text-rose-500" : "text-slate-400"
-                    )}>
-                      {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-mono text-slate-600">
+                    {participant.setsWon}-{participant.setsLost}
+                  </span>
+                </TableCell>
+
+                {/* Set +/- */}
+                <TableCell className="py-1.5 px-2 text-center">
+                  <span className={cn(
+                    "text-[10px] font-mono font-bold",
+                    participant.setsDiff > 0 ? "text-blue-600" :
+                    participant.setsDiff < 0 ? "text-rose-500" : "text-slate-400"
+                  )}>
+                    {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
+                  </span>
                 </TableCell>
 
                 {/* Points */}
                 <TableCell className="py-1.5 px-2 text-center">
-                  <div className="flex flex-col items-center">
-                    <span className="text-[11px] font-mono font-black text-slate-900 leading-none">
-                      {participant.pointsScored}
-                    </span>
-                    <span className={cn(
-                      "text-[9px] font-bold",
-                      participant.pointsDiff > 0 ? "text-emerald-600" : "text-slate-400"
-                    )}>
-                      {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-mono font-black text-slate-900">
+                    {participant.pointsScored}
+                  </span>
+                </TableCell>
+
+                {/* Point +/- */}
+                <TableCell className="py-1.5 px-2 text-center">
+                  <span className={cn(
+                    "text-[10px] font-mono font-bold",
+                    participant.pointsDiff > 0 ? "text-emerald-600" :
+                    participant.pointsDiff < 0 ? "text-rose-500" : "text-slate-400"
+                  )}>
+                    {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
+                  </span>
                 </TableCell>
 
                 {/* Avg PTS/Set */}
@@ -311,25 +345,28 @@ export function ParticipantStatisticsSection({
 
                 {/* Peak Win */}
                 <TableCell className="py-1.5 px-3">
-                  {participant.biggestWinOpponent !== "N/A" ? (
-                    <div className="flex flex-col">
+                  {participant.biggestWinOpponent !== "N/A" && participant.biggestWinOpponent ? (
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-[10px] font-medium text-slate-700 whitespace-nowrap">
-                        vs {participant.biggestWinOpponent}
+                        {participant.biggestWinOpponent}
                       </span>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      {participant.biggestWinScore && participant.biggestWinScore !== "N/A" && (
                         <span className="text-[11px] font-black text-slate-900">
                           {participant.biggestWinScore}
                         </span>
-                        {participant.biggestWinMargin && (
-                          <span className="text-[9px] font-bold text-emerald-600">
-                            +{participant.biggestWinMargin}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[9px] text-slate-400 uppercase tracking-tight">
-                        {participant.biggestWinRound}
-                      </span>
+                      )}
                     </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">—</span>
+                  )}
+                </TableCell>
+
+                {/* Peak Round */}
+                <TableCell className="py-1.5 px-3">
+                  {participant.biggestWinRound && participant.biggestWinRound !== "N/A" ? (
+                    <span className="text-[10px] text-slate-600 uppercase tracking-tight">
+                      {participant.biggestWinRound}
+                    </span>
                   ) : (
                     <span className="text-[10px] text-slate-400">—</span>
                   )}

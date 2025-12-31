@@ -55,7 +55,12 @@ export function ManageScorersDialog({
 
   useEffect(() => {
     if (open) {
-      setLocalScorers(scorers || []);
+      // Ensure scorers is always an array and filter out invalid entries
+      const scorersArray = Array.isArray(scorers) 
+        ? scorers.filter((s: any) => s && typeof s === 'object' && (s._id || s.id))
+        : [];
+      console.log("ManageScorersDialog - Opening with scorers prop:", scorers, "Filtered:", scorersArray);
+      setLocalScorers(scorersArray);
       setPendingAdds([]);
       setPendingRemoves([]);
       setQuery("");
@@ -183,7 +188,15 @@ export function ManageScorersDialog({
 
       // Fetch updated tournament to get latest scorers
       const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
-      onUpdate(data.tournament.scorers);
+      
+      // Ensure scorers is an array and properly formatted
+      const updatedScorers = Array.isArray(data.tournament.scorers) 
+        ? data.tournament.scorers.filter((s: any) => s && typeof s === 'object' && (s._id || s.id))
+        : [];
+      
+      console.log("ManageScorersDialog - Updated scorers from API:", updatedScorers);
+      
+      onUpdate(updatedScorers);
 
       onOpenChange(false);
     } catch (err: any) {
