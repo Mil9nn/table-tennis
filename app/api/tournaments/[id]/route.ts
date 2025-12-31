@@ -77,7 +77,7 @@ export async function GET(
     const TournamentModel = isTeamTournament ? TournamentTeam : TournamentIndividual;
 
     // Build the populate configuration using category-specific model for proper schema support
-    let query = TournamentModel.findById(id)
+    let query: any = (TournamentModel as any).findById(id)
       .populate("organizer", "username fullName profileImage")
       .populate({
         path: "scorers",

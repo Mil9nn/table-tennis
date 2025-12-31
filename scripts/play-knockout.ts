@@ -498,13 +498,13 @@ async function playRound(
     // If no match document exists, create it
     if (!matchId) {
       try {
-        // Ensure bracketPosition is set on bracketMatch before creating match
-        if (!bracketMatch.bracketPosition) {
-          bracketMatch.bracketPosition = {
-            round: roundNumber,
-            matchNumber: bracketMatch.bracketPosition?.matchNumber || round.matches.indexOf(bracketMatch) + 1,
-          };
-        }
+         // Ensure bracketPosition is set on bracketMatch before creating match
+         if (!bracketMatch.bracketPosition) {
+           bracketMatch.bracketPosition = {
+             round: roundNumber,
+             matchNumber: round.matches.indexOf(bracketMatch) + 1,
+           };
+         }
         
         const newMatch = await createBracketMatch(bracketMatch, tournament, organizerId);
         if (newMatch) {

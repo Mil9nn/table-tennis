@@ -96,7 +96,7 @@ export const POST = withDBAndErrorHandling(async (req, context) => {
     updateOperation.$addToSet = { scorers: scorerObjectId };
   }
   
-  const updatedTournament = await TournamentModel.findByIdAndUpdate(
+  const updatedTournament = await (TournamentModel as any).findByIdAndUpdate(
     id,
     updateOperation,
     { 
@@ -115,7 +115,7 @@ export const POST = withDBAndErrorHandling(async (req, context) => {
   });
   
   // Verify the update worked by querying directly from database
-  const verifyTournament = await TournamentModel.findById(id).select("scorers").lean();
+  const verifyTournament = await (TournamentModel as any).findById(id).select("scorers").lean();
   console.log("POST /scorers - Database verification:", {
     tournamentId: id,
     scorersInDB: verifyTournament?.scorers?.map((s: any) => s.toString()) || [],

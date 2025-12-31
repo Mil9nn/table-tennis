@@ -74,14 +74,14 @@ async function deleteTournamentAndMatches() {
 
     // If still not found, just get the first tournament
     if (!tournament) {
-      tournament = allIndividualTournaments[0] || allTeamTournaments[0];
-      if (tournament) {
+      const leanTournament = allIndividualTournaments[0] || allTeamTournaments[0];
+      if (leanTournament) {
         tournamentType = allIndividualTournaments.length > 0 ? "individual" : "team";
         // Need to fetch the full document
         if (tournamentType === "individual") {
-          tournament = await TournamentIndividual.findById(tournament._id);
+          tournament = await TournamentIndividual.findById(leanTournament._id);
         } else {
-          tournament = await TournamentTeam.findById(tournament._id);
+          tournament = await TournamentTeam.findById(leanTournament._id);
         }
       }
     }
