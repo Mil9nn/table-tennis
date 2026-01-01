@@ -15,16 +15,6 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const SKIP_EMAIL_IN_DEV = process.env.SKIP_EMAIL_IN_DEV === "true"; // Set to "true" to skip email sending in development
 const isProduction = process.env.NODE_ENV === "production";
 
-// Log configuration on module load
-console.log("🔧 [ZeptoMail] Module initialized with configuration:");
-console.log("  - Environment:", process.env.NODE_ENV || "development");
-console.log("  - API Host:", ZEPTOMAIL_API_HOST);
-console.log("  - API URL:", ZEPTOMAIL_API_URL);
-console.log("  - FROM_EMAIL:", FROM_EMAIL);
-console.log("  - FROM_NAME:", FROM_NAME);
-console.log("  - APP_URL:", APP_URL);
-console.log("  - ⚠️  NOTE: Verification links will use this APP_URL");
-
 // Critical warnings for production
 if (isProduction) {
   if (APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) {
@@ -50,28 +40,6 @@ if (isProduction) {
       "❌ [ZeptoMail] Set ZEPTOMAIL_FROM_EMAIL to your verified email address"
     );
   }
-} else {
-  // Development warnings
-  if (APP_URL.includes("localhost") && !APP_URL.includes("192.168")) {
-    console.warn(
-      "  - ⚠️  WARNING: APP_URL is set to localhost. If accessing from 192.168.1.4:3000,"
-    );
-    console.warn(
-      "     set NEXT_PUBLIC_APP_URL=http://192.168.1.4:3000 in your .env.local"
-    );
-  }
-}
-
-console.log(
-  "  - ZEPTOMAIL_SEND_TOKEN:",
-  ZEPTOMAIL_SEND_TOKEN ? "✅ Set" : "❌ NOT SET"
-);
-console.log(
-  "  - ZEPTOMAIL_FROM_EMAIL:",
-  FROM_EMAIL !== "noreply@example.com" ? "✅ Set" : "❌ Using default"
-);
-if (ZEPTOMAIL_API_HOST !== "api.zeptomail.com") {
-  console.log(`  - ✅ Using region-specific API: ${ZEPTOMAIL_API_HOST}`);
 }
 
 // Generate a secure random token
@@ -99,22 +67,6 @@ async function sendEmail({
   html,
   text,
 }: SendEmailParams): Promise<boolean> {
-  console.log("📧 [ZeptoMail] Starting email send process...");
-  console.log("📧 [ZeptoMail] Configuration check:");
-  console.log("  - API URL:", ZEPTOMAIL_API_URL);
-  console.log("  - FROM_EMAIL:", FROM_EMAIL);
-  console.log("  - FROM_NAME:", FROM_NAME);
-  console.log(
-    "  - ZEPTOMAIL_SEND_TOKEN:",
-    ZEPTOMAIL_SEND_TOKEN
-      ? `${ZEPTOMAIL_SEND_TOKEN.substring(0, 10)}...`
-      : "NOT SET"
-  );
-  console.log("  - SKIP_EMAIL_IN_DEV:", SKIP_EMAIL_IN_DEV);
-  console.log("  - NODE_ENV:", process.env.NODE_ENV);
-  console.log("  - Recipient:", to);
-  console.log("  - Recipient Name:", toName || to);
-  console.log("  - Subject:", subject);
 
   // Development bypass - skip actual email sending if enabled (ONLY in development)
   if (!isProduction && (SKIP_EMAIL_IN_DEV || !ZEPTOMAIL_SEND_TOKEN)) {
@@ -150,10 +102,6 @@ async function sendEmail({
     const tokenValue = ZEPTOMAIL_SEND_TOKEN.startsWith("Zoho-enczapikey ")
       ? ZEPTOMAIL_SEND_TOKEN.replace("Zoho-enczapikey ", "")
       : ZEPTOMAIL_SEND_TOKEN;
-
-    console.log("📧 [ZeptoMail] Token validation:");
-    console.log("  - Token length:", tokenValue.length);
-    console.log("  - Token starts with:", tokenValue.substring(0, 10) + "...");
 
     if (tokenValue.length < 20) {
       console.warn(
@@ -208,13 +156,6 @@ async function sendEmail({
       textbody: text,
     };
 
-    console.log("📧 [ZeptoMail] Request payload:");
-    console.log("  - From:", JSON.stringify(requestBody.from, null, 2));
-    console.log("  - To:", JSON.stringify(requestBody.to, null, 2));
-    console.log("  - Subject:", requestBody.subject);
-    console.log("  - HTML body length:", html.length, "characters");
-    console.log("  - Text body length:", text.length, "characters");
-
     // Use token value - ensure it doesn't have the prefix already
     // The token should be just the token string, we add "Zoho-enczapikey" prefix in the header
     let authToken = tokenValue.trim();
@@ -235,44 +176,11 @@ async function sendEmail({
       Accept: "application/json",
     };
 
-    console.log("📧 [ZeptoMail] Sending request to:", ZEPTOMAIL_API_URL);
-    console.log("📧 [ZeptoMail] Request headers:", {
-      Authorization: `Zoho-enczapikey ${authToken.substring(0, 10)}... (${
-        authToken.length
-      } chars)`,
-      "Content-Type": "application/json",
-    });
-    console.log("📧 [ZeptoMail] Full auth header format check:");
-    console.log("  - Header will be: 'Zoho-enczapikey <token>'");
-    console.log("  - Token length:", authToken.length);
-    console.log("  - Token first 20 chars:", authToken.substring(0, 20));
-    console.log(
-      "  - Token last 10 chars:",
-      "..." + authToken.substring(authToken.length - 10)
-    );
-    console.log(
-      "  - ⚠️  IMPORTANT: Verify the FROM_EMAIL matches your Mail Agent's domain"
-    );
-    console.log(
-      `  - FROM_EMAIL domain: ${FROM_EMAIL.split("@")[1] || "invalid"}`
-    );
-    console.log(
-      "  - The Send Mail Token must be from the Mail Agent that owns this domain"
-    );
-
-    const startTime = Date.now();
     const response = await fetch(ZEPTOMAIL_API_URL, {
       method: "POST",
       headers: requestHeaders,
       body: JSON.stringify(requestBody),
     });
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-
-    console.log("📧 [ZeptoMail] Response received:");
-    console.log("  - Status:", response.status, response.statusText);
-    console.log("  - Duration:", duration, "ms");
-    console.log("  - Headers:", Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -326,18 +234,7 @@ async function sendEmail({
     }
 
     const responseText = await response.text();
-    console.log("✅ [ZeptoMail] Email sent successfully!");
-    console.log("  - Response body:", responseText || "(empty)");
-
-    try {
-      const responseJson = JSON.parse(responseText);
-      console.log(
-        "  - Parsed Response:",
-        JSON.stringify(responseJson, null, 2)
-      );
-    } catch (e) {
-      // Response might not be JSON, that's okay
-    }
+    console.log("✅ [ZeptoMail] Email sent successfully to:", to);
 
     return true;
   } catch (error) {
@@ -389,16 +286,7 @@ export async function sendVerificationEmail(
   fullName: string,
   token: string
 ): Promise<boolean> {
-  console.log("📧 [sendVerificationEmail] Called with:");
-  console.log("  - Email:", email);
-  console.log("  - Full Name:", fullName);
-  console.log("  - Token:", token.substring(0, 10) + "...");
-
   const verificationLink = `${APP_URL}/auth/verify-email?token=${token}`;
-  console.log("  - Verification Link:", verificationLink);
-  console.log(
-    "  - ⚠️  Make sure this link is accessible from where you'll open the email"
-  );
 
   const html = `
     <!DOCTYPE html>
@@ -492,13 +380,7 @@ export async function sendPasswordResetEmail(
   fullName: string,
   token: string
 ): Promise<boolean> {
-  console.log("📧 [sendPasswordResetEmail] Called with:");
-  console.log("  - Email:", email);
-  console.log("  - Full Name:", fullName);
-  console.log("  - Token:", token.substring(0, 10) + "...");
-
   const resetLink = `${APP_URL}/auth/reset-password?token=${token}`;
-  console.log("  - Reset Link:", resetLink);
 
   const html = `
     <!DOCTYPE html>
@@ -595,11 +477,6 @@ export async function sendOTPEmail(
   otp: string,
   purpose: "email_verification" | "password_reset"
 ): Promise<boolean> {
-  console.log("📧 [sendOTPEmail] Called with:");
-  console.log("  - Email:", email);
-  console.log("  - Full Name:", fullName);
-  console.log("  - OTP:", otp);
-  console.log("  - Purpose:", purpose);
 
   const purposeText =
     purpose === "email_verification"

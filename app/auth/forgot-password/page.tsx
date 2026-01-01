@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
                     Check Your Email
                   </h2>
                   <p className="mt-1 text-sm text-gray-600 mb-6">
-                    If an account exists with this email, we've sent password reset instructions.
+                    If an account exists with this email, we've set instructions.
                     Please check your inbox and spam folder.
                   </p>
                   <Button

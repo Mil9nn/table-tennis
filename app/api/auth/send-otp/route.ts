@@ -75,16 +75,38 @@ export async function POST(request: NextRequest) {
     });
 
     // Send OTP email
-    const emailSent = await sendOTPEmail(user.email, user.fullName, otp, purpose);
-
-    if (!emailSent) {
-      console.error("Failed to send OTP email to:", email);
+    let emailSent = false;
+    try {
+      emailSent = await sendOTPEmail(user.email, user.fullName, otp, purpose);
+    } catch (emailError) {
+      console.error("❌ [Send OTP] Exception while sending email:", emailError);
+      console.error("❌ [Send OTP] Error details:", {
+        email: user.email,
+        purpose,
+        errorType: emailError instanceof Error ? emailError.constructor.name : typeof emailError,
+        errorMessage: emailError instanceof Error ? emailError.message : String(emailError),
+        stack: emailError instanceof Error ? emailError.stack : undefined,
+      });
+      // Don't return success if email sending fails
       return NextResponse.json(
         { message: "Failed to send OTP. Please try again later." },
         { status: 500 }
       );
     }
 
+    if (!emailSent) {
+      console.error("❌ [Send OTP] Email sending returned false for:", email);
+      console.error("❌ [Send OTP] Check ZeptoMail configuration:");
+      console.error("  - ZEPTOMAIL_SEND_TOKEN:", process.env.ZEPTOMAIL_SEND_TOKEN ? "Set" : "NOT SET");
+      console.error("  - ZEPTOMAIL_FROM_EMAIL:", process.env.ZEPTOMAIL_FROM_EMAIL || "NOT SET");
+      console.error("  - NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL || "NOT SET");
+      return NextResponse.json(
+        { message: "Failed to send OTP. Please try again later." },
+        { status: 500 }
+      );
+    }
+
+    console.log("✅ [Send OTP] OTP email sent successfully to:", email);
     return NextResponse.json(
       { 
         message: purpose === "password_reset" ? successMessage : "OTP has been sent to your email. Please check your inbox.",
@@ -93,9 +115,14 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Send OTP error:", error);
+    console.error("❌ [Send OTP] Unexpected error:", error);
+    console.error("❌ [Send OTP] Error details:", {
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
-      { message: "Something went wrong" },
+      { message: "Something went wrong. Please try again later." },
       { status: 500 }
     );
   }
