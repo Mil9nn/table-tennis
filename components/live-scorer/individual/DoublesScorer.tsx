@@ -47,13 +47,21 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
   useEffect(() => {
     if (!match) return;
 
+    // If match is completed, initialize immediately to prevent race conditions
+    if (match.status === "completed") {
+      setInitialMatch(match);
+      lastMatchId.current = match._id;
+      lastMatchStatus.current = match.status;
+      return;
+    }
+
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 
     if (
       matchChanged ||
       (statusChanged &&
-        (match.status === "completed" ||
+        ((match.status as MatchStatus) === "completed" ||
           lastMatchStatus.current === "completed"))
     ) {
       setInitialMatch(match);
@@ -104,9 +112,12 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
 
   if (!match) return <div>Loading match...</div>;
 
+  // Check completion from both sources to prevent race conditions
+  const isCompleted = status === "completed" || match.status === "completed";
+
   return (
     <div className="space-y-6">
-      {status == "completed" ? (
+      {isCompleted ? (
         <MatchCompletedCard match={match} />
       ) : (
         <>
@@ -120,7 +131,8 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             side2Sets={side2Sets}
             status={status}
             onAddPoint={({ side }) => {
-              if ((status as MatchStatus) === "completed") {
+              // Check both match prop (server data) and hook state
+              if (match.status === "completed" || (status as MatchStatus) === "completed") {
                 toast.error("Match is completed! Reset to continue.");
                 return;
               }
@@ -153,7 +165,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             finalScore={match.finalScore}
           />
 
-          {(status as MatchStatus) !== "completed" && (
+          {!isCompleted && (
             <>
               <ShotSelector />
             </>

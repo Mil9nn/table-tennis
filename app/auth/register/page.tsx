@@ -279,7 +279,7 @@ const RegisterPage = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider transition-colors mt-6"
+                    className="w-full mt-6"
                     disabled={authLoading}
                   >
                     {authLoading ? (
@@ -296,16 +296,14 @@ const RegisterPage = () => {
             </div>
 
             {/* Footer Section */}
-            <div className="p-4 border-t border-[#d9d9d9] text-center">
-              <p className="text-xs text-[#353535]/60">
-                Already have an account?{" "}
-                <Link
-                  href="/auth/login"
-                  className="text-[#3c6e71] font-semibold hover:text-[#3c6e71]/80 transition"
-                >
-                  Login here
-                </Link>
-              </p>
+            <div className="border-t p-4 text-center text-xs text-gray-500">
+              Already have an account?{" "}
+              <Link
+                href="/auth/login"
+                className="font-medium text-[#3c6e71] hover:underline"
+              >
+                Log in
+              </Link>
             </div>
           </div>
         </div>

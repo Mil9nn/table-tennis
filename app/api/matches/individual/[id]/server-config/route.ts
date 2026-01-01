@@ -45,8 +45,8 @@ export async function POST(
 
     await match.save();
     await match.populate([
-      { path: "participants", select: "username fullName" },
-      { path: "games.shots.player", select: "username fullName" },
+      { path: "participants", select: "username fullName profileImage" },
+      { path: "games.shots.player", select: "username fullName profileImage" },
     ]);
 
     return NextResponse.json({

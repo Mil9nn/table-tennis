@@ -33,18 +33,14 @@ export function RoundRobinConfig({
 
   return (
     <div className="space-y-4">
-      {title && (
-        <h4 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-600">{title}</h4>
-      )}
-
       <FormField
         control={form.control}
         name={useGroupsField}
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded border border-slate-200 p-2">
+          <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
             <div className="space-y-0.5">
-              <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">Use Groups</FormLabel>
-              <FormDescription className="text-xs text-slate-500">
+              <FormLabel className="text-sm">Use groups</FormLabel>
+              <FormDescription className="text-xs">
                 Divide participants into separate groups/pools
               </FormDescription>
             </div>
@@ -60,24 +56,23 @@ export function RoundRobinConfig({
       />
 
       {watchUseGroups && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-slate-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name={numberOfGroupsField}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">Number of Groups</FormLabel>
+                <FormLabel className="text-xs text-muted-foreground">Number of groups</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     min="2"
                     max="8"
-                    className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
                     placeholder="4"
                     {...field}
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-slate-500">
+                <FormDescription className="text-xs">
                   Groups will be named A, B, C...
                 </FormDescription>
                 <FormMessage />
@@ -91,18 +86,17 @@ export function RoundRobinConfig({
               name={advancePerGroupField}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">Advance Per Group</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground">Advance per group</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min="1"
                       max="10"
-                      className="bg-slate-50 border-slate-200 rounded h-10 text-sm placeholder:text-slate-400 placeholder:opacity-70"
                       placeholder="2"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription className="text-xs text-slate-500">
+                  <FormDescription className="text-xs">
                     Top N from each group advance
                   </FormDescription>
                   <FormMessage />

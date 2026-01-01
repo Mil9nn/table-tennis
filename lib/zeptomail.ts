@@ -4,7 +4,8 @@ import crypto from "crypto";
 // Default: api.zeptomail.com (global)
 // India: api.zeptomail.in
 // Europe: api.zeptomail.eu
-const ZEPTOMAIL_API_HOST = process.env.ZEPTOMAIL_API_HOST || "api.zeptomail.com";
+const ZEPTOMAIL_API_HOST =
+  process.env.ZEPTOMAIL_API_HOST || "api.zeptomail.com";
 const ZEPTOMAIL_API_URL = `https://${ZEPTOMAIL_API_HOST}/v1.1/email`;
 const ZEPTOMAIL_SEND_TOKEN = process.env.ZEPTOMAIL_SEND_TOKEN || "";
 const FROM_EMAIL = process.env.ZEPTOMAIL_FROM_EMAIL || "noreply@example.com";
@@ -12,25 +13,65 @@ const FROM_NAME = process.env.ZEPTOMAIL_FROM_NAME || "TTPro";
 const APP_NAME = "TTPro";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const SKIP_EMAIL_IN_DEV = process.env.SKIP_EMAIL_IN_DEV === "true"; // Set to "true" to skip email sending in development
+const isProduction = process.env.NODE_ENV === "production";
 
-// Log configuration on module load (only in development)
-if (process.env.NODE_ENV === "development") {
-  console.log("🔧 [ZeptoMail] Module initialized with configuration:");
-  console.log("  - API Host:", ZEPTOMAIL_API_HOST);
-  console.log("  - API URL:", ZEPTOMAIL_API_URL);
-  console.log("  - FROM_EMAIL:", FROM_EMAIL);
-  console.log("  - FROM_NAME:", FROM_NAME);
-  console.log("  - APP_URL:", APP_URL);
-  console.log("  - ⚠️  NOTE: Verification links will use this APP_URL");
+// Log configuration on module load
+console.log("🔧 [ZeptoMail] Module initialized with configuration:");
+console.log("  - Environment:", process.env.NODE_ENV || "development");
+console.log("  - API Host:", ZEPTOMAIL_API_HOST);
+console.log("  - API URL:", ZEPTOMAIL_API_URL);
+console.log("  - FROM_EMAIL:", FROM_EMAIL);
+console.log("  - FROM_NAME:", FROM_NAME);
+console.log("  - APP_URL:", APP_URL);
+console.log("  - ⚠️  NOTE: Verification links will use this APP_URL");
+
+// Critical warnings for production
+if (isProduction) {
+  if (APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) {
+    console.error(
+      "❌ [ZeptoMail] CRITICAL: APP_URL is set to localhost in PRODUCTION!"
+    );
+    console.error(
+      "❌ [ZeptoMail] Set NEXT_PUBLIC_APP_URL to your production URL (e.g., https://yourdomain.com)"
+    );
+    console.error("❌ [ZeptoMail] Emails may contain incorrect links!");
+  }
+  if (!ZEPTOMAIL_SEND_TOKEN) {
+    console.error(
+      "❌ [ZeptoMail] CRITICAL: ZEPTOMAIL_SEND_TOKEN is not set in PRODUCTION!"
+    );
+    console.error("❌ [ZeptoMail] Emails will NOT be sent!");
+  }
+  if (FROM_EMAIL === "noreply@example.com") {
+    console.error(
+      "❌ [ZeptoMail] CRITICAL: ZEPTOMAIL_FROM_EMAIL is using default value in PRODUCTION!"
+    );
+    console.error(
+      "❌ [ZeptoMail] Set ZEPTOMAIL_FROM_EMAIL to your verified email address"
+    );
+  }
+} else {
+  // Development warnings
   if (APP_URL.includes("localhost") && !APP_URL.includes("192.168")) {
-    console.warn("  - ⚠️  WARNING: APP_URL is set to localhost. If accessing from 192.168.1.4:3000,");
-    console.warn("     set NEXT_PUBLIC_APP_URL=http://192.168.1.4:3000 in your .env.local");
+    console.warn(
+      "  - ⚠️  WARNING: APP_URL is set to localhost. If accessing from 192.168.1.4:3000,"
+    );
+    console.warn(
+      "     set NEXT_PUBLIC_APP_URL=http://192.168.1.4:3000 in your .env.local"
+    );
   }
-  console.log("  - ZEPTOMAIL_SEND_TOKEN:", ZEPTOMAIL_SEND_TOKEN ? "✅ Set" : "❌ NOT SET");
-  console.log("  - ZEPTOMAIL_FROM_EMAIL:", FROM_EMAIL !== "noreply@example.com" ? "✅ Set" : "❌ Using default");
-  if (ZEPTOMAIL_API_HOST !== "api.zeptomail.com") {
-    console.log(`  - ✅ Using region-specific API: ${ZEPTOMAIL_API_HOST}`);
-  }
+}
+
+console.log(
+  "  - ZEPTOMAIL_SEND_TOKEN:",
+  ZEPTOMAIL_SEND_TOKEN ? "✅ Set" : "❌ NOT SET"
+);
+console.log(
+  "  - ZEPTOMAIL_FROM_EMAIL:",
+  FROM_EMAIL !== "noreply@example.com" ? "✅ Set" : "❌ Using default"
+);
+if (ZEPTOMAIL_API_HOST !== "api.zeptomail.com") {
+  console.log(`  - ✅ Using region-specific API: ${ZEPTOMAIL_API_HOST}`);
 }
 
 // Generate a secure random token
@@ -51,66 +92,100 @@ interface SendEmailParams {
   text: string;
 }
 
-async function sendEmail({ to, toName, subject, html, text }: SendEmailParams): Promise<boolean> {
+async function sendEmail({
+  to,
+  toName,
+  subject,
+  html,
+  text,
+}: SendEmailParams): Promise<boolean> {
   console.log("📧 [ZeptoMail] Starting email send process...");
   console.log("📧 [ZeptoMail] Configuration check:");
   console.log("  - API URL:", ZEPTOMAIL_API_URL);
   console.log("  - FROM_EMAIL:", FROM_EMAIL);
   console.log("  - FROM_NAME:", FROM_NAME);
-  console.log("  - ZEPTOMAIL_SEND_TOKEN:", ZEPTOMAIL_SEND_TOKEN ? `${ZEPTOMAIL_SEND_TOKEN.substring(0, 10)}...` : "NOT SET");
+  console.log(
+    "  - ZEPTOMAIL_SEND_TOKEN:",
+    ZEPTOMAIL_SEND_TOKEN
+      ? `${ZEPTOMAIL_SEND_TOKEN.substring(0, 10)}...`
+      : "NOT SET"
+  );
   console.log("  - SKIP_EMAIL_IN_DEV:", SKIP_EMAIL_IN_DEV);
   console.log("  - NODE_ENV:", process.env.NODE_ENV);
   console.log("  - Recipient:", to);
   console.log("  - Recipient Name:", toName || to);
   console.log("  - Subject:", subject);
 
-  // Development bypass - skip actual email sending if enabled
-  if (SKIP_EMAIL_IN_DEV || (process.env.NODE_ENV === "development" && !ZEPTOMAIL_SEND_TOKEN)) {
+  // Development bypass - skip actual email sending if enabled (ONLY in development)
+  if (!isProduction && (SKIP_EMAIL_IN_DEV || !ZEPTOMAIL_SEND_TOKEN)) {
     console.warn("⚠️ [ZeptoMail] Email sending skipped in development mode");
     console.warn("  - Email would be sent to:", to);
     console.warn("  - Subject:", subject);
-    console.warn("  - To enable email sending, set ZEPTOMAIL_SEND_TOKEN and set SKIP_EMAIL_IN_DEV=false");
-    console.warn("  - Or set SKIP_EMAIL_IN_DEV=false to force email sending even in dev");
+    console.warn(
+      "  - To enable email sending, set ZEPTOMAIL_SEND_TOKEN and set SKIP_EMAIL_IN_DEV=false"
+    );
+    console.warn(
+      "  - Or set SKIP_EMAIL_IN_DEV=false to force email sending even in dev"
+    );
     return true; // Return true to allow registration to proceed
+  }
+
+  // In production, never skip email sending
+  if (isProduction && SKIP_EMAIL_IN_DEV) {
+    console.warn(
+      "⚠️ [ZeptoMail] SKIP_EMAIL_IN_DEV is set to 'true' but we're in PRODUCTION - ignoring this setting"
+    );
   }
 
   try {
     if (!ZEPTOMAIL_SEND_TOKEN) {
       console.error("❌ [ZeptoMail] ZEPTOMAIL_SEND_TOKEN is not configured");
-      console.error("❌ [ZeptoMail] Please set ZEPTOMAIL_SEND_TOKEN in your .env.local file");
+      console.error(
+        "❌ [ZeptoMail] Please set ZEPTOMAIL_SEND_TOKEN in your .env.local file"
+      );
       return false;
     }
 
     // Validate token format (should not contain "Zoho-enczapikey" prefix, just the token)
-    const tokenValue = ZEPTOMAIL_SEND_TOKEN.startsWith("Zoho-enczapikey ") 
-      ? ZEPTOMAIL_SEND_TOKEN.replace("Zoho-enczapikey ", "") 
+    const tokenValue = ZEPTOMAIL_SEND_TOKEN.startsWith("Zoho-enczapikey ")
+      ? ZEPTOMAIL_SEND_TOKEN.replace("Zoho-enczapikey ", "")
       : ZEPTOMAIL_SEND_TOKEN;
-    
+
     console.log("📧 [ZeptoMail] Token validation:");
     console.log("  - Token length:", tokenValue.length);
     console.log("  - Token starts with:", tokenValue.substring(0, 10) + "...");
-    
+
     if (tokenValue.length < 20) {
-      console.warn("⚠️ [ZeptoMail] Token seems too short. Expected a longer token string.");
+      console.warn(
+        "⚠️ [ZeptoMail] Token seems too short. Expected a longer token string."
+      );
     }
 
     if (!FROM_EMAIL || FROM_EMAIL === "noreply@example.com") {
-      console.error("❌ [ZeptoMail] ZEPTOMAIL_FROM_EMAIL is not properly configured");
+      console.error(
+        "❌ [ZeptoMail] ZEPTOMAIL_FROM_EMAIL is not properly configured"
+      );
       console.error("❌ [ZeptoMail] Current value:", FROM_EMAIL);
-      console.error("❌ [ZeptoMail] Please set ZEPTOMAIL_FROM_EMAIL to your verified email address");
+      console.error(
+        "❌ [ZeptoMail] Please set ZEPTOMAIL_FROM_EMAIL to your verified email address"
+      );
       return false;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(FROM_EMAIL)) {
-      console.error("❌ [ZeptoMail] ZEPTOMAIL_FROM_EMAIL is not a valid email address");
+      console.error(
+        "❌ [ZeptoMail] ZEPTOMAIL_FROM_EMAIL is not a valid email address"
+      );
       console.error("❌ [ZeptoMail] Current value:", FROM_EMAIL);
       return false;
     }
 
     if (!emailRegex.test(to)) {
-      console.error("❌ [ZeptoMail] Recipient email is not a valid email address");
+      console.error(
+        "❌ [ZeptoMail] Recipient email is not a valid email address"
+      );
       console.error("❌ [ZeptoMail] Recipient value:", to);
       return false;
     }
@@ -143,34 +218,47 @@ async function sendEmail({ to, toName, subject, html, text }: SendEmailParams): 
     // Use token value - ensure it doesn't have the prefix already
     // The token should be just the token string, we add "Zoho-enczapikey" prefix in the header
     let authToken = tokenValue.trim();
-    
+
     // Remove any existing prefix if present
     if (authToken.toLowerCase().startsWith("zoho-enczapikey")) {
       authToken = authToken.replace(/^zoho-enczapikey\s+/i, "").trim();
-      console.warn("⚠️ [ZeptoMail] Token had 'Zoho-enczapikey' prefix - removed it");
+      console.warn(
+        "⚠️ [ZeptoMail] Token had 'Zoho-enczapikey' prefix - removed it"
+      );
     }
-    
+
     // Try alternative header format if the standard one fails
     // Some ZeptoMail configurations might require different format
     const requestHeaders: Record<string, string> = {
-      "Authorization": `Zoho-enczapikey ${authToken}`,
+      Authorization: `Zoho-enczapikey ${authToken}`,
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
     };
 
     console.log("📧 [ZeptoMail] Sending request to:", ZEPTOMAIL_API_URL);
     console.log("📧 [ZeptoMail] Request headers:", {
-      "Authorization": `Zoho-enczapikey ${authToken.substring(0, 10)}... (${authToken.length} chars)`,
+      Authorization: `Zoho-enczapikey ${authToken.substring(0, 10)}... (${
+        authToken.length
+      } chars)`,
       "Content-Type": "application/json",
     });
     console.log("📧 [ZeptoMail] Full auth header format check:");
     console.log("  - Header will be: 'Zoho-enczapikey <token>'");
     console.log("  - Token length:", authToken.length);
     console.log("  - Token first 20 chars:", authToken.substring(0, 20));
-    console.log("  - Token last 10 chars:", "..." + authToken.substring(authToken.length - 10));
-    console.log("  - ⚠️  IMPORTANT: Verify the FROM_EMAIL matches your Mail Agent's domain");
-    console.log(`  - FROM_EMAIL domain: ${FROM_EMAIL.split('@')[1] || 'invalid'}`);
-    console.log("  - The Send Mail Token must be from the Mail Agent that owns this domain");
+    console.log(
+      "  - Token last 10 chars:",
+      "..." + authToken.substring(authToken.length - 10)
+    );
+    console.log(
+      "  - ⚠️  IMPORTANT: Verify the FROM_EMAIL matches your Mail Agent's domain"
+    );
+    console.log(
+      `  - FROM_EMAIL domain: ${FROM_EMAIL.split("@")[1] || "invalid"}`
+    );
+    console.log(
+      "  - The Send Mail Token must be from the Mail Agent that owns this domain"
+    );
 
     const startTime = Date.now();
     const response = await fetch(ZEPTOMAIL_API_URL, {
@@ -192,26 +280,42 @@ async function sendEmail({ to, toName, subject, html, text }: SendEmailParams): 
       console.error("  - Status Code:", response.status);
       console.error("  - Status Text:", response.statusText);
       console.error("  - Error Response:", errorText);
-      
+
       try {
         const errorJson = JSON.parse(errorText);
         console.error("  - Parsed Error:", JSON.stringify(errorJson, null, 2));
-        
+
         // Provide helpful error messages based on error code
         if (response.status === 401) {
           const errorCode = errorJson?.error?.details?.[0]?.code;
           if (errorCode === "SERR_157") {
             console.error("  - 🔍 TROUBLESHOOTING:");
             console.error("     • The API token is invalid or expired");
-            console.error("     • Check your ZeptoMail dashboard for the correct Send Mail Token");
-            console.error("     • Ensure the token is copied correctly (no extra spaces)");
-            console.error("     • Token should be from: ZeptoMail Dashboard → Mail Agent → Setup Info → API tab");
-            console.error("     • Make sure you're using the 'Send Mail Token', not other token types");
-            console.error("     • Verify the token hasn't been revoked or regenerated");
-            console.error("     • ⚠️  IMPORTANT: The FROM_EMAIL must match the domain of the Mail Agent");
+            console.error(
+              "     • Check your ZeptoMail dashboard for the correct Send Mail Token"
+            );
+            console.error(
+              "     • Ensure the token is copied correctly (no extra spaces)"
+            );
+            console.error(
+              "     • Token should be from: ZeptoMail Dashboard → Mail Agent → Setup Info → API tab"
+            );
+            console.error(
+              "     • Make sure you're using the 'Send Mail Token', not other token types"
+            );
+            console.error(
+              "     • Verify the token hasn't been revoked or regenerated"
+            );
+            console.error(
+              "     • ⚠️  IMPORTANT: The FROM_EMAIL must match the domain of the Mail Agent"
+            );
             console.error(`     • Your FROM_EMAIL: ${FROM_EMAIL}`);
-            console.error("     • The token must be from the Mail Agent that has this domain verified");
-            console.error("     • If you have multiple Mail Agents, ensure you're using the token from the correct one");
+            console.error(
+              "     • The token must be from the Mail Agent that has this domain verified"
+            );
+            console.error(
+              "     • If you have multiple Mail Agents, ensure you're using the token from the correct one"
+            );
           }
         }
       } catch (e) {
@@ -224,10 +328,13 @@ async function sendEmail({ to, toName, subject, html, text }: SendEmailParams): 
     const responseText = await response.text();
     console.log("✅ [ZeptoMail] Email sent successfully!");
     console.log("  - Response body:", responseText || "(empty)");
-    
+
     try {
       const responseJson = JSON.parse(responseText);
-      console.log("  - Parsed Response:", JSON.stringify(responseJson, null, 2));
+      console.log(
+        "  - Parsed Response:",
+        JSON.stringify(responseJson, null, 2)
+      );
     } catch (e) {
       // Response might not be JSON, that's okay
     }
@@ -235,15 +342,23 @@ async function sendEmail({ to, toName, subject, html, text }: SendEmailParams): 
     return true;
   } catch (error) {
     console.error("❌ [ZeptoMail] Exception occurred:");
-    console.error("  - Error type:", error instanceof Error ? error.constructor.name : typeof error);
-    console.error("  - Error message:", error instanceof Error ? error.message : String(error));
-    
+    console.error(
+      "  - Error type:",
+      error instanceof Error ? error.constructor.name : typeof error
+    );
+    console.error(
+      "  - Error message:",
+      error instanceof Error ? error.message : String(error)
+    );
+
     if (error instanceof Error) {
       console.error("  - Error stack:", error.stack);
     }
 
     if (error instanceof TypeError && error.message.includes("fetch")) {
-      console.error("  - Possible issue: Network error or fetch API not available");
+      console.error(
+        "  - Possible issue: Network error or fetch API not available"
+      );
     }
 
     return false;
@@ -278,10 +393,12 @@ export async function sendVerificationEmail(
   console.log("  - Email:", email);
   console.log("  - Full Name:", fullName);
   console.log("  - Token:", token.substring(0, 10) + "...");
-  
+
   const verificationLink = `${APP_URL}/auth/verify-email?token=${token}`;
   console.log("  - Verification Link:", verificationLink);
-  console.log("  - ⚠️  Make sure this link is accessible from where you'll open the email");
+  console.log(
+    "  - ⚠️  Make sure this link is accessible from where you'll open the email"
+  );
 
   const html = `
     <!DOCTYPE html>
@@ -292,26 +409,58 @@ export async function sendVerificationEmail(
         <title>Verify Your Email</title>
         <style>${emailStyles}</style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🏓 ${APP_NAME}</h1>
-          </div>
-          <div class="content">
-            <h2>Welcome, ${fullName}!</h2>
-            <p>Thank you for registering with ${APP_NAME}. Please verify your email address to complete your registration and start tracking your table tennis matches.</p>
-            <p style="text-align: center;">
-              <a href="${verificationLink}" class="btn">Verify Email Address</a>
-            </p>
-            <div class="warning">
-              <p><strong>This link expires in 24 hours.</strong> If you didn't create an account with ${APP_NAME}, please ignore this email.</p>
-            </div>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
+      <body style="margin:0; padding:0; background:#ffffff; color:#111; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:14px; line-height:1.5;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="left" style="padding:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+          <!-- Message -->
+          <tr>
+            <td style="padding-bottom:12px;">
+              Hi ${fullName},
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-bottom:12px;">
+              Please verify your email address to complete your registration for ${APP_NAME}.
+            </td>
+          </tr>
+
+          <!-- Link (not button) -->
+          <tr>
+            <td style="padding-bottom:16px;">
+              <a
+                href="${verificationLink}"
+                style="color:#2563eb; text-decoration:underline;"
+              >
+                Verify your email address
+              </a>
+            </td>
+          </tr>
+
+          <!-- Expiry / Safety -->
+          <tr>
+            <td style="padding-bottom:16px; color:#555;">
+              This link will expire in 24 hours.
+              If you didn’t create an account, you can safely ignore this email.
+            </td>
+          </tr>
+
+          <!-- Signature -->
+          <tr>
+            <td style="color:#888; font-size:12px;">
+              — ${APP_NAME}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
     </html>
   `;
 
@@ -347,7 +496,7 @@ export async function sendPasswordResetEmail(
   console.log("  - Email:", email);
   console.log("  - Full Name:", fullName);
   console.log("  - Token:", token.substring(0, 10) + "...");
-  
+
   const resetLink = `${APP_URL}/auth/reset-password?token=${token}`;
   console.log("  - Reset Link:", resetLink);
 
@@ -360,27 +509,58 @@ export async function sendPasswordResetEmail(
         <title>Reset Your Password</title>
         <style>${emailStyles}</style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🏓 ${APP_NAME}</h1>
-          </div>
-          <div class="content">
-            <h2>Password Reset Request</h2>
-            <p>Hi ${fullName},</p>
-            <p>We received a request to reset your password. Click the button below to create a new password:</p>
-            <p style="text-align: center;">
-              <a href="${resetLink}" class="btn">Reset Password</a>
-            </p>
-            <div class="warning">
-              <p><strong>This link expires in 1 hour.</strong> If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
-            </div>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
+      <body style="margin:0; padding:0; background:#ffffff; color:#111; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:14px; line-height:1.5;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="left" style="padding:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+          <!-- Message -->
+          <tr>
+            <td style="padding-bottom:12px;">
+              Hi ${fullName},
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-bottom:12px;">
+              We received a request to reset your password for ${APP_NAME}.
+            </td>
+          </tr>
+
+          <!-- Link (not button) -->
+          <tr>
+            <td style="padding-bottom:16px;">
+              <a
+                href="${resetLink}"
+                style="color:#2563eb; text-decoration:underline;"
+              >
+                Reset your password
+              </a>
+            </td>
+          </tr>
+
+          <!-- Expiry / Safety -->
+          <tr>
+            <td style="padding-bottom:16px; color:#555;">
+              This link will expire in 1 hour.
+              If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+            </td>
+          </tr>
+
+          <!-- Signature -->
+          <tr>
+            <td style="color:#888; font-size:12px;">
+              — ${APP_NAME}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
     </html>
   `;
 
@@ -420,14 +600,14 @@ export async function sendOTPEmail(
   console.log("  - Full Name:", fullName);
   console.log("  - OTP:", otp);
   console.log("  - Purpose:", purpose);
-  
-  const purposeText = purpose === "email_verification" 
-    ? "verify your email address" 
-    : "reset your password";
-  
-  const expiryText = purpose === "email_verification" 
-    ? "10 minutes" 
-    : "10 minutes";
+
+  const purposeText =
+    purpose === "email_verification"
+      ? "verify your email address"
+      : "reset your password";
+
+  const expiryText =
+    purpose === "email_verification" ? "10 minutes" : "10 minutes";
 
   const html = `
     <!DOCTYPE html>
@@ -438,27 +618,55 @@ export async function sendOTPEmail(
         <title>Your Verification Code</title>
         <style>${emailStyles}</style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🏓 ${APP_NAME}</h1>
-          </div>
-          <div class="content">
-            <h2>Your Verification Code</h2>
-            <p>Hi ${fullName},</p>
-            <p>Use the following code to ${purposeText}:</p>
-            <div class="otp-box">
-              <div class="otp-code">${otp}</div>
-            </div>
-            <div class="warning">
-              <p><strong>This code expires in ${expiryText}.</strong> If you didn't request this code, please ignore this email.</p>
-            </div>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
+      <body style="margin:0; padding:0; background:#ffffff; color:#111; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size:14px; line-height:1.5;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="left" style="padding:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+          <!-- Message -->
+          <tr>
+            <td style="padding-bottom:12px;">
+              Hi ${fullName},
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-bottom:12px;">
+              Use the following code to ${purposeText}:
+            </td>
+          </tr>
+
+          <!-- OTP Code -->
+          <tr>
+            <td style="padding-bottom:16px;">
+              <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:20px; text-align:center; font-size:32px; font-weight:600; color:#3c6e71; letter-spacing:4px; font-family:monospace;">
+                ${otp}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Expiry / Safety -->
+          <tr>
+            <td style="padding-bottom:16px; color:#555;">
+              This code will expire in ${expiryText}.
+              If you didn't request this code, you can safely ignore this email.
+            </td>
+          </tr>
+
+          <!-- Signature -->
+          <tr>
+            <td style="color:#888; font-size:12px;">
+              — ${APP_NAME}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
     </html>
   `;
 
@@ -486,4 +694,3 @@ If you didn't request this code, please ignore this email.
     text,
   });
 }
-

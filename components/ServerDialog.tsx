@@ -16,6 +16,8 @@ import { buildDoublesRotation } from "./live-scorer/individual/helpers";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { isTeamMatch, TeamMatch } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
+import { Check } from "@mui/icons-material";
+import { cn } from "@/lib/utils";
 
 interface InitialServerDialogProps {
   matchType: string;
@@ -40,7 +42,7 @@ export default function InitialServerDialog({
   const [loading, setLoading] = useState(false);
 
   const isSingles = matchType === "singles";
-  const isDoubles = matchType === "doubles";
+  const isDoubles = matchType === "doubles" || matchType === "mixed_doubles";
 
   const handleSave = async () => {
     if (!selectedFirstServer || !match) {
@@ -196,80 +198,113 @@ export default function InitialServerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Select First Server</DialogTitle>
-          <DialogDescription>
-            Choose who will serve first in{" "}
-            {isTeamMatch ? "this submatch" : "the match"}.
-          </DialogDescription>
-        </DialogHeader>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle className="text-base">
+        Select first server
+      </DialogTitle>
+    </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <label className="font-medium mb-2">Who serves first?</label>
-            <div className="space-y-2">
-              {getServerOptions().map((option) => (
+    <div className="space-y-6">
+      {/* SERVER SELECTION */}
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Choose the player who will start serving.
+        </p>
+
+        <div className="grid gap-3">
+          {getServerOptions().map((option) => {
+            const isActive = selectedFirstServer === option.value;
+
+            return (
+              <button
+                key={option.value}
+                onClick={() => {
+                  setSelectedFirstServer(option.value);
+                  if (isSingles) setSelectedFirstReceiver(null);
+                }}
+                className={cn(
+                  "flex items-center justify-between rounded-xl border p-4 text-left transition-all",
+                  "hover:border-primary/50 hover:shadow-sm",
+                  isActive
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border"
+                )}
+              >
+                <span className="text-sm font-medium">
+                  {option.label}
+                </span>
+
+                {isActive && (
+                  <Check sx={{ fontSize: 16 }} className="text-primary" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* RECEIVER SELECTION (DOUBLES ONLY) */}
+      {isDoubles && selectedFirstServer && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Choose the first receiver.
+          </p>
+
+          <div className="grid gap-3">
+            {getReceiverOptions().map((option) => {
+              const isActive = selectedFirstReceiver === option.value;
+
+              return (
                 <button
                   key={option.value}
-                  onClick={() => {
-                    setSelectedFirstServer(option.value);
-                    if (isSingles) setSelectedFirstReceiver(null);
-                  }}
-                  className={`w-full p-3 text-sm text-left font-semibold rounded-lg border ${
-                    selectedFirstServer === option.value
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
+                  onClick={() => setSelectedFirstReceiver(option.value)}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl border p-4 text-left transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    isActive
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border"
+                  )}
                 >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {isDoubles && selectedFirstServer && (
-            <div>
-              <label className="font-medium mb-2">Who receives first?</label>
-              <div className="space-y-2">
-                {getReceiverOptions().map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setSelectedFirstReceiver(option.value)}
-                    className={`w-full p-3 text-left text-sm font-semibold rounded-lg border ${
-                      selectedFirstReceiver === option.value
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
+                  <span className="text-sm font-medium">
                     {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+                  </span>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={
-                !selectedFirstServer ||
-                (isDoubles && !selectedFirstReceiver) ||
-                loading
-              }
-            >
-              {loading ? "Saving..." : "Save & Start"}
-            </Button>
+                  {isActive && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+
+      {/* FOOTER */}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button
+          variant="ghost"
+          onClick={() => setOpen(false)}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          onClick={handleSave}
+          disabled={
+            !selectedFirstServer ||
+            (isDoubles && !selectedFirstReceiver) ||
+            loading
+          }
+        >
+          {loading ? "Saving…" : "Start match"}
+        </Button>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
+
   );
 }

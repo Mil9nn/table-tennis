@@ -26,6 +26,7 @@ export async function POST(
     if (!auth.success) return auth.response;
     const body = await request.json();
 
+    // Fetch match fresh from database (no caching) to ensure we have latest status
     const match = await IndividualMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
@@ -52,6 +53,8 @@ export async function POST(
       );
     }
 
+    // Critical: Block any scoring attempts on completed matches
+    // This check must happen before any game logic to prevent state corruption
     if (match.status === "completed") {
       return NextResponse.json(
         { error: "Match is already completed" },

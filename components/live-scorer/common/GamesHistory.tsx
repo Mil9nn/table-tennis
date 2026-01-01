@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { IndividualGame, Participant } from "@/types/match.type";
+import clsx from "clsx";
 
 interface GamesHistoryProps {
   games: IndividualGame[];
@@ -14,63 +15,76 @@ export default function GamesHistory({
   currentGame,
   participants,
 }: GamesHistoryProps) {
-  if (!games || games.length === 0) return null;
+  if (!games?.length) return null;
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-          Sets History
+    <section className="rounded-xl bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
+      <header className="px-6 py-4">
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          Sets history
         </h3>
+        <p className="text-xs text-zinc-500 mt-1">
+          Game-by-game breakdown
+        </p>
+      </header>
+
+      <div className="px-6 pb-6 flex flex-wrap gap-2">
+        {games.map((game) => (
+          <GameHistoryItem
+            key={game.gameNumber}
+            game={game}
+            isCurrent={game.gameNumber === currentGame && !game.winnerSide}
+            participants={participants}
+          />
+        ))}
       </div>
+    </section>
+  );
+}
 
-      <div className="p-6">
-        <div className="flex items-center gap-3 flex-wrap">
-          {games.map((game) => {
-            const winnerName =
-              game.winnerSide === "side1"
-                ? participants?.[0]?.fullName ??
-                  participants?.[0]?.username ??
-                  "Player 1"
-                : game.winnerSide === "side2"
-                ? participants?.[1]?.fullName ??
-                  participants?.[1]?.username ??
-                  "Player 2"
-                : null;
+function GameHistoryItem({
+  game,
+  isCurrent,
+  participants,
+}: {
+  game: IndividualGame;
+  isCurrent: boolean;
+  participants?: Participant[];
+}) {
+  const winnerName =
+    game.winnerSide === "side1"
+      ? participants?.[0]?.fullName ?? participants?.[0]?.username
+      : game.winnerSide === "side2"
+      ? participants?.[1]?.fullName ?? participants?.[1]?.username
+      : null;
 
-            const isCurrentGame =
-              game.gameNumber === currentGame && !game.winnerSide;
+  return (
+    <div
+      className={clsx(
+        "flex items-center gap-2 px-4 py-2 text-sm transition-all",
+        "bg-zinc-50 dark:bg-zinc-900",
+        "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+        {
+          "ring-1 ring-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10":
+            isCurrent,
+        }
+      )}
+    >
+      <span className="font-medium text-zinc-800 dark:text-zinc-200">
+        Set {game.gameNumber}
+        <span className="ml-2 text-zinc-500 font-normal tabular-nums">
+          {game.side1Score ?? 0}–{game.side2Score ?? 0}
+        </span>
+      </span>
 
-            return (
-              <div
-                key={game.gameNumber}
-                className={`w-fit flex text-sm items-center justify-between gap-3 px-4 py-2 rounded-sm transition-colors ${
-                  isCurrentGame
-                    ? "bg-gradient-to-r from-[#3c6e71]/10 to-[#284b63]/10 border border-[#3c6e71]/30 text-[#284b63] dark:from-[#3c6e71]/20 dark:to-[#284b63]/20 dark:text-[#3c6e71] font-semibold"
-                    : winnerName
-                    ? "bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-                    : "bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                <span className="font-medium">
-                  Set {game.gameNumber}:{" "}
-                  <span className="text-gray-500 dark:text-gray-400 font-normal">
-                    {game.side1Score ?? 0} - {game.side2Score ?? 0}
-                  </span>
-                </span>
-                {winnerName && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs bg-[#3c6e71]/20 text-[#284b63] dark:bg-[#3c6e71]/30 dark:text-[#3c6e71] border-0"
-                  >
-                    {winnerName}
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {winnerName && (
+        <Badge
+          variant="secondary"
+          className="ml-auto text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+        >
+          {winnerName}
+        </Badge>
+      )}
     </div>
   );
 }

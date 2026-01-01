@@ -16,16 +16,16 @@ interface TeamConfigProps {
 
 export function TeamConfig({ form }: TeamConfigProps) {
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <FormField
         control={form.control}
         name="teamConfig.matchFormat"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-              Match Structure
+            <FormLabel className="text-xs text-muted-foreground">
+              Tie format
             </FormLabel>
-            <div className="flex gap-2 flex-wrap">
+            <div className="grid grid-cols-3 gap-1 bg-muted p-1 rounded-lg">
               {[
                 {
                   label: "5 Singles",
@@ -40,17 +40,16 @@ export function TeamConfig({ form }: TeamConfigProps) {
                   value: "custom",
                 },
               ].map((opt) => {
-                const isActive = field.value === opt.value;
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => field.onChange(opt.value)}
                     className={cn(
-                      "px-4 py-2 text-xs rounded border transition-all",
-                      isActive
-                        ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
+                      "py-2 text-xs font-medium rounded-md transition-all",
+                      field.value === opt.value
+                        ? "bg-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {opt.label}
@@ -68,28 +67,25 @@ export function TeamConfig({ form }: TeamConfigProps) {
         name="teamConfig.setsPerSubMatch"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-xs font-medium text-slate-700 uppercase tracking-wide">
-              Sets Per Individual Match
+            <FormLabel className="text-xs text-muted-foreground">
+              Sets per tie
             </FormLabel>
-            <div className="flex gap-2">
-              {["1", "3", "5", "7", "9"].map((n) => {
-                const isActive = field.value === n;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => field.onChange(n)}
-                    className={cn(
-                      "w-10 h-10 text-sm rounded border transition-all",
-                      isActive
-                        ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-400"
-                    )}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
+            <div className="flex gap-1 bg-muted p-1 rounded-lg">
+              {["1", "3", "5", "7"].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => field.onChange(n)}
+                  className={cn(
+                    "flex-1 py-2 text-xs font-medium rounded-md transition-all",
+                    field.value === n
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
             </div>
             <FormMessage />
           </FormItem>

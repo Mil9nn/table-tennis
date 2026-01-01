@@ -171,7 +171,7 @@ export default function MarketingFooter() {
           {/* Bottom Section */}
           <div className="flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm text-white/50">
-              © {currentYear} <span className="bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent font-bold">TTPro</span>. All rights reserved.
+              © {currentYear} TTPro. All rights reserved.
             </p>
           </div>
         </div>

@@ -43,10 +43,18 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
   useEffect(() => {
     if (!match) return;
 
+    // If match is completed, initialize immediately to prevent race conditions
+    if (match.status === "completed") {
+      setInitialMatch(match);
+      lastMatchId.current = match._id;
+      lastMatchStatus.current = match.status;
+      return;
+    }
+
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 
-    if (matchChanged || (statusChanged && (match.status === "completed" || lastMatchStatus.current === "completed"))) {
+    if (matchChanged || (statusChanged && ((match.status as MatchStatus) === "completed" || lastMatchStatus.current === "completed"))) {
       setInitialMatch(match);
       lastMatchId.current = match._id;
       lastMatchStatus.current = match.status;
@@ -66,7 +74,8 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
 
   const handleAddPoint = useCallback(
     ({ side, playerId }: AddPointPayload) => {
-      if (status === "completed") {
+      // Check both match prop (server data) and hook state
+      if (match.status === "completed" || status === "completed") {
         toast.error("Match is completed! Reset to continue.");
         return;
       }
@@ -74,7 +83,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
       setPendingPlayer({ side, playerId });
       setShotDialogOpen(true);
     },
-    [status, setPendingPlayer, setShotDialogOpen]
+    [match.status, status, setPendingPlayer, setShotDialogOpen]
   );
 
   const handleUndo = useCallback(async () => {
@@ -107,9 +116,12 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
 
   if (!match) return <div>Loading match...</div>;
 
+  // Check completion from both sources to prevent race conditions
+  const isCompleted = status === "completed" || match.status === "completed";
+
   return (
     <div className="space-y-6">
-      {status === "completed" ? (
+      {isCompleted ? (
         <MatchCompletedCard match={match} />
       ) : (
         <>

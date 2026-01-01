@@ -45,7 +45,7 @@ export default function Hero() {
           <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
             <span className="bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent">TTPro</span>
             <span> - </span>
-            <span className="text-[#3c6e71]">
+            <span className="text-white">
               score matches & run tournaments
             </span>
           </h1>

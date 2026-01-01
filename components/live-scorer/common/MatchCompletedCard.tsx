@@ -77,44 +77,57 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
   const matchScore = `${finalScore?.side1Sets ?? 0} - ${finalScore?.side2Sets ?? 0}`;
 
   return (
-    <Card className="h-[calc(100vh-60px)] border border-green-300 bg-gradient-to-br from-green-50 to-emerald-100 shadow-lg rounded-none">
-      <CardContent className="p-8 text-center space-y-5">
-        <div className="p-4 w-fit mx-auto rounded-full bg-emerald-300">
-          <Trophy className="size-8 text-amber-400 mx-auto" />
-        </div>
-        <h2 className="text-3xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
-          MATCH COMPLETED
-        </h2>
-        
-        <div className="space-y-3">
-          <div className="text-2xl font-semibold">
-            Winner: <span className="text-emerald-700">{renderWinnerName()}</span>
-          </div>
-          
-          <div className="text-lg text-gray-700">
-            Final Score: <span className="font-bold text-gray-900">{matchScore}</span>
-          </div>
-          
-          {match.matchDuration && (
-            <div className="text-sm text-gray-500 italic">
-              Duration: {formatTimeDuration(match.matchDuration)}
-            </div>
-          )}
-        </div>
+    <Card className="mx-auto max-w-lg border-border shadow-sm">
+  <CardContent className="p-8 text-center space-y-4">
+    {/* Status */}
+    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+      <Trophy className="h-6 w-6 text-emerald-600" />
+    </div>
 
-        <div className="pt-2 text-xs text-gray-500">
-          Match completed at {formatDate(new Date())}
-        </div>
+    <div className="space-y-1">
+      <h2 className="text-xl font-semibold">
+        Match completed
+      </h2>
+    </div>
 
-        <div className="pt-6">
-          <Link href="/matches">
-            <Button variant="default" className="px-6 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition">
-              <ArrowBigLeft className="size-4" />
-              <span className="pb-0.5">Return to Matches</span>
-            </Button>
-          </Link>
+    {/* Result */}
+    <div className="space-y-2">
+      <div className="text-lg">
+        <span className="text-muted-foreground">Winner</span>
+        <div className="font-semibold text-foreground">
+          {renderWinnerName()}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        Final score{" "}
+        <span className="font-medium text-foreground">
+          {matchScore}
+        </span>
+      </div>
+
+      {match.matchDuration && (
+        <div className="text-xs text-muted-foreground">
+          Duration · {formatTimeDuration(match.matchDuration)}
+        </div>
+      )}
+    </div>
+
+    {/* Meta */}
+    <div className="text-xs text-muted-foreground">
+      Completed at {formatDate(new Date())}
+    </div>
+
+    {/* Actions */}
+    <div className="pt-4">
+      <Link href="/matches">
+        <Button className="gap-2">
+          <ArrowBigLeft className="h-4 w-4" />
+          Back to matches
+        </Button>
+      </Link>
+    </div>
+  </CardContent>
+</Card>
   );
 }

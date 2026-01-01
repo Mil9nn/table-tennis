@@ -98,8 +98,8 @@ const LoginPage = () => {
             <div className="p-6 space-y-5">
               {/* Registration Success Message */}
               {showRegistrationSuccess && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-                  ✓ Registration successful! You can now log in with your credentials.
+                <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                  Registration successful! You can now log in with your credentials.
                 </div>
               )}
               
@@ -175,7 +175,7 @@ const LoginPage = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider transition-colors mt-6"
+                    className="w-full mt-6"
                     disabled={authLoading}
                   >
                     {authLoading ? (
@@ -192,16 +192,14 @@ const LoginPage = () => {
             </div>
 
             {/* Footer Section */}
-            <div className="p-4 border-t border-[#d9d9d9] text-center">
-              <p className="text-xs text-[#353535]/60">
-                Don't have an account?{" "}
-                <Link
-                  href="/auth/register"
-                  className="text-[#3c6e71] font-semibold hover:text-[#3c6e71]/80 transition"
-                >
-                  Register here
-                </Link>
-              </p>
+            <div className="border-t p-4 text-center text-xs text-gray-500">
+              Don't have an account?{" "}
+              <Link
+                href="/auth/register"
+                className="font-medium text-[#3c6e71] hover:underline"
+              >
+                Register here
+              </Link>
             </div>
           </div>
         </div>

@@ -22,7 +22,6 @@ export default function TableCourt({
   mode = "origin",
   startScaled = false,
 }: TableCourtProps) {
-  const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{
     x: number;
     y: number;
@@ -94,7 +93,6 @@ export default function TableCourt({
     const { x, y } = getLogicalCoordinates(e.clientX, e.clientY, rect);
 
     const isOnTable = isOnTableSurface(x, y);
-    setHoveredZone(tableScaled ? null : (isOnTable ? "On Table" : "Off Table"));
 
     const isValidPosition = (() => {
       if (tableScaled && !isOnTable) return false;
@@ -114,18 +112,10 @@ export default function TableCourt({
 
   return (
     <div className="">
-      <div className="flex items-center justify-between">
-        {hoveredZone && (
-          <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-linear-to-r from-blue-500 to-purple-500 text-white">
-            {hoveredZone}
-          </span>
-        )}
-      </div>
       <div
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => {
-          setHoveredZone(null);
           setHoverPosition(null);
         }}
         className={`relative w-full max-w-full lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto aspect-[2.74/1.525] bg-gray-200 shadow-2xl hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300 ${

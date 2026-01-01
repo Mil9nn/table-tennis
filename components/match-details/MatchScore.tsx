@@ -1,6 +1,7 @@
 "use client";
 
 import { isIndividualMatch, Match } from "@/types/match.type";
+import clsx from "clsx";
 
 interface Props {
   match: Match;
@@ -11,83 +12,69 @@ export default function MatchScore({ match }: Props) {
   const isCompleted = match.status === "completed";
 
   return (
-    <div className="p-6 border-b border-zinc-100">
-      <div className="max-w-md mx-auto space-y-4">
-        {/* Header Label */}
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-            {isIndividual ? "Individual Match" : "Team Match"}
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-            {isIndividual ? "Sets" : "Matches"}
-          </span>
-        </div>
+    <section className="dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-zinc-800 p-5">
+      <header className="flex justify-between items-center mb-6">
+        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          {isIndividual ? "Individual match" : "Team match"}
+        </span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          {isIndividual ? "Sets" : "Matches"}
+        </span>
+      </header>
 
-        {/* Competitors List */}
-        <div className="space-y-3">
-          {isIndividual ? (
-            <IndividualRows match={match} />
-          ) : (
-            <TeamRows match={match} />
-          )}
-        </div>
-
-        {/* Status / Footer */}
-        <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex justify-center">
-          <p className="text-[11px] font-medium text-zinc-500 italic">
-            {isCompleted ? "Result" : "Match in Progress"}
-          </p>
-        </div>
+      <div className="space-y-2">
+        {isIndividual ? (
+          <IndividualRows match={match} />
+        ) : (
+          <TeamRows match={match} />
+        )}
       </div>
-    </div>
+    </section>
   );
 }
 
 function IndividualRows({ match }: { match: any }) {
   const isDoubles = match.matchType === "doubles";
 
-  const side1Players = isDoubles
-    ? `${match.participants?.[0]?.fullName || "P1"} / ${
-        match.participants?.[1]?.fullName || "P2"
-      }`
-    : match.participants?.[0]?.fullName || "Player 1";
-
-  const side2Players = isDoubles
-    ? `${match.participants?.[2]?.fullName || "P3"} / ${
-        match.participants?.[3]?.fullName || "P4"
-      }`
-    : match.participants?.[1]?.fullName || "Player 2";
+  const names = [
+    isDoubles
+      ? `${match.participants?.[0]?.fullName} / ${match.participants?.[1]?.fullName}`
+      : match.participants?.[0]?.fullName,
+    isDoubles
+      ? `${match.participants?.[2]?.fullName} / ${match.participants?.[3]?.fullName}`
+      : match.participants?.[1]?.fullName,
+  ];
 
   return (
-    <div>
+    <>
       <ScoreRow
-        name={side1Players}
-        score={match.finalScore?.side1Sets || 0}
+        name={names[0] || "Side 1"}
+        score={match.finalScore?.side1Sets ?? 0}
         isWinner={match.winnerSide === "side1"}
       />
       <ScoreRow
-        name={side2Players}
-        score={match.finalScore?.side2Sets || 0}
+        name={names[1] || "Side 2"}
+        score={match.finalScore?.side2Sets ?? 0}
         isWinner={match.winnerSide === "side2"}
       />
-    </div>
+    </>
   );
 }
 
 function TeamRows({ match }: { match: any }) {
   return (
-    <div>
+    <>
       <ScoreRow
         name={match.team1.name}
-        score={match.finalScore?.team1Matches || 0}
+        score={match.finalScore?.team1Matches ?? 0}
         isWinner={match.winnerTeam === "team1"}
       />
       <ScoreRow
         name={match.team2.name}
-        score={match.finalScore?.team2Matches || 0}
+        score={match.finalScore?.team2Matches ?? 0}
         isWinner={match.winnerTeam === "team2"}
       />
-    </div>
+    </>
   );
 }
 
@@ -101,19 +88,32 @@ function ScoreRow({
   isWinner: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-4`}>
+    <div
+      className={clsx(
+        "flex items-center justify-between rounded-lg px-4 py-3",
+        isWinner
+          ? "bg-emerald-50 dark:bg-emerald-500/10"
+          : "bg-zinc-50 dark:bg-zinc-900"
+      )}
+    >
       <p
-        className={`text-sm font-semibold truncate ${
-          isWinner ? "text-emerald-600 dark:text-white" : "text-zinc-500"
-        }`}
+        className={clsx(
+          "text-sm font-medium truncate",
+          isWinner
+            ? "text-emerald-700 dark:text-emerald-300"
+            : "text-zinc-600"
+        )}
       >
         {name}
       </p>
 
       <span
-        className={`text-xl font-black tabular-nums ${
-          isWinner ? "text-emerald-600 dark:text-white" : "text-zinc-400"
-        }`}
+        className={clsx(
+          "text-2xl font-extrabold tabular-nums",
+          isWinner
+            ? "text-emerald-700 dark:text-emerald-300"
+            : "text-zinc-400"
+        )}
       >
         {score}
       </span>

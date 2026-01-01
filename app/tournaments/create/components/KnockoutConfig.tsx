@@ -25,19 +25,15 @@ export function KnockoutConfig({
   const customMatchingField = `${prefix}.allowCustomMatching`;
 
   return (
-    <div className="space-y-3">
-      {title && (
-        <h4 className="text-sm font-semibold text-gray-700">{title}</h4>
-      )}
-
+    <div className="space-y-4">
       <FormField
         control={form.control}
         name={thirdPlaceField}
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-white p-3">
+          <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
             <div className="space-y-0.5">
-              <FormLabel>3rd Place Match</FormLabel>
-              <FormDescription>
+              <FormLabel className="text-sm">3rd place match</FormLabel>
+              <FormDescription className="text-xs">
                 Include a match between semi-final losers
               </FormDescription>
             </div>
@@ -55,10 +51,10 @@ export function KnockoutConfig({
         control={form.control}
         name={customMatchingField}
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-white p-3">
+          <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
             <div className="space-y-0.5">
-              <FormLabel>Custom Bracket Matching</FormLabel>
-              <FormDescription>
+              <FormLabel className="text-sm">Custom bracket matching</FormLabel>
+              <FormDescription className="text-xs">
                 Manually set matchups at each round
               </FormDescription>
             </div>

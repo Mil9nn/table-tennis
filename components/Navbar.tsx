@@ -239,116 +239,92 @@ export default function Navbar() {
       )}
 
       {/* Mobile Sidebar */}
+      {/* Mobile Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-screen w-64 bg-[#d9d9d9] transform transition-transform duration-300 ease-in-out sm:hidden z-40 ${
+        className={cn(
+          "fixed inset-y-0 left-0 w-72 sm:hidden z-40",
+          "bg-zinc-900/95 backdrop-blur-xl",
+          "border-r border-white/10",
+          "transform transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        )}
       >
-        {/* Sidebar Quick Actions - Secondary/Utility Panel */}
-        <div className="flex flex-col gap-px border-b border-[#d9d9d9]">
-          <button
-            onClick={() => {
-              router.push("/match/create");
-              setOpen(false);
-            }}
-            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
-          >
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AddCircleOutlineIcon
-                  sx={{ fontSize: 22, color: "#3c6e71" }}
-                  className="group-hover:!text-white transition-colors"
-                />
-                <span className="text-sm font-semibold tracking-wide text-[#353535] group-hover:text-white transition-colors">
-                  Create Match
-                </span>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              router.push("/teams/create");
-              setOpen(false);
-            }}
-            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
-          >
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <GroupAddIcon
-                  sx={{ fontSize: 22, color: "#3c6e71" }}
-                  className="group-hover:!text-white transition-colors"
-                />
-                <span className="text-sm font-semibold tracking-wide text-[#353535] group-hover:text-white transition-colors">
-                  Create Team
-                </span>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              router.push("/tournaments/create");
-              setOpen(false);
-            }}
-            className="group bg-white text-left w-full transition-colors hover:bg-[#3c6e71]"
-          >
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <SportsMmaIcon
-                  sx={{ fontSize: 22, color: "#3c6e71" }}
-                  className="group-hover:!text-white transition-colors"
-                />
-                <span className="text-sm font-semibold tracking-wide text-[#353535] group-hover:text-white transition-colors">
-                  Create Tournament
-                </span>
-              </div>
-            </div>
+        {/* Header */}
+        <div className="h-14 px-5 flex items-center justify-between border-b border-white/10">
+          <span className="text-sm font-semibold tracking-wide text-white">
+            Navigation
+          </span>
+          <button onClick={() => setOpen(false)}>
+            <X className="w-5 h-5 text-white/70 hover:text-white" />
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
-        <div className="flex flex-col gap-px mt-1">
-          {sidebarNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
+        {/* Quick Actions */}
+        <div className="px-4 py-4 space-y-2">
+          <p className="text-[11px] uppercase tracking-widest text-white/40 px-2">
+            Quick Actions
+          </p>
 
-            return (
-              <button
-                key={item.href}
-                onClick={() => {
-                  router.push(item.href);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "group bg-white text-left transition-colors",
-                  active ? "bg-[#3c6e71]" : "hover:bg-[#3c6e71]"
-                )}
-              >
-                <div className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Icon
-                      sx={{
-                        fontSize: 22,
-                        color: active ? "#ffffff" : "#3c6e71",
-                      }}
-                      className="group-hover:!text-white transition-colors"
-                    />
-                    <span
-                      className={cn(
-                        "text-sm font-semibold tracking-wide",
-                        active ? "text-white" : "text-[#353535]",
-                        "group-hover:text-white"
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-[#d9d9d9] group-hover:text-white group-hover:translate-x-1 transition-all" />
-                </div>
-              </button>
-            );
-          })}
+          {[
+            { label: "Create Match", href: "/match/create", icon: Plus },
+            { label: "Create Team", href: "/teams/create", icon: Plus },
+            {
+              label: "Create Tournament",
+              href: "/tournaments/create",
+              icon: Plus,
+            },
+          ].map(({ label, href, icon: Icon }) => (
+            <button
+              key={label}
+              onClick={() => {
+                router.push(href);
+                setOpen(false);
+              }}
+              className="
+          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+          text-sm font-medium text-white/80
+          bg-white/5 hover:bg-white/10
+          transition-all
+        "
+            >
+              <Icon className="w-4 h-4 text-indigo-400" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Navigation */}
+        <div className="px-4 py-2">
+          <p className="text-[11px] uppercase tracking-widest text-white/40 px-2 mb-2">
+            Menu
+          </p>
+
+          <div className="space-y-1">
+            {sidebarNav.map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => {
+                    router.push(item.href);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                    "text-sm font-medium transition-all",
+                    active
+                      ? "bg-indigo-500/15 text-indigo-400"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

@@ -31,7 +31,7 @@ export default function CoreValueProps() {
     <section className="marketing py-20 sm:py-32 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 leading-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-white mb-2 leading-tight">
             Designed for leagues, tournaments and organized play.
           </h2>
           <p className="text-sm sm:text-base text-white/70 max-w-xl mx-auto">

@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, X, ChevronLeft } from "lucide-react";
+import { CalendarIcon, Loader2, X, ChevronLeft, ArrowRight } from "lucide-react";
 import AdjustIcon from "@mui/icons-material/Adjust";
 import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -46,6 +46,7 @@ import {
   TeamConfig,
   QualificationConfig,
 } from "./components";
+import { Check } from "@mui/icons-material";
 
 // ============================================================================
 // CLEAN SCHEMA - Organized by logical sections
@@ -449,423 +450,382 @@ export default function CreateTournamentPage() {
   return (
     <div className="min-h-screen bg-[#ffffff]">
       {/* HEADER: Precise & Architectural */}
-      <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]/95 backdrop-blur-sm">
-        <div className="mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div>
-              <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] leading-none">
-                Tournament Creation
-              </h1>
-              <p></p>
-            </div>
-          </div>
+      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md hover:bg-muted transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <h1 className="text-sm font-semibold text-foreground">
+            Create tournament
+          </h1>
         </div>
       </header>
 
-      <main className="mx-auto px-4 py-8">
+      <main className="mx-auto py-8">
         <Form {...form}>
           {/* FORMAT SELECTOR: High Density Toggle */}
-          <div className="mb-10">
-            <div className="mb-4">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
-                Select Format
-              </h2>
-              <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
-            </div>
+          <div className="mb-10 px-4">
+  <div className="mb-5">
+    <h2 className="text-sm font-semibold text-foreground">
+      Select Format
+    </h2>
+    <div className="h-[2px] w-10 rounded-full bg-primary/70 mt-1" />
+  </div>
 
-            <FormField
-              control={form.control}
-              name="format"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="grid grid-cols-3 gap-[1px] bg-[#d9d9d9]">
-                    {[
-                      {
-                        type: "round_robin" as const,
-                        title: "Round Robin",
-                        description: "All vs All",
-                        icon: AdjustIcon,
-                      },
-                      {
-                        type: "knockout" as const,
-                        title: "Knockout",
-                        description: "Elimination",
-                        icon: DonutLargeIcon,
-                      },
-                      {
-                        type: "hybrid" as const,
-                        title: "Hybrid",
-                        description: "RR + Knockout",
-                        icon: MultipleStopIcon,
-                      },
-                    ].map((formatOption) => {
-                      const isActive = field.value === formatOption.type;
-                      const Icon = formatOption.icon;
+  <FormField
+    control={form.control}
+    name="format"
+    render={({ field }) => (
+      <FormItem>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[
+            {
+              type: "round_robin" as const,
+              title: "Round Robin",
+              
+              icon: AdjustIcon,
+            },
+            {
+              type: "knockout" as const,
+              title: "Knockout",
+              
+              icon: DonutLargeIcon,
+            },
+            {
+              type: "hybrid" as const,
+              title: "Hybrid",
+              
+              icon: MultipleStopIcon,
+            },
+          ].map((option) => {
+            const isActive = field.value === option.type;
+            const Icon = option.icon;
 
-                      return (
-                        <button
-                          key={formatOption.type}
-                          type="button"
-                          onClick={() => field.onChange(formatOption.type)}
-                          className={cn(
-                            "group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left",
-                            isActive && "bg-[#3c6e71]"
-                          )}
-                        >
-                          <div className="p-6">
-                            <div className="flex flex-col gap-2">
-                              <Icon
-                                className={cn(
-                                  "w-5 h-5 transition-colors",
-                                  isActive ? "text-[#ffffff]" : "text-[#3c6e71] group-hover:text-[#ffffff]"
-                                )}
-                              />
-                              <div>
-                                <h3 className={cn("text-sm font-semibold tracking-wide transition-colors", isActive ? "text-[#ffffff]" : "text-[#353535] group-hover:text-[#ffffff]")}>
-                                  {formatOption.title}
-                                </h3>
-                                <p
-                                  className={cn(
-                                    "text-xs mt-1 transition-colors",
-                                    isActive ? "text-[#ffffff]/70" : "text-[#353535]/60 group-hover:text-[#ffffff]/70"
-                                  )}
-                                >
-                                  {formatOption.description}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+            return (
+              <button
+                key={option.type}
+                type="button"
+                onClick={() => field.onChange(option.type)}
+                className={cn(
+                  "relative rounded-xl border p-4 text-left transition-all",
+                  "bg-background hover:border-primary/50 hover:shadow-sm",
+                  isActive
+                    ? "border-primary shadow-md"
+                    : "border-border"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-md",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-primary"
+                    )}
+                  >
+                    <Icon sx={{ fontSize: 16 }} />
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
 
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="border border-[#d9d9d9] rounded-lg p-4 bg-[#ffffff]"
-          >
-            <div className="bg-[#ffffff] rounded-md">
-              {/* ═══════════════════════════════════════════
-                  SECTION 1: BASIC INFO
-              ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-3 border-b border-[#d9d9d9]">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                  Basic Information
-                </h2>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold leading-none">
+                      {option.title}
+                    </h3>
+                  </div>
 
-                {/* Tournament Name */}
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                        Tournament Name
-                      </FormLabel>
-
-                      <FormControl>
-                        <Input
-                          className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
-                       placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
-                          placeholder="Spring Championship 2025"
-                          {...field}
-                        />
-                      </FormControl>
-
-                      <FormMessage className="text-xs" />
-                    </FormItem>
+                  {isActive && (
+                    <motion.div
+                      layoutId="formatCheck"
+                      className="text-primary"
+                    >
+                      <Check sx={{ fontSize: 16 }} />
+                    </motion.div>
                   )}
-                />
-
-                {/* City + Venue */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                          City
-                        </FormLabel>
-
-                        <FormControl>
-                          <Input
-                            className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
-                         placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
-                            placeholder="New York"
-                            {...field}
-                          />
-                        </FormControl>
-
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="venue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                          Venue
-                        </FormLabel>
-
-                        <FormControl>
-                          <Input
-                            className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm
-                         placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
-                            placeholder="Sports Center"
-                            {...field}
-                          />
-                        </FormControl>
-
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
                 </div>
+              </button>
+            );
+          })}
+        </div>
 
-                {/* Start Date */}
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
+
+
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 max-w-3xl mx-auto px-4">
+            {/* BASIC INFO */}
+            <section className="space-y-5">
+              <h3 className="text-sm font-semibold text-foreground">
+                Basic Information
+              </h3>
+
+              {/* Tournament Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs text-muted-foreground">
+                      Tournament name
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Spring Championship 2025" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* City + Venue */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="startDate"
+                  name="city"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                        Start Date
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">
+                        City
                       </FormLabel>
-
-                      <Popover
-                        open={startDateOpen}
-                        onOpenChange={setStartDateOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal text-sm bg-[#ffffff] h-10 rounded border-[#d9d9d9] hover:border-[#3c6e71]",
-                                !field.value && "text-[#353535]/40"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={(date) => {
-                              field.onChange(date);
-                              setStartDateOpen(false);
-                            }}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      <FormMessage className="text-xs" />
+                      <FormControl>
+                        <Input placeholder="City" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-
-              {/* ═══════════════════════════════════════════
-                SECTION 2: CATEGORY
-            ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                  Category
-                </h2>
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="venue"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="grid grid-cols-2 gap-[1px] bg-[#d9d9d9]">
-                        {[
-                          {
-                            type: "individual" as const,
-                            title: "Individual",
-                            description: "Singles / Doubles / Mixed",
-                            icon: PersonIcon,
-                          },
-                          {
-                            type: "team" as const,
-                            title: "Team",
-                            description: "Club vs Club / Group",
-                            icon: GroupsIcon,
-                          },
-                        ].map((categoryOption) => {
-                          const isActive = field.value === categoryOption.type;
-                          const Icon = categoryOption.icon;
-
-                          return (
-                            <button
-                              key={categoryOption.type}
-                              type="button"
-                              onClick={() =>
-                                field.onChange(categoryOption.type)
-                              }
-                              className={cn(
-                                "group bg-[#ffffff] hover:bg-[#3c6e71] transition-colors duration-200 text-left",
-                                isActive && "bg-[#3c6e71]"
-                              )}
-                            >
-                              <div className="p-6">
-                                <div className="flex flex-col gap-2">
-                                  <Icon
-                                    className={cn(
-                                      "w-5 h-5 transition-colors",
-                                      isActive
-                                        ? "text-[#ffffff]"
-                                        : "text-[#3c6e71] group-hover:text-[#ffffff]"
-                                    )}
-                                  />
-                                  <div>
-                                    <h3 className={cn("text-sm font-semibold tracking-wide transition-colors", isActive ? "text-[#ffffff]" : "text-[#353535] group-hover:text-[#ffffff]")}>
-                                      {categoryOption.title}
-                                    </h3>
-                                    <p
-                                      className={cn(
-                                        "text-xs mt-1 transition-colors",
-                                        isActive
-                                          ? "text-[#ffffff]/70"
-                                          : "text-[#353535]/60 group-hover:text-[#ffffff]/70"
-                                      )}
-                                    >
-                                      {categoryOption.description}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <FormLabel className="text-xs text-muted-foreground">
+                        Venue
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Club / Arena" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* ═══════════════════════════════════════════
-                SECTION 3: MATCH SETTINGS
-            ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                  {watchCategory === "team"
-                    ? "Team Match Format"
-                    : "Match Settings"}
-                </h2>
-
-                {/* Individual tournament: Show match type & sets */}
-                {watchCategory === "individual" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="matchType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                            Match Type
-                          </FormLabel>
-                          <div className="flex gap-2 flex-wrap">
-                            {[
-                              { label: "Singles", value: "singles" },
-                              { label: "Doubles", value: "doubles" },
-                            ].map((opt) => {
-                              const isActive = field.value === opt.value;
-                              return (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => field.onChange(opt.value)}
-                                  className={cn(
-                                    "px-4 py-2 text-xs rounded border transition-all",
-                                    isActive
-                                      ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
-                                      : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
-                                  )}
-                                >
-                                  {opt.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="setsPerMatch"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                            Sets Per Match
-                          </FormLabel>
-                          <div className="flex gap-2">
-                            {["1", "3", "5", "7", "9"].map((n) => {
-                              const isActive = field.value === n;
-                              return (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  onClick={() => field.onChange(n)}
-                                  className={cn(
-                                    "w-10 h-10 text-sm rounded border transition-all",
-                                    isActive
-                                      ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
-                                      : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
-                                  )}
-                                >
-                                  {n}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+              {/* Start Date */}
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-xs text-muted-foreground">
+                      Start date
+                    </FormLabel>
+                    <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setStartDateOpen(false);
+                          }}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+            </section>
 
-                {/* Team tournament: Show team config (match structure + sets per submatch) */}
-                {watchCategory === "team" && <TeamConfig form={form} />}
+            {/* CATEGORY */}
+            <section className="space-y-5">
+              <h3 className="text-sm font-semibold text-foreground">
+                Category
+              </h3>
+
+              <FormField
+  control={form.control}
+  name="category"
+  render={({ field }) => (
+    <FormItem>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          {
+            type: "individual" as const,
+            title: "Individual",
+            
+            icon: PersonIcon,
+          },
+          {
+            type: "team" as const,
+            title: "Team",
+            
+            icon: GroupsIcon,
+          },
+        ].map((option) => {
+          const isActive = field.value === option.type;
+          const Icon = option.icon;
+
+          return (
+            <button
+              key={option.type}
+              type="button"
+              onClick={() => field.onChange(option.type)}
+              className={cn(
+                "relative rounded-xl border p-4 text-left transition-all",
+                "bg-background hover:border-primary/50 hover:shadow-sm",
+                isActive
+                  ? "border-primary shadow-md"
+                  : "border-border"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-lg",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-primary"
+                  )}
+                >
+                  <Icon sx={{ fontSize: 16 }} />
+                </div>
+
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold leading-none">
+                    {option.title}
+                  </h3>
+                </div>
+
+                {isActive && (
+                  <motion.div
+                    layoutId="categoryCheck"
+                    className="text-primary"
+                  >
+                    <Check sx={{ fontSize: 16 }} />
+                  </motion.div>
+                )}
               </div>
+            </button>
+          );
+        })}
+      </div>
 
-              {/* ═══════════════════════════════════════════
-                SECTION 4: FORMAT-SPECIFIC OPTIONS
-            ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4 border-b border-[#d9d9d9]">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                  {watchFormat === "knockout" && "Knockout Settings"}
-                  {watchFormat === "hybrid" && "Hybrid Tournament Settings"}
-                </h2>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+            </section>
+
+            {/* MATCH SETTINGS */}
+            <section className="space-y-5">
+              <h3 className="text-sm font-semibold text-foreground">
+                {watchCategory === "team" ? "Match format" : "Match format"}
+              </h3>
+
+              {/* Individual tournament: Show match type & sets */}
+              {watchCategory === "individual" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="matchType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs text-muted-foreground">
+                          Type
+                        </FormLabel>
+                        <div className="flex rounded-lg bg-muted p-1">
+                          {["singles", "doubles"].map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => field.onChange(type)}
+                              className={cn(
+                                "flex-1 py-2 text-xs font-medium rounded-md transition-all",
+                                field.value === type
+                                  ? "bg-background shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="setsPerMatch"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs text-muted-foreground">
+                          Best of
+                        </FormLabel>
+                        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+                          {["1", "3", "5", "7", "9"].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => field.onChange(n)}
+                              className={cn(
+                                "flex-1 py-2 text-xs font-medium rounded-md transition-all",
+                                field.value === n
+                                  ? "bg-background shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Team tournament: Show team config */}
+              {watchCategory === "team" && <TeamConfig form={form} />}
+            </section>
+
+            {/* FORMAT-SPECIFIC OPTIONS */}
+            {(watchFormat === "knockout" || watchFormat === "hybrid") && (
+              <section className="space-y-5">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {watchFormat === "knockout" && "Knockout settings"}
+                  {watchFormat === "hybrid" && "Hybrid tournament settings"}
+                </h3>
 
                 {/* KNOCKOUT FORMAT */}
                 {watchFormat === "knockout" && (
@@ -874,17 +834,11 @@ export default function CreateTournamentPage() {
 
                 {/* HYBRID FORMAT */}
                 {watchFormat === "hybrid" && (
-                  <div className="space-y-4">
-                    {/* Phase 1: Round Robin */}
-                    <div className="">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-slate-600 bg-black/10 px-2 py-1 rounded">
-                          PHASE 1
-                        </span>
-                        <span className="text-sm font-medium text-blue-800">
-                          Round Robin
-                        </span>
-                      </div>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-medium text-muted-foreground">
+                        Round robin phase
+                      </h4>
                       <RoundRobinConfig
                         form={form}
                         prefix="hybridRoundRobin"
@@ -893,181 +847,149 @@ export default function CreateTournamentPage() {
                       />
                     </div>
 
-                    {/* Qualification */}
-                    <div>
-                      <QualificationConfig
-                        form={form}
-                        useGroups={watchHybridUseGroups ?? false}
-                      />
-                    </div>
+                    <QualificationConfig
+                      form={form}
+                      useGroups={watchHybridUseGroups ?? false}
+                    />
 
-                    {/* Phase 2: Knockout */}
-                    <div className="">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-slate-600 bg-black/10 px-2 py-1 rounded">
-                          PHASE 2
-                        </span>
-                        <span className="text-sm font-medium text-gray-800">
-                          Knockout
-                        </span>
-                      </div>
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-medium text-muted-foreground">
+                        Knockout phase
+                      </h4>
                       <KnockoutConfig form={form} prefix="hybridKnockout" />
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
+            )}
 
-              {/* ═══════════════════════════════════════════
-                SECTION 5: PARTICIPANTS
-            ═══════════════════════════════════════════ */}
-              <div className="p-4 space-y-4">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                  {watchCategory === "team" ? "Teams" : "Participants"}
-                </h2>
+            {/* PARTICIPANTS */}
+            <section className="space-y-5">
+              <h3 className="text-sm font-semibold text-foreground">
+                {watchCategory === "team" ? "Teams" : "Participants"}
+              </h3>
 
-                <FormField
-                  control={form.control}
-                  name="participants"
-                  render={() => (
-                    <FormItem>
-                      <FormControl>
-                        {watchCategory === "team" ? (
-                          <TeamSearchInput
-                            placeholder="Search and add teams..."
-                            onSelect={addParticipant}
-                            clearAfterSelect
-                          />
-                        ) : (
-                          <UserSearchInput
-                            placeholder="Search and add participants..."
-                            onSelect={addParticipant}
-                            clearAfterSelect
-                          />
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {participants.length > 0 ? (
-                  <div className="space-y-[1px] bg-[#d9d9d9] max-h-64 overflow-y-auto">
-                    <AnimatePresence>
-                      {participants.map((p, idx) => (
-                        <motion.div
-                          key={p._id}
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.2 }}
-                          className="flex items-center justify-between p-3 bg-[#ffffff] hover:bg-[#3c6e71]/10 transition group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#3c6e71] text-[#ffffff] flex items-center justify-center font-bold text-xs">
-                              {idx + 1}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm text-[#353535]">
-                                {watchCategory === "team"
-                                  ? p.name
-                                  : p.fullName || p.username}
-                              </p>
-                              <p className="text-xs text-[#353535]/60">
-                                {watchCategory === "team"
-                                  ? `${p.players?.length || 0} players`
-                                  : `@${p.username}`}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeParticipant(p._id)}
-                            className="text-[#353535]/40 hover:text-red-600 transition p-1"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-[#353535]/40 border border-[#d9d9d9] rounded border-dashed">
-                    <p className="text-sm">
-                      No {watchCategory === "team" ? "teams" : "participants"}{" "}
-                      added yet
-                    </p>
-                    <p className="text-xs mt-1">Search and add at least 2</p>
-                  </div>
-                )}
-
-                <p className="text-xs text-[#353535]/60 text-center">
-                  {participants.length} / 2 minimum{" "}
-                  {watchCategory === "team" ? "teams" : "participants"}
-                </p>
-              </div>
-
-              {/* ═══════════════════════════════════════════
-                SECTION 6: DOUBLES PAIRS (Conditional)
-            ═══════════════════════════════════════════ */}
-              {watchCategory === "individual" &&
-                watchMatchType === "doubles" &&
-                participants.length >= 2 && (
-                  <div className="p-4 space-y-4 border-t border-[#d9d9d9]">
-                    <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">
-                      Doubles Pairs
-                    </h2>
-
-                    <div className="text-sm text-[#353535]/70 space-y-1 mb-4">
-                      <p>
-                        Create pairs for your doubles tournament. All{" "}
-                        {participants.length} players should be paired before
-                        submitting.
-                      </p>
-                      {participants.length % 2 !== 0 && (
-                        <p className="text-amber-600 font-medium">
-                          ⚠️ You have an odd number of players. Please add or
-                          remove one player.
-                        </p>
+              <FormField
+                control={form.control}
+                name="participants"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      {watchCategory === "team" ? (
+                        <TeamSearchInput
+                          placeholder="Search teams..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
+                      ) : (
+                        <UserSearchInput
+                          placeholder="Search players..."
+                          onSelect={addParticipant}
+                          clearAfterSelect
+                        />
                       )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {participants.length > 0 ? (
+                <div className="space-y-2">
+                  <AnimatePresence>
+                    {participants.map((p, idx) => (
+                      <motion.div
+                        key={p._id}
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center justify-between p-3 rounded-md border bg-background hover:bg-muted/50 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {watchCategory === "team"
+                                ? p.name
+                                : p.fullName || p.username}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {watchCategory === "team"
+                                ? `${p.players?.length || 0} players`
+                                : `@${p.username}`}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeParticipant(p._id)}
+                          className="text-muted-foreground hover:text-foreground transition p-1 rounded-md hover:bg-muted"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border border-dashed rounded-md">
+                  <p className="text-sm">
+                    No {watchCategory === "team" ? "teams" : "participants"} added yet
+                  </p>
+                </div>
+              )}
+            </section>
+
+            {/* DOUBLES PAIRS */}
+            {watchCategory === "individual" &&
+              watchMatchType === "doubles" &&
+              participants.length >= 2 && (
+                <section className="space-y-5">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Doubles pairs
+                  </h3>
+
+                  {participants.length % 2 !== 0 && (
+                    <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
+                      <p className="text-sm text-amber-800">
+                        You have an odd number of players. Please add or remove one player.
+                      </p>
                     </div>
+                  )}
 
-                    <DoublesPairBuilder
-                      participants={participants}
-                      existingPairs={doublesPairs}
-                      onPairsChange={(pairs) => {
-                        setDoublesPairs(pairs);
-                        // Update form value
-                        form.setValue(
-                          "doublesPairs",
-                          pairs.map((p) => ({
-                            _id: p._id,
-                            player1: p.player1._id,
-                            player2: p.player2._id,
-                          }))
-                        );
-                      }}
-                    />
-                  </div>
-                )}
-            </div>
+                  <DoublesPairBuilder
+                    participants={participants}
+                    existingPairs={doublesPairs}
+                    onPairsChange={(pairs) => {
+                      setDoublesPairs(pairs);
+                      form.setValue(
+                        "doublesPairs",
+                        pairs.map((p) => ({
+                          _id: p._id,
+                          player1: p.player1._id,
+                          player2: p.player2._id,
+                        }))
+                      );
+                    }}
+                  />
+                </section>
+              )}
 
-            {/* Submit Button */}
-            <div className="p-4 pt-6">
-              <Button
-                type="submit"
-                className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating Tournament...
-                  </>
-                ) : (
-                  "Create Tournament"
-                )}
-              </Button>
-            </div>
+            {/* CTA */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-12 text-sm font-medium"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Create tournament"
+              )}
+            </Button>
           </form>
         </Form>
       </main>

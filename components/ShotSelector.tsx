@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,19 +9,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ScrollArea, ScrollBar } from "./ui/scroll-area";
-import { shotCategories } from "@/constants/constants";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { toast } from "sonner";
 import { isIndividualMatch, isTeamMatch } from "@/types/match.type";
-import TableCourt from "./TableCourt";
 import { Button } from "./ui/button";
-import { ArrowLeft, MapPin } from "lucide-react";
-import { formatStrokeName } from "@/lib/utils";
-
-type SelectionStep = "player" | "shot" | "serveType" | "origin" | "landing";
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { useShotSelectorState } from "@/hooks/useShotSelectorState";
+import { StepIndicator } from "./shot-selector/StepIndicator";
+import { PlayerSelectionStep } from "./shot-selector/PlayerSelectionStep";
+import { ShotSelectionStep } from "./shot-selector/ShotSelectionStep";
+import { ServeTypeSelectionStep } from "./shot-selector/ServeTypeSelectionStep";
+import { CourtSelectionStep } from "./shot-selector/CourtSelectionStep";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const ShotSelector = () => {
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
@@ -29,20 +31,6 @@ const ShotSelector = () => {
   const pendingPlayer = useMatchStore((state) => state.pendingPlayer);
   const setPendingPlayer = useMatchStore((state) => state.setPendingPlayer);
   const match = useMatchStore((state) => state.match);
-
-  const [currentStep, setCurrentStep] = useState<SelectionStep>("player");
-  const [selectedShot, setSelectedShot] = useState<string | null>(null);
-  const [originPoint, setOriginPoint] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [landingPoint, setLandingPoint] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [selectedServeType, setSelectedServeType] = useState<string | null>(
-    null
-  );
 
   const updateScoreIndividual = useIndividualMatch(
     (state) => state.updateScore
@@ -88,83 +76,163 @@ const ShotSelector = () => {
   const players = getPlayersForSide();
   const needsPlayerSelection = !pendingPlayer?.playerId && players.length > 1;
 
-  // ✅ Auto-advance to shot selection if player is already known
+  // Memoize normalized players to avoid type issues and unnecessary re-renders
+  const normalizedPlayers = useMemo(() => {
+    return players
+      .filter((p): p is NonNullable<typeof p> => p != null)
+      .map((p) => {
+        if (typeof p === "string") return p;
+        if (p && typeof p === "object" && "_id" in p) {
+          return {
+            _id: String((p as any)._id),
+            fullName: (p as any).fullName,
+            username: (p as any).username,
+            profileImage: (p as any).profileImage,
+          };
+        }
+        return { _id: String(p), fullName: undefined, username: undefined };
+      });
+  }, [players]);
+
+  const {
+    state,
+    actions: {
+      setStep,
+      selectShot,
+      selectServeType,
+      setOrigin,
+      setLanding,
+      goBack,
+      reset,
+      setSubmitting,
+      setError,
+      clearError,
+    },
+  } = useShotSelectorState(needsPlayerSelection);
+
+  const isServe = state.selectedShot === "serve_point";
+  const canGoBack = useMemo(() => {
+    if (state.currentStep === "landing") return true;
+    if (state.currentStep === "origin") return true;
+    if (state.currentStep === "serveType") return true;
+    if (state.currentStep === "shot" && needsPlayerSelection) return true;
+    return false;
+  }, [state.currentStep, needsPlayerSelection]);
+
+  // Track previous dialog state to detect when it opens
+  const prevDialogOpen = useRef(false);
+  const initializedRef = useRef(false);
+
+  // Initialize step when dialog opens (only on open, not on every change)
   useEffect(() => {
-    if (shotDialogOpen && currentStep === "player") {
-      if (!needsPlayerSelection) {
-        // Singles or playerId already set - skip to shot selection
-        if (players.length === 1 && !pendingPlayer?.playerId) {
+    // Only run when dialog transitions from closed to open
+    if (shotDialogOpen && !prevDialogOpen.current && !initializedRef.current) {
+      initializedRef.current = true;
+      reset(); // Reset all state first
+
+      // Capture current values at the moment dialog opens
+      // We intentionally don't include these in deps to only initialize once
+      const currentNeedsPlayerSelection =
+        !pendingPlayer?.playerId && players.length > 1;
+
+      // Set initial step based on whether player selection is needed
+      if (!currentNeedsPlayerSelection) {
+        setStep("shot");
+      } else {
+        setStep("player");
+      }
+
+      // Auto-select player if only one option
+      if (
+        !currentNeedsPlayerSelection &&
+        players.length === 1 &&
+        !pendingPlayer?.playerId
+      ) {
+        const player = players[0];
+        if (player != null) {
+          let playerId: string;
+          if (typeof player === "string") {
+            playerId = player;
+          } else if (player && typeof player === "object" && "_id" in player) {
+            playerId = String((player as any)._id);
+          } else {
+            playerId = String(player);
+          }
           setPendingPlayer({
             side: pendingPlayer?.side || "side1",
-            playerId: (players[0] as any)?._id ?? (players[0] as string),
+            playerId,
           });
         }
-        setCurrentStep("shot");
       }
     }
-  }, [
-    shotDialogOpen,
-    needsPlayerSelection,
-    players,
-    pendingPlayer,
-    currentStep,
-  ]);
+
+    // Reset initialization flag when dialog closes
+    if (!shotDialogOpen && prevDialogOpen.current) {
+      initializedRef.current = false;
+    }
+
+    prevDialogOpen.current = shotDialogOpen;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shotDialogOpen, reset, setStep, setPendingPlayer]); // Only stable functions in deps to prevent infinite loops
 
   // Reset state when dialog closes
   const handleClose = () => {
+    if (state.isSubmitting) return; // Prevent closing during submission
+
     setShotDialogOpen(false);
-    setCurrentStep("player");
-    setSelectedShot(null);
-    setSelectedServeType(null);
-    setOriginPoint(null);
-    setLandingPoint(null);
+    reset();
     setPendingPlayer(null);
   };
 
-  const handleShotSelect = (shotValue: string) => {
-    setSelectedShot(shotValue);
-    // If it's a serve point, ask for serve type first
-    if (shotValue === "serve_point") {
-      setCurrentStep("serveType");
-      return;
-    }
-    setCurrentStep("origin");
-  };
-
-  const handleOriginSelect = (x: number, y: number) => {
-    setOriginPoint({ x, y });
-    setCurrentStep("landing");
+  const handlePlayerSelect = (playerId: string) => {
+    if (!pendingPlayer) return;
+    setPendingPlayer({
+      side: pendingPlayer.side,
+      playerId,
+    });
+    setStep("shot");
   };
 
   const handleLandingSelect = async (x: number, y: number) => {
-    setLandingPoint({ x, y });
+    if (!pendingPlayer || !match || !state.selectedShot || !state.originPoint) {
+      setError("Missing required information");
+      return;
+    }
 
-    if (!pendingPlayer || !match || !selectedShot || !originPoint) return;
+    setLanding({ x, y });
+    setSubmitting(true);
+    clearError();
 
     const { side, playerId } = pendingPlayer;
 
     // Create shot data with location and serveType (if set)
     const shotData: any = {
-      originX: originPoint.x,
-      originY: originPoint.y,
+      originX: state.originPoint.x,
+      originY: state.originPoint.y,
       landingX: x,
       landingY: y,
     };
 
-    if (selectedShot === "serve_point") {
-      shotData.serveType = selectedServeType || null;
+    if (state.selectedShot === "serve_point") {
+      shotData.serveType = state.selectedServeType || null;
     }
 
     try {
       if (isIndividualMatch(match)) {
-        await updateScoreIndividual(side, 1, selectedShot, playerId, shotData);
+        await updateScoreIndividual(
+          side,
+          1,
+          state.selectedShot,
+          playerId,
+          shotData
+        );
       } else if (isTeamMatch(match)) {
         const teamSide =
           side === "side1" ? "team1" : side === "side2" ? "team2" : side;
         await updateScoreTeam(
           teamSide as any,
           1,
-          selectedShot,
+          state.selectedShot,
           playerId,
           shotData
         );
@@ -173,30 +241,10 @@ const ShotSelector = () => {
       handleClose();
     } catch (error) {
       console.error("Error updating score:", error);
+      setError("Failed to record shot. Please try again.");
       toast.error("Failed to update score");
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep === "landing") {
-      setCurrentStep("origin");
-      setLandingPoint(null);
-    } else if (currentStep === "origin") {
-      // If we came from serveType step, go back there
-      if (selectedShot === "serve_point") {
-        setCurrentStep("serveType");
-      } else {
-        setCurrentStep("shot");
-      }
-      setOriginPoint(null);
-    } else if (currentStep === "serveType") {
-      setCurrentStep("shot");
-      setSelectedServeType(null);
-    } else if (currentStep === "shot") {
-      if (needsPlayerSelection) {
-        setCurrentStep("player");
-        setSelectedShot(null);
-      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -213,167 +261,174 @@ const ShotSelector = () => {
     };
   };
 
+  const courtSides = getCourtSides();
+
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>
-      <DialogContent className="rounded-none sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[95vw] max-w-[98vw] max-h-[90vh] overflow-y-auto p-0">
         <DialogTitle asChild>
           <VisuallyHidden>Shot Selector</VisuallyHidden>
         </DialogTitle>
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            {(currentStep === "origin" ||
-              currentStep === "landing" ||
-              (currentStep === "shot" && needsPlayerSelection)) && (
-              <Button variant="ghost" size="icon" onClick={handleBack}>
+
+        {/* Header with Progress */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center gap-3 mb-4">
+            {canGoBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goBack}
+                disabled={state.isSubmitting}
+                className="flex-shrink-0"
+              >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             )}
-            <div>
-              <DialogDescription className="text-xs text-gray-600/80">
-                {currentStep === "player" && "Select the player who scored"}
-                {currentStep === "shot" && "Choose the type of shot played"}
-                {currentStep === "origin" && (
-                  <>Click where the <strong>shot originated</strong></>
-                )}
-                {currentStep === "landing" && (
-                  <>Click on the table where the <strong>ball landed</strong></>
-                )}
+            <div className="flex-1">
+              <DialogDescription className="text-sm font-medium text-gray-700 text-left">
+                {state.currentStep === "player" &&
+                  "Select the player who scored"}
+                {state.currentStep === "shot" &&
+                  "Choose the type of shot played"}
+                {state.currentStep === "serveType" && "Select the serve type"}
+                {state.currentStep === "origin" &&
+                  "Click where the shot originated."}
+                {state.currentStep === "landing" &&
+                  "Click where the ball landed"}
               </DialogDescription>
             </div>
           </div>
+
+          <StepIndicator
+            currentStep={state.currentStep}
+            needsPlayerSelection={needsPlayerSelection}
+            isServe={isServe}
+          />
         </DialogHeader>
 
-        {/* Step 1: Player Selection (for doubles) */}
-        {currentStep === "player" && needsPlayerSelection && (
-          <div className="grid grid-cols-2 gap-3">
-            {players.map((p: any) => (
-              <button
-                key={p?._id}
-                onClick={() => {
-                  setPendingPlayer({
-                    side: pendingPlayer?.side!,
-                    playerId: (p as any)?._id ?? (p as string),
-                  });
-                  setCurrentStep("shot");
-                }}
-                className="border-2 p-4 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-blue-400 transition"
-              >
-                {p?.fullName || p?.username || "Unknown"}
-              </button>
-            ))}
-          </div>
+        {/* Error Message */}
+        {state.error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2"
+          >
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700">{state.error}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearError}
+              className="ml-auto h-auto p-1"
+            >
+              <span className="sr-only">Dismiss</span>×
+            </Button>
+          </motion.div>
         )}
 
-        {/* Step 2: Shot Type Selection */}
-        {currentStep === "shot" && (
-          <ScrollArea className="h-96">
-            <div className="space-y-4 p-1 sm:grid sm:grid-cols-2 sm:gap-4">
-              {Object.entries(shotCategories).map(([category, shotData]) => (
-                <div key={category}>
-                  <h3 className="font-medium capitalize mb-2 text-sm text-gray-700">
-                    {category.replace(/_/g, " ")}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {shotData.shots.map((shot) => (
-                      <button
-                        key={shot.value}
-                        onClick={() => handleShotSelect(shot.value)}
-                        className="border-2 rounded-xl p-2 text-sm hover:scale-[1.02] active:scale-[0.97] transition ease-in-out hover:bg-blue-50 hover:border-blue-400"
-                      >
-                        {formatStrokeName(shot.value)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <ScrollBar orientation="vertical" />
-          </ScrollArea>
-        )}
-
-        {/* Step 2.5: Serve Type Selection (only for serve_point) */}
-        {currentStep === "serveType" && (
-          <div className="space-y-3">
-            <h3 className="font-medium text-sm text-gray-700">
-              Select Serve Type
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  setSelectedServeType("side_spin");
-                  setCurrentStep("origin");
-                }}
-                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+        {/* Content Area */}
+        <div className="px-6 py-6">
+          <AnimatePresence mode="wait">
+            {state.currentStep === "player" && needsPlayerSelection && (
+              <motion.div
+                key="player"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
               >
-                Side-spin Serve
-              </button>
+                <PlayerSelectionStep
+                  players={normalizedPlayers}
+                  selectedPlayerId={pendingPlayer?.playerId || null}
+                  onSelect={handlePlayerSelect}
+                />
+              </motion.div>
+            )}
 
-              <button
-                onClick={() => {
-                  setSelectedServeType("top_spin");
-                  setCurrentStep("origin");
-                }}
-                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+            {state.currentStep === "shot" && (
+              <motion.div
+                key="shot"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
               >
-                Top-spin Serve
-              </button>
+                <ShotSelectionStep
+                  selectedShot={state.selectedShot}
+                  onSelect={selectShot}
+                />
+              </motion.div>
+            )}
 
-              <button
-                onClick={() => {
-                  setSelectedServeType("back_spin");
-                  setCurrentStep("origin");
-                }}
-                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+            {state.currentStep === "serveType" && (
+              <motion.div
+                key="serveType"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
               >
-                Back-spin Serve
-              </button>
+                <ServeTypeSelectionStep
+                  selectedServeType={state.selectedServeType}
+                  onSelect={selectServeType}
+                />
+              </motion.div>
+            )}
 
-              <button
-                onClick={() => {
-                  setSelectedServeType("mix_spin");
-                  setCurrentStep("origin");
-                }}
-                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400"
+            {state.currentStep === "origin" && (
+              <motion.div
+                key="origin"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
               >
-                Mix-spin Serve
-              </button>
+                <CourtSelectionStep
+                  mode="origin"
+                  selectedPoint={state.originPoint}
+                  onSelect={(x, y) => setOrigin({ x, y })}
+                  restrictToSide={courtSides.originSide}
+                  disabled={state.isSubmitting}
+                />
+              </motion.div>
+            )}
 
-              <button
-                onClick={() => {
-                  setSelectedServeType("no_spin");
-                  setCurrentStep("origin");
-                }}
-                className="border-2 rounded-xl p-2 text-sm hover:bg-blue-50 hover:border-blue-400 col-span-2"
+            {state.currentStep === "landing" && (
+              <motion.div
+                key="landing"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
               >
-                No-spin Serve
-              </button>
-            </div>
-          </div>
-        )}
+                <CourtSelectionStep
+                  mode="landing"
+                  selectedPoint={state.landingPoint}
+                  originPoint={state.originPoint}
+                  onSelect={handleLandingSelect}
+                  restrictToSide={courtSides.landingSide}
+                  disabled={state.isSubmitting}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* Step 3: Origin Point Selection */}
-        {currentStep === "origin" && (
-          <TableCourt
-            onCourtClick={handleOriginSelect}
-            selectedPoint={originPoint}
-            label="Shot Origin"
-            restrictToSide={getCourtSides().originSide}
-            mode="origin"
-          />
-        )}
-
-        {/* Step 4: Landing Point Selection */}
-        {currentStep === "landing" && (
-          <TableCourt
-            onCourtClick={handleLandingSelect}
-            selectedPoint={landingPoint}
-            originPoint={originPoint}
-            label="Ball Landing"
-            restrictToSide={getCourtSides().landingSide}
-            mode="landing"
-            startScaled={true}
-          />
-        )}
+          {state.isSubmitting && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            >
+              <div className="flex items-center gap-2 rounded-md bg-white/90 px-3 py-2 shadow-sm">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span className="text-xs font-medium text-gray-600">
+                  Saving…
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

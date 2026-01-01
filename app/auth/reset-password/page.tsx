@@ -150,27 +150,28 @@ function ResetPasswordContent() {
             {/* Content Section */}
             <div className="p-6">
               {status === "validating" && (
-                <div className="text-center py-8">
-                  <Loader2 className="w-12 h-12 animate-spin text-[#3c6e71] mx-auto mb-4" />
-                  <h2 className="text-lg font-semibold text-[#353535] mb-2">
-                    Validating Reset Link...
+                <div className="text-center py-10">
+                  <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-[#3c6e71]" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Validating Reset Link
                   </h2>
-                  <p className="text-sm text-[#353535]/60">Please wait while we verify your reset link.</p>
+                  <p className="mt-1 text-sm text-gray-500">Please wait while we verify your reset link.</p>
                 </div>
               )}
 
               {status === "invalid" && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                    <XCircle className="w-10 h-10 text-red-500" />
+                <div className="text-center py-10">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                    <XCircle className="h-8 w-8 text-red-600" />
                   </div>
-                  <h2 className="text-lg font-semibold text-[#353535] mb-2">
+                  <h2 className="text-lg font-semibold text-gray-900">
                     Invalid Reset Link
                   </h2>
-                  <p className="text-sm text-[#353535]/60 mb-6">{errorMessage}</p>
+                  <p className="mt-1 text-sm text-gray-600">{errorMessage}</p>
                   <Button
+                    variant="secondary"
                     onClick={() => router.push("/auth/forgot-password")}
-                    className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider"
+                    className="mt-6 w-full"
                   >
                     Request New Reset Link
                   </Button>
@@ -179,13 +180,13 @@ function ResetPasswordContent() {
 
               {status === "valid" && (
                 <>
-                  <div className="w-16 h-16 rounded-full bg-[#3c6e71]/10 flex items-center justify-center mx-auto mb-4">
-                    <Lock className="w-8 h-8 text-[#3c6e71]" />
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#3c6e71]/10">
+                    <Lock className="h-7 w-7 text-[#3c6e71]" />
                   </div>
-                  <h2 className="text-lg font-semibold text-[#353535] mb-2 text-center">
+                  <h2 className="text-lg font-semibold text-gray-900 text-center">
                     Create New Password
                   </h2>
-                  <p className="text-sm text-[#353535]/60 mb-6 text-center">
+                  <p className="mt-1 text-sm text-gray-600 mb-6 text-center">
                     Enter your new password below.
                   </p>
 
@@ -288,7 +289,7 @@ function ResetPasswordContent() {
 
                       <Button
                         type="submit"
-                        className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider mt-6"
+                        className="w-full mt-6"
                         disabled={isLoading}
                       >
                         {isLoading ? (
@@ -306,19 +307,19 @@ function ResetPasswordContent() {
               )}
 
               {status === "success" && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-10 h-10 text-green-500" />
+                <div className="text-center py-10">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
                   </div>
-                  <h2 className="text-lg font-semibold text-[#353535] mb-2">
-                    Password Reset Successfully!
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Password Reset Successfully
                   </h2>
-                  <p className="text-sm text-[#353535]/60 mb-6">
+                  <p className="mt-1 text-sm text-gray-600">
                     Your password has been updated. You can now log in with your new password.
                   </p>
                   <Button
                     onClick={() => router.push("/auth/login")}
-                    className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider"
+                    className="mt-6 w-full"
                   >
                     Continue to Login
                   </Button>
@@ -327,16 +328,14 @@ function ResetPasswordContent() {
             </div>
 
             {/* Footer Section */}
-            <div className="p-4 border-t border-[#d9d9d9] text-center">
-              <p className="text-xs text-[#353535]/60">
-                Remember your password?{" "}
-                <Link
-                  href="/auth/login"
-                  className="text-[#3c6e71] font-semibold hover:text-[#3c6e71]/80 transition"
-                >
-                  Login here
-                </Link>
-              </p>
+            <div className="border-t p-4 text-center text-xs text-gray-500">
+              Remember your password?{" "}
+              <Link
+                href="/auth/login"
+                className="font-medium text-[#3c6e71] hover:underline"
+              >
+                Log in
+              </Link>
             </div>
           </div>
         </div>

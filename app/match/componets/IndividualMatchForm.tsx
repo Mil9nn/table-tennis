@@ -91,152 +91,186 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
   };
 
   return (
-    <div className="px-4 bg-lb-white">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          
-          {/* CONFIGURATION SECTION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-[#d9d9d9] pb-2">
-              <Settings2 className="w-3.5 h-3.5 text-[#3c6e71]" />
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">Individual Format</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="max-w-3xl mx-auto px-4">
+  <Form {...form}>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-10">
+
+      {/* FORMAT */}
+      <section className="space-y-5">
+        <h3 className="text-sm font-semibold text-foreground">
+          Match Format
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Match Type */}
+          <FormField
+            control={form.control}
+            name="matchType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs text-muted-foreground">
+                  Type
+                </FormLabel>
+                <div className="flex rounded-lg bg-muted p-1">
+                  {["singles", "doubles"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => field.onChange(type)}
+                      className={cn(
+                        "flex-1 py-2 text-xs font-medium rounded-md transition-all",
+                        field.value === type
+                          ? "bg-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </FormItem>
+            )}
+          />
+
+          {/* Sets */}
+          <FormField
+            control={form.control}
+            name="numberOfSets"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs text-muted-foreground">
+                  Best of
+                </FormLabel>
+                <div className="flex gap-1 bg-muted p-1 rounded-lg">
+                  {["1", "3", "5", "7", "9"].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => field.onChange(n)}
+                      className={cn(
+                        "flex-1 py-2 text-xs font-medium rounded-md transition-all",
+                        field.value === n
+                          ? "bg-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
+      </section>
+
+      {/* PARTICIPANTS */}
+      <section className="space-y-5">
+        <h3 className="text-sm font-semibold text-foreground">
+          Participants
+        </h3>
+
+        {matchType === "singles" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {["player1", "player2"].map((p, i) => (
               <FormField
+                key={p}
                 control={form.control}
-                name="matchType"
-                render={({ field }) => (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">Format</FormLabel>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["singles", "doubles"].map((type) => {
-                        const active = field.value === type;
-                        return (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => field.onChange(type)}
-                            className={cn(
-                              "py-2 text-xs font-bold uppercase rounded border-2 transition-all",
-                              active
-                                ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
-                                : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
-                            )}
-                          >
-                            {type}
-                          </button>
-                        );
-                      })}
-                    </div>
+                name={p as any}
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="text-xs text-muted-foreground">
+                      Player {i + 1}
+                    </FormLabel>
+                    <FormControl>
+                      <UserSearchInput
+                        placeholder="Search player..."
+                        onSelect={(u) => form.setValue(p as any, u)}
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {[
+              { title: "Team A", players: ["player1", "player2"] },
+              { title: "Team B", players: ["player3", "player4"] },
+            ].map((team) => (
+              <div key={team.title} className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {team.title}
+                </p>
+                {team.players.map((p, i) => (
+                  <FormField
+                    key={p}
+                    control={form.control}
+                    name={p as any}
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <UserSearchInput
+                            placeholder={`Player ${i + 1}`}
+                            onSelect={(u) => form.setValue(p as any, u)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-              <FormField
-                control={form.control}
-                name="numberOfSets"
-                render={({ field }) => (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">Sets (Best Of)</FormLabel>
-                    <div className="flex gap-2">
-                      {["1", "3", "5", "7", "9"].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => field.onChange(n)}
-                          className={cn(
-                            "px-4 py-2 text-xs font-bold rounded border-2 transition-all",
-                            field.value === n
-                              ? "bg-[#3c6e71] text-[#ffffff] border-[#3c6e71]"
-                              : "bg-[#ffffff] text-[#353535] border-[#d9d9d9] hover:border-[#3c6e71]"
-                          )}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </section>
+      {/* LOCATION */}
+      <section className="space-y-5">
+        <h3 className="text-sm font-semibold text-foreground">
+          Location
+        </h3>
 
-          {/* PARTICIPANTS SECTION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-[#d9d9d9] pb-2">
-              <Users2 className="w-3.5 h-3.5 text-[#3c6e71]" />
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">Participants</h2>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {matchType === "singles" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField control={form.control} name="player1" render={() => (
-                    <FormItem className="space-y-1"><FormLabel className="text-xs uppercase text-[#353535] font-bold">Player 1</FormLabel><FormControl><UserSearchInput placeholder="Search..." onSelect={(u) => form.setValue("player1", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                  )} />
-                  <FormField control={form.control} name="player2" render={() => (
-                    <FormItem className="space-y-1"><FormLabel className="text-xs uppercase text-[#353535] font-bold">Player 2</FormLabel><FormControl><UserSearchInput placeholder="Search..." onSelect={(u) => form.setValue("player2", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                  )} />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 border border-[#d9d9d9] rounded">
-                    <div className="col-span-full text-xs font-bold uppercase tracking-tighter text-[#353535]">Side A</div>
-                    <FormField control={form.control} name="player1" render={() => (
-                      <FormItem><FormControl><UserSearchInput placeholder="Player A1" onSelect={(u) => form.setValue("player1", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="player2" render={() => (
-                      <FormItem><FormControl><UserSearchInput placeholder="Player A2" onSelect={(u) => form.setValue("player2", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                    )} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 border border-[#d9d9d9] rounded">
-                    <div className="col-span-full text-xs font-bold uppercase tracking-tighter text-[#353535]">Side B</div>
-                    <FormField control={form.control} name="player3" render={() => (
-                      <FormItem><FormControl><UserSearchInput placeholder="Player B1" onSelect={(u) => form.setValue("player3", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="player4" render={() => (
-                      <FormItem><FormControl><UserSearchInput placeholder="Player B2" onSelect={(u) => form.setValue("player4", u)} /></FormControl><FormMessage className="text-xs" /></FormItem>
-                    )} />
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {["city", "venue"].map((f) => (
+            <FormField
+              key={f}
+              control={form.control}
+              name={f as any}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    {f === "city" ? "City" : "Venue"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder={f === "city" ? "City" : "Club / Arena"} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-          </section>
+            />
+          ))}
+        </div>
+      </section>
 
-          {/* VENUE SECTION */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-[#d9d9d9] pb-2">
-              <MapPin className="w-3.5 h-3.5 text-[#3c6e71]" />
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535]">Location & Venue</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="city" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">City</FormLabel>
-                  <FormControl><Input className="h-10 text-sm border-[#d9d9d9] focus:border-[#3c6e71] bg-[#ffffff]" placeholder="City name" {...field} /></FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="venue" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">Venue</FormLabel>
-                  <FormControl><Input className="h-10 text-sm border-[#d9d9d9] focus:border-[#3c6e71] bg-[#ffffff]" placeholder="Arena/Club" {...field} /></FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )} />
-            </div>
-          </section>
+      {/* CTA */}
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full h-12 text-sm font-medium"
+      >
+        {isSubmitting ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          "Create match"
+        )}
+      </Button>
+    </form>
+  </Form>
+</div>
 
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="w-full py-6 bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] text-sm font-bold uppercase tracking-widest transition-all rounded shadow-md"
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm & Create Match"}
-          </Button>
-        </form>
-      </Form>
-    </div>
   );
 }

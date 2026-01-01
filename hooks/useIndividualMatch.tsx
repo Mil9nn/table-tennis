@@ -117,16 +117,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           side2Sets: newSide2Sets,
         });
 
-        const winnerName =
-          matchWinner === "side1"
-            ? match.participants?.[0]?.fullName ||
-              match.participants?.[0]?.username ||
-              "Side 1"
-            : match.participants?.[1]?.fullName ||
-              match.participants?.[1]?.username ||
-              "Side 2";
-
-        toast.success(`🏆 MATCH COMPLETED! Winner: ${winnerName}`);
         return true;
       } catch (err) {
         console.error("Failed to complete match:", err);
@@ -155,6 +145,32 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     setInitialMatch: (match) => {
       if (!match) return;
 
+      const actualStatus: MatchStatus = match.status;
+
+      // Handle completed matches explicitly
+      if (actualStatus === "completed") {
+        // For completed matches, all games have winnerSide, so we can't find an active game
+        // Set scores to 0 (doesn't matter since match is done)
+        // Use the last game number from games array or match.currentGame
+        const lastGameNumber = match.games?.length 
+          ? Math.max(...match.games.map((g: IndividualGame) => g.gameNumber || 0))
+          : (match.currentGame ?? 1);
+
+        set({
+          match,
+          currentServer: (match.currentServer as ServerKey) ?? null,
+          side1Score: 0,
+          side2Score: 0,
+          currentGame: lastGameNumber,
+          side1Sets: match.finalScore?.side1Sets ?? 0,
+          side2Sets: match.finalScore?.side2Sets ?? 0,
+          status: "completed",
+          isMatchActive: false,
+        });
+        return;
+      }
+
+      // For active matches, use existing logic
       const currentGameNum = match.currentGame ?? 1;
 
       const currentGameObj = match.games?.find(
@@ -174,8 +190,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       } else {
         nextServer = null;
       }
-
-      const actualStatus: MatchStatus = match.status;
 
       set({
         match,
@@ -249,8 +263,9 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const { side1Score, side2Score, currentGame, isMatchActive, status } =
         get();
 
-      // Block updates for completed matches
-      if (status === "completed") {
+      // Block updates for completed matches - check both match prop (server data) and hook state
+      if (match.status === "completed" || status === "completed") {
+        console.warn("Attempted to score on completed match", { matchId: match._id, matchStatus: match.status, hookStatus: status });
         toast.error("Match is completed! Reset to continue.");
         return;
       }
@@ -400,9 +415,14 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     },
 
     subtractPoint: async (player) => {
-      const { isMatchActive, status, currentGame, match } = get();
+      const match = useMatchStore.getState().match as IndividualMatch | null;
+      if (!match) return;
 
-      if (status === "completed") {
+      const { isMatchActive, status, currentGame } = get();
+
+      // Block updates for completed matches - check both match prop (server data) and hook state
+      if (match.status === "completed" || status === "completed") {
+        console.warn("Attempted to subtract point on completed match", { matchId: match._id, matchStatus: match.status, hookStatus: status });
         toast.error("⛔ Match is completed!");
         return;
       }
@@ -422,8 +442,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         toast.error("Start the match first");
         return;
       }
-
-      if (!match) return;
 
       set({ isUndoing: true });
       try {
