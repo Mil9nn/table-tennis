@@ -76,7 +76,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://res.cloudinary.com https://randomuser.me https://images.unsplash.com https://api.dicebear.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://vitals.vercel-insights.com https://*.upstash.io https://app.glitchtip.com wss://*.pusher.com wss://ws-*.pusher.com ws://localhost:* http://localhost:*",
+              "connect-src 'self' https://vitals.vercel-insights.com https://*.upstash.io https://app.glitchtip.com wss://*.pusher.com wss://ws-*.pusher.com ws://localhost:* http://localhost:* wss://*.onrender.com https://*.onrender.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
