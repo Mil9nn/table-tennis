@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
@@ -59,19 +60,23 @@ export async function POST(request: NextRequest) {
     // Delete any existing OTP tokens for this user and purpose
     await VerificationToken.deleteMany({
       userId: user._id,
-      type: "otp",
+      type: purpose === "email_verification" ? "email_verification" : "password_reset",
     });
 
     // Generate 6-digit OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Save OTP token
+    // Hash OTP before storing (production pattern)
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    // Save OTP token with userId (for efficient lookup)
     await VerificationToken.create({
       userId: user._id,
-      token: otp,
-      type: "otp",
+      token: otpHash, // Store hashed OTP in token field
+      type: purpose === "email_verification" ? "email_verification" : "password_reset",
       expiresAt,
+      attemptsLeft: 3,
     });
 
     // Send OTP email
@@ -79,15 +84,7 @@ export async function POST(request: NextRequest) {
     try {
       emailSent = await sendOTPEmail(user.email, user.fullName, otp, purpose);
     } catch (emailError) {
-      console.error("❌ [Send OTP] Exception while sending email:", emailError);
-      console.error("❌ [Send OTP] Error details:", {
-        email: user.email,
-        purpose,
-        errorType: emailError instanceof Error ? emailError.constructor.name : typeof emailError,
-        errorMessage: emailError instanceof Error ? emailError.message : String(emailError),
-        stack: emailError instanceof Error ? emailError.stack : undefined,
-      });
-      // Don't return success if email sending fails
+      console.error("❌ [Send OTP] Failed to send email:", emailError instanceof Error ? emailError.message : String(emailError));
       return NextResponse.json(
         { message: "Failed to send OTP. Please try again later." },
         { status: 500 }
@@ -95,18 +92,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!emailSent) {
-      console.error("❌ [Send OTP] Email sending returned false for:", email);
-      console.error("❌ [Send OTP] Check ZeptoMail configuration:");
-      console.error("  - ZEPTOMAIL_SEND_TOKEN:", process.env.ZEPTOMAIL_SEND_TOKEN ? "Set" : "NOT SET");
-      console.error("  - ZEPTOMAIL_FROM_EMAIL:", process.env.ZEPTOMAIL_FROM_EMAIL || "NOT SET");
-      console.error("  - NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL || "NOT SET");
+      console.error("❌ [Send OTP] Email sending failed for:", email);
       return NextResponse.json(
         { message: "Failed to send OTP. Please try again later." },
         { status: 500 }
       );
     }
 
-    console.log("✅ [Send OTP] OTP email sent successfully to:", email);
     return NextResponse.json(
       { 
         message: purpose === "password_reset" ? successMessage : "OTP has been sent to your email. Please check your inbox.",
@@ -115,12 +107,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("❌ [Send OTP] Unexpected error:", error);
-    console.error("❌ [Send OTP] Error details:", {
-      errorType: error instanceof Error ? error.constructor.name : typeof error,
-      errorMessage: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error("❌ [Send OTP] Error:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { message: "Something went wrong. Please try again later." },
       { status: 500 }

@@ -18,8 +18,8 @@ interface TeamMatchState {
   team1Score: number;
   team2Score: number;
   currentGame: number;
-  team1Sets: number;
-  team2Sets: number;
+  team1Games: number;
+  team2Games: number;
 
   currentServer: string | null;
 
@@ -90,8 +90,8 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
   team1Score: 0,
   team2Score: 0,
   currentGame: 1,
-  team1Sets: 0,
-  team2Sets: 0,
+  team1Games: 0,
+  team2Games: 0,
 
   currentServer: null,
 
@@ -116,8 +116,8 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
         team1Score: 0,
         team2Score: 0,
         currentGame: 1,
-        team1Sets: 0,
-        team2Sets: 0,
+        team1Games: 0,
+        team2Games: 0,
         isSubMatchActive: false,
         status: match.status,
         currentServer: null,
@@ -145,8 +145,8 @@ export const useTeamMatch = create<TeamMatchState>((set, get) => ({
       team1Score: activeGame?.team1Score || 0,
       team2Score: activeGame?.team2Score || 0,
       currentGame: gameToUse,
-      team1Sets: subMatch.finalScore?.team1Sets || 0,
-      team2Sets: subMatch.finalScore?.team2Sets || 0,
+      team1Games: subMatch.finalScore?.team1Games || 0,
+      team2Games: subMatch.finalScore?.team2Games || 0,
       isSubMatchActive: subMatch.status === "in_progress",
       status: match.status,
       currentServer: serverToUse,

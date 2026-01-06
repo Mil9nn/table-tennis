@@ -276,10 +276,6 @@ export class MatchGenerationOrchestrator {
           "Please configure pairs in the tournament management page."
         );
       }
-      console.log("🔵 [ORCHESTRATOR] Doubles pairs found:", {
-        pairsCount: doublesPairs.length,
-        participantsCount: participantIds.length,
-      });
     }
 
     // For doubles tournaments, use pair IDs for scheduling instead of individual player IDs
@@ -298,18 +294,6 @@ export class MatchGenerationOrchestrator {
       // CRITICAL: Deduplicate pair IDs to prevent duplicate entries
       const pairIds = validPairs.map((pair: any) => pair._id.toString());
       scheduleParticipants = Array.from(new Set(pairIds));
-      
-      console.log("🟢 [ORCHESTRATOR] Using pair IDs for scheduling:", {
-        originalParticipants: participantIds.length,
-        totalPairs: doublesPairs.length,
-        validPairs: validPairs.length,
-        schedulePairs: scheduleParticipants.length,
-        pairDetails: validPairs.map((p: any) => ({
-          pairId: p._id?.toString(),
-          player1: p.player1?.toString(),
-          player2: p.player2?.toString(),
-        })),
-      });
     }
 
     const schedule =
@@ -344,13 +328,6 @@ export class MatchGenerationOrchestrator {
     const rounds: any[] = [];
     const matchIds: string[] = [];
 
-    // DEBUG: Log about to generate team matches
-    console.log("🔵 [ORCHESTRATOR] About to generate team matches for tournament:", {
-      tournamentId: tournament._id,
-      teamConfig: (tournament as any).teamConfig,
-      teamConfig_setsPerSubMatch: (tournament as any).teamConfig?.setsPerSubMatch,
-      numberOfRounds: schedule.length,
-    });
 
     for (const round of schedule) {
       const roundMatchIds: string[] = [];
@@ -374,13 +351,6 @@ export class MatchGenerationOrchestrator {
             ? Number(rawSetsPerSubMatch)
             : 3;
 
-          // DEBUG: Log pairing details
-          console.log("🟢 [ORCHESTRATOR] Generating match for pairing:", {
-            pairing,
-            teamConfig_setsPerSubMatch: teamTournament.teamConfig?.setsPerSubMatch,
-            rawSetsPerSubMatch,
-            setsPerSubMatch,
-          });
           
           // Validate converted value
           if (!Number.isFinite(setsPerSubMatch) || setsPerSubMatch < 1) {
@@ -399,7 +369,7 @@ export class MatchGenerationOrchestrator {
             {
               tournament: String(tournament._id),
               matchFormat,
-              numberOfSetsPerSubMatch: setsPerSubMatch,
+              numberOfGamesPerRubber: setsPerSubMatch,
               team1: this.buildTeamInfo(team1Data),
               team2: this.buildTeamInfo(team2Data),
               subMatches,
@@ -411,11 +381,6 @@ export class MatchGenerationOrchestrator {
             session
           );
 
-          // DEBUG: Log created match
-          console.log("🟡 [ORCHESTRATOR] Match generated:", {
-            matchId: match._id,
-            numberOfSetsPerSubMatch: match.numberOfSetsPerSubMatch,
-          });
 
           matchIds.push(String(match._id));
           roundMatchIds.push(String(match._id));
@@ -468,12 +433,6 @@ export class MatchGenerationOrchestrator {
       });
     }
 
-    // DEBUG: Log all matches after generation
-    console.log("🟠 [ORCHESTRATOR] All matches generated:", {
-      count: matchIds.length,
-      totalRounds: rounds.length,
-      isTeamCategory,
-    });
 
     // Update tournament with rounds and standings
     // For doubles, use pair IDs for standings instead of individual player IDs
@@ -581,9 +540,9 @@ export class MatchGenerationOrchestrator {
           matchType: "singles",
           playerTeam1,
           playerTeam2,
-          numberOfSets: setsPerSubMatch,
+          numberOfGames: setsPerSubMatch,
           games: [],
-          finalScore: { team1Sets: 0, team2Sets: 0 },
+          finalScore: { team1Games: 0, team2Games: 0 },
           winnerSide: null,
           status: "scheduled",
           completed: false,
@@ -602,9 +561,9 @@ export class MatchGenerationOrchestrator {
         matchType: "singles",
         playerTeam1: playerA,
         playerTeam2: playerX,
-        numberOfSets: setsPerSubMatch,
+        numberOfGames: setsPerSubMatch,
         games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
+        finalScore: { team1Games: 0, team2Games: 0 },
         winnerSide: null,
         status: "scheduled",
         completed: false,
@@ -616,9 +575,9 @@ export class MatchGenerationOrchestrator {
         matchType: "doubles",
         playerTeam1: playerA && playerB ? [playerA, playerB] : [],
         playerTeam2: playerX && playerY ? [playerX, playerY] : [],
-        numberOfSets: setsPerSubMatch,
+        numberOfGames: setsPerSubMatch,
         games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
+        finalScore: { team1Games: 0, team2Games: 0 },
         winnerSide: null,
         status: "scheduled",
         completed: false,
@@ -630,9 +589,9 @@ export class MatchGenerationOrchestrator {
         matchType: "singles",
         playerTeam1: playerB,
         playerTeam2: playerY,
-        numberOfSets: setsPerSubMatch,
+        numberOfGames: setsPerSubMatch,
         games: [],
-        finalScore: { team1Sets: 0, team2Sets: 0 },
+        finalScore: { team1Games: 0, team2Games: 0 },
         winnerSide: null,
         status: "scheduled",
         completed: false,

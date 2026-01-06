@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export type TokenType = "email_verification" | "password_reset" | "otp";
+export type TokenType = "email_verification" | "password_reset";
 
 const verificationTokenSchema = new mongoose.Schema(
   {
@@ -12,15 +12,22 @@ const verificationTokenSchema = new mongoose.Schema(
     token: {
       type: String,
       required: true,
-      unique: true,
+      // Note: For OTP, this stores the hashed OTP (otpHash)
+      // For backward compatibility, keeping field name as 'token'
     },
     type: {
       type: String,
-      enum: ["email_verification", "password_reset", "otp"],
+      enum: ["email_verification", "password_reset"],
       required: true,
     },
     expiresAt: {
       type: Date,
+      required: true,
+    },
+    attemptsLeft: {
+      type: Number,
+      default: 3,
+      min: 0,
       required: true,
     },
   },

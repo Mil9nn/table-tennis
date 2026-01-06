@@ -16,25 +16,30 @@ import {
   ChevronRight,
   Loader2,
   LogOut,
+  Settings,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
+import { toast } from "sonner";
 import ProfileHeader from "./components/ProfileHeader";
 
-import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
-import Diversity3Icon from '@mui/icons-material/Diversity3';
-import GroupWorkIcon from '@mui/icons-material/GroupWork';
+import ScatterPlotIcon from "@mui/icons-material/ScatterPlot";
+import Diversity3Icon from "@mui/icons-material/Diversity3";
+import GroupWorkIcon from "@mui/icons-material/GroupWork";
 
 interface ProfilePageContentProps {
   userId?: string;
 }
 
 export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
-  const { user: currentUser, logout } = useAuthStore();
+  const { user: currentUser, logout, fetchUser } = useAuthStore();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [isUpdatingPreference, setIsUpdatingPreference] = useState(false);
 
   // Determine which user ID to use: provided userId or current authenticated user
   const targetUserId = userId || currentUser?._id;
@@ -50,8 +55,10 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
 
       try {
         setLoadingStats(true);
-        const response = await axiosInstance.get(`/profile/${targetUserId}/stats`);
-        
+        const response = await axiosInstance.get(
+          `/profile/${targetUserId}/stats`
+        );
+
         if (response.data) {
           // Extract user and stats from response
           if (response.data.user) {
@@ -134,44 +141,46 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
   ];
 
   // Prepare match type breakdown data
-  const matchTypeData = stats ? [
-    {
-      label: "Singles",
-      matches: stats.individual?.singles?.totalMatches || 0,
-      wins: stats.individual?.singles?.wins || 0,
-      losses: stats.individual?.singles?.losses || 0,
-      setsWon: stats.individual?.singles?.setsWon || 0,
-      setsLost: stats.individual?.singles?.setsLost || 0,
-      color: "bg-blue-500",
-    },
-    {
-      label: "Doubles",
-      matches: stats.individual?.doubles?.totalMatches || 0,
-      wins: stats.individual?.doubles?.wins || 0,
-      losses: stats.individual?.doubles?.losses || 0,
-      setsWon: stats.individual?.doubles?.setsWon || 0,
-      setsLost: stats.individual?.doubles?.setsLost || 0,
-      color: "bg-purple-500",
-    },
-    {
-      label: "Mixed Doubles",
-      matches: stats.individual?.mixed?.totalMatches || 0,
-      wins: stats.individual?.mixed?.wins || 0,
-      losses: stats.individual?.mixed?.losses || 0,
-      setsWon: stats.individual?.mixed?.setsWon || 0,
-      setsLost: stats.individual?.mixed?.setsLost || 0,
-      color: "bg-pink-500",
-    },
-    {
-      label: "Team Matches",
-      matches: stats.team?.totalMatches || 0,
-      wins: stats.team?.wins || 0,
-      losses: stats.team?.losses || 0,
-      setsWon: stats.team?.setsWon || 0,
-      setsLost: stats.team?.setsLost || 0,
-      color: "bg-emerald-500",
-    },
-  ] : [];
+  const matchTypeData = stats
+    ? [
+        {
+          label: "Singles",
+          matches: stats.individual?.singles?.totalMatches || 0,
+          wins: stats.individual?.singles?.wins || 0,
+          losses: stats.individual?.singles?.losses || 0,
+          setsWon: stats.individual?.singles?.setsWon || 0,
+          setsLost: stats.individual?.singles?.setsLost || 0,
+          color: "bg-blue-500",
+        },
+        {
+          label: "Doubles",
+          matches: stats.individual?.doubles?.totalMatches || 0,
+          wins: stats.individual?.doubles?.wins || 0,
+          losses: stats.individual?.doubles?.losses || 0,
+          setsWon: stats.individual?.doubles?.setsWon || 0,
+          setsLost: stats.individual?.doubles?.setsLost || 0,
+          color: "bg-purple-500",
+        },
+        {
+          label: "Mixed Doubles",
+          matches: stats.individual?.mixed?.totalMatches || 0,
+          wins: stats.individual?.mixed?.wins || 0,
+          losses: stats.individual?.mixed?.losses || 0,
+          setsWon: stats.individual?.mixed?.setsWon || 0,
+          setsLost: stats.individual?.mixed?.setsLost || 0,
+          color: "bg-pink-500",
+        },
+        {
+          label: "Team Matches",
+          matches: stats.team?.totalMatches || 0,
+          wins: stats.team?.wins || 0,
+          losses: stats.team?.losses || 0,
+          setsWon: stats.team?.setsWon || 0,
+          setsLost: stats.team?.setsLost || 0,
+          color: "bg-emerald-500",
+        },
+      ]
+    : [];
 
   // Guard against missing user ID
   if (!targetUserId) {
@@ -220,13 +229,18 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#d9d9d9]">
           {navigationCards.map((card) => {
             const Icon = card.icon;
-            
+
             const handleClick = () => {
               // If viewing another user's profile, include their ID in the route
-              const route = isOwnProfile ? card.route : `/profile/${targetUserId}${card.route.replace('/profile', '')}`;
+              const route = isOwnProfile
+                ? card.route
+                : `/profile/${targetUserId}${card.route.replace(
+                    "/profile",
+                    ""
+                  )}`;
               router.push(route);
             };
-            
+
             return (
               <button
                 key={card.id}
@@ -251,9 +265,51 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
           })}
         </div>
 
-        {/* Logout Button - Only show on own profile */}
+        {/* Settings Section - Only show on own profile */}
         {isOwnProfile && (
-          <div className="mt-12 pt-8 border-t border-[#d9d9d9]">
+          <div className="mt-12 space-y-4">
+            {/* Shot Tracking Mode Preference */}
+            <div className="flex items-center justify-between rounded-lg border border-[#d9d9d9] bg-[#ffffff] p-4">
+  <div className="flex-1">
+    <Label className="text-[#353535] font-semibold text-sm mb-1">
+      Detailed Shot Tracking
+    </Label>
+    <p className="text-xs text-[#8b8b8b]">
+      Sets the default scoring mode for new matches. Can be changed during a match.
+    </p>
+  </div>
+
+  <div className="flex items-center gap-3">
+    {isUpdatingPreference && (
+      <Loader2 className="h-4 w-4 animate-spin text-[#8b8b8b]" />
+    )}
+
+    <Switch
+      checked={currentUser?.shotTrackingMode === "detailed"}
+      onCheckedChange={async (checked) => {
+        if (!currentUser) return;
+
+        setIsUpdatingPreference(true);
+        try {
+          const newMode = checked ? "detailed" : "simple";
+          await axiosInstance.patch("/auth/me", {
+            shotTrackingMode: newMode,
+          });
+          await fetchUser();
+        } catch (error) {
+          console.error("Error updating preference:", error);
+          toast.error("Failed to update preference");
+        } finally {
+          setIsUpdatingPreference(false);
+        }
+      }}
+      disabled={isUpdatingPreference}
+    />
+  </div>
+</div>
+
+
+            {/* Logout Button */}
             <button
               onClick={() => {
                 logout();

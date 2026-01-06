@@ -5,7 +5,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { getShotColor, renderCustomLabel } from "@/lib/match-stats-utils";
+import { getShotColor } from "@/lib/match-stats-utils";
 import { useInView } from "@/hooks/useInView";
 
 interface PlayerPieData {
@@ -18,73 +18,99 @@ interface PlayerShotAnalysisProps {
   playerPieData: PlayerPieData[];
 }
 
-export function PlayerShotAnalysis({ playerPieData }: PlayerShotAnalysisProps) {
-  return (
-    <div className="space-y-4 bg-white">
-      <h3 className="font-semibold text-base text-[#353535]">Player Shot Analysis</h3>
+export function PlayerShotAnalysis({
+  playerPieData,
+}: PlayerShotAnalysisProps) {
+  if (!playerPieData.length) return null;
 
-      {playerPieData.length > 0 && (
-        <div className="grid md:grid-cols-2 gap-6">
-          {playerPieData.map((player) => {
-            return <PlayerPieChart key={player.playerId} player={player} />;
-          })}
-        </div>
-      )}
-    </div>
+  return (
+    <section className="space-y-4">
+      <h3 className="text-sm font-semibold text-[#353535]">
+        Shot distribution
+      </h3>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {playerPieData.map((player) => (
+          <PlayerPieCard
+            key={player.playerId}
+            player={player}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
-function PlayerPieChart({ player }: { player: PlayerPieData }) {
-  const { ref, isInView } = useInView({ threshold: 0.2 });
+function PlayerPieCard({
+  player,
+}: {
+  player: PlayerPieData;
+}) {
+  const { ref, isInView } = useInView({ threshold: 0.25 });
 
-  const totalShots = player.data.reduce((sum, item) => sum + item.value, 0);
+  if (!player.data?.length) return null;
+
+  const totalShots = player.data.reduce(
+    (sum, d) => sum + d.value,
+    0
+  );
 
   return (
-    <section ref={ref} className="bg-white border border-[#d9d9d9] p-4">
-      <header className="mb-2">
-        <h4 className="text-sm font-semibold tracking-tight text-[#353535]">
+    <div
+      ref={ref}
+      className="rounded-xl bg-white px-4 py-3 shadow-[0_0_0_1px_#e6e8eb]"
+    >
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-medium text-[#353535]">
           {player.playerName}
-        </h4>
-        <p className="text-xs text-[#d9d9d9]">
-          Total winning shots:&nbsp;
-          <span className="font-medium text-[#353535]">{totalShots}</span>
-        </p>
-      </header>
+        </span>
+        <span className="text-xs text-[#6b7280]">
+          {totalShots} shots
+        </span>
+      </div>
 
-      <div className="h-64">
+      {/* Chart */}
+      <div className="h-36">
         {isInView && (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={player.data}
+                dataKey="value"
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={renderCustomLabel}
-                outerRadius={80}
-                dataKey="value"
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1000}
-                animationEasing="ease-out"
+                innerRadius={38}
+                outerRadius={58}
+                paddingAngle={2}
+                isAnimationActive
+                animationDuration={700}
               >
-                {player.data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getShotColor(entry.name)} />
+                {player.data.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={getShotColor(entry.name)}
+                  />
                 ))}
               </Pie>
+
               <Tooltip
+                cursor={{ fill: "#f9fafb" }}
                 contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #d9d9d9",
-                  borderRadius: 0,
+                  borderRadius: 8,
+                  border: "1px solid #e6e8eb",
                   boxShadow: "none",
+                  fontSize: 12,
                 }}
-                formatter={(value: any, name: any) => [`${value} winning shots`, name]}
+                formatter={(value: number | undefined, name: string | undefined) => [
+                  value ?? 0,
+                  name ?? "",
+                ]}
               />
             </PieChart>
           </ResponsiveContainer>
         )}
       </div>
-    </section>
+    </div>
   );
 }

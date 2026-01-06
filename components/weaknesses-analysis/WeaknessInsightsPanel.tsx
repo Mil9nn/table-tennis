@@ -1,93 +1,102 @@
 // components/weaknesses-analysis/WeaknessInsightsPanel.tsx
 
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, TrendingUp, Target, CheckCircle2 } from "lucide-react";
+import {
+  AlertCircle,
+  TrendingUp,
+  Target,
+  CheckCircle2,
+} from "lucide-react";
 import { OverallInsights } from "@/types/weaknesses.type";
 import { RecommendationText } from "./RecommendationText";
 
-interface WeaknessInsightsPanelProps {
+interface Props {
   insights: OverallInsights;
 }
 
-export function WeaknessInsightsPanel({ insights }: WeaknessInsightsPanelProps) {
+export function WeaknessInsightsPanel({ insights }: Props) {
   return (
-    <div className="space-y-4">
-      {/* Primary Weakness Alert */}
-      <Alert className="border-red-500/20 bg-red-500/5">
-        <AlertCircle className="h-5 w-5 text-red-600" />
-        <AlertDescription className="ml-2">
-          <div className="space-y-1">
-            <p className="font-semibold text-red-700 text-sm">Primary Weakness</p>
-            <p className="text-sm text-red-700/80">
-              <RecommendationText text={insights.primaryWeakness} />
-            </p>
-          </div>
-        </AlertDescription>
-      </Alert>
+    <section className="space-y-6">
+      {/* Primary insight */}
+      <div className="rounded-xl bg-[#fafafa] px-4 py-3">
+        <div className="mb-1 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-[#b45309]" />
+          <span className="text-sm font-semibold text-[#353535]">
+            Primary weakness
+          </span>
+        </div>
+        <p className="text-sm text-[#4b5563] leading-relaxed">
+          <RecommendationText
+            text={insights.primaryWeakness}
+          />
+        </p>
+      </div>
 
-      {/* Summary Cards */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Secondary Weakness */}
+      {/* Secondary + strength */}
+      <div className="grid gap-4 md:grid-cols-2">
         {insights.secondaryWeakness && (
-          <div className="border border-amber-500/20 bg-amber-500/5 p-4">
-            <div className="flex items-start gap-3">
-              <Target className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold text-amber-700 text-sm">
-                  Secondary Weakness
-                </p>
-                <p className="text-sm text-amber-700/80">
-                  <RecommendationText text={insights.secondaryWeakness} />
-                </p>
-              </div>
+          <div className="rounded-lg bg-white px-4 py-3 shadow-[0_0_0_1px_#e6e8eb]">
+            <div className="mb-1 flex items-center gap-2">
+              <Target className="h-4 w-4 text-[#6b7280]" />
+              <span className="text-sm font-medium text-[#353535]">
+                Secondary weakness
+              </span>
             </div>
+            <p className="text-sm text-[#6b7280] leading-relaxed">
+              <RecommendationText
+                text={insights.secondaryWeakness}
+              />
+            </p>
           </div>
         )}
 
-        {/* Strength to Maintain */}
-        <div className="border border-[#3c6e71]/20 bg-[#3c6e71]/5 p-4">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="h-5 w-5 text-[#3c6e71] mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-semibold text-[#3c6e71] text-sm">
-                Strength to Maintain
-              </p>
-              <p className="text-sm text-[#3c6e71]/80">
-                <RecommendationText text={insights.strengthToMaintain} />
-              </p>
-            </div>
+        <div className="rounded-lg bg-white px-4 py-3 shadow-[0_0_0_1px_#e6e8eb]">
+          <div className="mb-1 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-[#3c6e71]" />
+            <span className="text-sm font-medium text-[#353535]">
+              Strength to maintain
+            </span>
           </div>
+          <p className="text-sm text-[#6b7280] leading-relaxed">
+            <RecommendationText
+              text={insights.strengthToMaintain}
+            />
+          </p>
         </div>
       </div>
 
-      {/* Improvement Priorities */}
+      {/* Improvement priorities */}
       {insights.improvementPriority.length > 0 && (
-        <div className="border border-[#d9d9d9] bg-white p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="h-5 w-5 text-[#284b63]" />
-            <h3 className="text-base font-semibold text-[#353535]">Priority Improvements</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-[#284b63]" />
+            <h4 className="text-sm font-semibold text-[#353535]">
+              Focus areas
+            </h4>
           </div>
-          <div className="space-y-3">
-            {insights.improvementPriority.map((priority, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-[#f8f8f8] hover:bg-[#f0f0f0] transition-colors"
-              >
-                <Badge
-                  variant={index === 0 ? "destructive" : "secondary"}
-                  className={`mt-0.5 shrink-0 ${index === 0 ? '' : 'bg-[#d9d9d9] text-[#353535]'}`}
+
+          <ul className="space-y-2">
+            {insights.improvementPriority.map(
+              (item, idx) => (
+                <li
+                  key={idx}
+                  className="flex gap-3 rounded-md bg-[#fafafa] px-3 py-2"
                 >
-                  #{index + 1}
-                </Badge>
-                <p className="text-sm text-[#353535] flex-1">
-                  <RecommendationText text={priority} />
-                </p>
-              </div>
-            ))}
-          </div>
+                  <Badge
+                    variant="secondary"
+                    className="shrink-0 text-xs"
+                  >
+                    {idx + 1}
+                  </Badge>
+                  <p className="text-sm text-[#4b5563]">
+                    <RecommendationText text={item} />
+                  </p>
+                </li>
+              )
+            )}
+          </ul>
         </div>
       )}
-    </div>
+    </section>
   );
 }

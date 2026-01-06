@@ -29,7 +29,8 @@ export default function MatchDetailsPage() {
   const fetchUser = useAuthStore((state) => state.fetchUser);
   const authLoading = useAuthStore((state) => state.authLoading);
   const [isTournamentScorer, setIsTournamentScorer] = useState(false);
-  const [checkingTournamentScorer, setCheckingTournamentScorer] = useState(false);
+  const [checkingTournamentScorer, setCheckingTournamentScorer] =
+    useState(false);
   const hasAttemptedFetch = useRef(false);
 
   useEffect(() => {
@@ -42,13 +43,13 @@ export default function MatchDetailsPage() {
     // Only attempt once per component mount
     if (hasAttemptedFetch.current) return;
     hasAttemptedFetch.current = true;
-    
+
     // Use a small delay to let AuthProvider's useEffect run first
     const timer = setTimeout(() => {
       // Check current state at the time the timer fires
       const currentUser = useAuthStore.getState().user;
       const currentAuthLoading = useAuthStore.getState().authLoading;
-      
+
       if (!currentUser && !currentAuthLoading) {
         fetchUser().catch(() => {
           // Errors are handled silently - 404/401 are expected for unauthenticated users
@@ -69,26 +70,30 @@ export default function MatchDetailsPage() {
       }
 
       const tournament = match.tournament as any;
-      
+
       // If tournament is already populated with organizer/scorers, use that data
       if (tournament.organizer || tournament.scorers) {
-        const isOrganizer = tournament.organizer?._id === user._id || 
-                           tournament.organizer?.toString() === user._id ||
-                           (typeof tournament.organizer === "string" && tournament.organizer === user._id);
-        const isInScorersArray = tournament.scorers?.some((scorer: any) => 
-          scorer._id === user._id || 
-          scorer.toString() === user._id ||
-          (typeof scorer === "string" && scorer === user._id)
+        const isOrganizer =
+          tournament.organizer?._id === user._id ||
+          tournament.organizer?.toString() === user._id ||
+          (typeof tournament.organizer === "string" &&
+            tournament.organizer === user._id);
+        const isInScorersArray = tournament.scorers?.some(
+          (scorer: any) =>
+            scorer._id === user._id ||
+            scorer.toString() === user._id ||
+            (typeof scorer === "string" && scorer === user._id)
         );
-        
+
         setIsTournamentScorer(isOrganizer || isInScorersArray);
         return;
       }
 
       // Otherwise, fetch tournament to check scorer permissions
-      const tournamentId = typeof match.tournament === "string" 
-        ? match.tournament 
-        : tournament?._id || tournament?.id;
+      const tournamentId =
+        typeof match.tournament === "string"
+          ? match.tournament
+          : tournament?._id || tournament?.id;
 
       if (!tournamentId) {
         setIsTournamentScorer(false);
@@ -97,18 +102,22 @@ export default function MatchDetailsPage() {
 
       setCheckingTournamentScorer(true);
       try {
-        const { data } = await axiosInstance.get(`/tournaments/${tournamentId}`);
-        const fetchedTournament = data.tournament;
-        
-        // Check if user is organizer or in scorers array
-        const isOrganizer = fetchedTournament.organizer?._id === user._id || 
-                           fetchedTournament.organizer?.toString() === user._id;
-        const isInScorersArray = fetchedTournament.scorers?.some((scorer: any) => 
-          scorer._id === user._id || 
-          scorer.toString() === user._id ||
-          (typeof scorer === "string" && scorer === user._id)
+        const { data } = await axiosInstance.get(
+          `/tournaments/${tournamentId}`
         );
-        
+        const fetchedTournament = data.tournament;
+
+        // Check if user is organizer or in scorers array
+        const isOrganizer =
+          fetchedTournament.organizer?._id === user._id ||
+          fetchedTournament.organizer?.toString() === user._id;
+        const isInScorersArray = fetchedTournament.scorers?.some(
+          (scorer: any) =>
+            scorer._id === user._id ||
+            scorer.toString() === user._id ||
+            (typeof scorer === "string" && scorer === user._id)
+        );
+
         setIsTournamentScorer(isOrganizer || isInScorersArray);
       } catch (err) {
         console.error("Error checking tournament scorer:", err);
@@ -164,67 +173,61 @@ export default function MatchDetailsPage() {
   const isScorer = isMatchScorer || isTournamentScorer;
 
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Header - Professional Slim Design */}
-      <header className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      {/* HEADER */}
+      <header className="sticky top-0 z-30 bg-white/85 dark:bg-zinc-900/85 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              aria-label="Go back"
+              className="p-2 rounded-md border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             >
-              <ChevronLeft className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="ml-2">
-              <h1 className="text-sm font-bold tracking-tight uppercase">
-                {isIndividualMatch(match) ? match.matchType : "Team"} Match
-                Details
+
+            <div>
+              <p className="text-xs text-zinc-500 uppercase tracking-wide">
+                {isIndividualMatch(match) ? "Individual Match" : "Team Match"}
+              </p>
+              <h1 className="text-sm font-semibold tracking-tight">
+                Match Details
               </h1>
             </div>
           </div>
+
           <MatchStatusBadge status={match.status} />
         </div>
       </header>
 
-      {/* Content Layout - Split View for Desktop, Single Column for Mobile */}
-      <main className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 1. Score Highlight Card */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <MatchScore match={match} />
+      {/* PAGE BODY */}
+      <main className="max-w-6xl mx-auto px-2">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 bg-white">
+          <section className="">
+            <MatchScore match={match} />
 
-              {/* 2. Team Rosters / Formats */}
-              {!isIndividualMatch(match) && (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                      Squad & Lineup
-                    </h3>
-                  </div>
-                  <TeamMatchFormat match={match} />
-                  <TeamMatchLineup match={match} />
+            {!isIndividualMatch(match) && (
+              <>
+                <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/50">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    Teams & Lineup
+                  </h3>
                 </div>
-              )}
 
-              {/* 3. Game-by-Game Breakdown */}
-              {isIndividualMatch(match) && match.games?.length > 0 && (
-                <GamesHistory match={match} />
-              )}
+                <TeamMatchFormat match={match} />
+                <TeamMatchLineup match={match} />
+              </>
+            )}
 
-              {/* 4. Sidebar Area */}
-              <div className="">
-                <MatchInfo match={match} />
-                <MatchActions
-                  match={match}
-                  matchId={matchId}
-                  isScorer={isScorer}
-                />
-              </div>
-            </div>
-          </div>
+            {isIndividualMatch(match) && match.games?.length > 0 && (
+              <GamesHistory match={match} />
+            )}
+          </section>
+
+          {/* CONTROL ZONE */}
+          <aside className="">
+            <MatchInfo match={match} />
+            <MatchActions match={match} matchId={matchId} isScorer={isScorer} />
+          </aside>
         </div>
       </main>
     </div>

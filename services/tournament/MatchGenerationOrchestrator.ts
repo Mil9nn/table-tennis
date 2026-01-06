@@ -160,7 +160,7 @@ export class MatchGenerationOrchestrator {
           const match = await this.matchRepo.createTeamMatch({
             tournament: String(tournament._id),
             matchFormat: teamTournament.teamConfig.matchFormat,
-            numberOfSetsPerSubMatch: Number(teamTournament.teamConfig.setsPerSubMatch) || 3,
+            numberOfGamesPerRubber: Number(teamTournament.teamConfig.setsPerSubMatch) || 3,
             team1: { /* team1 data */ } as any,
             team2: { /* team2 data */ } as any,
             subMatches: [],
@@ -261,7 +261,7 @@ export class MatchGenerationOrchestrator {
           const match = await this.matchRepo.createTeamMatch({
             tournament: String(tournament._id),
             matchFormat: teamTournament.teamConfig.matchFormat,
-            numberOfSetsPerSubMatch: Number(teamTournament.teamConfig.setsPerSubMatch) || 3,
+            numberOfGamesPerRubber: Number(teamTournament.teamConfig.setsPerSubMatch) || 3,
             team1: { /* team1 data */ } as any,
             team2: { /* team2 data */ } as any,
             subMatches: [],

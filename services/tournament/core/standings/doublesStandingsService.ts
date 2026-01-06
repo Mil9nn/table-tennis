@@ -33,24 +33,20 @@ export class DoublesStandingsService implements IStandingsService {
     matches: MatchResult[],
     rules: TournamentRules
   ): StandingData[] {
-    console.log(`\n🟢 [DOUBLES STANDINGS] Starting calculation`);
-    console.log(`🟢 [DOUBLES STANDINGS] Input participants:`, participants);
-    console.log(`🟢 [DOUBLES STANDINGS] Input matches count:`, matches.length);
+    
     
     // CRITICAL: Normalize all participants to ensure canonical team IDs
     // This ensures order-independence: [A, B] and [B, A] become the same team
     const normalizedParticipants = participants.map((p) => {
       const normalized = this.normalizer.normalizeParticipant(p);
-      console.log(`🟢 [DOUBLES STANDINGS] Normalized participant: ${p} → ${normalized}`);
+      
       return normalized;
     });
-    console.log(`🟢 [DOUBLES STANDINGS] After normalization:`, normalizedParticipants);
+    
 
     // Get unique participants (deduplicate)
     const uniqueParticipants = this.normalizer.getUniqueParticipants(normalizedParticipants);
-    console.log(`🟢 [DOUBLES STANDINGS] Unique participants:`, uniqueParticipants);
-    console.log(`🟢 [DOUBLES STANDINGS] Unique count: ${uniqueParticipants.length} (was ${normalizedParticipants.length})`);
-
+    
     // Initialize standings for all unique participants
     const standingsMap = new Map<string, StandingData>();
 
@@ -78,8 +74,7 @@ export class DoublesStandingsService implements IStandingsService {
     const completedMatches = matches.filter((m) => m.status === "completed");
 
     completedMatches.forEach((match) => {
-      console.log(`🟢 [DOUBLES STANDINGS] Processing match ${match._id}`);
-      console.log(`🟢 [DOUBLES STANDINGS] Match raw participants:`, match.participants);
+      
       
       // Normalize match participants to canonical team IDs
       const normalized = this.normalizer.normalizeMatchParticipants(match.participants);
@@ -92,7 +87,7 @@ export class DoublesStandingsService implements IStandingsService {
       }
 
       const [team1Id, team2Id] = normalized;
-      console.log(`🟢 [DOUBLES STANDINGS] Match normalized teams: ${team1Id} vs ${team2Id}`);
+     
 
       // CRITICAL: Ensure we're using canonical team IDs
       // This prevents duplicate entries from order variations
@@ -107,7 +102,7 @@ export class DoublesStandingsService implements IStandingsService {
         return;
       }
       
-      console.log(`🟢 [DOUBLES STANDINGS] Found stats for both teams. Updating...`);
+      
 
       // Update matches played
       team1Stats.played += 1;
@@ -186,8 +181,6 @@ export class DoublesStandingsService implements IStandingsService {
 
     // Convert to array
     let standings = Array.from(standingsMap.values());
-    console.log(`🟢 [DOUBLES STANDINGS] Before final deduplication: ${standings.length} entries`);
-    console.log(`🟢 [DOUBLES STANDINGS] Standings participants:`, standings.map(s => s.participant));
     
     // CRITICAL: Final safety check - ensure no duplicate participants
     // This should not be necessary if normalization worked correctly, but it's a safety net
@@ -216,16 +209,10 @@ export class DoublesStandingsService implements IStandingsService {
     });
     
     standings = Array.from(finalStandingsMap.values());
-    console.log(`🟢 [DOUBLES STANDINGS] After final deduplication: ${standings.length} entries`);
+   
     
     // Sort and assign ranks
     const sortedStandings = sortStandingsWithTiebreakers(standings);
-    console.log(`🟢 [DOUBLES STANDINGS] Final standings with ranks:`, sortedStandings.map(s => ({
-      participant: s.participant,
-      rank: s.rank,
-      points: s.points
-    })));
-    console.log(`🟢 [DOUBLES STANDINGS] Rank sequence:`, sortedStandings.map(s => s.rank));
     
     return sortedStandings;
   }

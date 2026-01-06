@@ -85,7 +85,7 @@ export default function Navbar() {
   return (
     <header className="w-full fixed top-0 left-0 z-50">
       {/* Top Navbar */}
-      <nav className="h-14 flex items-center justify-between px-4 border-b bg-zinc-900 shadow-sm gap-2 lg:gap-4">
+      <nav className="h-14 flex items-center justify-between px-4 border-b bg-[#353535] shadow-sm gap-2 lg:gap-4">
         {/* Left: Hamburger + Logo + Quick Actions */}
         <div className="flex items-center gap-2 lg:gap-3">
           {/* Hamburger Menu (mobile) */}
@@ -203,7 +203,7 @@ export default function Navbar() {
           id="quick-actions-panel"
           role="region"
           aria-label="Quick Actions Menu"
-          className="hidden sm:block absolute top-full left-0 right-0 bg-zinc-900 shadow-md z-40 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="hidden sm:block absolute top-full left-0 right-0 bg-[#353535] shadow-md z-40 animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <div className="max-w-7xl mx-auto px-4 py-2">
             <div className="flex gap-2 flex-wrap">
@@ -243,7 +243,7 @@ export default function Navbar() {
       <div
         className={cn(
           "fixed inset-y-0 left-0 w-72 sm:hidden z-40",
-          "bg-zinc-900/95 backdrop-blur-xl",
+          "bg-[#353535]/95 backdrop-blur-xl",
           "border-r border-white/10",
           "transform transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "-translate-x-full"

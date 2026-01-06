@@ -12,36 +12,24 @@ export interface InsightMetric {
 
 interface InsightCardProps {
   type: InsightType;
-  icon: React.ReactNode;
   headline: string;
   description: string;
   metric?: InsightMetric;
   delay?: number;
 }
 
-// Accent colors using app palette with variety
-const typeStyles: Record<InsightType, { iconBg: string; accent: string }> = {
-  success: {
-    iconBg: "bg-[#3c6e71]/10",
-    accent: "text-[#3c6e71]",
-  },
-  info: {
-    iconBg: "bg-[#284b63]/10",
-    accent: "text-[#284b63]",
-  },
-  warning: {
-    iconBg: "bg-amber-500/10",
-    accent: "text-amber-600",
-  },
-  highlight: {
-    iconBg: "bg-[#3c6e71]/10",
-    accent: "text-[#3c6e71]",
-  },
+const typeStyles: Record<
+  InsightType,
+  { accent: string; bar: string }
+> = {
+  success: { accent: "text-[#3c6e71]", bar: "bg-[#3c6e71]" },
+  info: { accent: "text-[#284b63]", bar: "bg-[#284b63]" },
+  warning: { accent: "text-amber-600", bar: "bg-amber-500" },
+  highlight: { accent: "text-[#3c6e71]", bar: "bg-[#3c6e71]" },
 };
 
 export function InsightCard({
   type,
-  icon,
   headline,
   description,
   metric,
@@ -50,42 +38,40 @@ export function InsightCard({
   const styles = typeStyles[type];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4, ease: "easeOut" }}
-      className="p-4 bg-white border-b border-[#d9d9d9]"
+      transition={{ delay, duration: 0.35, ease: "easeOut" }}
+      className="
+        relative overflow-hidden
+        px-4 py-2
+      "
     >
-      <div className="flex items-start gap-3">
-        {/* Icon */}
-        <div className={cn("shrink-0 p-2", styles.iconBg, styles.accent)}>
-          <div className="h-5 w-5 flex items-center justify-center">{icon}</div>
-        </div>
+      <div className="flex flex-col">
+        <h3 className="text-sm font-semibold text-[#2B2F36] leading-snug">
+          {headline}
+        </h3>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm mb-1 text-[#353535]">
-            {headline}
-          </h3>
-          <p className="text-xs text-[#353535]/70 leading-relaxed">
-            {description}
-          </p>
+        <p className="mt-1 text-xs text-[#6B7280] leading-relaxed">
+          {description}
+        </p>
 
-          {/* Optional Metric */}
-          {metric && (
-            <div className="mt-3 pt-3 border-t border-[#d9d9d9]">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#d9d9d9]">
-                  {metric.label}
-                </span>
-                <span className={cn("text-lg font-bold", styles.accent)}>
-                  {metric.value}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+        {metric && (
+          <div className="mt-3 flex items-end justify-between">
+            <span className="text-[10px] uppercase tracking-wide text-[#9CA3AF]">
+              {metric.label}
+            </span>
+            <span
+              className={cn(
+                "text-lg font-semibold tabular-nums",
+                styles.accent
+              )}
+            >
+              {metric.value}
+            </span>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </motion.article>
   );
 }

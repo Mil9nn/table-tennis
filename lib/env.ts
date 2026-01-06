@@ -57,6 +57,11 @@ const envSchema = z.object({
     .string()
     .url("NEXT_PUBLIC_SOCKET_URL must be a valid URL")
     .optional(),
+  SOCKET_SERVER_URL: z
+    .string()
+    .url("SOCKET_SERVER_URL must be a valid URL")
+    .optional()
+    .describe("URL of the external Socket.IO server (e.g., https://your-socket-server.onrender.com)"),
 
   // Server Configuration (optional)
   HOSTNAME: z
@@ -119,7 +124,7 @@ const envSchema = z.object({
     .string()
     .optional(),
   
-  // Zoho ZeptoMail (for email verification, password reset, and OTP)
+  // Zoho ZeptoMail (for email verification and password reset)
   ZEPTOMAIL_API_HOST: z
     .string()
     .optional()

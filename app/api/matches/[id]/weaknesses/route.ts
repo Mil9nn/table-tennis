@@ -226,7 +226,24 @@ export async function GET(
       });
     }
 
-    const weaknessAnalysis = analyzeWeaknesses(userGames, userId);
+    // For opponent pattern analysis, we need ALL shots (user and opponent)
+    // So we pass the unfiltered games for that analysis
+    const allGamesUnfiltered = category === "individual" 
+      ? (match.games || [])
+      : (() => {
+          const subMatches = match.subMatches || [];
+          const unfiltered: any[] = [];
+          for (const subMatch of subMatches) {
+            if (subMatch.games) {
+              unfiltered.push(...subMatch.games);
+            }
+          }
+          return unfiltered;
+        })();
+
+    // Analyze weaknesses: pass both userGames (for user-specific analyses) and allGamesUnfiltered (for analyses needing both sides)
+    // This avoids duplicate calculations and makes the data requirements clear
+    const weaknessAnalysis = analyzeWeaknesses(allGamesUnfiltered, userId, undefined, userGames);
 
     // Collect all shots from userGames for visualization
     const allShots: any[] = [];
@@ -251,6 +268,11 @@ export async function GET(
           profileImage: userParticipant.profileImage,
           weaknesses: weaknessAnalysis,
           shots: allShots, // Include shots for visualization
+        },
+        // Include data limitation metadata
+        meta: {
+          dataLimitation: weaknessAnalysis.dataLimitation,
+          note: "Analysis is based on winning shots only. Rally data and intermediate shots are not available.",
         },
       },
     });

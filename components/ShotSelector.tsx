@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { toast } from "sonner";
@@ -26,12 +27,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const ShotSelector = () => {
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
   const shotDialogOpen = useMatchStore((state) => state.shotDialogOpen);
   const setShotDialogOpen = useMatchStore((state) => state.setShotDialogOpen);
   const pendingPlayer = useMatchStore((state) => state.pendingPlayer);
   const setPendingPlayer = useMatchStore((state) => state.setPendingPlayer);
   const match = useMatchStore((state) => state.match);
-
+  const shotTrackingMode = useMatchStore((state) => state.shotTrackingMode);
+  const user = useAuthStore((state) => state.user);
   const updateScoreIndividual = useIndividualMatch(
     (state) => state.updateScore
   );
@@ -262,6 +265,15 @@ const ShotSelector = () => {
   };
 
   const courtSides = getCourtSides();
+
+  // Determine effective mode: match override > user preference > default "detailed"
+  const effectiveMode =
+    shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+  // Only render in detailed mode - all hooks have been called above
+  if (effectiveMode === "simple") {
+    return null;
+  }
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>

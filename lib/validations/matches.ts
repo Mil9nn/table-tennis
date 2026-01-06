@@ -191,11 +191,56 @@ export const getTeamMatchesQuerySchema = z.object({
   skip: z.string().regex(/^\d+$/).optional().transform(val => val ? parseInt(val, 10) : 0),
 }).strict();
 
+// Update individual match schema (for PUT /api/matches/individual/[id])
+export const updateIndividualMatchSchema = z.object({
+  venue: z.string()
+    .min(3, "Venue must be at least 3 characters")
+    .max(200, "Venue must not exceed 200 characters")
+    .trim()
+    .optional(),
+  city: z.string()
+    .min(2, "City must be at least 2 characters")
+    .max(100, "City must not exceed 100 characters")
+    .trim()
+    .optional(),
+  notes: z.string()
+    .max(1000, "Notes must not exceed 1000 characters")
+    .trim()
+    .optional(),
+  shotTrackingMode: z.enum(["detailed", "simple"], {
+    error: "shotTrackingMode must be 'detailed' or 'simple'",
+  }).optional(),
+}).strict();
+
+// Update team match schema (for PUT /api/matches/team/[id])
+export const updateTeamMatchSchema = z.object({
+  venue: z.string()
+    .min(3, "Venue must be at least 3 characters")
+    .max(200, "Venue must not exceed 200 characters")
+    .trim()
+    .optional(),
+  city: z.string()
+    .min(2, "City must be at least 2 characters")
+    .max(100, "City must not exceed 100 characters")
+    .trim()
+    .optional(),
+  status: matchStatusSchema.optional(),
+  notes: z.string()
+    .max(1000, "Notes must not exceed 1000 characters")
+    .trim()
+    .optional(),
+  shotTrackingMode: z.enum(["detailed", "simple"], {
+    error: "shotTrackingMode must be 'detailed' or 'simple'",
+  }).optional(),
+}).strict();
+
 // Export type inference
 export type CreateIndividualMatchInput = z.infer<typeof createIndividualMatchSchema>;
 export type UpdateMatchScoreInput = z.infer<typeof updateMatchScoreSchema>;
 export type UpdateMatchStatusInput = z.infer<typeof updateMatchStatusSchema>;
 export type ServerConfigInput = z.infer<typeof serverConfigSchema>;
 export type SwapPlayersInput = z.infer<typeof swapPlayersSchema>;
+export type UpdateIndividualMatchInput = z.infer<typeof updateIndividualMatchSchema>;
+export type UpdateTeamMatchInput = z.infer<typeof updateTeamMatchSchema>;
 export type GetMatchesQuery = z.infer<typeof getMatchesQuerySchema>;
 export type GetTeamMatchesQuery = z.infer<typeof getTeamMatchesQuerySchema>;

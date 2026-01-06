@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { populateIndividualMatch, populateIndividualMatchBasic } from "@/services/match/populationService";
+import { validateRequest, updateIndividualMatchSchema } from "@/lib/validations";
 
 // CRITICAL: Import models in correct order to ensure discriminators are registered
 import Match from "@/models/MatchBase";
@@ -45,6 +46,14 @@ export async function PUT(
     const { id } = await context.params;
     const body = await req.json();
 
+    // Validate request body using Zod schema
+    const validation = validateRequest(updateIndividualMatchSchema, body);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const updateData = validation.data;
+
     // Fetch match to verify scorer authorization
     const existingMatch = await IndividualMatch.findById(id);
     if (!existingMatch) {
@@ -61,15 +70,6 @@ export async function PUT(
         { error: "Only the scorer can update this match" },
         { status: 403 }
       );
-    }
-
-    // Whitelist allowed update fields (prevent mass assignment)
-    const allowedFields = ["venue", "city", "notes"];
-    const updateData: Record<string, any> = {};
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
-      }
     }
 
     const match = await populateIndividualMatchBasic(

@@ -4,6 +4,8 @@ import { useEffect, useRef, useCallback } from "react";
 import { TeamMatch, MatchStatus, Participant, PlayerKey } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import TrackingModeToggle from "../common/TrackingModeToggle";
 import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import ShotFeed from "../common/ShotFeed";
@@ -29,8 +31,8 @@ export default function SingleDoubleSingleScorer({
     currentSubMatch,
     team1Score,
     team2Score,
-    team1Sets,
-    team2Sets,
+    team1Games,
+    team2Games,
     currentGame,
     isSubMatchActive,
     status,
@@ -43,6 +45,9 @@ export default function SingleDoubleSingleScorer({
 
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
+  const shotTrackingMode = useMatchStore((s) => s.shotTrackingMode);
+  const user = useAuthStore((s) => s.user);
+  const updateSubMatchScore = useTeamMatch((s) => s.updateSubMatchScore);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
 
   const lastMatchId = useRef<string | null>(null);
@@ -199,7 +204,7 @@ export default function SingleDoubleSingleScorer({
           </CardHeader>
           <CardContent className="text-center py-8">
             <p className="text-gray-600 mb-4">
-              Match {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
+              Rubber {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
             </p>
             <p className="text-gray-500 text-sm mb-6">
               Players need to be assigned to positions before this match can be scored.
@@ -287,7 +292,7 @@ export default function SingleDoubleSingleScorer({
       {/* SubMatch Navigator */}
       <Card className="rounded-none shadow-none">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Match Sequence</CardTitle>
+          <CardTitle>Rubber Sequence</CardTitle>
           <Badge variant="outline">
             {getSubMatchLabel(currentSubMatchIndex)}
           </Badge>
@@ -360,7 +365,7 @@ export default function SingleDoubleSingleScorer({
           {currentSubMatch.status === "completed" ? (
             <div className="text-center py-8">
               <p className="text-lg font-semibold text-green-600">
-                Match Completed!
+                Rubber Completed!
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Winner:{" "}
@@ -369,29 +374,43 @@ export default function SingleDoubleSingleScorer({
                   : teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
               </p>
               <p className="text-sm text-gray-500">
-                Score: {currentSubMatch.finalScore?.team1Sets || 0} -{" "}
-                {currentSubMatch.finalScore?.team2Sets || 0}
+                Score: {currentSubMatch.finalScore?.team1Games || 0} -{" "}
+                {currentSubMatch.finalScore?.team2Games || 0}
               </p>
             </div>
           ) : (
             <>
+              {match && <TrackingModeToggle />}
               <ScoreBoard
                 match={match}
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
                 currentServer={currentServer}
-                side1Sets={team1Sets}
-                side2Sets={team2Sets}
+                side1Sets={team1Games}
+                side2Sets={team2Games}
                 status={currentSubMatch.status as MatchStatus}
-                onAddPoint={({ side, playerId }) => {
+                onAddPoint={async ({ side, playerId }) => {
                   if (currentSubMatch.status === "completed") {
                     toast.error("Submatch is completed!");
                     return;
                   }
-                  // Allow shot dialog to open - auto-start will happen in updateSubMatchScore
-                  setPendingPlayer({ side, playerId });
-                  setShotDialogOpen(true);
+
+                  // Convert side1/side2 to team1/team2 for team matches
+                  const teamSide = side === "side1" ? "team1" : "team2";
+
+                  // Determine effective mode: match override > user preference > default "detailed"
+                  const effectiveMode =
+                    shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+                  if (effectiveMode === "simple") {
+                    // Simple mode: directly increment score without shot data
+                    await updateSubMatchScore(teamSide, 1, undefined, playerId);
+                  } else {
+                    // Detailed mode: open shot selector dialog
+                    setPendingPlayer({ side: teamSide, playerId });
+                    setShotDialogOpen(true);
+                  }
                 }}
                 onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}

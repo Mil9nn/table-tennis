@@ -12,7 +12,7 @@ export default function MatchScore({ match }: Props) {
   const isCompleted = match.status === "completed";
 
   return (
-    <section className="dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-zinc-800 p-5">
+    <section className="p-4">
       <header className="flex justify-between items-center mb-6">
         <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
           {isIndividual ? "Individual match" : "Team match"}
@@ -89,13 +89,7 @@ function ScoreRow({
 }) {
   return (
     <div
-      className={clsx(
-        "flex items-center justify-between rounded-lg px-4 py-3",
-        isWinner
-          ? "bg-emerald-50 dark:bg-emerald-500/10"
-          : "bg-zinc-50 dark:bg-zinc-900"
-      )}
-    >
+      className={"flex items-center justify-between"}>
       <p
         className={clsx(
           "text-sm font-medium truncate",
@@ -109,7 +103,7 @@ function ScoreRow({
 
       <span
         className={clsx(
-          "text-2xl font-extrabold tabular-nums",
+          "text-xl font-extrabold tabular-nums",
           isWinner
             ? "text-emerald-700 dark:text-emerald-300"
             : "text-zinc-400"

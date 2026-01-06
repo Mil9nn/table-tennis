@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { z } from "zod";
 import { passwordSchema } from "@/lib/validations/auth";
+import { resetPasswordWithOTPSchema } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -17,38 +18,32 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, ChevronLeft, Lock, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, ChevronLeft, Lock, CheckCircle2, Shield, Mail } from "lucide-react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 
-const resetPasswordFormSchema = z
-  .object({
-    password: passwordSchema,
-    confirmPassword: z.string().min(1, "Confirm password is required"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
-type ResetPasswordFormInput = z.infer<typeof resetPasswordFormSchema>;
+type ResetPasswordFormInput = z.infer<typeof resetPasswordWithOTPSchema>;
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const emailParam = searchParams.get("email");
 
-  const [status, setStatus] = useState<"validating" | "valid" | "invalid" | "success">("validating");
+  const [status, setStatus] = useState<"input" | "loading" | "success" | "error">("input");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [email] = useState(emailParam || "");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<ResetPasswordFormInput>({
-    resolver: zodResolver(resetPasswordFormSchema),
+    resolver: zodResolver(resetPasswordWithOTPSchema),
     defaultValues: {
+      email: email || "",
+      otp: "",
       password: "",
       confirmPassword: "",
     },
@@ -76,39 +71,58 @@ function ResetPasswordContent() {
   const passwordStrength = getPasswordStrength(password || "");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("invalid");
-      setErrorMessage("No reset token provided");
+    if (!email) {
+      setStatus("error");
+      setErrorMessage("Email address is required");
+    }
+  }, [email]);
+
+  const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    form.setValue("otp", value);
+  };
+
+  const handleResendOTP = async () => {
+    if (!email) {
+      toast.error("Email address not found");
       return;
     }
 
-    validateToken(token);
-  }, [token]);
-
-  const validateToken = async (resetToken: string) => {
+    setResending(true);
     try {
-      await axiosInstance.get(`auth/reset-password?token=${resetToken}`);
-      setStatus("valid");
+      const response = await axiosInstance.post("auth/send-otp", {
+        email,
+        purpose: "password_reset",
+      });
+      toast.success("OTP sent to your email");
+      form.setValue("otp", "");
     } catch (error: any) {
-      setStatus("invalid");
-      setErrorMessage(error.response?.data?.message || "Invalid or expired reset link");
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to send OTP"
+      );
+    } finally {
+      setResending(false);
     }
   };
 
   const onSubmit = async (values: ResetPasswordFormInput) => {
-    if (!token) return;
-
     setIsLoading(true);
+    setStatus("loading");
     try {
       const response = await axiosInstance.post("auth/reset-password", {
-        token,
+        email: values.email,
+        otp: values.otp,
         password: values.password,
         confirmPassword: values.confirmPassword,
       });
       setStatus("success");
       toast.success(response.data.message);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to reset password");
+      setStatus("error");
+      const errorMessage = error.response?.data?.message || "Failed to reset password";
+      setErrorMessage(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -149,49 +163,83 @@ function ResetPasswordContent() {
 
             {/* Content Section */}
             <div className="p-6">
-              {status === "validating" && (
-                <div className="text-center py-10">
-                  <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-[#3c6e71]" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Validating Reset Link
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">Please wait while we verify your reset link.</p>
-                </div>
-              )}
-
-              {status === "invalid" && (
-                <div className="text-center py-10">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-                    <XCircle className="h-8 w-8 text-red-600" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Invalid Reset Link
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-600">{errorMessage}</p>
-                  <Button
-                    variant="secondary"
-                    onClick={() => router.push("/auth/forgot-password")}
-                    className="mt-6 w-full"
-                  >
-                    Request New Reset Link
-                  </Button>
-                </div>
-              )}
-
-              {status === "valid" && (
+              {(status === "input" || status === "error") && (
                 <>
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#3c6e71]/10">
-                    <Lock className="h-7 w-7 text-[#3c6e71]" />
+                    <Shield className="h-7 w-7 text-[#3c6e71]" />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900 text-center">
-                    Create New Password
+                  <h2 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                    Reset Password
                   </h2>
-                  <p className="mt-1 text-sm text-gray-600 mb-6 text-center">
-                    Enter your new password below.
+                  <p className="text-sm text-gray-600 mb-6 text-center">
+                    Enter the OTP sent to{" "}
+                    <span className="font-medium text-gray-900">{email || "your email"}</span> and your new password.
                   </p>
+
+                  {status === "error" && errorMessage && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {errorMessage}
+                    </div>
+                  )}
 
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input type="hidden" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="otp"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
+                              Verification Code
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={field.value}
+                                onChange={handleOTPChange}
+                                placeholder="000000"
+                                className="text-center text-2xl font-mono tracking-widest h-14 bg-[#ffffff] border-[#d9d9d9] rounded"
+                                disabled={isLoading}
+                              />
+                            </FormControl>
+                            <div className="text-center mt-2">
+                              <button
+                                type="button"
+                                onClick={handleResendOTP}
+                                disabled={resending}
+                                className="text-xs text-[#3c6e71] hover:underline"
+                              >
+                                {resending ? (
+                                  <>
+                                    <Loader2 className="inline h-3 w-3 mr-1 animate-spin" />
+                                    Sending...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="inline h-3 w-3 mr-1" />
+                                    Resend OTP
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="password"
@@ -290,7 +338,7 @@ function ResetPasswordContent() {
                       <Button
                         type="submit"
                         className="w-full mt-6"
-                        disabled={isLoading}
+                        disabled={isLoading || form.watch("otp")?.length !== 6}
                       >
                         {isLoading ? (
                           <>
@@ -304,6 +352,16 @@ function ResetPasswordContent() {
                     </form>
                   </Form>
                 </>
+              )}
+
+              {status === "loading" && (
+                <div className="text-center py-10">
+                  <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-[#3c6e71]" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Resetting Password
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">Please wait...</p>
+                </div>
               )}
 
               {status === "success" && (

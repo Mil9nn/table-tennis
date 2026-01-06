@@ -8,7 +8,7 @@ import {
 import { formatStrokeName } from "@/lib/utils";
 import { RecommendationText } from "./RecommendationText";
 
-interface ServeReceiveWeaknessCardProps {
+interface Props {
   serveStats: ServeWeaknessData;
   receiveStats: ReceiveWeaknessData;
 }
@@ -16,120 +16,121 @@ interface ServeReceiveWeaknessCardProps {
 export function ServeReceiveWeaknessCard({
   serveStats,
   receiveStats,
-}: ServeReceiveWeaknessCardProps) {
-  // Get serve color class based on win rate
-  const getWinRateColor = (winRate: number) => {
-    if (winRate >= 55) return "text-[#3c6e71]";
-    if (winRate >= 45) return "text-amber-600";
-    return "text-red-600";
-  };
-
-  const getProgressColor = (winRate: number) => {
-    if (winRate >= 55) return "bg-[#3c6e71]";
-    if (winRate >= 45) return "bg-amber-500";
-    return "bg-red-500";
-  };
-
-  // Get top 3 weakest receive types
-  const weakestReceiveTypes = Object.entries(receiveStats.vsStrokeType)
+}: Props) {
+  const weakestReceiveTypes = Object.entries(
+    receiveStats.vsStrokeType
+  )
     .sort((a, b) => a[1].winRate - b[1].winRate)
     .slice(0, 3);
 
+  // Use new field names if available, fallback to legacy names for backward compatibility
+  const servePointsWon = serveStats.pointsWonWhenServing ?? serveStats.servesWon;
+  const servePointsLost = serveStats.pointsLostWhenServing ?? serveStats.servesLost;
+  const totalServePoints = serveStats.totalPointsWhenServing ?? serveStats.totalServes;
+  const serveWinRate = serveStats.pointWinRateWhenServing ?? serveStats.serveWinRate;
+
+  const receivePointsWon = receiveStats.pointsWonWhenReceiving ?? receiveStats.receivesWon;
+  const receivePointsLost = receiveStats.pointsLostWhenReceiving ?? receiveStats.receivesLost;
+  const totalReceivePoints = receiveStats.totalPointsWhenReceiving ?? receiveStats.totalReceives;
+  const receiveWinRate = receiveStats.pointWinRateWhenReceiving ?? receiveStats.receiveWinRate;
+
   return (
-    <div className="grid md:grid-cols-2 gap-4">
-      {/* Serve Stats */}
-      <div className="border border-[#d9d9d9] bg-white p-4">
-        <h3 className="text-base font-semibold text-[#353535] mb-4">Serve Performance</h3>
+    <section className="grid gap-6 md:grid-cols-2">
+      {/* Serve */}
+      <div className="rounded-lg bg-white p-4 shadow-[0_0_0_1px_#e6e8eb]">
+        <div className="mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#353535]">
+            Points when serving
+          </h3>
+        </div>
+
         <div className="space-y-4">
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-[#353535]/70">
-              <span>Wins: {serveStats.servesWon}</span>
-              <span>Losses: {serveStats.servesLost}</span>
+          <div>
+            <div className="mb-1 flex justify-between text-xs text-[#6b7280]">
+              <span>Points won: {servePointsWon}</span>
+              <span>Points lost: {servePointsLost}</span>
             </div>
+
             <Progress
-              value={serveStats.serveWinRate}
-              className="h-3"
-              indicatorClassName={getProgressColor(serveStats.serveWinRate)}
+              value={serveWinRate}
+              className="h-2"
+              indicatorClassName="bg-[#3c6e71]"
             />
-            <p className="text-xs text-[#d9d9d9] text-center">
-              Total Serves: {serveStats.totalServes}
+
+            <p className="mt-1 text-center text-[11px] text-[#9ca3af]">
+              {totalServePoints} total points when serving
             </p>
           </div>
 
-          {/* Recommendation */}
-          <div className="pt-2 border-t border-[#d9d9d9]">
-            <p className={`text-xs italic ${
-              serveStats.recommendation?.includes("Need more") 
-                ? "text-[#d9d9d9]" 
-                : "text-[#353535]/70"
-            }`}>
-              <RecommendationText text={serveStats.recommendation} />
+          {serveStats.recommendation && (
+            <p className="text-xs leading-relaxed text-[#6b7280]">
+              <RecommendationText
+                text={serveStats.recommendation}
+              />
             </p>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Receive Stats */}
-      <div className="border border-[#d9d9d9] bg-white p-4">
-        <h3 className="text-base font-semibold text-[#353535] mb-4">Receive Performance</h3>
+      {/* Receive */}
+      <div className="rounded-lg bg-white p-4 shadow-[0_0_0_1px_#e6e8eb]">
+        <div className="mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#353535]">
+            Points when receiving
+          </h3>
+        </div>
+
         <div className="space-y-4">
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-[#353535]/70">
-              <span>Wins: {receiveStats.receivesWon}</span>
-              <span>Losses: {receiveStats.receivesLost}</span>
+          <div>
+            <div className="mb-1 flex justify-between text-xs text-[#6b7280]">
+              <span>Points won: {receivePointsWon}</span>
+              <span>Points lost: {receivePointsLost}</span>
             </div>
+
             <Progress
-              value={receiveStats.receiveWinRate}
-              className="h-3"
-              indicatorClassName={getProgressColor(receiveStats.receiveWinRate)}
+              value={receiveWinRate}
+              className="h-2"
+              indicatorClassName="bg-[#3c6e71]"
             />
-            <p className="text-xs text-[#d9d9d9] text-center">
-              Total Receives: {receiveStats.totalReceives}
+
+            <p className="mt-1 text-center text-[11px] text-[#9ca3af]">
+              {totalReceivePoints} total points when receiving
             </p>
           </div>
 
-          {/* Weakest Receive Types */}
           {weakestReceiveTypes.length > 0 && (
-            <div className="pt-2 border-t border-[#d9d9d9] space-y-2">
-              <p className="text-xs font-semibold text-[#353535]">
-                Struggling Against:
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-[#6b7280]">
+                Lower success vs
               </p>
-              <div className="space-y-1">
-                {weakestReceiveTypes.map(([stroke, stats]) => (
+
+              {weakestReceiveTypes.map(
+                ([stroke, stats]) => (
                   <div
                     key={stroke}
-                    className="flex justify-between items-center text-xs bg-[#f8f8f8] p-2"
+                    className="flex justify-between rounded-md bg-[#fafafa] px-2 py-1 text-xs"
                   >
                     <span className="text-[#353535]">
                       {formatStrokeName(stroke)}
                     </span>
-                    <span
-                      className={`font-semibold ${getWinRateColor(
-                        stats.winRate
-                      )}`}
-                    >
+                    <span className="font-medium text-[#6b7280]">
                       {stats.winRate.toFixed(0)}%
                     </span>
                   </div>
-                ))}
-              </div>
+                )
+              )}
             </div>
           )}
 
-          {/* Recommendation */}
-          <div className="pt-2 border-t border-[#d9d9d9]">
-            <p className={`text-xs italic ${
-              receiveStats.recommendation?.includes("Need more") 
-                ? "text-[#d9d9d9]" 
-                : "text-[#353535]/70"
-            }`}>
-              <RecommendationText text={receiveStats.recommendation} />
+          {receiveStats.recommendation && (
+            <p className="text-xs leading-relaxed text-[#6b7280]">
+              <RecommendationText
+                text={receiveStats.recommendation}
+              />
             </p>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

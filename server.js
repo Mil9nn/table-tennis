@@ -1,7 +1,6 @@
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
-const { Server } = require("socket.io");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "localhost";
@@ -24,59 +23,17 @@ app.prepare().then(() => {
     }
   });
 
-  // Socket.IO - DISABLED (uncomment to enable real-time features)
-  // const io = new Server(httpServer, {
-  //   cors: {
-  //     origin: dev
-  //       ? ["http://localhost:3000", "http://127.0.0.1:3000"]
-  //       : process.env.NEXT_PUBLIC_SOCKET_URL
-  //         ? [process.env.NEXT_PUBLIC_SOCKET_URL]
-  //         : false,
-  //     credentials: true,
-  //     methods: ["GET", "POST"],
-  //   },
-  //   path: "/socket.io/",
-  //   transports: ["websocket", "polling"],
-  //   pingTimeout: 60000,
-  //   pingInterval: 25000,
-  // });
-
-  // global.io = io;
-
-  // Promise.resolve()
-  //   .then(() => {
-  //     return import("./lib/socketHandler.js");
-  //   })
-  //   .then((module) => {
-  //     const { initializeSocketHandlers } = module;
-  //     initializeSocketHandlers(io);
-  //     console.log("[Socket.IO] Handlers initialized successfully");
-  //   })
-  //   .catch((error) => {
-  //     console.error("[Socket.IO] Failed to initialize handlers:", error);
-  //     console.error("[Socket.IO] Socket.IO will run without handlers");
-  //   });
-
-  console.log("[Socket.IO] Disabled - Live updates not available");
-
   // Start server
   httpServer.listen(port, (err) => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
-    console.log(`> Socket.IO: Disabled`);
+    console.log(`> Socket.IO: External server (configure via SOCKET_SERVER_URL)`);
     console.log(`> Environment: ${dev ? "development" : "production"}`);
   });
 
   // Graceful shutdown
   const gracefulShutdown = () => {
     console.log("\n[Server] Received shutdown signal, closing connections...");
-
-    // Socket.IO close (disabled)
-    // if (global.io) {
-    //   global.io.close(() => {
-    //     console.log("[Socket.IO] All socket connections closed");
-    //   });
-    // }
 
     httpServer.close(() => {
       console.log("[Server] HTTP server closed");

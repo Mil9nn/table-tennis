@@ -41,6 +41,9 @@ export interface IMatchBase extends Document {
   city?: string;
   venue?: string;
 
+  // Shot tracking mode (optional, overrides user preference for this match)
+  shotTrackingMode?: 'detailed' | 'simple';
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -93,7 +96,14 @@ export const matchBaseSchema = new Schema<IMatchBase>(
 
     // Location
     city: { type: String },
-    venue: { type: String }
+    venue: { type: String },
+
+    // Shot tracking mode (optional, overrides user preference for this match)
+    shotTrackingMode: {
+      type: String,
+      enum: ['detailed', 'simple'],
+      default: null,
+    },
   },
   {
     timestamps: true,

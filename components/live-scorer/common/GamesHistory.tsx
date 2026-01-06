@@ -18,17 +18,17 @@ export default function GamesHistory({
   if (!games?.length) return null;
 
   return (
-    <section className="rounded-xl bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
-      <header className="px-6 py-4">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Sets history
+    <section className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <header className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+        <h3 className="text-sm font-semibold tracking-tight">
+          Match Timeline
         </h3>
-        <p className="text-xs text-zinc-500 mt-1">
-          Game-by-game breakdown
+        <p className="text-xs text-zinc-500 mt-0.5">
+          Set-by-set progression
         </p>
       </header>
 
-      <div className="px-6 pb-6 flex flex-wrap gap-2">
+      <div className="px-6 py-5 space-y-2">
         {games.map((game) => (
           <GameHistoryItem
             key={game.gameNumber}
@@ -41,6 +41,7 @@ export default function GamesHistory({
     </section>
   );
 }
+
 
 function GameHistoryItem({
   game,
@@ -61,29 +62,37 @@ function GameHistoryItem({
   return (
     <div
       className={clsx(
-        "flex items-center gap-2 px-4 py-2 text-sm transition-all",
-        "bg-zinc-50 dark:bg-zinc-900",
+        "flex items-center justify-between px-4 py-2.5 rounded-md transition",
+        "bg-zinc-50 dark:bg-zinc-800/60",
         "hover:bg-zinc-100 dark:hover:bg-zinc-800",
         {
-          "ring-1 ring-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10":
+          "ring-1 ring-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/10":
             isCurrent,
         }
       )}
     >
-      <span className="font-medium text-zinc-800 dark:text-zinc-200">
-        Set {game.gameNumber}
-        <span className="ml-2 text-zinc-500 font-normal tabular-nums">
-          {game.side1Score ?? 0}–{game.side2Score ?? 0}
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium text-zinc-500">
+          Set {game.gameNumber}
         </span>
-      </span>
+
+        <span className="font-semibold tabular-nums tracking-tight">
+          {game.side1Score ?? 0}
+          <span className="mx-1 text-zinc-400">–</span>
+          {game.side2Score ?? 0}
+        </span>
+      </div>
 
       {winnerName && (
-        <Badge
-          variant="secondary"
-          className="ml-auto text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-        >
+        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
           {winnerName}
-        </Badge>
+        </span>
+      )}
+
+      {isCurrent && (
+        <span className="ml-3 text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+          Live
+        </span>
       )}
     </div>
   );

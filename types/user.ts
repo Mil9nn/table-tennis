@@ -16,6 +16,9 @@ export interface User {
   // Profile completion tracking
   isProfileComplete?: boolean;
 
+  // Shot tracking preference
+  shotTrackingMode?: "detailed" | "simple";
+
   createdAt?: string;
   updatedAt?: string;
 }

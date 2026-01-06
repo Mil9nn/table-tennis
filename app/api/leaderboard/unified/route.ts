@@ -222,9 +222,9 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
   const team1Players = subMatch.playerTeam1 || [];
   const team2Players = subMatch.playerTeam2 || [];
 
-  const team1Sets = subMatch.finalScore?.team1Sets || 0;
-  const team2Sets = subMatch.finalScore?.team2Sets || 0;
-  const team1Won = team1Sets > team2Sets;
+  const team1Games = subMatch.finalScore?.team1Games || 0;
+  const team2Games = subMatch.finalScore?.team2Games || 0;
+  const team1Won = team1Games > team2Games;
 
   // Process team 1 players
   for (const player of team1Players) {
@@ -237,8 +237,8 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
 
     const playerData = playerStatsMap.get(playerId);
     playerData.stats.totalMatches++;
-    playerData.stats.setsWon += team1Sets;
-    playerData.stats.setsLost += team2Sets;
+    playerData.stats.setsWon += team1Games;
+    playerData.stats.setsLost += team2Games;
 
     if (team1Won) {
       playerData.stats.wins++;
@@ -262,8 +262,8 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
 
     const playerData = playerStatsMap.get(playerId);
     playerData.stats.totalMatches++;
-    playerData.stats.setsWon += team2Sets;
-    playerData.stats.setsLost += team1Sets;
+    playerData.stats.setsWon += team2Games;
+    playerData.stats.setsLost += team1Games;
 
     if (!team1Won) {
       playerData.stats.wins++;

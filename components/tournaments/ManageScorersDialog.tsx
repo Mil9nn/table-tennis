@@ -59,7 +59,7 @@ export function ManageScorersDialog({
       const scorersArray = Array.isArray(scorers) 
         ? scorers.filter((s: any) => s && typeof s === 'object' && (s._id || s.id))
         : [];
-      console.log("ManageScorersDialog - Opening with scorers prop:", scorers, "Filtered:", scorersArray);
+      
       setLocalScorers(scorersArray);
       setPendingAdds([]);
       setPendingRemoves([]);
@@ -194,7 +194,7 @@ export function ManageScorersDialog({
         ? data.tournament.scorers.filter((s: any) => s && typeof s === 'object' && (s._id || s.id))
         : [];
       
-      console.log("ManageScorersDialog - Updated scorers from API:", updatedScorers);
+      
       
       onUpdate(updatedScorers);
 

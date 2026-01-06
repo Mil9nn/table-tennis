@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/api-utils";
 import { populateTeamMatch, populateTeamMatchBasic } from "@/services/match/populationService";
 import { statsService } from "@/services/statsService";
 import { TeamMatch as TeamMatchType } from "@/types/match.type";
+import { validateRequest, updateTeamMatchSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -48,14 +49,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     const body = await req.json();
 
-    // Whitelist allowed update fields (prevent mass assignment)
-    const allowedFields = ["venue", "city", "status", "notes"];
-    const updateData: Record<string, any> = {};
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
-      }
+    // Validate request body using Zod schema
+    const validation = validateRequest(updateTeamMatchSchema, body);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const updateData = validation.data;
 
     const match = await populateTeamMatch(
       TeamMatch.findByIdAndUpdate(id, { $set: updateData }, { new: true })

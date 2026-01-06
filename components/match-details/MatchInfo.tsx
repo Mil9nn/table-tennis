@@ -14,7 +14,7 @@ interface Props {
 
 export default function MatchInfo({ match }: Props) {
   return (
-    <section className="p-5">
+    <section className="p-2 px-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-4">
         Match information
       </h3>
@@ -40,7 +40,7 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-2">
       <Icon className="w-4 h-4 mt-1 text-zinc-400" />
       <div className="min-w-0">
         <p className="text-xs text-zinc-500">{label}</p>
@@ -94,8 +94,8 @@ function TeamMatchInfo({ match }: { match: any }) {
       />
       <InfoRow
         icon={ListOrdered}
-        label="Sets per submatch"
-        value={`Best of ${match.numberOfSetsPerSubMatch}`}
+        label="Games per rubber"
+        value={`Best of ${match.numberOfGamesPerRubber}`}
       />
     </div>
   );

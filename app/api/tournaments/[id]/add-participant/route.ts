@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
 import {
@@ -5,18 +6,24 @@ import {
   handleValidationResult,
 } from "@/services/tournament/validators/tournamentValidators";
 import {
-  withDBAndErrorHandling,
   requireAuth,
   loadTournament,
   jsonOk,
+  jsonError,
   ApiError,
 } from "@/lib/api";
+import { connectDB } from "@/lib/mongodb";
 
 /**
  * Add a participant to a tournament (organizer only)
  * Supports both individual (User) and team (Team) tournaments
  */
-export const POST = withDBAndErrorHandling(async (req, context) => {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
   const { userId } = await requireAuth(req);
   const { id } = await context.params;
 
@@ -94,104 +101,115 @@ export const POST = withDBAndErrorHandling(async (req, context) => {
       : "Participant added successfully!",
     tournament,
   });
-});
+  } catch (error) {
+    return jsonError(error);
+  }
+}
 
 /**
  * Remove a participant from a tournament (organizer only)
  * Supports both individual (User) and team (Team) tournaments
  */
-export const DELETE = withDBAndErrorHandling(async (req, context) => {
-  const { userId } = await requireAuth(req);
-  const { id } = await context.params;
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { userId } = await requireAuth(req);
+    const { id } = await context.params;
 
-  const { tournament, isTeamTournament } = await loadTournament(id, userId, {
-    requireOrganizer: true,
-    skipConnect: true,
-  });
+    const { tournament, isTeamTournament } = await loadTournament(id, userId, {
+      requireOrganizer: true,
+      skipConnect: true,
+    });
 
-  // Get participant ID from request
-  const { participantId } = await req.json();
+    // Get participant ID from request
+    const { participantId } = await req.json();
 
-  if (!participantId) {
-    throw ApiError.badRequest("Participant ID is required");
-  }
+    if (!participantId) {
+      throw ApiError.badRequest("Participant ID is required");
+    }
 
-  // Prevent removal if draw has been generated
-  if (tournament.drawGenerated) {
-    throw ApiError.badRequest(
-      "Cannot remove participant after draw generation",
-      "Participants cannot be removed once the tournament draw has been generated. This would invalidate existing matches and standings."
-    );
-  }
-
-  // Prevent removal if tournament has started
-  if (tournament.status !== "draft" && tournament.status !== "upcoming") {
-    throw ApiError.badRequest(
-      "Cannot remove participant",
-      "Participants cannot be removed once the tournament has started."
-    );
-  }
-
-  // Validate participant is in tournament
-  const inTournamentCheck = TournamentValidators.validateParticipantInTournament(
-    tournament as any,
-    participantId
-  );
-  const inError = handleValidationResult(inTournamentCheck);
-  if (inError) return inError;
-
-  // Check minimum participants requirement
-  if (tournament.minParticipants) {
-    const newParticipantCount = tournament.participants.length - 1;
-    if (newParticipantCount < tournament.minParticipants) {
+    // Prevent removal if draw has been generated
+    if (tournament.drawGenerated) {
       throw ApiError.badRequest(
-        "Cannot remove participant",
-        `Removing this participant would leave ${newParticipantCount} participants, but minimum ${tournament.minParticipants} participants are required.`
+        "Cannot remove participant after draw generation",
+        "Participants cannot be removed once the tournament draw has been generated. This would invalidate existing matches and standings."
       );
     }
-  }
 
-  // Remove participant
-  tournament.participants = tournament.participants.filter(
-    (p: any) => p.toString() !== participantId
-  );
+    // Prevent removal if tournament has started
+    if (tournament.status !== "draft" && tournament.status !== "upcoming") {
+      throw ApiError.badRequest(
+        "Cannot remove participant",
+        "Participants cannot be removed once the tournament has started."
+      );
+    }
 
-  // Also remove from seeding if present
-  tournament.seeding = tournament.seeding.filter(
-    (s: any) => s.participant.toString() !== participantId
-  );
-
-  // Clear doubles pairs if this is a doubles tournament
-  // Pairs must be recreated after removing participants
-  if (
-    !isTeamTournament &&
-    (tournament as any).matchType === "doubles" &&
-    (tournament as any).doublesPairs &&
-    (tournament as any).doublesPairs.length > 0
-  ) {
-    // Remove pairs that include the removed participant
-    const updatedPairs = (tournament as any).doublesPairs.filter(
-      (pair: any) =>
-        pair.player1.toString() !== participantId &&
-        pair.player2.toString() !== participantId
+    // Validate participant is in tournament
+    const inTournamentCheck = TournamentValidators.validateParticipantInTournament(
+      tournament as any,
+      participantId
     );
-    (tournament as any).doublesPairs = updatedPairs;
-    (tournament as any).markModified("doublesPairs");
+    const inError = handleValidationResult(inTournamentCheck);
+    if (inError) return inError;
+
+    // Check minimum participants requirement
+    if (tournament.minParticipants) {
+      const newParticipantCount = tournament.participants.length - 1;
+      if (newParticipantCount < tournament.minParticipants) {
+        throw ApiError.badRequest(
+          "Cannot remove participant",
+          `Removing this participant would leave ${newParticipantCount} participants, but minimum ${tournament.minParticipants} participants are required.`
+        );
+      }
+    }
+
+    // Remove participant
+    tournament.participants = tournament.participants.filter(
+      (p: any) => p.toString() !== participantId
+    );
+
+    // Also remove from seeding if present
+    tournament.seeding = tournament.seeding.filter(
+      (s: any) => s.participant.toString() !== participantId
+    );
+
+    // Clear doubles pairs if this is a doubles tournament
+    // Pairs must be recreated after removing participants
+    if (
+      !isTeamTournament &&
+      (tournament as any).matchType === "doubles" &&
+      (tournament as any).doublesPairs &&
+      (tournament as any).doublesPairs.length > 0
+    ) {
+      // Remove pairs that include the removed participant
+      const updatedPairs = (tournament as any).doublesPairs.filter(
+        (pair: any) =>
+          pair.player1.toString() !== participantId &&
+          pair.player2.toString() !== participantId
+      );
+      (tournament as any).doublesPairs = updatedPairs;
+      (tournament as any).markModified("doublesPairs");
+    }
+
+    await tournament.save();
+
+    // Populate tournament data based on category
+    await (tournament as any).populate("participants");
+    await (tournament as any).populate("organizer");
+    await (tournament as any).populate("seeding.participant");
+
+    return jsonOk({
+      message: isTeamTournament
+        ? "Team removed successfully!"
+        : (tournament as any).matchType === "doubles"
+        ? "Participant removed successfully! Note: Affected doubles pairs have been removed."
+        : "Participant removed successfully!",
+      tournament,
+    });
+  } catch (error) {
+    return jsonError(error);
   }
-
-  await tournament.save();
-
-  // Populate tournament data based on category
-  await (tournament as any).populate("participants");
-  await (tournament as any).populate("organizer");
-  await (tournament as any).populate("seeding.participant");
-
-  return jsonOk({
-    message: isTeamTournament
-      ? "Team removed successfully!"
-      : (tournament as any).matchType === "doubles"
-      ? "Participant removed successfully! Note: Affected doubles pairs have been removed."
-      : "Participant removed successfully!",
-    tournament,
-  });
-});
+}

@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { TeamMatch, MatchStatus, Participant, PlayerKey } from "@/types/match.type";
+import {
+  TeamMatch,
+  MatchStatus,
+  Participant,
+  PlayerKey,
+} from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import TrackingModeToggle from "../common/TrackingModeToggle";
 import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import ShotFeed from "../common/ShotFeed";
@@ -27,8 +34,8 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
     currentSubMatch,
     team1Score,
     team2Score,
-    team1Sets,
-    team2Sets,
+    team1Games,
+    team2Games,
     currentGame,
     isSubMatchActive,
     status,
@@ -41,6 +48,9 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
+  const shotTrackingMode = useMatchStore((s) => s.shotTrackingMode);
+  const user = useAuthStore((s) => s.user);
+  const updateSubMatchScore = useTeamMatch((s) => s.updateSubMatchScore);
 
   const lastMatchId = useRef<string | null>(null);
   const lastSubMatchIndex = useRef<number | null>(null);
@@ -82,8 +92,12 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   const player1Raw = currentSubMatch.playerTeam1;
   const player2Raw = currentSubMatch.playerTeam2;
 
-  const player1 = (Array.isArray(player1Raw) ? player1Raw[0] : player1Raw) as Participant | null;
-  const player2 = (Array.isArray(player2Raw) ? player2Raw[0] : player2Raw) as Participant | null;
+  const player1 = (
+    Array.isArray(player1Raw) ? player1Raw[0] : player1Raw
+  ) as Participant | null;
+  const player2 = (
+    Array.isArray(player2Raw) ? player2Raw[0] : player2Raw
+  ) as Participant | null;
 
   const player1Name = player1?.fullName || player1?.username || "TBD";
   const player2Name = player2?.fullName || player2?.username || "TBD";
@@ -130,11 +144,12 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
           </CardHeader>
           <CardContent className="text-center py-8">
             <p className="text-gray-600 mb-4">
-              Match {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
+              Rubber {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
             </p>
             <p className="text-gray-500 text-sm mb-6">
-              Players need to be assigned to positions before this match can be scored.
-              Please ensure both teams have configured their player assignments (A, B, C positions).
+              Players need to be assigned to positions before this match can be
+              scored. Please ensure both teams have configured their player
+              assignments (A, B, C positions).
             </p>
             <div className="flex justify-center gap-2">
               <Button
@@ -160,113 +175,135 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
     );
   }
 
+  function IconNavButton({ children, ...props }: any) {
+    return (
+      <button
+        {...props}
+        className="h-7 w-7 flex items-center justify-center rounded-md border
+                   hover:bg-muted disabled:opacity-40 transition"
+      >
+        {children}
+      </button>
+    );
+  }
+
   const handleUndo = async () => {
-  if (team1Score === 0 && team2Score === 0) {
-    toast.error("No points to undo");
-    return;
-  }
+    if (team1Score === 0 && team2Score === 0) {
+      toast.error("No points to undo");
+      return;
+    }
 
-  const currentGameData = currentSubMatch?.games?.find(
-    (g: any) => g.gameNumber === currentGame
-  );
-  
-  if (!currentGameData || !currentGameData.shots || currentGameData.shots.length === 0) {
-    toast.error("No shots to undo");
-    return;
-  }
+    const currentGameData = currentSubMatch?.games?.find(
+      (g: any) => g.gameNumber === currentGame
+    );
 
-  const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-  const lastSide = lastShot.side as "team1" | "team2";
+    if (
+      !currentGameData ||
+      !currentGameData.shots ||
+      currentGameData.shots.length === 0
+    ) {
+      toast.error("No shots to undo");
+      return;
+    }
 
-  await subtractPoint(lastSide);
-};
+    const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
+    const lastSide = lastShot.side as "team1" | "team2";
+
+    await subtractPoint(lastSide);
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-2">
       {/* Team Match Score Overview */}
-      <Card className="shadow-none rounded-none">
-        <CardHeader>
-          <CardTitle>Swaythling Format</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center items-center gap-8">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-2">{match.team1.name}</p>
-              <p className="text-4xl font-bold text-emerald-600">
+      <Card className="border rounded-md shadow-none">
+        <CardContent className="px-4">
+          <div className="flex items-center justify-between gap-6">
+            {/* Left Team */}
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-sm font-medium text-muted-foreground truncate">
+                {match.team1.name}
+              </span>
+              <span className="text-xl font-semibold text-emerald-600 tabular-nums">
                 {match.finalScore.team1Matches}
-              </p>
+              </span>
             </div>
-            <div className="text-2xl text-gray-400">-</div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-2">{match.team2.name}</p>
-              <p className="text-4xl font-bold text-rose-600">
+
+            {/* Divider */}
+            <span className="text-sm text-muted-foreground select-none">—</span>
+
+            {/* Right Team */}
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xl font-semibold text-rose-600 tabular-nums">
                 {match.finalScore.team2Matches}
-              </p>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground truncate">
+                {match.team2.name}
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* SubMatch Navigator */}
-      <Card className="rounded-none shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Individual Matches</CardTitle>
-          <Badge variant="outline">
-            Match {currentSubMatchIndex + 1} of {match.subMatches.length}
-          </Badge>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+      <Card className="border rounded-md shadow-none">
+        <div className="flex items-center justify-between px-4">
+          {/* Left: Label */}
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Rubbers
+            </h3>
+            <Badge variant="secondary" className="h-5 px-2 text-[11px]">
+              {currentSubMatchIndex + 1} / {match.subMatches.length}
+            </Badge>
+          </div>
+
+          {/* Right: Navigator */}
+          <div className="flex items-center gap-1">
+            <IconNavButton
               disabled={currentSubMatchIndex === 0}
+              onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
             >
               <ChevronLeft className="w-4 h-4" />
-            </Button>
+            </IconNavButton>
 
-            {match.subMatches.map((sm, idx) => {
-              const isActive = idx === currentSubMatchIndex;
-              const isCompleted = sm.status === "completed";
+            <div className="flex items-center gap-1 overflow-x-auto max-w-[50vw]">
+              {match.subMatches.map((sm, idx) => {
+                const isActive = idx === currentSubMatchIndex;
+                const isCompleted = sm.status === "completed";
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => goToSubMatch(idx)}
-                  className={`
-                    px-4 py-2 rounded-lg border-2 whitespace-nowrap text-sm font-medium transition-all
-                    ${
-                      isActive
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : isCompleted
-                        ? "border-green-200 bg-green-50 text-green-700"
-                        : "border-gray-200 hover:border-gray-300"
-                    }
-                  `}
-                >
-                  <span className="hidden sm:inline">Match</span>
-                  <span className="inline sm:hidden">M</span>
-                  {idx + 1}
-                  {isCompleted && sm.winnerSide && (
-                    <span className="ml-2">
-                      {sm.winnerSide === "team1" ? "✓" : "✓"}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => goToSubMatch(idx)}
+                    className={`
+                h-7 min-w-[32px] px-2 rounded-md border text-xs font-medium transition
+                ${isActive && "border-primary bg-primary/10 text-primary"}
+                ${
+                  isCompleted &&
+                  !isActive &&
+                  "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }
+                ${
+                  !isActive &&
+                  !isCompleted &&
+                  "border-muted hover:border-foreground/20"
+                }
+              `}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+            <IconNavButton
               disabled={currentSubMatchIndex === match.subMatches.length - 1}
+              onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
             >
               <ChevronRight className="w-4 h-4" />
-            </Button>
+            </IconNavButton>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Current SubMatch Details */}
@@ -274,8 +311,10 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
         <CardHeader>
           <div className="flex flex-col gap-2">
             <CardTitle className="w-full flex items-center justify-between gap-2">
-              <span>Match {currentSubMatchIndex + 1}:</span>
-              <MatchStatusBadge status={currentSubMatch.status as MatchStatus} />
+              <span>Rubber {currentSubMatchIndex + 1}:</span>
+              <MatchStatusBadge
+                status={currentSubMatch.status as MatchStatus}
+              />
             </CardTitle>
             <p className="text-xs font-semibold">
               {player1Name} vs {player2Name}
@@ -286,7 +325,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
           {currentSubMatch.status === "completed" ? (
             <div className="text-center py-8">
               <p className="text-lg font-semibold text-green-600">
-                Match Completed!
+                Rubber Completed!
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Winner:{" "}
@@ -295,29 +334,43 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                   : player2Name}
               </p>
               <p className="text-sm text-gray-500">
-                Score: {currentSubMatch.finalScore?.team1Sets || 0} -{" "}
-                {currentSubMatch.finalScore?.team2Sets || 0}
+                Score: {currentSubMatch.finalScore?.team1Games || 0} -{" "}
+                {currentSubMatch.finalScore?.team2Games || 0}
               </p>
             </div>
           ) : (
             <>
+              {match && <TrackingModeToggle />}
               <ScoreBoard
                 match={match}
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
                 currentServer={currentSubMatch.currentServer!}
-                side1Sets={team1Sets}
-                side2Sets={team2Sets}
+                side1Sets={team1Games}
+                side2Sets={team2Games}
                 status={currentSubMatch.status}
-                onAddPoint={({ side, playerId }) => {
+                onAddPoint={async ({ side, playerId }) => {
                   if (currentSubMatch.status === "completed") {
                     toast.error("Submatch is completed!");
                     return;
                   }
-                  // Allow shot dialog to open - auto-start will happen in updateSubMatchScore
-                  setPendingPlayer({ side, playerId });
-                  setShotDialogOpen(true);
+
+                  // Convert side1/side2 to team1/team2 for team matches
+                  const teamSide = side === "side1" ? "team1" : "team2";
+
+                  // Determine effective mode: match override > user preference > default "detailed"
+                  const effectiveMode =
+                    shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+                  if (effectiveMode === "simple") {
+                    // Simple mode: directly increment score without shot data
+                    await updateSubMatchScore(teamSide, 1, undefined, playerId);
+                  } else {
+                    // Detailed mode: open shot selector dialog
+                    setPendingPlayer({ side: teamSide, playerId });
+                    setShotDialogOpen(true);
+                  }
                 }}
                 onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}

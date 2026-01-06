@@ -5,7 +5,7 @@ import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
-import { generateVerificationToken, sendPasswordResetEmail } from "@/lib/zeptomail";
+import { generateOTP, sendOTPEmail } from "@/lib/zeptomail";
 
 export async function POST(request: NextRequest) {
   // Rate limiting - very strict for password reset
@@ -40,29 +40,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete any existing password reset tokens for this user
+    // Delete any existing password reset OTPs for this user
     await VerificationToken.deleteMany({
       userId: user._id,
       type: "password_reset",
     });
 
-    // Generate new token (plain text for email)
-    const token = generateVerificationToken();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Hash token before storing (security best practice)
-    const hashedToken = await bcrypt.hash(token, 10);
+    // Hash OTP before storing (production pattern)
+    const otpHash = await bcrypt.hash(otp, 10);
 
-    // Save hashed token
+    // Save hashed OTP with userId for efficient lookup
     await VerificationToken.create({
       userId: user._id,
-      token: hashedToken, // Store hashed token
+      token: otpHash, // Store hashed OTP in token field
       type: "password_reset",
       expiresAt,
+      attemptsLeft: 3,
     });
 
-    // Send password reset email
-    const emailSent = await sendPasswordResetEmail(user.email, user.fullName, token);
+    // Send OTP email
+    const emailSent = await sendOTPEmail(user.email, user.fullName, otp, "password_reset");
 
     if (!emailSent) {
       console.error("Failed to send password reset email to:", email);

@@ -233,7 +233,16 @@ export const updateTournamentSchema = z.object({
     .trim()
     .optional(),
 
+  description: z.string()
+    .max(1000, "Description must not exceed 1000 characters")
+    .trim()
+    .optional(),
+
   startDate: z.string()
+    .refine((date) => !isNaN(Date.parse(date)), "Invalid date format")
+    .optional(),
+
+  endDate: z.string()
     .refine((date) => !isNaN(Date.parse(date)), "Invalid date format")
     .optional(),
 
@@ -254,6 +263,8 @@ export const updateTournamentSchema = z.object({
   seedingMethod: seedingMethodSchema.optional(),
 
   knockoutConfig: knockoutConfigSchema,
+
+  teamConfig: teamConfigSchema,
 
   status: z.enum(["draft", "active", "completed", "cancelled"]).optional(),
 }).strict();

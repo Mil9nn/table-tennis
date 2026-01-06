@@ -62,7 +62,7 @@ export async function POST(
         subMatch.winnerSide = null;
         subMatch.completed = false;
         subMatch.games = [];
-        subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
+        subMatch.finalScore = { team1Games: 0, team2Games: 0 };
       }
 
       match.markModified("subMatches");

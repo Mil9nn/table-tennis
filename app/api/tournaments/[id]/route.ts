@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { validateRequest, updateTournamentSchema } from "@/lib/validations";
 
 // CRITICAL: Import models in correct order to ensure discriminators are registered
 // 1. Import base Match model first
@@ -611,14 +612,13 @@ export async function PUT(
 
     const body = await req.json();
 
-    // Whitelist allowed update fields (prevent mass assignment)
-    const allowedFields = ["name", "description", "venue", "city", "startDate", "endDate", "status", "teamConfig"];
-    const updateData: Record<string, any> = {};
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
-      }
+    // Validate request body using Zod schema
+    const validation = validateRequest(updateTournamentSchema, body);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const updateData = validation.data;
 
     const isTeamTournament = existingTournament.category === "team";
 

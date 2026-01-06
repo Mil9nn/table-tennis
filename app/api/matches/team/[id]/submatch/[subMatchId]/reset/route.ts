@@ -67,11 +67,11 @@ export async function POST(
         subMatch.status = "in_progress";
         subMatch.winnerSide = undefined;
 
-        // Recalculate set scores from completed games
+        // Recalculate game scores from completed games
         const completedGames = subMatch.games.filter((g: any) => g.winnerSide);
         subMatch.finalScore = {
-          team1Sets: completedGames.filter((g: any) => g.winnerSide === "team1").length,
-          team2Sets: completedGames.filter((g: any) => g.winnerSide === "team2").length,
+          team1Games: completedGames.filter((g: any) => g.winnerSide === "team1").length,
+          team2Games: completedGames.filter((g: any) => g.winnerSide === "team2").length,
         };
 
         // Also revert team match if it was completed
@@ -92,7 +92,7 @@ export async function POST(
           completed: false,
         },
       ];
-      subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
+      subMatch.finalScore = { team1Games: 0, team2Games: 0 };
       subMatch.winnerSide = undefined;
       subMatch.status = "scheduled";
       subMatch.completed = false;

@@ -5,7 +5,7 @@ import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { registerSchema } from "@/lib/validations/auth";
-import { generateVerificationToken, sendVerificationEmail } from "@/lib/zeptomail";
+import { generateOTP, sendOTPEmail } from "@/lib/zeptomail";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -63,34 +63,35 @@ export async function POST(request: NextRequest) {
 
     await newUser.save();
 
-    // 2. Generate verification token (plain text for email)
-    const verificationToken = generateVerificationToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // 2. Generate 6-digit OTP
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // 3. Hash token before storing in database (security best practice)
-    const hashedToken = await bcrypt.hash(verificationToken, 10);
+    // 3. Hash OTP before storing (production pattern)
+    const otpHash = await bcrypt.hash(otp, 10);
 
-    // 4. Save hashed verification token
+    // 4. Save hashed OTP with userId for efficient lookup
     await VerificationToken.create({
       userId: newUser._id,
-      token: hashedToken, // Store hashed token
+      token: otpHash, // Store hashed OTP in token field
       type: "email_verification",
       expiresAt,
+      attemptsLeft: 3,
     });
 
-    // 5. Send email asynchronously (don't block registration)
+    // 5. Send OTP email asynchronously (don't block registration)
     // User can register even if email service is temporarily down
-    // They can request a new verification email later
-    sendVerificationEmail(email, fullName, verificationToken).catch((error) => {
-      console.error("Failed to send verification email (async):", error);
-      // Don't fail registration - email can be resent later via /api/auth/send-verification
+    // They can request a new OTP later via /api/auth/send-otp
+    sendOTPEmail(email, fullName, otp, "email_verification").catch((error) => {
+      console.error("Failed to send OTP email (async):", error);
+      // Don't fail registration - OTP can be resent later via /api/auth/send-otp
     });
 
     // Return success - user created but NOT verified yet
     // User cannot log in until email is verified (login route checks isEmailVerified)
     return NextResponse.json(
       {
-        message: "Account created! Please check your email to verify your account. You cannot log in until your email is verified.",
+        message: "Almost there! An OTP has been sent to your email. Please verify to start using your account.",
         requiresVerification: true,
         user: {
           _id: newUser._id,

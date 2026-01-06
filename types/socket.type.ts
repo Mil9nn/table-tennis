@@ -58,8 +58,8 @@ export interface ScoreUpdateEvent {
   finalScore: {
     side1Sets?: number;
     side2Sets?: number;
-    team1Sets?: number;
-    team2Sets?: number;
+    team1Games?: number;
+    team2Games?: number;
   };
   gameCompleted?: boolean;
   gameWinner?: "side1" | "side2" | "team1" | "team2" | null;
@@ -106,8 +106,8 @@ export interface GameCompletedEvent {
   newSetScore: {
     side1Sets?: number;
     side2Sets?: number;
-    team1Sets?: number;
-    team2Sets?: number;
+    team1Games?: number;
+    team2Games?: number;
   };
   timestamp: string;
 }

@@ -78,9 +78,8 @@ export async function GET(
       );
       if (userStanding) {
         position = userStanding.rank;
-        console.log(`[Tournament Stats] User ${userId} in tournament ${tournament._id}: rank=${userStanding.rank}, tournament.status=${tournament.status}`);
       } else {
-        console.log(`[Tournament Stats] User ${userId} NOT FOUND in standings for tournament ${tournament._id}, status=${tournament.status}`);
+        
       }
     }
 
@@ -174,17 +173,7 @@ export async function GET(
         t.stats.position <= 3
     ).length;
 
-    console.log(`[Tournament Stats Summary] User ${id}:`, {
-      totalTournaments: tournaments.length,
-      tournamentWins,
-      finalsReached,
-      semifinalsReached,
-      positionsFound: tournamentStats.map(t => ({ 
-        tournamentId: t.tournament._id, 
-        position: t.stats.position, 
-        status: t.tournament.status 
-      }))
-    });
+    
 
     // Count podium finishes (top 3)
     const podiumFinishes = tournamentStats.filter(

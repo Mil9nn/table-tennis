@@ -130,8 +130,16 @@ export const updateGenderSchema = z.object({
   gender: genderSchema,
 }).strict();
 
+// Update user preference schema (for PATCH /api/auth/me)
+export const updateUserPreferenceSchema = z.object({
+  shotTrackingMode: z.enum(["detailed", "simple"], {
+    error: "shotTrackingMode must be 'detailed' or 'simple'",
+  }).optional(),
+}).strict();
+
 // Export type inference
 export type CompleteProfileInput = z.infer<typeof completeProfileSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ProfileImageInput = z.infer<typeof profileImageSchema>;
 export type UpdateGenderInput = z.infer<typeof updateGenderSchema>;
+export type UpdateUserPreferenceInput = z.infer<typeof updateUserPreferenceSchema>;

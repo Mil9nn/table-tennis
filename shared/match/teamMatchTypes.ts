@@ -81,11 +81,11 @@ export interface TeamSubMatchBase {
   matchType: TeamSubMatchType;
   playerTeam1: string[];
   playerTeam2: string[];
-  numberOfSets: number;
+  numberOfGames: number;
   games: TeamGame[];
   finalScore: {
-    team1Sets: number;
-    team2Sets: number;
+    team1Games: number;
+    team2Games: number;
   };
   winnerSide: TeamWinnerSide;
   status: TeamMatchStatus;
@@ -222,7 +222,7 @@ export interface TeamMatchStatistics {
 export interface TeamMatchBase {
   matchCategory: "team";
   matchFormat: TeamMatchFormat;
-  numberOfSetsPerSubMatch: number;
+  numberOfGamesPerRubber: number;
   numberOfSubMatches: number;
   currentSubMatch: number;
   team1: TeamMatchSnapshot;
@@ -321,14 +321,14 @@ export interface SinglesSubMatchConfig {
   matchNumber: number;
   playerTeam1: string;
   playerTeam2: string;
-  numberOfSets: number;
+  numberOfGames: number;
 }
 
 export interface DoublesSubMatchConfig {
   matchNumber: number;
   playerTeam1: [string, string];
   playerTeam2: [string, string];
-  numberOfSets: number;
+  numberOfGames: number;
 }
 
 // ============================================
@@ -338,7 +338,7 @@ export interface DoublesSubMatchConfig {
 export interface CreateTeamMatchDTO {
   tournament?: string;
   matchFormat: TeamMatchFormat;
-  numberOfSetsPerSubMatch: number;
+  numberOfGamesPerRubber: number;
   team1: TeamMatchSnapshot;
   team2: TeamMatchSnapshot;
   subMatches: TeamSubMatchBase[];

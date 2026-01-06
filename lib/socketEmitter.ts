@@ -1,32 +1,9 @@
-import { Server } from "socket.io";
-import {
-  ServerToClientEvents,
-  ClientToServerEvents,
-  SocketEventName,
-} from "@/types/socket.type";
-
-// Extend global namespace to include socket.io instance
-declare global {
-  var io: Server<ClientToServerEvents, ServerToClientEvents> | undefined;
-}
+import { SocketEventName } from "@/types/socket.type";
+import { env } from "./env";
 
 /**
- * Get the global Socket.IO instance
- * @returns Socket.IO server instance or null if not initialized
- */
-export function getSocketIO(): Server<
-  ClientToServerEvents,
-  ServerToClientEvents
-> | null {
-  if (!global.io) {
-    console.warn("[Socket.IO] Server instance not available");
-    return null;
-  }
-  return global.io;
-}
-
-/**
- * Emit an event to all clients in a specific match room
+ * Emit an event to all clients in a specific match room via HTTP API
+ * This function is fire-and-forget and does not block execution
  * @param matchId - The match ID (will be used to create room name)
  * @param eventName - Name of the event to emit
  * @param payload - Event payload data
@@ -36,16 +13,14 @@ export function emitToMatchRoom(
   eventName: SocketEventName,
   payload: any
 ): void {
-  const io = getSocketIO();
+  const socketServerUrl = env.SOCKET_SERVER_URL;
 
-  if (!io) {
+  if (!socketServerUrl) {
     console.warn(
-      `[Socket.IO] Cannot emit ${eventName} to match ${matchId}: Server not initialized`
+      `[Socket.IO] Cannot emit ${eventName} to match ${matchId}: SOCKET_SERVER_URL not configured`
     );
     return;
   }
-
-  const roomName = `match:${matchId}`;
 
   // Add timestamp if not already present
   const enrichedPayload = {
@@ -53,42 +28,72 @@ export function emitToMatchRoom(
     timestamp: payload.timestamp || new Date().toISOString(),
   };
 
-  try {
-    io.to(roomName).emit(eventName, enrichedPayload);
-    console.log(
-      `[Socket.IO] Emitted ${eventName} to room ${roomName}`,
-      enrichedPayload
-    );
-  } catch (error) {
-    console.error(
-      `[Socket.IO] Error emitting ${eventName} to room ${roomName}:`,
-      error
-    );
-  }
+  // Fire-and-forget HTTP request
+  (async () => {
+    try {
+      const url = `${socketServerUrl}/api/emit/${matchId}/${eventName}`;
+      
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Add API key if configured
+      if (process.env.SOCKET_API_KEY) {
+        headers["X-API-Key"] = process.env.SOCKET_API_KEY;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(enrichedPayload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      console.log(
+        `[Socket.IO] Emitted ${eventName} to match ${matchId} via HTTP API`
+      );
+    } catch (error) {
+      console.error(
+        `[Socket.IO] Error emitting ${eventName} to match ${matchId}:`,
+        error
+      );
+    }
+  })();
 }
 
 /**
- * Get the number of clients in a match room
+ * Get the number of clients in a match room via HTTP API
  * @param matchId - The match ID
  * @returns Promise resolving to the number of viewers in the room
  */
 export async function getMatchRoomViewerCount(
   matchId: string
 ): Promise<number> {
-  const io = getSocketIO();
+  const socketServerUrl = env.SOCKET_SERVER_URL;
 
-  if (!io) {
+  if (!socketServerUrl) {
     return 0;
   }
 
-  const roomName = `match:${matchId}`;
-
   try {
-    const sockets = await io.in(roomName).fetchSockets();
-    return sockets.length;
+    const url = `${socketServerUrl}/api/viewers/${matchId}`;
+    const response = await fetch(url, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      return 0;
+    }
+
+    const data = await response.json();
+    return data.viewerCount || 0;
   } catch (error) {
     console.error(
-      `[Socket.IO] Error fetching viewer count for room ${roomName}:`,
+      `[Socket.IO] Error fetching viewer count for match ${matchId}:`,
       error
     );
     return 0;
@@ -96,9 +101,9 @@ export async function getMatchRoomViewerCount(
 }
 
 /**
- * Check if Socket.IO server is initialized and ready
- * @returns True if server is available, false otherwise
+ * Check if Socket.IO server is configured and ready
+ * @returns True if server URL is configured, false otherwise
  */
 export function isSocketIOReady(): boolean {
-  return global.io !== undefined;
+  return !!env.SOCKET_SERVER_URL;
 }

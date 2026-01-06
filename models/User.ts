@@ -46,6 +46,13 @@ const userSchema = new mongoose.Schema(
     // Feature flags (computed from subscription)
     hasAdvancedAnalytics: { type: Boolean, default: false },
     canExportData: { type: Boolean, default: false },
+
+    // Shot tracking preference
+    shotTrackingMode: {
+      type: String,
+      enum: ["detailed", "simple"],
+      default: "detailed",
+    },
   },
   { timestamps: true }
 );

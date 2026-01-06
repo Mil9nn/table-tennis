@@ -45,8 +45,6 @@ export async function onTournamentCompleted(
   tournament.knockoutStatistics = statistics as any;
   tournament.status = "completed";
   await tournament.save();
-
-  console.log(`Tournament ${tournamentId} completed and statistics generated.`);
 }
 
 /**

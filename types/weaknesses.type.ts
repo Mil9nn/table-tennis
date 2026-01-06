@@ -47,28 +47,50 @@ export interface ZoneWeaknessData {
   safeZones: SafeZone[];
 }
 
+export interface DataLimitation {
+  message: string;
+  limitations: string[];
+  availableMetrics: string[];
+}
+
 export interface ServeWeaknessData {
+  // Legacy field names for backward compatibility (deprecated, use pointsWonWhenServing etc.)
   totalServes: number;
   servesWon: number;
   servesLost: number;
   serveWinRate: number;
+  // New field names for clarity
+  totalPointsWhenServing: number;
+  pointsWonWhenServing: number;
+  pointsLostWhenServing: number;
+  pointWinRateWhenServing: number;
   patternAnalysis: Record<string, { attempts: number; winRate: number }>;
   recommendation: string;
+  dataLimitation?: DataLimitation;
 }
 
 export interface ReceiveWeaknessData {
+  // Legacy field names for backward compatibility (deprecated, use pointsWonWhenReceiving etc.)
   totalReceives: number;
   receivesWon: number;
   receivesLost: number;
   receiveWinRate: number;
+  // New field names for clarity
+  totalPointsWhenReceiving: number;
+  pointsWonWhenReceiving: number;
+  pointsLostWhenReceiving: number;
+  pointWinRateWhenReceiving: number;
   vsStrokeType: Record<string, { received: number; won: number; winRate: number }>;
   recommendation: string;
+  dataLimitation?: DataLimitation;
 }
 
 export interface OpponentPattern {
   stroke: string;
-  timesUsed: number;
-  pointsWonByOpponent: number;
+  // Count represents different things based on data completeness:
+  // - If only winning shots stored: count = times opponent won with this stroke = points lost
+  // - If all rally shots stored: count = times opponent used this stroke (won or lost rallies)
+  count: number;
   effectivenessRate: number;
   commonZones: string[];
   recommendation: string;
@@ -85,11 +107,11 @@ export interface OverallInsights {
 
 export interface ZoneSectorWeakness {
   zone: "short" | "mid" | "deep";
-  // ABSOLUTE SECTOR (perspective-independent, used for stats)
-  // - "top": Y 0-33.33 (where left-side players have backhand)
-  // - "middle": Y 33.33-66.67 (crossover/center)
-  // - "bottom": Y 66.67-100 (where left-side players have forehand)
-  sector: "top" | "middle" | "bottom";
+  // RELATIVE SECTOR (perspective-based on user's actual side)
+  // - "backhand": User's backhand side
+  // - "crossover": Center of the table
+  // - "forehand": User's forehand side
+  sector: "backhand" | "crossover" | "forehand";
   totalShots: number;
   wins: number;
   losses: number;
@@ -144,6 +166,7 @@ export interface WeaknessAnalysisResult {
     successfulZones: VulnerableZone[];
   };
   overallInsights: OverallInsights;
+  dataLimitation?: DataLimitation;
 }
 
 // Helper types for internal processing

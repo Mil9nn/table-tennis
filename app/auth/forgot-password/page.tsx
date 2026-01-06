@@ -16,14 +16,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, ChevronLeft, Mail, CheckCircle2 } from "lucide-react";
+import { Loader2, ChevronLeft, Mail } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ForgotPasswordInput>({
@@ -37,10 +36,13 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     try {
       await axiosInstance.post("auth/forgot-password", values);
-      setIsSubmitted(true);
+      toast.success("OTP sent to your email");
+      // Redirect to reset-password page with email param
+      router.push(`/auth/reset-password?email=${encodeURIComponent(values.email)}`);
     } catch (error: any) {
       // Still show success message to prevent email enumeration
-      setIsSubmitted(true);
+      toast.success("If an account exists with this email, an OTP has been sent.");
+      router.push(`/auth/reset-password?email=${encodeURIComponent(values.email)}`);
     } finally {
       setIsLoading(false);
     }
@@ -81,78 +83,55 @@ export default function ForgotPasswordPage() {
 
             {/* Content Section */}
             <div className="p-6">
-              {!isSubmitted ? (
-                <>
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#3c6e71]/10">
-                    <Mail className="h-7 w-7 text-[#3c6e71]" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900 text-center">
-                    Reset Your Password
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-600 mb-6 text-center">
-                    Enter your email address and we'll send you a link to reset your password.
-                  </p>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#3c6e71]/10">
+                <Mail className="h-7 w-7 text-[#3c6e71]" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 text-center">
+                Reset Your Password
+              </h2>
+              <p className="mt-1 text-sm text-gray-600 mb-6 text-center">
+                Enter your email address and we'll send you a verification code to reset your password.
+              </p>
 
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
-                              Email Address
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="your@email.com"
-                                className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs" />
-                          </FormItem>
-                        )}
-                      />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-[#353535] uppercase tracking-wide">
+                          Email Address
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="your@email.com"
+                            className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-                      <Button
-                        type="submit"
-                        className="w-full mt-6"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          "Send Reset Link"
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                </>
-              ) : (
-                <div className="text-center py-10">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-                    <CheckCircle2 className="h-8 w-8 text-green-600" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Check Your Email
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-600 mb-6">
-                    If an account exists with this email, we've set instructions.
-                    Please check your inbox and spam folder.
-                  </p>
                   <Button
-                    onClick={() => router.push("/auth/login")}
-                    className="mt-6 w-full"
+                    type="submit"
+                    className="w-full mt-6"
+                    disabled={isLoading}
                   >
-                    Back to Login
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Verification Code"
+                    )}
                   </Button>
-                </div>
-              )}
+                </form>
+              </Form>
             </div>
 
             {/* Footer Section */}

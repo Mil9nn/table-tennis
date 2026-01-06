@@ -2,7 +2,6 @@
 
 import PlayerCard from "./PlayerCard";
 import CenterControls from "./CenterControls";
-import MatchInfo from "./MatchInfo";
 import { checkGameWon } from "@/components/live-scorer/individual/helpers";
 import {
   AddPointPayload,
@@ -178,27 +177,8 @@ export default function ScoreBoard(props: ScoreBoardProps) {
 
   const canSwap = (side1Score === 0 && side2Score === 0) && status !== "completed" && !isAnyOperationInProgress;
 
-  const currentGame =
-    match.matchCategory === "individual"
-      ? match.currentGame
-      : (match as TeamMatch).subMatches[
-          (match as TeamMatch).currentSubMatch - 1
-        ]?.games?.length || 1;
-
-  const totalGames =
-    match.matchCategory === "individual"
-      ? match.numberOfSets
-      : (match as TeamMatch).numberOfSetsPerSubMatch || 3;
-
   return (
     <div>
-      {/* Match Info */}
-      <MatchInfo
-        currentGame={currentGame}
-        totalGames={totalGames}
-        matchStartTime={isMatchActive ? match.createdAt : undefined}
-      />
-
       {/* Score Cards */}
       <div className="grid grid-cols-2">
         <PlayerCard

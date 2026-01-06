@@ -20,7 +20,7 @@ import {
 export interface ITeamMatch extends IMatchBase {
   matchCategory: 'team';
   matchFormat: 'five_singles' | 'single_double_single' | 'custom';
-  numberOfSetsPerSubMatch: number;
+  numberOfGamesPerRubber: number;
   numberOfSubMatches: number;
   currentSubMatch: number;
   team1: any; // teamInfoSchema
@@ -56,7 +56,7 @@ const subMatchSchema = new mongoose.Schema({
   playerTeam1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   playerTeam2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
-  numberOfSets: { type: Number, enum: [1, 3, 5, 7], default: 3 },
+  numberOfGames: { type: Number, enum: [1, 3, 5, 7], default: 3 },
 
   serverConfig: {
     type: serverConfigSchema,
@@ -79,8 +79,8 @@ const subMatchSchema = new mongoose.Schema({
   games: [gameSchema],
 
   finalScore: {
-    team1Sets: { type: Number, default: 0 },
-    team2Sets: { type: Number, default: 0 },
+    team1Games: { type: Number, default: 0 },
+    team2Games: { type: Number, default: 0 },
   },
 
   winnerSide: { type: String, enum: ["team1", "team2"], default: null },
@@ -113,8 +113,8 @@ const TeamMatchSchema = new mongoose.Schema(
       required: true,
     },
 
-    // per-submatch number of sets (best of 5 typical for ITTF team)
-    numberOfSetsPerSubMatch: { type: Number, enum: [1, 3, 5, 7], default: 3 },
+    // per-rubber number of games (best of 5 typical for ITTF team)
+    numberOfGamesPerRubber: { type: Number, enum: [1, 3, 5, 7], default: 3 },
 
     // number of submatches (usually 5 for Swaythling)
     numberOfSubMatches: { type: Number, default: 5 },

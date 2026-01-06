@@ -17,6 +17,7 @@ import {
   LineWeakness,
   OriginDistanceWeakness,
   SemanticZoneAnalysis,
+  DataLimitation,
 } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
 import { analyzeShotPlacement, getZone, getSector } from "@/lib/shot-commentary-utils";
@@ -149,6 +150,10 @@ function processRally(
 
 /**
  * Calculate shot weaknesses for a specific user
+ * 
+ * NOTE: When only winning shots are stored (most common case), all outcomes have won: true.
+ * In this case, for user shots (outcome.playerId === userId), outcome.won will always be true,
+ * so stats.losses will always be 0. The outcome.won check is still needed for rally data scenarios.
  */
 export function calculateShotWeaknesses(
   allGames: any[],
@@ -171,6 +176,7 @@ export function calculateShotWeaknesses(
     const outcomes = determinePointOutcomes(game);
 
     outcomes.forEach((outcome) => {
+      // Only process user's shots
       if (outcome.playerId !== userId || !outcome.stroke) return;
 
       if (!strokeStats[outcome.stroke]) {
@@ -187,6 +193,8 @@ export function calculateShotWeaknesses(
       const stats = strokeStats[outcome.stroke];
       stats.attempts++;
 
+      // When only winning shots are stored, outcome.won is always true for user shots.
+      // When rally data exists, outcome.won can be false if user lost the point.
       if (outcome.won) {
         stats.wins++;
       } else {
@@ -253,6 +261,9 @@ export function calculateShotWeaknesses(
  * Uses determinePointOutcomes to correctly handle both cases:
  * - If only winning shots are stored: each shot = one point
  * - If all rally shots are stored: need to determine which shots won points
+ * 
+ * NOTE: totalShots represents total points (winning shots only), not total shot attempts.
+ * The function only processes outcomes where outcome.won === true.
  */
 export function calculateZoneWeaknesses(
   allGames: any[],
@@ -424,6 +435,17 @@ export function calculateZoneWeaknesses(
 
 /**
  * Analyze serve and receive weaknesses
+ * 
+ * CRITICAL: This function counts ALL points when user was serving/receiving (won + lost),
+ * not just points the user won. This is necessary because only winning shots are stored.
+ * 
+ * - Points when serving: outcome.server === userId
+ *   - Won: outcome.playerId === userId && outcome.won === true
+ *   - Lost: outcome.playerId !== userId && outcome.won === true (opponent won)
+ * 
+ * - Points when receiving: outcome.server !== userId && outcome.server !== null
+ *   - Won: outcome.playerId === userId && outcome.won === true
+ *   - Lost: outcome.playerId !== userId && outcome.won === true (opponent won)
  */
 export function analyzeServeReceivePatterns(
   allGames: any[],
@@ -435,30 +457,45 @@ export function analyzeServeReceivePatterns(
   let receivesWon = 0;
   const receiveVsStroke: Record<string, { received: number; won: number }> = {};
 
+  const userIdStr = userId.toString();
+
   allGames.forEach((game) => {
     const outcomes = determinePointOutcomes(game);
 
     outcomes.forEach((outcome) => {
-      if (outcome.playerId !== userId) return;
+      // Skip if no server info
+      if (!outcome.server) return;
 
-      const isServing = outcome.server === userId;
+      const serverId = outcome.server.toString();
+      const playerId = outcome.playerId?.toString();
+      
+      // Determine if user was serving or receiving
+      const userWasServing = serverId === userIdStr;
+      const userWon = playerId === userIdStr && outcome.won;
 
-      if (isServing) {
+      if (userWasServing) {
+        // User was serving - count ALL points (won + lost)
         totalServes++;
-        if (outcome.won) servesWon++;
+        if (userWon) {
+          servesWon++;
+        }
+        // servesLost = totalServes - servesWon (calculated later)
       } else {
+        // User was receiving - count ALL points (won + lost)
         totalReceives++;
-        if (outcome.won) receivesWon++;
+        if (userWon) {
+          receivesWon++;
+        }
+        // receivesLost = totalReceives - receivesWon (calculated later)
 
-        // Track what opponent served
-        if (outcome.opponentStroke) {
+        // Track opponent serve types when user was receiving
+        // Note: We can only track when user won (we can't see opponent's serve type when they won)
+        if (outcome.opponentStroke && userWon) {
           if (!receiveVsStroke[outcome.opponentStroke]) {
             receiveVsStroke[outcome.opponentStroke] = { received: 0, won: 0 };
           }
           receiveVsStroke[outcome.opponentStroke].received++;
-          if (outcome.won) {
-            receiveVsStroke[outcome.opponentStroke].won++;
-          }
+          receiveVsStroke[outcome.opponentStroke].won++;
         }
       }
     });
@@ -483,32 +520,93 @@ export function analyzeServeReceivePatterns(
     }
   });
 
+  const servesLost = totalServes - servesWon;
+  const receivesLost = totalReceives - receivesWon;
+
+  // Create data limitation info
+  const serveDataLimitation: DataLimitation = {
+    message: "Analysis based on point outcomes when serving, not serve success rates",
+    limitations: [
+      "Only winning shots are recorded, so we can't calculate actual serve success rates",
+      "We show point win rates when serving, which includes both serve winners and rally outcomes",
+      "Lost serves that resulted in opponent winning the point are counted"
+    ],
+    availableMetrics: [
+      "Points won when serving",
+      "Points lost when serving",
+      "Point win rate when serving"
+    ]
+  };
+
+  const receiveDataLimitation: DataLimitation = {
+    message: "Analysis based on point outcomes when receiving, not receive success rates",
+    limitations: [
+      "Only winning shots are recorded, so we can't calculate actual receive success rates",
+      "We show point win rates when receiving, which includes both return winners and rally outcomes",
+      "Lost receives that resulted in opponent winning the point are counted",
+      "Opponent serve types are only visible when user won the point"
+    ],
+    availableMetrics: [
+      "Points won when receiving",
+      "Points lost when receiving",
+      "Point win rate when receiving",
+      "Success rate vs different serve types (when user won)"
+    ]
+  };
+
   return {
     serve: {
+      // Legacy fields for backward compatibility
       totalServes,
       servesWon,
-      servesLost: totalServes - servesWon,
+      servesLost,
       serveWinRate: Math.round(serveWinRate * 10) / 10,
+      // New fields for clarity
+      totalPointsWhenServing: totalServes,
+      pointsWonWhenServing: servesWon,
+      pointsLostWhenServing: servesLost,
+      pointWinRateWhenServing: Math.round(serveWinRate * 10) / 10,
       patternAnalysis: {}, // Could be enhanced with serve type analysis
       recommendation: totalServes >= MIN_SERVE_ATTEMPTS
         ? generateServeRecommendation(serveWinRate, totalServes)
         : "Need more serve data for analysis",
+      dataLimitation: serveDataLimitation,
     },
     receive: {
+      // Legacy fields for backward compatibility
       totalReceives,
       receivesWon,
-      receivesLost: totalReceives - receivesWon,
+      receivesLost,
       receiveWinRate: Math.round(receiveWinRate * 10) / 10,
+      // New fields for clarity
+      totalPointsWhenReceiving: totalReceives,
+      pointsWonWhenReceiving: receivesWon,
+      pointsLostWhenReceiving: receivesLost,
+      pointWinRateWhenReceiving: Math.round(receiveWinRate * 10) / 10,
       vsStrokeType,
       recommendation: totalReceives >= MIN_RECEIVE_ATTEMPTS
         ? generateReceiveRecommendation(receiveWinRate, totalReceives, vsStrokeType)
         : "Need more receive data for analysis",
+      dataLimitation: receiveDataLimitation,
     },
   };
 }
 
 /**
  * Analyze opponent patterns (what opponents do to win)
+ * 
+ * IMPORTANT: Since only winning shots are stored, this analysis shows:
+ * - What strokes opponents used when they WON points (not their overall patterns)
+ * - What zones opponents targeted when they WON points
+ * - The percentage of opponent's total points won that came from each stroke
+ * 
+ * This does NOT show:
+ * - Opponent strokes that lost points (we don't have that data)
+ * - Opponent's overall stroke usage rates
+ * - Opponent's success rates with different strokes
+ * 
+ * The "effectivenessRate" represents what % of opponent's total points came from this stroke,
+ * not the success rate of that stroke.
  */
 export function analyzeOpponentPatterns(
   allGames: any[],
@@ -560,9 +658,19 @@ export function analyzeOpponentPatterns(
     });
   });
 
+  // Calculate total points opponent won (for context)
+  let totalOpponentPoints = 0;
+  Object.values(opponentStrokes).forEach(stats => {
+    totalOpponentPoints += stats.pointsWonByOpponent;
+  });
+
   const patterns: OpponentPattern[] = Object.entries(opponentStrokes)
     .map(([stroke, stats]) => {
-      const effectivenessRate = (stats.pointsWonByOpponent / stats.timesUsed) * 100;
+      // Since only winning shots are stored, we can't calculate true "success rate"
+      // Instead, show what % of opponent's points came from this stroke
+      const pointShareRate = totalOpponentPoints > 0 
+        ? (stats.pointsWonByOpponent / totalOpponentPoints) * 100 
+        : 0;
 
       // Get common zones (most frequent)
       const zoneCounts: Record<string, number> = {};
@@ -576,14 +684,13 @@ export function analyzeOpponentPatterns(
 
       return {
         stroke,
-        timesUsed: stats.timesUsed,
-        pointsWonByOpponent: stats.pointsWonByOpponent,
-        effectivenessRate: Math.round(effectivenessRate * 10) / 10,
+        count: stats.timesUsed, // Since only winning shots are stored, this = points won
+        effectivenessRate: Math.round(pointShareRate * 10) / 10, // % of opponent's points from this stroke
         commonZones,
-        recommendation: `Opponents exploit this with ${formatStrokeName(stroke)} (${Math.round(effectivenessRate)}% success)`,
+        recommendation: `Opponent won ${stats.pointsWonByOpponent} points with ${formatStrokeName(stroke)} (${Math.round(pointShareRate)}% of their total)`,
       };
     })
-    .filter((p) => p.timesUsed > 0) // Include all patterns with data
+    .filter((p) => p.count > 0) // Include all patterns with data
     .sort((a, b) => b.effectivenessRate - a.effectivenessRate)
     .slice(0, 5); // Top 5
 
@@ -694,11 +801,34 @@ export function generateOverallInsights(
 /**
  * Calculate zone-sector weaknesses using semantic zones from shot-commentary-utils
  * Analyzes 9 combinations: 3 zones (short/mid/deep) × 3 sectors (backhand/crossover/forehand)
+ * 
+ * NOTE: This function processes ALL shots (both user and opponent winning shots).
+ * Since only winning shots are recorded:
+ * - If shot.player === userId: user won the point (counted as win)
+ * - If shot.player !== userId: opponent won the point (counted as loss for user)
+ * totalShots represents total points (winning shots), not total shot attempts.
  */
 export function calculateZoneSectorWeaknesses(
   allGames: any[],
-  userId: string
+  userId: string,
+  userSide?: "side1" | "side2" | "team1" | "team2"
 ): ZoneSectorWeakness[] {
+  // Determine user's side from shots if not provided
+  let side = userSide;
+  if (!side && allGames.length > 0) {
+    // Find first shot from user to determine which side they were on
+    for (const game of allGames) {
+      const userShot = (game.shots || []).find((shot: any) => {
+        const shotPlayerId = shot.player?._id?.toString() || shot.player?.toString() || shot.player;
+        return shotPlayerId === userId.toString();
+      });
+      if (userShot && userShot.side) {
+        side = userShot.side;
+        break;
+      }
+    }
+  }
+
   // Track stats for each zone-sector combination
   const zoneSectorStats: Record<
     string, // key: "zone-sector"
@@ -712,8 +842,8 @@ export function calculateZoneSectorWeaknesses(
 
   // Initialize all 9 combinations
   const zones: Array<"short" | "mid" | "deep"> = ["short", "mid", "deep"];
-  // ABSOLUTE SECTORS (perspective-independent table locations)
-  const sectors: Array<"top" | "middle" | "bottom"> = ["top", "middle", "bottom"];
+  // RELATIVE SECTORS (based on user's perspective)
+  const sectors: Array<"backhand" | "crossover" | "forehand"> = ["backhand", "crossover", "forehand"];
 
   zones.forEach(zone => {
     sectors.forEach(sector => {
@@ -735,10 +865,9 @@ export function calculateZoneSectorWeaknesses(
       if (!shotPlayerId) return;
       if (shot.landingX == null || shot.landingY == null) return;
 
-      // Use getZone and getAbsoluteSector directly (they only need landing coordinates)
-      // IMPORTANT: Use getAbsoluteSector for stats to ensure consistency across side swaps
+      // Use getZone and getRelativeSector (user's perspective)
       const zone = getZone(shot.landingX);
-      const sector = getAbsoluteSector(shot.landingY);
+      const sector = getRelativeSector(shot.landingY, side);
 
       if (!zone || !sector) return; // Skip if null
 
@@ -803,20 +932,15 @@ export function calculateZoneSectorWeaknesses(
         : null;
 
       // Generate recommendation with proper zone-sector naming
-      // Convert absolute sector to relative sector (using side1 as default perspective)
-      const relativeSector = getRelativeSector(
-        sector === "top" ? 10 : sector === "middle" ? 50 : 90, // Use representative Y values
-        "side1"
-      );
+      // Sector is already relative (backhand, crossover, forehand)
       
       // Format zone name (capitalize first letter)
       const formattedZone = zone === "mid" ? "Mid" : zone.charAt(0).toUpperCase() + zone.slice(1);
       
       // Format sector name (capitalize first letter)
-      const formattedSector = relativeSector === "crossover" 
+      const formattedSector = sector === "crossover" 
         ? "Crossover" 
-        : relativeSector ? relativeSector.charAt(0).toUpperCase() + relativeSector.slice(1) 
-        : "";
+        : sector.charAt(0).toUpperCase() + sector.slice(1);
       
       const zoneSectorName = `${formattedZone} ${formattedSector}`;
       let recommendation = "";
@@ -848,6 +972,11 @@ export function calculateZoneSectorWeaknesses(
 /**
  * Calculate line-of-play weaknesses
  * Analyzes 4 line types: down the line, diagonal, cross court, middle line
+ * 
+ * NOTE: When only winning shots are stored, all outcomes have won: true.
+ * For user shots, outcome.won will always be true (so losses will be 0).
+ * For opponent shots, outcome.won will always be true (so opponentWins should equal opponentTotal).
+ * The outcome.won checks are still needed for rally data scenarios.
  */
 export function calculateLineWeaknesses(
   allGames: any[],
@@ -906,15 +1035,19 @@ export function calculateLineWeaknesses(
 
       if (outcome.playerId === userId) {
         // User's shot
+        // When only winning shots are stored, outcome.won is always true for user shots.
+        // When rally data exists, outcome.won can be false if user lost the point.
         const stats = lineStats[placement.line];
         stats.totalShots++;
         if (outcome.won) stats.wins++;
         else stats.losses++;
       } else {
         // Opponent's shot against user
+        // When only winning shots are stored, outcome.won is always true for opponent shots.
+        // When rally data exists, outcome.won is false if opponent lost (user won).
         const stats = lineStats[placement.line];
         stats.opponentTotal++;
-        if (!outcome.won) stats.opponentWins++; // Opponent won if user lost
+        if (outcome.won) stats.opponentWins++; // Opponent won the point
       }
     });
   });
@@ -954,6 +1087,12 @@ export function calculateLineWeaknesses(
 /**
  * Calculate origin distance weaknesses
  * Analyzes 4 categories: on-table, close-to-table, mid-distance, far-distance
+ * 
+ * NOTE: This function processes ALL shots (both user and opponent winning shots).
+ * Since only winning shots are recorded:
+ * - If shot.player === userId: user won the point (counted as win)
+ * - If shot.player !== userId: opponent won the point (counted as loss for user)
+ * totalShots represents total points (winning shots), not total shot attempts.
  */
 export function calculateOriginDistanceWeaknesses(
   allGames: any[],
@@ -1069,9 +1208,10 @@ export function calculateOriginDistanceWeaknesses(
  */
 export function analyzeSemanticZones(
   allGames: any[],
-  userId: string
+  userId: string,
+  userSide?: "side1" | "side2" | "team1" | "team2"
 ): SemanticZoneAnalysis {
-  const zoneSectorWeaknesses = calculateZoneSectorWeaknesses(allGames, userId);
+  const zoneSectorWeaknesses = calculateZoneSectorWeaknesses(allGames, userId, userSide);
   const lineWeaknesses = calculateLineWeaknesses(allGames, userId);
   const originDistanceWeaknesses = calculateOriginDistanceWeaknesses(allGames, userId);
 
@@ -1098,16 +1238,37 @@ export function analyzeSemanticZones(
 
 /**
  * Main function: Analyze all weaknesses for a user
+ * 
+ * @param allGames - All games with all shots (user + opponent). Required for analyses that need both sides.
+ * @param userId - The user ID to analyze
+ * @param userSide - Optional user side for semantic zone analysis
+ * @param userGamesOnly - Optional: games filtered to only user's shots. If provided, used for user-specific analyses to improve performance.
  */
 export function analyzeWeaknesses(
   allGames: any[],
-  userId: string
+  userId: string,
+  userSide?: "side1" | "side2" | "team1" | "team2",
+  userGamesOnly?: any[]
 ): WeaknessAnalysisResult {
-  const shotWeaknesses = calculateShotWeaknesses(allGames, userId);
+  // Use userGamesOnly if provided for analyses that only process user shots anyway
+  // This avoids processing opponent shots unnecessarily
+  const gamesForUserAnalysis = userGamesOnly && userGamesOnly.length > 0 
+    ? userGamesOnly 
+    : allGames;
+  
+  // Analyses that need ALL shots (user + opponent):
+  // - Zone weaknesses: needs to see where points were won/lost by both sides
+  // - Semantic zones: origin distance, line weaknesses, zone-sector all need both sides
+  // - Opponent patterns: obviously needs opponent shots
+  // - Serve/receive: needs to see when opponent served/received
   const zoneWeaknesses = calculateZoneWeaknesses(allGames, userId);
-  const semanticZoneAnalysis = analyzeSemanticZones(allGames, userId); // NEW
+  const semanticZoneAnalysis = analyzeSemanticZones(allGames, userId, userSide);
   const serveReceiveWeaknesses = analyzeServeReceivePatterns(allGames, userId);
   const opponentPatterns = analyzeOpponentPatterns(allGames, userId);
+  
+  // Analyses that only process user shots (can use filtered games for performance):
+  // - Shot weaknesses: filters to outcome.playerId === userId anyway
+  const shotWeaknesses = calculateShotWeaknesses(gamesForUserAnalysis, userId);
 
   const overallInsights = generateOverallInsights(
     shotWeaknesses,
@@ -1116,6 +1277,23 @@ export function analyzeWeaknesses(
     opponentPatterns,
     semanticZoneAnalysis // NEW: Pass semantic zone analysis
   );
+
+  // Create overall data limitation info
+  const overallDataLimitation: DataLimitation = {
+    message: "Analysis based on winning shots only. Rally data not available.",
+    limitations: [
+      "Only the winning shot of each point is recorded",
+      "Cannot calculate actual serve/receive success rates (only point outcomes)",
+      "Opponent patterns show only what they did when winning, not overall behavior",
+      "Rally length and intermediate shots are not available"
+    ],
+    availableMetrics: [
+      "Point outcomes when serving/receiving",
+      "Shot effectiveness (what shots win points)",
+      "Zone weaknesses (where points are won/lost)",
+      "Opponent winning patterns (what they do when they win)"
+    ]
+  };
 
   return {
     shotWeaknesses: {
@@ -1131,6 +1309,7 @@ export function analyzeWeaknesses(
       successfulZones: zoneWeaknesses.vulnerableZones,
     },
     overallInsights,
+    dataLimitation: overallDataLimitation,
   };
 }
 

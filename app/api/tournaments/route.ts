@@ -22,14 +22,6 @@ export async function POST(request: NextRequest) {
 
     body = await request.json();
 
-    // DEBUG: Log received body
-    console.log("🔵 [API POST] Received body:", {
-      category: body.category,
-      teamConfig: body.teamConfig,
-      teamConfig_setsPerSubMatch: body.teamConfig?.setsPerSubMatch,
-      rules_setsPerMatch: body.rules?.setsPerMatch,
-    });
-
     // ✅ Validate request body with Zod
     const validation = validateRequest(createTournamentSchema, body);
     if (!validation.success) {
@@ -202,27 +194,12 @@ export async function POST(request: NextRequest) {
       status: "draft",
     });
 
-    // DEBUG: Log tournament object before save
-    console.log("🟢 [API POST] Tournament object created:", {
-      id: tournament._id,
-      category: tournament.category,
-      teamConfig: tournament.teamConfig,
-      teamConfig_setsPerSubMatch: tournament.teamConfig?.setsPerSubMatch,
-      rules_setsPerMatch: tournament.rules?.setsPerMatch,
-    });
+    
 
     await tournament.save();
 
     // Increment tournament creation counter
     await incrementTournamentCount(auth.userId);
-
-    // DEBUG: Log after save
-    console.log("🟡 [API POST] Tournament saved:", {
-      id: tournament._id,
-      teamConfig: tournament.teamConfig,
-      teamConfig_setsPerSubMatch: tournament.teamConfig?.setsPerSubMatch,
-      rules_setsPerMatch: tournament.rules?.setsPerMatch,
-    });
     
     // Populate participants based on category
     const isTeamTournament = category === "team";

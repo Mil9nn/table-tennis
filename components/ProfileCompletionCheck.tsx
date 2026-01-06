@@ -10,7 +10,7 @@ const ProfileCompletionCheck = () => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Routes that don't require profile completion
+    // Routes that don't require profile completion (public pages)
     const exemptRoutes = [
       "/auth/login",
       "/auth/register",
@@ -18,12 +18,19 @@ const ProfileCompletionCheck = () => {
       "/",
     ];
 
+    // Public routes that don't require profile completion
+    const isPublicRoute = 
+      pathname.startsWith("/teams") ||
+      pathname.startsWith("/matches") ||
+      pathname.startsWith("/leaderboard");
+
     // Check if user is logged in, profile is incomplete, and not on an exempt route
     if (
       user &&
       !user.isProfileComplete &&
       !exemptRoutes.includes(pathname) &&
-      !pathname.startsWith("/auth")
+      !pathname.startsWith("/auth") &&
+      !isPublicRoute
     ) {
       router.push("/complete-profile");
     }

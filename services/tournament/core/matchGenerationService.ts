@@ -119,17 +119,6 @@ export async function createScheduledTeamMatch(
   scorerId: string,
   groupId?: string
 ): Promise<any> {
-  // DEBUG: Log tournament
-  console.log("🔵 [MATCH GEN] Tournament received:", {
-    id: tournament._id,
-    category: (tournament as any).category,
-    teamConfig: (tournament as any).teamConfig,
-    teamConfig_setsPerSubMatch: (tournament as any).teamConfig?.setsPerSubMatch,
-    teamConfig_setsPerSubMatch_type: typeof (tournament as any).teamConfig?.setsPerSubMatch,
-    rules_setsPerMatch: (tournament as any).rules?.setsPerMatch,
-    teamConfig_full: JSON.stringify((tournament as any).teamConfig),
-  });
-
   // Fetch team docs
   const team1 = await Team.findById(pairing.player1).lean();
   const team2 = await Team.findById(pairing.player2).lean();
@@ -145,16 +134,6 @@ export async function createScheduledTeamMatch(
   const setsPerSubMatch = rawSetsValue 
     ? Number(rawSetsValue)
     : 3;
-
-  // DEBUG: Log extracted values step-by-step
-  console.log("🟢 [MATCH GEN] Extracting setsPerSubMatch:", {
-    rawValue: rawSetsValue,
-    rawType: typeof rawSetsValue,
-    afterNumber: setsPerSubMatch,
-    afterType: typeof setsPerSubMatch,
-    fallbackApplied: !rawSetsValue,
-    matchFormat,
-  });
 
   const subMatches: any[] = [];
   
@@ -218,7 +197,7 @@ export async function createScheduledTeamMatch(
           matchType: "singles",
           playerTeam1: [p1],
           playerTeam2: [p2],
-          numberOfSets: setsPerSubMatch,
+          numberOfGames: setsPerSubMatch,
           games: [],
           status: "scheduled",
           completed: false,
@@ -289,7 +268,7 @@ export async function createScheduledTeamMatch(
   const teamMatch = new TeamMatch({
     matchCategory: "team",
     matchFormat: matchFormat,
-    numberOfSetsPerSubMatch: setsPerSubMatch,
+    numberOfGamesPerRubber: setsPerSubMatch,
     numberOfSubMatches:
       subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
     city: tournament.city,
@@ -313,30 +292,7 @@ export async function createScheduledTeamMatch(
     subMatches,
   });
 
-  // DEBUG: Log match object before save
-  console.log("🟡 [MATCH GEN] TeamMatch object created (pre-save):", {
-    id: teamMatch._id,
-    matchFormat: teamMatch.matchFormat,
-    numberOfSetsPerSubMatch: teamMatch.numberOfSetsPerSubMatch,
-    numberOfSetsPerSubMatch_type: typeof teamMatch.numberOfSetsPerSubMatch,
-    numberOfSubMatches: teamMatch.numberOfSubMatches,
-    subMatches_count: teamMatch.subMatches?.length,
-  });
-
   await teamMatch.save();
-
-  // DEBUG: Log after save
-  console.log("🟠 [MATCH GEN] Match saved to database:", {
-    id: teamMatch._id,
-    numberOfSetsPerSubMatch: teamMatch.numberOfSetsPerSubMatch,
-    numberOfSetsPerSubMatch_type: typeof teamMatch.numberOfSetsPerSubMatch,
-    subMatches: teamMatch.subMatches?.map((sm: any) => ({
-      id: sm._id,
-      numberOfSets: sm.numberOfSets,
-    })),
-  });
-
-  console.log("🔴 [MATCH GEN] Full match object:", teamMatch);
 
   return teamMatch;
 }
@@ -431,7 +387,7 @@ export async function createBracketTeamMatch(
           matchType: "singles",
           playerTeam1: [p1],
           playerTeam2: [p2],
-          numberOfSets: setsPerSubMatch,
+          numberOfGames: setsPerSubMatch,
           games: [],
           status: "scheduled",
           completed: false,
@@ -502,7 +458,7 @@ export async function createBracketTeamMatch(
   const teamMatch = new TeamMatch({
     matchCategory: "team",
     matchFormat: matchFormat,
-    numberOfSetsPerSubMatch: setsPerSubMatch,
+    numberOfGamesPerRubber: setsPerSubMatch,
     numberOfSubMatches:
       subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
     city: tournament.city,

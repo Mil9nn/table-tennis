@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 import cloudinary from "@/lib/cloudinary";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { logError } from "@/lib/error-logger";
-import { validateQueryParams, searchTeamsQuerySchema } from "@/lib/validations";
+import { validateQueryParams, validateFormData, searchTeamsQuerySchema, createTeamSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest) {
   try {
@@ -151,65 +151,14 @@ export async function POST(req: NextRequest) {
 
     // Parse multipart/form-data
     const formData = await req.formData();
-    const name = formData.get("name") as string;
-    const city = formData.get("city") as string;
-    const captain = formData.get("captain") as string;
-    const playersJson = formData.get("players") as string;
-    const teamImage = formData.get("teamImage") as Blob | null;
 
-    // Parse players array
-    const players = playersJson ? JSON.parse(playersJson) : [];
-
-    // Basic validation (Zod validation for FormData is complex, so we do basic checks here)
-    if (!name || !captain || !players || players.length < 2) {
-      return NextResponse.json(
-        { message: "Name, captain, and at least 2 players are required" },
-        { status: 400 }
-      );
+    // Validate FormData using Zod schema
+    const validation = validateFormData(createTeamSchema, formData);
+    if (!validation.success) {
+      return validation.error;
     }
 
-    // Validate name length
-    if (name.trim().length < 3 || name.trim().length > 100) {
-      return NextResponse.json(
-        { message: "Team name must be between 3 and 100 characters" },
-        { status: 400 }
-      );
-    }
-
-    // Validate captain is in players list
-    if (!players.includes(captain)) {
-      return NextResponse.json(
-        { message: "Captain must be one of the team players" },
-        { status: 400 }
-      );
-    }
-
-    // Check for duplicate players
-    const uniquePlayers = new Set(players);
-    if (uniquePlayers.size !== players.length) {
-      return NextResponse.json(
-        { message: "Duplicate players are not allowed" },
-        { status: 400 }
-      );
-    }
-
-    // Validate image file if provided
-    if (teamImage && teamImage.size > 0) {
-      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-      if (!allowedTypes.includes(teamImage.type)) {
-        return NextResponse.json(
-          { message: "Only JPEG, PNG, GIF, and WebP images are allowed" },
-          { status: 400 }
-        );
-      }
-
-      if (teamImage.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { message: "Image file size must not exceed 5MB" },
-          { status: 400 }
-        );
-      }
-    }
+    const { name, city, captain, players, teamImage } = validation.data;
 
     // ✅ Verify that the authenticated user is the captain
     if (captain !== auth.userId) {
@@ -248,7 +197,7 @@ export async function POST(req: NextRequest) {
 
     // Upload team image to Cloudinary if provided
     let logoUrl: string | undefined;
-    if (teamImage && teamImage.size > 0) {
+    if (teamImage) {
       
       const buffer = Buffer.from(await teamImage.arrayBuffer());
       const base64Image = `data:${teamImage.type};base64,${buffer.toString("base64")}`;
@@ -261,9 +210,6 @@ export async function POST(req: NextRequest) {
       });
 
       logoUrl = uploadResult.secure_url;
-      
-    } else {
-      
     }
 
     // Format players for schema

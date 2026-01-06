@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
+import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import {
@@ -115,12 +116,24 @@ export async function POST(
       typeof body.side1Score === "number" &&
       typeof body.side2Score === "number"
     ) {
-      // Validate: If score is increasing, shotData must be provided
+      // Determine shot tracking mode: match override > user preference > default "detailed"
+      let shotTrackingMode: "detailed" | "simple" = "detailed";
+      if (match.shotTrackingMode) {
+        shotTrackingMode = match.shotTrackingMode;
+      } else {
+        // Fetch user preference if match doesn't have override
+        const user = await User.findById(auth.userId).select("shotTrackingMode");
+        if (user?.shotTrackingMode) {
+          shotTrackingMode = user.shotTrackingMode;
+        }
+      }
+
+      // Validate: If score is increasing and in detailed mode, shotData must be provided
       const scoreIncreased = 
         body.side1Score > currentGame.side1Score || 
         body.side2Score > currentGame.side2Score;
       
-      if (scoreIncreased && (!body.shotData || !body.shotData.stroke)) {
+      if (scoreIncreased && shotTrackingMode === "detailed" && (!body.shotData || !body.shotData.stroke)) {
         return NextResponse.json(
           { 
             error: "Shot data is required when incrementing score. Every point must have a recorded shot.",

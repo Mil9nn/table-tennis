@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { verifyOTPSchema } from "@/lib/validations/auth";
-import { generateVerificationToken } from "@/lib/zeptomail";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for OTP verification
@@ -36,21 +35,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the OTP token
+    // Query OTP by userId and type (production pattern: query by userId, not loop through all)
+    const tokenType = purpose === "email_verification" ? "email_verification" : "password_reset";
     const otpToken = await VerificationToken.findOne({
       userId: user._id,
-      token: otp,
-      type: "otp",
+      type: tokenType,
+      expiresAt: { $gt: new Date() }, // Only check non-expired tokens
     });
 
     if (!otpToken) {
       return NextResponse.json(
-        { message: "Invalid OTP. Please check and try again." },
+        { message: "Invalid or expired OTP. Please request a new one." },
         { status: 400 }
       );
     }
 
-    // Check if expired
+    // Check if expired (double check)
     if (new Date() > otpToken.expiresAt) {
       await VerificationToken.deleteOne({ _id: otpToken._id });
       return NextResponse.json(
@@ -59,13 +59,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete the used OTP token
-    await VerificationToken.deleteOne({ _id: otpToken._id });
+    // Check attempts left
+    if (otpToken.attemptsLeft <= 0) {
+      await VerificationToken.deleteOne({ _id: otpToken._id });
+      return NextResponse.json(
+        { message: "Maximum verification attempts exceeded. Please request a new OTP." },
+        { status: 400 }
+      );
+    }
 
-    // Handle based on purpose
+    // Single bcrypt comparison (production pattern)
+    const isMatch = await bcrypt.compare(otp, otpToken.token);
+
+    if (!isMatch) {
+      // Decrement attempts left
+      otpToken.attemptsLeft -= 1;
+      await otpToken.save();
+
+      if (otpToken.attemptsLeft <= 0) {
+        await VerificationToken.deleteOne({ _id: otpToken._id });
+        return NextResponse.json(
+          { message: "Invalid OTP. Maximum attempts exceeded. Please request a new OTP." },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { message: `Invalid OTP. ${otpToken.attemptsLeft} attempt(s) remaining.` },
+        { status: 400 }
+      );
+    }
+
+    // OTP is valid - handle based on purpose
     if (purpose === "email_verification") {
       // Mark email as verified
       if (user.isEmailVerified) {
+        await VerificationToken.deleteOne({ _id: otpToken._id });
         return NextResponse.json(
           { message: "Email is already verified." },
           { status: 400 }
@@ -76,6 +105,9 @@ export async function POST(request: NextRequest) {
       user.emailVerifiedAt = new Date();
       await user.save();
 
+      // Delete the used OTP token
+      await VerificationToken.deleteOne({ _id: otpToken._id });
+
       return NextResponse.json(
         { 
           message: "Email verified successfully! You can now log in.",
@@ -84,29 +116,13 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } else if (purpose === "password_reset") {
-      // Generate password reset token (similar to forgot-password flow)
-      // Delete any existing password reset tokens
-      await VerificationToken.deleteMany({
-        userId: user._id,
-        type: "password_reset",
-      });
+      // Delete the used OTP token
+      await VerificationToken.deleteOne({ _id: otpToken._id });
 
-      // Generate new password reset token
-      const resetToken = generateVerificationToken();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-      // Save password reset token
-      await VerificationToken.create({
-        userId: user._id,
-        token: resetToken,
-        type: "password_reset",
-        expiresAt,
-      });
-
+      // Return success - frontend will handle password reset with OTP verified
       return NextResponse.json(
         { 
           message: "OTP verified successfully. You can now reset your password.",
-          resetToken: resetToken,
           verified: true
         },
         { status: 200 }

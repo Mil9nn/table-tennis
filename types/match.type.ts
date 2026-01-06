@@ -90,6 +90,7 @@ export interface IndividualMatch {
     format: string;
     status: string;
   } | null;
+  shotTrackingMode?: "detailed" | "simple";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -157,7 +158,7 @@ export interface SubMatch {
   _id?: Types.ObjectId | string;
   matchNumber: number;
   matchType: "singles" | "doubles";
-  numberOfSets: number;
+  numberOfGames: number;
 
   playerTeam1?: Participant | Types.ObjectId | Participant[] | string[];
   playerTeam2?: Participant | Types.ObjectId | Participant[] | string[];
@@ -166,8 +167,8 @@ export interface SubMatch {
 
   games: IndividualGame[];
   finalScore?: {
-    team1Sets: number;
-    team2Sets: number;
+    team1Games: number;
+    team2Games: number;
   };
   winnerSide?: "team1" | "team2" | null;
   status: MatchStatus;
@@ -180,7 +181,7 @@ export interface TeamMatch {
   _id: string;
   matchCategory: "team";
   matchFormat: "five_singles" | "single_double_single" | "custom";
-  numberOfSetsPerSubMatch: number;
+  numberOfGamesPerRubber: number;
   numberOfSubMatches?: number;
   team1: TeamInfo;
   team2: TeamInfo;
@@ -208,6 +209,7 @@ export interface TeamMatch {
     format: string;
     status: string;
   } | null;
+  shotTrackingMode?: "detailed" | "simple";
   scheduledDate?: Date;
   createdAt?: Date;
   updatedAt?: Date;

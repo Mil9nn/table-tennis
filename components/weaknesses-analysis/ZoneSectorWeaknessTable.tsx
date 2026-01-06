@@ -6,14 +6,6 @@ import { ZoneSectorWeakness } from "@/types/weaknesses.type";
 import { formatStrokeName } from "@/lib/utils";
 import { RecommendationText } from "./RecommendationText";
 
-// Helper function to convert absolute sector to relative sector (using side1 as default perspective)
-// top → backhand, middle → crossover, bottom → forehand
-const getRelativeSectorName = (absoluteSector: "top" | "middle" | "bottom"): "backhand" | "crossover" | "forehand" => {
-  if (absoluteSector === "top") return "backhand";
-  if (absoluteSector === "middle") return "crossover";
-  return "forehand";
-};
-
 // Helper function to format zone name with proper capitalization
 const formatZoneName = (zone: "short" | "mid" | "deep"): string => {
   if (zone === "mid") return "Mid";
@@ -27,9 +19,8 @@ const formatSectorName = (sector: "backhand" | "crossover" | "forehand"): string
 };
 
 // Helper function to format zone-sector label for display
-const formatZoneSectorLabel = (zone: "short" | "mid" | "deep", absoluteSector: "top" | "middle" | "bottom"): string => {
-  const relativeSector = getRelativeSectorName(absoluteSector);
-  return `${formatZoneName(zone)} ${formatSectorName(relativeSector)}`;
+const formatZoneSectorLabel = (zone: "short" | "mid" | "deep", sector: "backhand" | "crossover" | "forehand"): string => {
+  return `${formatZoneName(zone)} ${formatSectorName(sector)}`;
 };
 
 interface ZoneSectorWeaknessTableProps {
@@ -141,10 +132,13 @@ export function ZoneSectorWeaknessTable({
   });
 
   // Helper function to get sector boundaries
-  const getSectorBounds = (sector: "top" | "middle" | "bottom") => {
-    if (sector === "top") {
+  // Maps relative sector names to absolute Y coordinates on the table
+  const getSectorBounds = (sector: "backhand" | "crossover" | "forehand") => {
+    // The Y boundaries are always the same, regardless of sector name
+    // We just need to show the visual zones
+    if (sector === "backhand") {
       return { y: 0, height: 0.3333 };
-    } else if (sector === "middle") {
+    } else if (sector === "crossover") {
       return { y: 0.3333, height: 0.3334 };
     } else {
       return { y: 0.6667, height: 0.3333 };

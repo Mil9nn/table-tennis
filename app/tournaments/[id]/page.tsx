@@ -90,8 +90,7 @@ export default function TournamentDetailPage() {
           `/tournaments/${tournamentId}`
         );
         const tournament = data.tournament;
-        console.log("Tournament doublesPairs:", tournament.doublesPairs);
-        console.log("Tournament scorers:", tournament.scorers, "Length:", tournament.scorers?.length || 0);
+       
         setTournament(tournament);
       } catch (err) {
         console.error("Error fetching tournament:", err);

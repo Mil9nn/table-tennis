@@ -165,13 +165,13 @@ export class DoublesParticipantNormalizer implements IParticipantNormalizer {
       // Try to get pair ID first
       const pairId = this.getPairIdFromPlayers(player1Id, player2Id);
       if (pairId) {
-        console.log(`🟣 [NORMALIZER] normalizeParticipant([${player1Id}, ${player2Id}]) → pairId: ${pairId}`);
+        
         return pairId;
       }
 
       // Fallback: create canonical team key
       const canonicalKey = this.createCanonicalTeamKey(player1Id, player2Id);
-      console.log(`🟣 [NORMALIZER] normalizeParticipant([${player1Id}, ${player2Id}]) → canonicalKey: ${canonicalKey}`);
+      
       return canonicalKey;
     }
 
@@ -180,30 +180,30 @@ export class DoublesParticipantNormalizer implements IParticipantNormalizer {
 
     // Check if it's already a pair ID
     if (this.pairToPlayersMap.has(idStr)) {
-      console.log(`🟣 [NORMALIZER] normalizeParticipant(${idStr}) → pairId (already): ${idStr}`);
+      
       return idStr;
     }
 
     // Check if it's a player ID that maps to a pair
     const pairId = this.playerToPairMap.get(idStr);
     if (pairId) {
-      console.log(`🟣 [NORMALIZER] normalizeParticipant(${idStr}) → pairId (mapped): ${pairId}`);
+      
       return pairId;
     }
 
     // Unknown ID - return as-is (might be a legacy format)
-    console.log(`🟣 [NORMALIZER] normalizeParticipant(${idStr}) → unknown (returning as-is): ${idStr}`);
+    
     return idStr;
   }
 
   normalizeMatchParticipants(matchParticipants: string[]): [string, string] | null {
-    console.log(`🟣 [NORMALIZER] normalizeMatchParticipants called with:`, matchParticipants);
+   
     
     if (matchParticipants.length === 2) {
       // Already normalized to pair IDs
       const team1 = this.normalizeParticipant(matchParticipants[0]);
       const team2 = this.normalizeParticipant(matchParticipants[1]);
-      console.log(`🟣 [NORMALIZER] 2 participants: ${matchParticipants[0]} → ${team1}, ${matchParticipants[1]} → ${team2}`);
+      
       return [team1, team2];
     }
 
@@ -219,7 +219,7 @@ export class DoublesParticipantNormalizer implements IParticipantNormalizer {
         matchParticipants[2].toString(),
         matchParticipants[3].toString(),
       ]);
-      console.log(`🟣 [NORMALIZER] 4 participants: [${matchParticipants[0]}, ${matchParticipants[1]}] → ${team1Id}, [${matchParticipants[2]}, ${matchParticipants[3]}] → ${team2Id}`);
+      
       return [team1Id, team2Id];
     }
 

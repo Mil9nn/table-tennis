@@ -23,11 +23,11 @@ export function MatchTimeline({
   side2Name,
   winnerSide,
 }: MatchTimelineProps) {
-  if (!games || games.length === 0) {
-    return null;
-  }
+  if (!games || games.length === 0) return null;
 
-  // Determine overall winner
+  /* -------------------------------
+     Winner Resolution (UNCHANGED)
+  -------------------------------- */
   const isTeamMatch = winnerSide === "team1" || winnerSide === "team2";
   const overallWinner = isTeamMatch
     ? winnerSide === "team1"
@@ -36,13 +36,15 @@ export function MatchTimeline({
     : winnerSide;
 
   return (
-    <div className="w-full py-4">
-      <h3 className="text-base font-semibold mb-4 text-[#353535]">
+    <div className="w-full rounded-lg border border-neutral-200 bg-white p-5">
+      {/* Header */}
+      <h3 className="mb-4 text-sm font-semibold text-neutral-900">
         Match Timeline
       </h3>
 
+      {/* Timeline */}
       <ScrollArea className="w-full">
-        <div className="flex items-center gap-2 pb-4">
+        <div className="flex items-center gap-3 pb-4">
           {games.map((game, idx) => {
             const side1Won = game.side1Score > game.side2Score;
             const side2Won = game.side2Score > game.side1Score;
@@ -50,65 +52,65 @@ export function MatchTimeline({
 
             return (
               <div key={idx} className="flex items-center">
-                {/* Game Card */}
+                {/* Game Node */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.1, duration: 0.3 }}
+                  transition={{ delay: idx * 0.08, duration: 0.25 }}
                   className="shrink-0"
                 >
-                  <div className="bg-white border border-[#d9d9d9] p-2">
-                    <div className="text-xs text-center text-[#d9d9d9] mb-2 font-medium">
+                  <div className="rounded-md bg-neutral-50 px-4 py-3 min-w-[96px] text-center">
+                    <div className="mb-2 text-[11px] font-medium text-neutral-500">
                       Game {idx + 1}
                     </div>
 
-                    {/* Score Display */}
+                    {/* Scores */}
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <span
-                        className={`text-lg font-bold ${
-                          side1Won ? "text-[#3c6e71]" : "text-[#d9d9d9]"
+                        className={`text-lg font-semibold ${
+                          side1Won
+                            ? "text-[#3c6e71]"
+                            : "text-neutral-400"
                         }`}
                       >
                         {game.side1Score}
                       </span>
-                      <span className="text-xs text-[#d9d9d9]">-</span>
+                      <span className="text-xs text-neutral-400">–</span>
                       <span
-                        className={`text-lg font-bold ${
-                          side2Won ? "text-[#3c6e71]" : "text-[#d9d9d9]"
+                        className={`text-lg font-semibold ${
+                          side2Won
+                            ? "text-[#3c6e71]"
+                            : "text-neutral-400"
                         }`}
                       >
                         {game.side2Score}
                       </span>
                     </div>
 
-                    {/* Winner Indicator */}
-                    <div className="flex items-center justify-center gap-1">
+                    {/* Winner */}
+                    <div className="flex items-center justify-center gap-1 text-[11px]">
                       {side1Won && (
-                        <div className="flex items-center gap-1 text-[#3c6e71]">
+                        <span className="flex items-center gap-1 font-medium text-[#3c6e71]">
                           <Check className="h-3 w-3" />
-                          <span className="text-xs font-medium truncate max-w-20">
-                            {side1Name}
-                          </span>
-                        </div>
+                          {side1Name}
+                        </span>
                       )}
                       {side2Won && (
-                        <div className="flex items-center gap-1 text-[#3c6e71]">
+                        <span className="flex items-center gap-1 font-medium text-[#3c6e71]">
                           <Check className="h-3 w-3" />
-                          <span className="text-xs font-medium truncate max-w-20">
-                            {side2Name}
-                          </span>
-                        </div>
+                          {side2Name}
+                        </span>
                       )}
                       {isDraw && (
-                        <span className="text-xs text-[#d9d9d9]">Draw</span>
+                        <span className="text-neutral-400">Draw</span>
                       )}
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Connector Line (except for last game) */}
+                {/* Connector */}
                 {idx < games.length - 1 && (
-                  <div className="shrink-0 w-6 h-0.5 bg-[#d9d9d9]" />
+                  <div className="mx-2 h-[2px] w-8 rounded bg-neutral-200" />
                 )}
               </div>
             );
@@ -117,16 +119,17 @@ export function MatchTimeline({
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Overall Result */}
+      {/* Match Result */}
       {overallWinner && (
-        <div className="mt-4 pt-4 border-t border-[#d9d9d9]">
+        <div className="mt-5 rounded-md bg-[#3c6e71]/5 px-4 py-3">
           <div className="flex items-center justify-center gap-2">
-            <div className="flex items-center gap-2 px-4">
-              <Check className="h-4 w-4 text-[#3c6e71]" />
-              <span className="text-sm font-semibold text-[#3c6e71]">
-                {overallWinner === "side1" ? side1Name : side2Name} won the match
-              </span>
-            </div>
+            <Check className="h-4 w-4 text-[#3c6e71]" />
+            <span className="text-sm font-semibold text-[#3c6e71]">
+              {overallWinner === "side1"
+                ? side1Name
+                : side2Name}{" "}
+              won the match
+            </span>
           </div>
         </div>
       )}

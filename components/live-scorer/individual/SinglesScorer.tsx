@@ -6,8 +6,10 @@ import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import MatchCompletedCard from "../common/MatchCompletedCard";
 import ShotSelector from "@/components/ShotSelector";
+import TrackingModeToggle from "../common/TrackingModeToggle";
 import { useIndividualMatch } from "@/hooks/useIndividualMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import ShotFeed from "../common/ShotFeed";
 import type { AddPointPayload, IndividualMatch, MatchStatus, PlayerKey } from "@/types/match.type";
 import InitialServerDialog from "@/components/ServerDialog";
@@ -36,6 +38,9 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
+  const shotTrackingMode = useMatchStore((s) => s.shotTrackingMode);
+  const user = useAuthStore((s) => s.user);
+  const updateScore = useIndividualMatch((s) => s.updateScore);
 
   const lastMatchId = useRef<string | null>(null);
   const lastMatchStatus = useRef<MatchStatus | null>(null);
@@ -73,17 +78,35 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
   }, [match, setServerDialogOpen]);
 
   const handleAddPoint = useCallback(
-    ({ side, playerId }: AddPointPayload) => {
+    async ({ side, playerId }: AddPointPayload) => {
       // Check both match prop (server data) and hook state
       if (match.status === "completed" || status === "completed") {
         toast.error("Match is completed! Reset to continue.");
         return;
       }
-      // Allow shot dialog to open - auto-start will happen in updateScore
-      setPendingPlayer({ side, playerId });
-      setShotDialogOpen(true);
+
+      // Determine effective mode: match override > user preference > default "detailed"
+      const effectiveMode =
+        shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+      if (effectiveMode === "simple") {
+        // Simple mode: directly increment score without shot data
+        await updateScore(side, 1, undefined, playerId);
+      } else {
+        // Detailed mode: open shot selector dialog
+        setPendingPlayer({ side, playerId });
+        setShotDialogOpen(true);
+      }
     },
-    [match.status, status, setPendingPlayer, setShotDialogOpen]
+    [
+      match.status,
+      status,
+      shotTrackingMode,
+      user?.shotTrackingMode,
+      setPendingPlayer,
+      setShotDialogOpen,
+      updateScore,
+    ]
   );
 
   const handleUndo = useCallback(async () => {
@@ -125,6 +148,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
         <MatchCompletedCard match={match} />
       ) : (
         <>
+          {match && <TrackingModeToggle />}
           <ScoreBoard
             match={match}
             side1Score={side1Score}

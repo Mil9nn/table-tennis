@@ -6,11 +6,13 @@ import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import MatchCompletedCard from "../common/MatchCompletedCard";
 import ShotSelector from "@/components/ShotSelector";
+import TrackingModeToggle from "../common/TrackingModeToggle";
 import {
   IndividualMatchState,
   useIndividualMatch,
 } from "@/hooks/useIndividualMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import ShotFeed from "../common/ShotFeed";
 import { IndividualMatch, MatchStatus, PlayerKey } from "@/types/match.type";
 import InitialServerDialog from "@/components/ServerDialog";
@@ -40,6 +42,9 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
+  const shotTrackingMode = useMatchStore((s) => s.shotTrackingMode);
+  const user = useAuthStore((s) => s.user);
+  const updateScore = useIndividualMatch((s) => s.updateScore);
 
   const lastMatchId = useRef<string | null>(null);
   const lastMatchStatus = useRef<MatchStatus | null>(null);
@@ -121,6 +126,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
         <MatchCompletedCard match={match} />
       ) : (
         <>
+          {match && <TrackingModeToggle />}
           <ScoreBoard
             match={match}
             side1Score={side1Score}
@@ -130,17 +136,27 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             side1Sets={side1Sets}
             side2Sets={side2Sets}
             status={status}
-            onAddPoint={({ side }) => {
+            onAddPoint={async ({ side }) => {
               // Check both match prop (server data) and hook state
               if (match.status === "completed" || (status as MatchStatus) === "completed") {
                 toast.error("Match is completed! Reset to continue.");
                 return;
               }
 
-              // Allow shot dialog to open - auto-start will happen in updateScore
-              // ✅ Only pass side — player will be chosen in ShotSelector
-              setPendingPlayer({ side });
-              setShotDialogOpen(true);
+              // Determine effective mode: match override > user preference > default "detailed"
+              const effectiveMode =
+                shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+              if (effectiveMode === "simple") {
+                // Simple mode: directly increment score without shot data
+                // For doubles, we don't have playerId here, so it will be handled in updateScore
+                await updateScore(side, 1, undefined, undefined);
+              } else {
+                // Detailed mode: open shot selector dialog
+                // ✅ Only pass side — player will be chosen in ShotSelector
+                setPendingPlayer({ side });
+                setShotDialogOpen(true);
+              }
             }}
             onReset={() => {
               // ✅ Force full reset for completed matches

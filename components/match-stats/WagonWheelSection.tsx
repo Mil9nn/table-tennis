@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import WagonWheel from "@/components/WagonWheel";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface Participant {
   _id: string;
@@ -27,9 +27,9 @@ export function WagonWheelSection({
   hideByGame = false,
 }: WagonWheelSectionProps) {
   return (
-    <div className="space-y-6 bg-white">
-      {/* Player Combined Shots */}
-      <div className="grid md:grid-cols-2 gap-6">
+    <section className="space-y-8">
+      {/* Combined by player */}
+      <div className="grid gap-6 md:grid-cols-2">
         {participants.map((player) => {
           const playerShots = allShots.filter((shot) => {
             const id =
@@ -42,34 +42,36 @@ export function WagonWheelSection({
           if (!playerShots.length) return null;
 
           return (
-            <section key={player._id} className="border border-[#d9d9d9] p-4">
-              <div className="mb-3">
-                <p className="text-sm font-semibold tracking-tight text-[#353535]">
-                  {player.fullName || player.username}'s winning shot placements
-                </p>
+            <div
+              key={player._id}
+              className="rounded-xl bg-white px-4 py-3 shadow-[0_0_0_1px_#e6e8eb]"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-[#353535]">
+                  {player.fullName || player.username}
+                </span>
+                <span className="text-xs text-[#6b7280]">
+                  {playerShots.length} shots
+                </span>
               </div>
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={JSON.stringify(playerShots)}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  <WagonWheel key={`${player._id}-wagonwheel`} shots={playerShots} animateOnce />
-                </motion.div>
-              </AnimatePresence>
-            </section>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <WagonWheel shots={playerShots} animateOnce />
+              </motion.div>
+            </div>
           );
         })}
       </div>
 
-      {/* Game-wise Shot Placements - Hide if only 1 game */}
+      {/* Game-wise */}
       {!hideByGame && (
-        <div className="space-y-4">
-          <h3 className="text-base font-semibold tracking-tight text-[#353535]">
-            Winning Shot Placement by Game
+        <div className="space-y-6">
+          <h3 className="text-sm font-semibold text-[#353535]">
+            Shot placement by game
           </h3>
 
           {participants.map((player) => {
@@ -85,51 +87,50 @@ export function WagonWheelSection({
                     return id === player._id.toString();
                   }) || [],
               }))
-              .filter((x) => x.shots.length > 0);
+              .filter((g) => g.shots.length);
 
             if (!playerGames.length) return null;
 
             return (
-              <div key={player._id} className="space-y-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="font-semibold text-sm text-[#353535]">
+              <div key={player._id} className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-[#353535]">
                     {player.fullName || player.username}
                   </span>
-                  <Badge variant="secondary" className="bg-[#3c6e71]/10 text-[#3c6e71]">
-                    {playerGames.reduce((s, g) => s + g.shots.length, 0)} winning shots
+                  <Badge variant="secondary" className="text-xs">
+                    {playerGames.reduce(
+                      (s, g) => s + g.shots.length,
+                      0
+                    )}{" "}
+                    shots
                   </Badge>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   {playerGames.map((game) => (
                     <div
                       key={`${player._id}-game-${game.gameNumber}`}
-                      className="border border-[#d9d9d9] p-4"
+                      className="rounded-lg bg-[#fafafa] p-3"
                     >
-                      <div className="pb-2 flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-[#353535]">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#6b7280]">
                           Game {game.gameNumber}
-                        </h4>
-                        <Badge variant="outline" className="text-xs border-[#d9d9d9] text-[#353535]">
-                          {game.shots.length} winning shots
-                        </Badge>
+                        </span>
+                        <span className="text-xs text-[#9aa0a6]">
+                          {game.shots.length} shots
+                        </span>
                       </div>
 
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={JSON.stringify(game.shots)}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                          <WagonWheel
-                            key={`${player._id}-game-${game.gameNumber}-wagonwheel`}
-                            shots={game.shots}
-                            animateOnce
-                          />
-                        </motion.div>
-                      </AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        <WagonWheel
+                          shots={game.shots}
+                          animateOnce
+                        />
+                      </motion.div>
                     </div>
                   ))}
                 </div>
@@ -138,6 +139,6 @@ export function WagonWheelSection({
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 }

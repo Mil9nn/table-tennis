@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
+import { User } from "@/models/User";
 import { withAuth } from "@/lib/api-utils";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
@@ -70,7 +71,8 @@ export async function POST(
             console.error("[SCORE] ❌ Error updating tournament:", tournamentError);
           }
         }
-      }
+      },
+      auth.userId
     );
 
     if (!result.success) {

@@ -133,8 +133,8 @@ export async function GET(request: NextRequest) {
           if (subMatch.status !== "completed") continue;
 
           const team1Won =
-            (subMatch.finalScore?.team1Sets || 0) >
-            (subMatch.finalScore?.team2Sets || 0);
+            (subMatch.finalScore?.team1Games || 0) >
+            (subMatch.finalScore?.team2Games || 0);
 
           // Team 1 players
           for (const player of subMatch.playerTeam1 || []) {

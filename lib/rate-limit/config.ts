@@ -27,6 +27,30 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
     algorithm: "slidingWindow",
     identifier: "user", // Per user, less critical
   },
+  "POST:/api/auth/forgot-password": {
+    limit: 3, // Very strict - password reset OTP requests
+    window: "15 m",
+    algorithm: "slidingWindow",
+    identifier: "ip", // Per IP to prevent email enumeration and spam
+  },
+  "POST:/api/auth/send-otp": {
+    limit: 5,
+    window: "15 m",
+    algorithm: "slidingWindow",
+    identifier: "ip", // Per IP to prevent spam
+  },
+  "POST:/api/auth/verify-otp": {
+    limit: 10,
+    window: "15 m",
+    algorithm: "slidingWindow",
+    identifier: "ip", // Per IP to prevent brute force
+  },
+  "POST:/api/auth/reset-password": {
+    limit: 5,
+    window: "15 m",
+    algorithm: "slidingWindow",
+    identifier: "ip", // Per IP to prevent abuse
+  },
 
   // File Upload Routes
   "POST:/api/profile/image": {

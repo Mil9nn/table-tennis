@@ -3,15 +3,20 @@ import bcrypt from "bcryptjs";
 import { User } from "@/models/User";
 import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
-import { resetPasswordSchema } from "@/lib/validations/auth";
+import { rateLimit } from "@/lib/rate-limit/middleware";
+import { resetPasswordWithOTPSchema } from "@/lib/validations/auth";
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = await rateLimit(request, "POST", "/api/auth/reset-password");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDB();
     const body = await request.json();
 
     // Validate input
-    const validationResult = resetPasswordSchema.safeParse(body);
+    const validationResult = resetPasswordWithOTPSchema.safeParse(body);
     if (!validationResult.success) {
       const errors = validationResult.error.issues.map((err) => ({
         field: err.path.join("."),
@@ -24,55 +29,72 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { token, password } = validationResult.data;
+    const { email, otp, password } = validationResult.data;
 
-    // Find password reset tokens (need to compare hashes)
-    const resetTokens = await VerificationToken.find({
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return NextResponse.json(
+        { message: "Invalid OTP or email." },
+        { status: 400 }
+      );
+    }
+
+    // Query OTP by userId and type (production pattern: query by userId, not loop through all)
+    const otpToken = await VerificationToken.findOne({
+      userId: user._id,
       type: "password_reset",
       expiresAt: { $gt: new Date() }, // Only check non-expired tokens
     });
 
-    // Find the matching token by comparing hashes
-    let resetToken = null;
-    for (const tokenDoc of resetTokens) {
-      try {
-        const isMatch = await bcrypt.compare(token, tokenDoc.token);
-        if (isMatch) {
-          resetToken = tokenDoc;
-          break;
-        }
-      } catch (error) {
-        // Skip invalid tokens (not bcrypt hashes)
-        continue;
-      }
-    }
-
-    if (!resetToken) {
+    if (!otpToken) {
       return NextResponse.json(
-        { message: "Invalid or expired reset link. Please request a new one." },
+        { message: "Invalid or expired OTP. Please request a new one." },
         { status: 400 }
       );
     }
 
     // Check if expired (double check)
-    if (new Date() > resetToken.expiresAt) {
-      await VerificationToken.deleteOne({ _id: resetToken._id });
+    if (new Date() > otpToken.expiresAt) {
+      await VerificationToken.deleteOne({ _id: otpToken._id });
       return NextResponse.json(
-        { message: "Reset link has expired. Please request a new one." },
+        { message: "OTP has expired. Please request a new one." },
         { status: 400 }
       );
     }
 
-    // Find user
-    const user = await User.findById(resetToken.userId);
-
-    if (!user) {
+    // Check attempts left
+    if (otpToken.attemptsLeft <= 0) {
+      await VerificationToken.deleteOne({ _id: otpToken._id });
       return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
+        { message: "Maximum verification attempts exceeded. Please request a new OTP." },
+        { status: 400 }
       );
     }
 
+    // Single bcrypt comparison (production pattern)
+    const isMatch = await bcrypt.compare(otp, otpToken.token);
+
+    if (!isMatch) {
+      // Decrement attempts left
+      otpToken.attemptsLeft -= 1;
+      await otpToken.save();
+
+      if (otpToken.attemptsLeft <= 0) {
+        await VerificationToken.deleteOne({ _id: otpToken._id });
+        return NextResponse.json(
+          { message: "Invalid OTP. Maximum attempts exceeded. Please request a new OTP." },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { message: `Invalid OTP. ${otpToken.attemptsLeft} attempt(s) remaining.` },
+        { status: 400 }
+      );
+    }
+
+    // OTP is valid - proceed with password reset
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -80,8 +102,8 @@ export async function POST(request: NextRequest) {
     user.password = hashedPassword;
     await user.save();
 
-    // Delete the used token
-    await VerificationToken.deleteOne({ _id: resetToken._id });
+    // Delete the used OTP token
+    await VerificationToken.deleteOne({ _id: otpToken._id });
 
     // Also delete any other password reset tokens for this user
     await VerificationToken.deleteMany({
@@ -100,71 +122,6 @@ export async function POST(request: NextRequest) {
     console.error("Reset password error:", error);
     return NextResponse.json(
       { message: "Something went wrong" },
-      { status: 500 }
-    );
-  }
-}
-
-// GET endpoint to validate token before showing reset form
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token");
-
-    if (!token) {
-      return NextResponse.json(
-        { valid: false, message: "Token is required" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    // Find password reset tokens (need to compare hashes)
-    const resetTokens = await VerificationToken.find({
-      type: "password_reset",
-      expiresAt: { $gt: new Date() }, // Only check non-expired tokens
-    });
-
-    // Find the matching token by comparing hashes
-    let resetToken = null;
-    for (const tokenDoc of resetTokens) {
-      try {
-        const isMatch = await bcrypt.compare(token, tokenDoc.token);
-        if (isMatch) {
-          resetToken = tokenDoc;
-          break;
-        }
-      } catch (error) {
-        // Skip invalid tokens (not bcrypt hashes)
-        continue;
-      }
-    }
-
-    if (!resetToken) {
-      return NextResponse.json(
-        { valid: false, message: "Invalid or expired reset link" },
-        { status: 400 }
-      );
-    }
-
-    // Check if expired (double check)
-    if (new Date() > resetToken.expiresAt) {
-      await VerificationToken.deleteOne({ _id: resetToken._id });
-      return NextResponse.json(
-        { valid: false, message: "Reset link has expired" },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { valid: true, message: "Token is valid" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Validate reset token error:", error);
-    return NextResponse.json(
-      { valid: false, message: "Something went wrong" },
       { status: 500 }
     );
   }

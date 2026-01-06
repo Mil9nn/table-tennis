@@ -1,0 +1,8 @@
+# Exclude socket-server from Vercel builds
+# Socket server is deployed separately on Render
+socket-server/
+
+# Exclude socket server dependencies
+socket-server/node_modules/
+socket-server/dist/
+socket-server/.env

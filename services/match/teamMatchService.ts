@@ -114,7 +114,7 @@ function generateFiveSinglesSubmatches(
           matchNumber: index + 1,
           playerTeam1,
           playerTeam2,
-          numberOfSets: setsPerTie,
+          numberOfGames: setsPerTie,
         })
       );
     }
@@ -154,7 +154,7 @@ function generateSingleDoubleSingleSubmatches(
         matchNumber: 1,
         playerTeam1: playerA,
         playerTeam2: playerX,
-        numberOfSets: setsPerTie,
+        numberOfGames: setsPerTie,
       })
     );
   }
@@ -165,7 +165,7 @@ function generateSingleDoubleSingleSubmatches(
         matchNumber: 2,
         playerTeam1: [playerA, playerB],
         playerTeam2: [playerX, playerY],
-        numberOfSets: setsPerTie,
+        numberOfGames: setsPerTie,
       })
     );
   }
@@ -176,7 +176,7 @@ function generateSingleDoubleSingleSubmatches(
         matchNumber: 3,
         playerTeam1: playerB,
         playerTeam2: playerY,
-        numberOfSets: setsPerTie,
+        numberOfGames: setsPerTie,
       })
     );
   }
@@ -211,7 +211,7 @@ function generateCustomFormatSubmatches(
           matchNumber: index + 1,
           playerTeam1: team1Players[0],
           playerTeam2: team2Players[0],
-          numberOfSets: setsPerTie,
+          numberOfGames: setsPerTie,
         })
       );
     } else if (type === "doubles") {
@@ -225,7 +225,7 @@ function generateCustomFormatSubmatches(
           matchNumber: index + 1,
           playerTeam1: [team1Players[0], team1Players[1]],
           playerTeam2: [team2Players[0], team2Players[1]],
-          numberOfSets: setsPerTie,
+          numberOfGames: setsPerTie,
         })
       );
     }
@@ -408,7 +408,7 @@ export class TeamMatchService {
 
     const teamMatch = await matchRepository.createTeamMatch({
       matchFormat,
-      numberOfSetsPerSubMatch: setsPerTie,
+      numberOfGamesPerRubber: setsPerTie,
       team1: this.buildTeamSnapshot(team1, team1Assignments),
       team2: this.buildTeamSnapshot(team2, team2Assignments),
       subMatches,
@@ -431,7 +431,8 @@ export class TeamMatchService {
     matchId: string,
     subMatchId: string,
     input: UpdateScoreInput,
-    onMatchComplete?: (match: ITeamMatch) => Promise<void>
+    onMatchComplete?: (match: ITeamMatch) => Promise<void>,
+    userId?: string
   ): Promise<TeamMatchResult> {
     const match = await TeamMatch.findById(matchId);
     if (!match) {
@@ -496,11 +497,24 @@ export class TeamMatchService {
       typeof input.team1Score === "number" &&
       typeof input.team2Score === "number"
     ) {
+      // Determine shot tracking mode: match override > user preference > default "detailed"
+      let shotTrackingMode: "detailed" | "simple" = "detailed";
+      if (match.shotTrackingMode) {
+        shotTrackingMode = match.shotTrackingMode;
+      } else if (userId) {
+        // Fetch user preference if match doesn't have override
+        const user = await User.findById(userId).select("shotTrackingMode");
+        if (user?.shotTrackingMode) {
+          shotTrackingMode = user.shotTrackingMode;
+        }
+      }
+
       const scoreIncreased =
         input.team1Score > currentGame.team1Score ||
         input.team2Score > currentGame.team2Score;
 
-      if (scoreIncreased && (!input.shotData || !input.shotData.player)) {
+      // Only require shot data if in detailed mode
+      if (scoreIncreased && shotTrackingMode === "detailed" && (!input.shotData || !input.shotData.player)) {
         return {
           success: false,
           error: "Shot data is required when incrementing score",
@@ -548,25 +562,25 @@ export class TeamMatchService {
       currentGame.completed = true;
 
       if (!subMatch.finalScore) {
-        subMatch.finalScore = { team1Sets: 0, team2Sets: 0 };
+        subMatch.finalScore = { team1Games: 0, team2Games: 0 };
       }
 
       if (currentGame.winnerSide === "team1") {
-        subMatch.finalScore.team1Sets += 1;
+        subMatch.finalScore.team1Games += 1;
       } else {
-        subMatch.finalScore.team2Sets += 1;
+        subMatch.finalScore.team2Games += 1;
       }
 
       const subMatchWon = isMatchWon(
-        subMatch.finalScore.team1Sets,
-        subMatch.finalScore.team2Sets,
-        subMatch.numberOfSets || 5
+        subMatch.finalScore.team1Games,
+        subMatch.finalScore.team2Games,
+        subMatch.numberOfGames || 5
       );
 
       if (subMatchWon) {
-        const setsNeeded = Math.ceil((subMatch.numberOfSets || 5) / 2);
+        const gamesNeeded = Math.ceil((subMatch.numberOfGames || 5) / 2);
         subMatch.winnerSide =
-          subMatch.finalScore.team1Sets >= setsNeeded ? "team1" : "team2";
+          subMatch.finalScore.team1Games >= gamesNeeded ? "team1" : "team2";
         subMatch.status = "completed";
         subMatch.completed = true;
 

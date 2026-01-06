@@ -22,7 +22,7 @@ import {
  * @throws Error if player IDs are missing or invalid
  */
 export function createSinglesSubMatch(config: SinglesSubMatchConfig): TeamSubMatchBase {
-  const { matchNumber, playerTeam1, playerTeam2, numberOfSets } = config;
+  const { matchNumber, playerTeam1, playerTeam2, numberOfGames } = config;
 
   if (!playerTeam1 || typeof playerTeam1 !== "string") {
     throw new Error(`Invalid playerTeam1 for match ${matchNumber}`);
@@ -30,8 +30,8 @@ export function createSinglesSubMatch(config: SinglesSubMatchConfig): TeamSubMat
   if (!playerTeam2 || typeof playerTeam2 !== "string") {
     throw new Error(`Invalid playerTeam2 for match ${matchNumber}`);
   }
-  if (numberOfSets <= 0) {
-    throw new Error(`Invalid numberOfSets for match ${matchNumber}`);
+  if (numberOfGames <= 0) {
+    throw new Error(`Invalid numberOfGames for match ${matchNumber}`);
   }
 
   return {
@@ -39,9 +39,9 @@ export function createSinglesSubMatch(config: SinglesSubMatchConfig): TeamSubMat
     matchType: "singles" as TeamSubMatchType,
     playerTeam1: [playerTeam1],
     playerTeam2: [playerTeam2],
-    numberOfSets,
+    numberOfGames,
     games: [],
-    finalScore: { team1Sets: 0, team2Sets: 0 },
+    finalScore: { team1Games: 0, team2Games: 0 },
     winnerSide: null,
     status: "scheduled",
     completed: false,
@@ -56,7 +56,7 @@ export function createSinglesSubMatch(config: SinglesSubMatchConfig): TeamSubMat
  * @throws Error if player IDs are missing, invalid, or not exactly 2 per team
  */
 export function createDoublesSubMatch(config: DoublesSubMatchConfig): TeamSubMatchBase {
-  const { matchNumber, playerTeam1, playerTeam2, numberOfSets } = config;
+  const { matchNumber, playerTeam1, playerTeam2, numberOfGames } = config;
 
   if (!Array.isArray(playerTeam1) || playerTeam1.length !== 2) {
     throw new Error(
@@ -74,8 +74,8 @@ export function createDoublesSubMatch(config: DoublesSubMatchConfig): TeamSubMat
   if (playerTeam2.some((id) => !id || typeof id !== "string")) {
     throw new Error(`Invalid player ID in playerTeam2 for match ${matchNumber}`);
   }
-  if (numberOfSets <= 0) {
-    throw new Error(`Invalid numberOfSets for match ${matchNumber}`);
+  if (numberOfGames <= 0) {
+    throw new Error(`Invalid numberOfGames for match ${matchNumber}`);
   }
 
   return {
@@ -83,9 +83,9 @@ export function createDoublesSubMatch(config: DoublesSubMatchConfig): TeamSubMat
     matchType: "doubles" as TeamSubMatchType,
     playerTeam1: [...playerTeam1],
     playerTeam2: [...playerTeam2],
-    numberOfSets,
+    numberOfGames,
     games: [],
-    finalScore: { team1Sets: 0, team2Sets: 0 },
+    finalScore: { team1Games: 0, team2Games: 0 },
     winnerSide: null,
     status: "scheduled",
     completed: false,

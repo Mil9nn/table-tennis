@@ -27,6 +27,9 @@ interface MatchStore {
   pendingShot: { shotType: string } | null;
   setPendingShot: (shot: { shotType: string } | null) => void;
 
+  shotTrackingMode: "detailed" | "simple" | null;
+  setShotTrackingMode: (mode: "detailed" | "simple" | null) => void;
+
   fetchMatch: (matchId: string, category: "individual" | "team") => Promise<void>;
 }
 
@@ -65,7 +68,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         _id: String(raw._id),
         matchCategory: "team",
         matchFormat: raw.matchFormat,
-        numberOfSetsPerSubMatch: raw.numberOfSetsPerSubMatch ?? 3,
+        numberOfGamesPerRubber: raw.numberOfGamesPerRubber ?? 3,
         team1: {
           _id: String(raw.team1._id),
           name: raw.team1.name,
@@ -92,6 +95,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         currentSubMatch: raw.currentSubMatch || 1,
         status: raw.status,
         finalScore: raw.finalScore,
+        shotTrackingMode: raw.shotTrackingMode ?? null,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       };
@@ -134,6 +138,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       updatedAt: raw.updatedAt,
       currentServer: raw.currentServer ?? null,
       serverConfig: raw.serverConfig ?? null,
+      shotTrackingMode: raw.shotTrackingMode ?? null,
     };
   };
 
@@ -159,12 +164,18 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     serverDialogOpen: false,
     setServerDialogOpen: (open) => set({ serverDialogOpen: open }),
 
+    shotTrackingMode: null,
+    setShotTrackingMode: (mode) => set({ shotTrackingMode: mode }),
+
     fetchMatch: async (id, category) => {
       set({ fetchingMatch: true });
       try {
         const res = await axiosInstance.get(`/matches/${category}/${id}`);
         const normalizedMatch = normalizeMatch(res.data.match || res.data);
-        set({ match: normalizedMatch });
+        set({ 
+          match: normalizedMatch,
+          shotTrackingMode: normalizedMatch.shotTrackingMode || null,
+        });
       } catch (err: any) {
         console.error(
           `Error fetching ${category} match:`,

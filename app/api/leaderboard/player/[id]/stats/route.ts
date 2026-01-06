@@ -186,8 +186,8 @@ export async function GET(
         if (subWon) wins++;
         else losses++;
 
-        const userSets = sub.finalScore?.[userInTeam1 ? "team1Sets" : "team2Sets"] || 0;
-        const opponentSets = sub.finalScore?.[userInTeam1 ? "team2Sets" : "team1Sets"] || 0;
+        const userSets = sub.finalScore?.[userInTeam1 ? "team1Games" : "team2Games"] || 0;
+        const opponentSets = sub.finalScore?.[userInTeam1 ? "team2Games" : "team1Games"] || 0;
         setsWon += userSets;
         setsLost += opponentSets;
 

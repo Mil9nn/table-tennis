@@ -77,13 +77,13 @@ function SubMatchCard({ subMatch, index }: { subMatch: SubMatch; index: number }
             <span className={`text-sm font-bold tabular-nums ${
               team1Won ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400"
             }`}>
-              {subMatch.finalScore.team1Sets}
+              {subMatch.finalScore.team1Games}
             </span>
             <span className="text-zinc-400 dark:text-zinc-500 text-xs">:</span>
             <span className={`text-sm font-bold tabular-nums ${
               team2Won ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400"
             }`}>
-              {subMatch.finalScore.team2Sets}
+              {subMatch.finalScore.team2Games}
             </span>
           </div>
         ) : (

@@ -9,6 +9,8 @@ import {
 } from "@/types/match.type";
 import { useTeamMatch } from "@/hooks/useTeamMatch";
 import { useMatchStore } from "@/hooks/useMatchStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import TrackingModeToggle from "../common/TrackingModeToggle";
 import ScoreBoard from "../common/ScoreBoard";
 import GamesHistory from "../common/GamesHistory";
 import ShotFeed from "../common/ShotFeed";
@@ -39,8 +41,8 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
     currentSubMatch,
     team1Score,
     team2Score,
-    team1Sets,
-    team2Sets,
+    team1Games,
+    team2Games,
     currentGame,
     isSubMatchActive,
     status,
@@ -54,6 +56,9 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
   const setPendingPlayer = useMatchStore((s) => s.setPendingPlayer);
   const setShotDialogOpen = useMatchStore((s) => s.setShotDialogOpen);
   const setServerDialogOpen = useMatchStore((s) => s.setServerDialogOpen);
+  const shotTrackingMode = useMatchStore((s) => s.shotTrackingMode);
+  const user = useAuthStore((s) => s.user);
+  const updateSubMatchScore = useTeamMatch((s) => s.updateSubMatchScore);
 
   const lastMatchId = useRef<string | null>(null);
   const lastSubMatchIndex = useRef<number | null>(null);
@@ -276,10 +281,10 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold">
-                    Match Sequence
+                    Rubber Sequence
                   </CardTitle>
                   <Badge variant="secondary" className="text-sm">
-                    Match {currentSubMatchIndex + 1} of{" "}
+                    Rubber {currentSubMatchIndex + 1} of{" "}
                     {match.subMatches.length}
                   </Badge>
                 </div>
@@ -364,7 +369,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-4">
                 <span className="text-lg font-bold">
-                  Match {currentSubMatchIndex + 1}
+                  Rubber {currentSubMatchIndex + 1}
                 </span>
                 <MatchTypeBadge
                   type={currentSubMatch.matchType}
@@ -392,7 +397,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               <Trophy className="w-16 h-16 mx-auto text-yellow-500" />
               <div className="space-y-2">
                 <p className="text-2xl font-bold text-green-600">
-                  Match Completed!
+                  Rubber Completed!
                 </p>
                 <p className="text-sm text-gray-600">
                   Winner:{" "}
@@ -403,30 +408,44 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                   </span>
                 </p>
                 <p className="text-lg font-mono">
-                  {currentSubMatch.finalScore?.team1Sets || 0} -{" "}
-                  {currentSubMatch.finalScore?.team2Sets || 0}
+                  {currentSubMatch.finalScore?.team1Games || 0} -{" "}
+                  {currentSubMatch.finalScore?.team2Games || 0}
                 </p>
               </div>
             </div>
           ) : (
             <>
+              {match && <TrackingModeToggle />}
               <ScoreBoard
                 match={match}
                 side1Score={team1Score}
                 side2Score={team2Score}
                 isMatchActive={isSubMatchActive}
                 currentServer={currentServer}
-                side1Sets={team1Sets}
-                side2Sets={team2Sets}
+                side1Sets={team1Games}
+                side2Sets={team2Games}
                 status={currentSubMatch.status as MatchStatus}
-                onAddPoint={({ side, playerId }) => {
+                onAddPoint={async ({ side, playerId }) => {
                   if (currentSubMatch.status === "completed") {
                     toast.error("Submatch is completed!");
                     return;
                   }
-                  // Allow shot dialog to open - auto-start will happen in updateSubMatchScore
-                  setPendingPlayer({ side, playerId });
-                  setShotDialogOpen(true);
+
+                  // Convert side1/side2 to team1/team2 for team matches
+                  const teamSide = side === "side1" ? "team1" : "team2";
+
+                  // Determine effective mode: match override > user preference > default "detailed"
+                  const effectiveMode =
+                    shotTrackingMode || user?.shotTrackingMode || "detailed";
+
+                  if (effectiveMode === "simple") {
+                    // Simple mode: directly increment score without shot data
+                    await updateSubMatchScore(teamSide, 1, undefined, playerId);
+                  } else {
+                    // Detailed mode: open shot selector dialog
+                    setPendingPlayer({ side: teamSide, playerId });
+                    setShotDialogOpen(true);
+                  }
                 }}
                 onUndo={handleUndo}
                 onReset={() => toast.info("Reset not yet implemented")}

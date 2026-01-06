@@ -120,13 +120,6 @@ export const verifyEmailSchema = z.object({
 });
 
 /**
- * Resend verification email schema
- */
-export const resendVerificationSchema = z.object({
-  email: emailSchema,
-});
-
-/**
  * Send OTP schema
  * Validates email for OTP sending
  */
@@ -150,6 +143,20 @@ export const verifyOTPSchema = z.object({
 });
 
 /**
+ * Reset password with OTP schema
+ * Validates OTP and new password for password reset
+ */
+export const resetPasswordWithOTPSchema = z.object({
+  email: emailSchema,
+  otp: z.string().min(6, "OTP must be 6 digits").max(6, "OTP must be 6 digits").regex(/^\d{6}$/, "OTP must be 6 digits"),
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, "Confirm password is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+/**
  * Type exports for TypeScript
  */
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -157,7 +164,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
-export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 export type SendOTPInput = z.infer<typeof sendOTPSchema>;
 export type VerifyOTPInput = z.infer<typeof verifyOTPSchema>;
+export type ResetPasswordWithOTPInput = z.infer<typeof resetPasswordWithOTPSchema>;
 

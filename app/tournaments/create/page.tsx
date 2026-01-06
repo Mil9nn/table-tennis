@@ -326,13 +326,7 @@ export default function CreateTournamentPage() {
     // All validation is now handled by zod schema
     setIsSubmitting(true);
     try {
-      // DEBUG: Log form data
-      console.log("🔵 [CREATE FORM] Form data received:", {
-        category: data.category,
-        teamConfig: data.teamConfig,
-        teamConfig_setsPerSubMatch: data.teamConfig?.setsPerSubMatch,
-        setsPerMatch: data.setsPerMatch,
-      });
+      
 
       // Build the API payload
       const payload: any = {
@@ -418,22 +412,11 @@ export default function CreateTournamentPage() {
         payload.doublesPairs = data.doublesPairs;
       }
 
-      // DEBUG: Log payload being sent
-      console.log("🟢 [CREATE FORM] Payload being sent to API:", {
-        category: payload.category,
-        teamConfig: payload.teamConfig,
-        rules_setsPerMatch: payload.rules.setsPerMatch,
-        doublesPairs: payload.doublesPairs,
-      });
+      
 
       const response = await axiosInstance.post("/tournaments", payload);
 
-      // DEBUG: Log response
-      console.log("🟡 [CREATE FORM] Tournament created:", {
-        id: response.data.tournament._id,
-        teamConfig: response.data.tournament.teamConfig,
-        rules_setsPerMatch: response.data.tournament.rules?.setsPerMatch,
-      });
+      
       toast.success("Tournament created successfully!");
       router.push(`/tournaments/${response.data.tournament._id}`);
     } catch (err: any) {

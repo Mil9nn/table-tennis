@@ -48,10 +48,14 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Join match room when connected
   useEffect(() => {
     if (!socket || !isConnected || !matchId || !enabled) {
+      if (!socket) console.log("[MatchSocket] No socket instance");
+      if (!isConnected) console.log("[MatchSocket] Not connected yet");
+      if (!matchId) console.log("[MatchSocket] No matchId");
+      if (!enabled) console.log("[MatchSocket] Socket disabled");
       return;
     }
 
-    console.log("[MatchSocket] Joining match room:", matchId);
+    console.log("[MatchSocket] Joining match room:", matchId, "Role:", role);
 
     socket.emit("join:match", {
       matchId,
@@ -59,6 +63,11 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
     });
 
     setIsJoined(true);
+    
+    // Verify join was successful
+    socket.once("viewer:joined", (data) => {
+      console.log("[MatchSocket] Successfully joined room:", data);
+    });
 
     // If late joiner (no match data yet), fetch current state
     if (!match) {

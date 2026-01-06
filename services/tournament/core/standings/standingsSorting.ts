@@ -106,8 +106,7 @@ function compareRatios(a: number, b: number): number {
  * Duplicates should be filtered out before calling this function.
  */
 function assignRanks(standings: StandingData[]): void {
-  console.log(`\n🟡 [RANKING] Starting rank assignment for ${standings.length} standings`);
-  console.log(`🟡 [RANKING] Participants before deduplication:`, standings.map(s => s.participant));
+  
   
   // First, ensure no duplicate participants (safety check)
   const seenParticipants = new Set<string>();
@@ -131,8 +130,7 @@ function assignRanks(standings: StandingData[]): void {
     }
   }
   
-  console.log(`🟡 [RANKING] After deduplication: ${uniqueStandings.length} unique standings`);
-  console.log(`🟡 [RANKING] Unique participants:`, uniqueStandings.map(s => s.participant));
+  
 
   // Assign ranks to unique standings only
   let currentRank = 1;
@@ -154,18 +152,14 @@ function assignRanks(standings: StandingData[]): void {
         currentRank = currentRank + 1; // Increment, don't set to index + 1
       }
       
-      console.log(`🟡 [RANKING] Index ${index}: participant=${standing.participant}, prevRank=${prev.rank}, isTied=${isTrulyTied}, newRank=${currentRank}`);
+     
     } else {
-      console.log(`🟡 [RANKING] Index ${index}: participant=${standing.participant}, rank=1 (first)`);
+     
     }
     standing.rank = currentRank;
   });
   
-  console.log(`🟡 [RANKING] Final ranks:`, uniqueStandings.map(s => ({
-    participant: s.participant,
-    rank: s.rank
-  })));
-  console.log(`🟡 [RANKING] Rank sequence:`, uniqueStandings.map(s => s.rank));
+  
 
   // Replace original array with unique standings
   standings.length = 0;
