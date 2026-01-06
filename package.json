@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "next start",
     "play:round-robin": "tsx scripts/play-round-robin.ts",
     "play:knockout": "node scripts/play-knockout.js",
     "play:hybrid": "tsx scripts/play-hybrid.ts",
