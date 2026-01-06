@@ -39,12 +39,36 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     return;
   }
 
-  const socketUrl =
-    process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
 
-  console.log("[Socket] Connecting to:", socketUrl);
+  // Debug: Log environment variable status
+  if (typeof window !== "undefined") {
+    console.log("[Socket Debug] NEXT_PUBLIC_SOCKET_URL:", socketUrl || "NOT SET");
+    console.log("[Socket Debug] Current hostname:", window.location.hostname);
+  }
 
-  const newSocket: SocketType = io(socketUrl, {
+  // Don't connect if URL is not configured (except in local dev)
+  if (!socketUrl) {
+    const isLocalDev = typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    
+    if (!isLocalDev) {
+      console.error(
+        "[Socket] ❌ NEXT_PUBLIC_SOCKET_URL not configured!",
+        "\nCurrent hostname:", typeof window !== "undefined" ? window.location.hostname : "unknown",
+        "\nPlease:",
+        "\n1. Set NEXT_PUBLIC_SOCKET_URL in Vercel → Settings → Environment Variables",
+        "\n2. Value should be your Render socket server URL (e.g., https://your-socket-server.onrender.com)",
+        "\n3. Redeploy your Vercel app to apply the change"
+      );
+      return;
+    }
+  }
+
+  const finalSocketUrl = socketUrl || "http://localhost:3000";
+  console.log("[Socket] Connecting to:", finalSocketUrl);
+
+  const newSocket: SocketType = io(finalSocketUrl, {
     path: "/socket.io/",
     transports: ["websocket", "polling"],
     reconnection: true,
