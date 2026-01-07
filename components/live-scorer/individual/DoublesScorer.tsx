@@ -179,6 +179,7 @@ export default function DoublesScorer({ match }: DoublesScorerProps) {
             currentGame={currentGame}
             participants={match.participants}
             finalScore={match.finalScore}
+            serverConfig={match.serverConfig}
           />
 
           {!isCompleted && (

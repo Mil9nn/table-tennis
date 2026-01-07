@@ -103,23 +103,23 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
         ) : !data || graphs.matchPoints.length === 0 ? (
           <EmptyState icon={TrendingUpOutlined} title="No insights available." description="Performance insights will appear after matches are played!" />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Key Stats Cards */}
             <div className="max-w-xs">
               {/* Overall Win Rate */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Overall Win Rate
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {stats.overallWinRate}%
                 </p>
               </div>
             </div>
 
             {/* Points Scored vs Conceded */}
-            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+            <div className="p-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                 Points Scored vs Conceded (Last 10 Matches)
               </h3>
               <div className="h-80">
@@ -149,8 +149,8 @@ const PerformanceInsightsPage = ({ userId }: PerformanceInsightsPageProps = {}) 
 
             {/* Serve Accuracy Over Time */}
             {graphs.serveAccuracy.length > 0 && (
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+              <div className="p-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                   Serve Accuracy Over Time
                 </h3>
                 <div className="h-80">

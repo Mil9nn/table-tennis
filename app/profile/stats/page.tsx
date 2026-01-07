@@ -148,22 +148,22 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
             description="Player statistics will appear after matches are played!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Performance Highlights */}
             <div className="px-4">
-              <div className="mb-4">
+              <div className="mb-3">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Performance Highlights
                 </h2>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-1 bg-lb-white border border-[#d9d9d9] p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                <div className="lg:col-span-1 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-2">
                         Best Win Streak
                       </h3>
-                      <p className="text-4xl font-bold text-[#353535]">
+                      <p className="text-3xl font-bold text-[#353535]">
                         {bestWinStreak}
                       </p>
                     </div>
@@ -171,7 +171,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                       <WhatshotIcon
                         fontSize="large"
                         className="text-[#3c6e71]"
-                        sx={{ fontSize: 48 }}
+                        sx={{ fontSize: 36 }}
                       />
                     </div>
                   </div>
@@ -181,20 +181,20 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
 
             {/* A. Singles and Doubles Stats */}
             <div className="px-4">
-              <div className="mb-4">
+              <div className="mb-3">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Singles & Doubles Performance
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Singles */}
-                <div className="bg-[#ffffff] p-4">
-                  <h3 className="text-sm font-bold text-[#353535] mb-6 uppercase tracking-wider">
+                <div className="p-4">
+                  <h3 className="text-xs font-bold text-[#353535] mb-4 uppercase tracking-wider">
                     Singles
                   </h3>
 
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* Match Win Rate Progress Bar */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -305,12 +305,12 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                 </div>
 
                 {/* Doubles */}
-                <div className="bg-[#ffffff] p-4">
-                  <h3 className="text-sm font-bold text-[#353535] mb-6 uppercase tracking-wider">
+                <div className="p-4">
+                  <h3 className="text-xs font-bold text-[#353535] mb-4 uppercase tracking-wider">
                     Doubles
                   </h3>
 
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* Match Win Rate Progress Bar */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -424,49 +424,49 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
 
             {/* B. Scoring Stats */}
             <div className="px-4">
-              <div className="mb-4">
+              <div className="mb-3">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Scoring Statistics
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
                     Total Points Scored
                   </p>
-                  <p className="text-2xl font-bold text-[#353535]">
+                  <p className="text-xl font-bold text-[#353535]">
                     {scoring.totalPointsScored || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
+                <div className="p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
                     Total Points Conceded
                   </p>
-                  <p className="text-2xl font-bold text-[#353535]">
+                  <p className="text-xl font-bold text-[#353535]">
                     {scoring.totalPointsConceded || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
+                <div className="p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
                     Avg Points Per Set
                   </p>
-                  <p className="text-2xl font-bold text-[#353535]">
+                  <p className="text-xl font-bold text-[#353535]">
                     {scoring.avgPointsPerSet || 0}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
+                <div className="p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
                     Avg Points/Match
                   </p>
-                  <p className="text-2xl font-bold text-[#353535]">
+                  <p className="text-xl font-bold text-[#353535]">
                     {avgPointsPerMatch}
                   </p>
                 </div>
-                <div className="bg-[#ffffff] border border-[#d9d9d9] p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-2">
+                <div className="p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
                     Total Sets
                   </p>
-                  <p className="text-2xl font-bold text-[#353535]">
+                  <p className="text-xl font-bold text-[#353535]">
                     {scoring.totalSets || 0}
                   </p>
                 </div>
@@ -475,13 +475,13 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
 
             {/* C. Server Stats */}
             <div className="px-4">
-              <div className="mb-4">
+              <div className="mb-3">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Serve Statistics
                 </h2>
               </div>
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
                         Total Serves

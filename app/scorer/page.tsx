@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { TournamentErrorBoundary } from "@/components/tournaments/TournamentErrorBoundary";
 import { EmptyState } from "../tournaments/components/EmptyState";
 import ScorerHeaderHero, {
@@ -146,7 +146,6 @@ export default function ScorerDashboardPage() {
         {tournaments.length === 0 ? (
           <div className="py-4 px-4">
             <EmptyState
-              icon={Trophy}
               title="No tournaments assigned"
               description="You haven't been assigned as a scorer for any tournaments yet."
             />

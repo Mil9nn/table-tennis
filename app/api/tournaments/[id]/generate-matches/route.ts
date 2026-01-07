@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { matchGenerationOrchestrator } from "@/services/tournament/core/matchGenerationOrchestrator";
@@ -117,6 +118,64 @@ export async function POST(
           { status: 400 }
         );
       }
+
+      // CRITICAL: Deduplicate pairs by canonical player combination before normalizing
+      // This ensures we only have unique pairs even if duplicates exist in the database
+      const uniquePairsMap = new Map<string, any>(); // Map: canonicalKey -> pair
+      
+      for (const pair of doublesPairs) {
+        if (!pair || !pair.player1 || !pair.player2) continue;
+        
+        const player1Id = pair.player1?.toString() || '';
+        const player2Id = pair.player2?.toString() || '';
+        
+        if (!player1Id || !player2Id) continue;
+        
+        // Create canonical key (order-independent player combination)
+        const canonicalKey = player1Id < player2Id 
+          ? `${player1Id}:${player2Id}` 
+          : `${player2Id}:${player1Id}`;
+        
+        // Only keep the first occurrence of each canonical pair
+        if (!uniquePairsMap.has(canonicalKey)) {
+          uniquePairsMap.set(canonicalKey, pair);
+        } else {
+          console.warn(`[generate-matches] Duplicate pair found in database: ${canonicalKey}, keeping first occurrence`);
+        }
+      }
+      
+      // Normalize the unique pairs: Convert any string IDs (temp IDs starting with 'pair-') to ObjectIds
+      const normalizedPairs = Array.from(uniquePairsMap.values()).map((pair: any) => {
+        const pairIdStr = pair._id?.toString() || '';
+        // If pair ID is a temporary string (starts with 'pair-'), generate new ObjectId
+        // Otherwise, ensure it's a valid ObjectId
+        const pairId = pairIdStr.startsWith('pair-') || !mongoose.Types.ObjectId.isValid(pairIdStr)
+          ? new mongoose.Types.ObjectId()
+          : new mongoose.Types.ObjectId(pair._id);
+        
+        return {
+          _id: pairId,
+          player1: new mongoose.Types.ObjectId(pair.player1),
+          player2: new mongoose.Types.ObjectId(pair.player2),
+        };
+      });
+      
+      // Validate we have the expected number of unique pairs
+      const expectedPairs = participants.length / 2;
+      if (normalizedPairs.length !== expectedPairs) {
+        return NextResponse.json(
+          {
+            error: "Invalid pairs configuration",
+            details: `Expected ${expectedPairs} unique pairs for ${participants.length} participants, but found ${normalizedPairs.length} after deduplication. Please reconfigure pairs.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Update tournament with normalized, deduplicated pairs
+      (tournament as any).doublesPairs = normalizedPairs;
+      (tournament as any).markModified('doublesPairs');
+      await tournament.save();
     }
 
     // Check if draw already generated

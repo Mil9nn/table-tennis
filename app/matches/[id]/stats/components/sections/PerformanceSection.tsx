@@ -3,6 +3,7 @@ import { ServeReceiveChart } from "@/components/match-stats/ServeReceiveChart";
 import { ServeTypeChart } from "@/components/match-stats/ServeTypeChart";
 import { ShotTypeChart } from "@/components/match-stats/ShotTypeChart";
 import { GameProgressionChart } from "@/components/match-stats/GameProgressionChart";
+import { getSideNames } from "../../utils/getSideNames";
 
 interface Props {
   stats: any;
@@ -31,19 +32,19 @@ export function PerformanceSection({ stats }: Props) {
         )}
       </div>
 
-      {games.length > 1 && (
-        <GameProgressionChart
-          data={games.map((_ : any, i : number) => ({
-            game: `G${i + 1}`,
-          }))}
-          side1Name={stats.type === "individual"
-            ? match.participants?.[0]?.fullName ?? "Side 1"
-            : match.team1?.name ?? "Team 1"}
-          side2Name={stats.type === "individual"
-            ? match.participants?.[1]?.fullName ?? "Side 2"
-            : match.team2?.name ?? "Team 2"}
-        />
-      )}
+      {games.length > 1 && (() => {
+        const { side1Name, side2Name } = getSideNames(match, stats.type);
+
+        return (
+          <GameProgressionChart
+            data={games.map((_ : any, i : number) => ({
+              game: `G${i + 1}`,
+            }))}
+            side1Name={side1Name}
+            side2Name={side2Name}
+          />
+        );
+      })()}
     </div>
   );
 }

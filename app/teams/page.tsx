@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getAvatarFallbackStyle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -236,37 +238,41 @@ export default function TeamsPage() {
           onClick={() => setSelectedTeam(team)}
           className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71] w-full text-left"
         >
-          {/* Line 1: Logo + Team Name + City */}
+          {/* Line 1: Logo + Team Name */}
           <div className="flex items-center gap-2 mb-2">
-            <Image
-              src={team.logo || "/imgs/logo.png"}
-              alt={team.name}
-              width={40}
-              height={40}
-              className="w-10 h-10 rounded-full object-cover shrink-0"
-            />
+            <Avatar className="w-8 h-8 shrink-0">
+              <AvatarImage
+                src={team.logo}
+                alt={team.name}
+              />
+              <AvatarFallback className="bg-[#d9d9d9] text-[#353535] text-xs font-semibold">
+                {team.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-gray-800 group-hover:text-white transition-colors truncate">
-                  {team.name}
-                </span>
-                {team.city && (
-                  <span className="text-xs text-gray-400 group-hover:text-white/70 transition-colors">
-                    • {team.city}
-                  </span>
-                )}
-              </div>
+              <span className="font-semibold text-sm text-gray-800 group-hover:text-white transition-colors truncate">
+                {team.name}
+              </span>
             </div>
           </div>
 
           {/* Line 2: Meta info */}
           <div className="flex items-center gap-1 text-xs text-gray-400 group-hover:text-white/70 transition-colors">
             <span>{team.players?.length || 0} players</span>
-            <span>•</span>
-            <span>
-              {team.record?.wins || 0}W - {team.record?.losses || 0}L
-            </span>
+            {team.city && (
+              <>
+                <span>•</span>
+                <span>{team.city}</span>
+              </>
+            )}
           </div>
+
+          {/* Line 3: Captain */}
+          {team.captain && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 group-hover:text-white/70 transition-colors">
+              <span>Captain: <span className="font-semibold">{team.captain.fullName || team.captain.username}</span></span>
+            </div>
+          )}
         </button>
 
         <Dialog
@@ -350,19 +356,22 @@ export default function TeamsPage() {
                 }}
               >
                 <div className="flex flex-col items-center">
-                  <Image
-                    src={team.logo || "/imgs/logo.png"}
-                    alt={team.name}
-                    width={72}
-                    height={72}
+                  <Avatar
+                    className="w-18 h-18"
                     style={{
                       width: "4.5rem",
                       height: "4.5rem",
-                      objectFit: "cover",
                       border: "3px solid rgba(255,255,255,0.2)",
                     }}
-                    className="rounded-full"
-                  />
+                  >
+                    <AvatarImage
+                      src={team.logo || "/imgs/logo.png"}
+                      alt={team.name}
+                    />
+                    <AvatarFallback className="bg-[#d9d9d9] text-[#353535] text-lg font-semibold">
+                      {team.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <h2
                     style={{
                       color: "#ffffff",
@@ -549,40 +558,24 @@ export default function TeamsPage() {
                         className="hover:bg-[#f5f5f5]"
                       >
                         <div className="flex items-center gap-3">
-                          {p.user.profileImage ? (
-                            <Image
+                          <Avatar
+                            className={`w-6 h-6 ${isCaptain ? "ring-2 ring-[#3c6e71]" : ""}`}
+                          >
+                            <AvatarImage
                               src={p.user.profileImage}
                               alt={p.user.fullName || p.user.username}
-                              width={36}
-                              height={36}
-                              style={{
-                                width: "2.25rem",
-                                height: "2.25rem",
-                                objectFit: "cover",
-                                border: isCaptain ? "2px solid #3c6e71" : "none",
-                              }}
-                              className="rounded-full"
                             />
-                          ) : (
-                            <div
-                              style={{
-                                width: "2.25rem",
-                                height: "2.25rem",
-                                background: "linear-gradient(135deg, #3c6e71, #284b63)",
-                                color: "#ffffff",
-                                fontWeight: "600",
-                                fontSize: "0.875rem",
-                                border: isCaptain ? "2px solid #3c6e71" : "none",
-                              }}
-                              className="rounded-full flex items-center justify-center"
+                            <AvatarFallback
+                              className="text-sm font-semibold"
+                              style={getAvatarFallbackStyle(p.user._id)}
                             >
                               {(
                                 p.user.fullName?.[0] ||
                                 p.user.username?.[0] ||
                                 "?"
                               ).toUpperCase()}
-                            </div>
-                          )}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <div className="flex items-center gap-1.5">
                               <p

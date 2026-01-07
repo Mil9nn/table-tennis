@@ -1,5 +1,6 @@
 // app/api/tournaments/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
@@ -8,7 +9,7 @@ import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { validateRequest, validateQueryParams, createTournamentSchema, getTournamentsQuerySchema } from "@/lib/validations";
 import { logError } from "@/lib/error-logger";
-import { getUserSubscription, checkLimit, checkTournamentFormatAllowed, incrementTournamentCount } from "@/lib/middleware/subscription";
+// Plan/subscription checks removed for MVP - to be implemented in future
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -48,37 +49,7 @@ export async function POST(request: NextRequest) {
       doublesPairs,
     } = validation.data;
 
-    // Check subscription limits and restrictions
-    const subscription = await getUserSubscription(auth.userId);
-    
-    // Check tournament creation limit - DISABLED FOR DEVELOPMENT
-    // const tournamentLimitCheck = await checkLimit(auth.userId, "tournaments", 0);
-    // if (!tournamentLimitCheck.allowed) {
-    //   return NextResponse.json(
-    //     { error: tournamentLimitCheck.error },
-    //     { status: 403 }
-    //   );
-    // }
-
-    // Check participant limit if participants are provided
-    if (participants && participants.length > 0) {
-      const participantLimitCheck = await checkLimit(auth.userId, "participants", participants.length);
-      if (!participantLimitCheck.allowed) {
-        return NextResponse.json(
-          { error: participantLimitCheck.error },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Check tournament format restriction
-    const formatCheck = await checkTournamentFormatAllowed(auth.userId, format);
-    if (!formatCheck.allowed) {
-      return NextResponse.json(
-        { error: formatCheck.error },
-        { status: 403 }
-      );
-    }
+    // Plan/subscription checks removed for MVP - all features available to all users
 
     // Validate participants based on category
     if (participants && participants.length > 0) {
@@ -113,10 +84,6 @@ export async function POST(request: NextRequest) {
 
     // Note: Validation for groups + round-robin is now handled by Zod schema
 
-    // Get subscription tier and features for tournament metadata
-    const userTier = subscription?.tier || "free";
-    const maxScorersAllowed = subscription?.features?.maxScorers || 1;
-
     const tournament = new Tournament({
       name,
       format,
@@ -127,8 +94,6 @@ export async function POST(request: NextRequest) {
       venue,
       participants: participants || [],
       organizer: auth.userId,
-      createdWithTier: userTier,
-      maxScorersAllowed: maxScorersAllowed,
       // Force groups to false for round-robin format
       useGroups: format === "round_robin" ? false : (useGroups || false),
       numberOfGroups: format === "round_robin" ? undefined : (numberOfGroups || undefined),
@@ -148,6 +113,7 @@ export async function POST(request: NextRequest) {
       seeding: initialSeeding,
       // Include doublesPairs if provided (for doubles)
       // CRITICAL: Deduplicate pairs to prevent duplicate entries
+      // Convert temporary string IDs to ObjectIds
       doublesPairs:
         category === "individual" &&
         matchType === "doubles" &&
@@ -168,11 +134,19 @@ export async function POST(request: NextRequest) {
                   uniquePairsMap.set(key, pair);
                 }
               }
-              return Array.from(uniquePairsMap.values()).map((pair: any) => ({
-                _id: pair._id,
-                player1: pair.player1,
-                player2: pair.player2,
-              }));
+              return Array.from(uniquePairsMap.values()).map((pair: any) => {
+                // Convert temporary string IDs (starting with 'pair-') to ObjectIds
+                const pairIdStr = pair._id?.toString() || '';
+                const pairId = pairIdStr.startsWith('pair-')
+                  ? new mongoose.Types.ObjectId() // Generate new ObjectId for temp IDs
+                  : new mongoose.Types.ObjectId(pair._id); // Use existing ObjectId
+                
+                return {
+                  _id: pairId,
+                  player1: new mongoose.Types.ObjectId(pair.player1),
+                  player2: new mongoose.Types.ObjectId(pair.player2),
+                };
+              });
             })()
           : undefined,
       rules: {
@@ -197,9 +171,6 @@ export async function POST(request: NextRequest) {
     
 
     await tournament.save();
-
-    // Increment tournament creation counter
-    await incrementTournamentCount(auth.userId);
     
     // Populate participants based on category
     const isTeamTournament = category === "team";
@@ -427,6 +398,8 @@ export async function GET(req: NextRequest) {
 
         // Populate groups.standings.participant if groups exist
         if (t.groups && t.groups.length > 0) {
+          const isDoublesTournament = !isTeamTournament && t.matchType === "doubles";
+          
           for (const group of t.groups) {
             // Populate group participants
             if (group.participants && group.participants.length > 0) {
@@ -439,6 +412,31 @@ export async function GET(req: NextRequest) {
                 group.participants = group.participants.map((pId: any) => 
                   teamMap.get(pId.toString()) || pId
                 );
+              } else if (isDoublesTournament && t.doublesPairs && t.doublesPairs.length > 0) {
+                // For doubles tournaments, group.participants contains pair IDs, not player IDs
+                // Create a map of pair ID -> populated pair
+                const pairMap = new Map();
+                t.doublesPairs.forEach((pair: any) => {
+                  if (pair._id) {
+                    const pairId = pair._id.toString();
+                    // Create a pseudo-participant object for the pair
+                    const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+                    const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+                    pairMap.set(pairId, {
+                      _id: pairId,
+                      fullName: `${player1Name} / ${player2Name}`,
+                      username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
+                      profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
+                      isPair: true,
+                      player1: pair.player1,
+                      player2: pair.player2,
+                    });
+                  }
+                });
+                group.participants = group.participants.map((pId: any) => {
+                  const pairId = pId.toString();
+                  return pairMap.get(pairId) || pId;
+                });
               } else {
                 const users = await User.find({ _id: { $in: group.participants } })
                   .select("username fullName profileImage")

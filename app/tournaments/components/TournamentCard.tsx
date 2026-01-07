@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import React from "react";
-import { ChevronRight } from "lucide-react";
 import { formatDateShort } from "@/lib/utils";
 
 export type TournamentCardProps = {
@@ -24,87 +23,79 @@ export type TournamentCardProps = {
 };
 
 export function TournamentCard({ tournament }: TournamentCardProps) {
-  const status = tournament.status;
-  const statusCfg = getStatusConfig(status);
+  const getTournamentTypeLabel = () => {
+    // For team tournaments, show "Team"
+    if (tournament.category === "team") {
+      return "Team";
+    }
+    // For individual tournaments, show matchType (Singles/Doubles)
+    if (tournament.matchType) {
+      return tournament.matchType.charAt(0).toUpperCase() + tournament.matchType.slice(1);
+    }
+    // Fallback to "Singles" if no matchType specified
+    return "Singles";
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "in_progress":
+        return "text-blue-500";
+      case "completed":
+        return "text-green-500";
+      case "upcoming":
+        return "text-orange-500";
+      case "draft":
+        return "text-gray-500";
+      default:
+        return "text-gray-400";
+    }
+  };
+
+  const tournamentTypeLabel = getTournamentTypeLabel();
+  const formatLabel = tournament.format === "hybrid"
+    ? "Hybrid"
+    : tournament.format.replace(/_/g, " ");
+  const statusLabel = tournament.status.replace(/_/g, " ");
+  const statusColor = getStatusColor(tournament.status);
 
   return (
     <Link
       href={`/tournaments/${tournament._id}`}
-      className="group block border border-[#d9d9d9] bg-[#ffffff] p-5 transition-colors hover:bg-[#3c6e71]"
+      className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71]"
     >
-      <div className="w-full flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${statusCfg.badge}`}>
-            {statusCfg.label}
-          </span>
-          <h3 className="truncate text-sm font-bold text-[#353535] group-hover:text-[#ffffff] transition-colors uppercase tracking-wide">
-            {tournament.name}
-          </h3>
-        </div>
-
-        {/* Format type */}
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2 py-1 text-[10px] font-semibold bg-[#d9d9d9] text-[#353535] uppercase tracking-wider">
-            {tournament.format === "hybrid"
-              ? "Hybrid"
-              : tournament.format.replace(/_/g, " ")}
-          </span>
-
-          <ChevronRight className="size-4 text-[#d9d9d9] transition group-hover:translate-x-1 group-hover:text-[#ffffff]" />
-        </div>
+      {/* Line 1: Tournament name */}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-medium text-sm text-gray-800 group-hover:text-[#ffffff] transition-colors">
+          {tournament.name}
+        </h3>
       </div>
 
-      <div className="mt-3 text-xs text-[#353535] group-hover:text-[#ffffff] transition-colors">
-        {[
-          formatDateShort(tournament.startDate),
-          tournament.city,
-          `${tournament.participants.length}${
-            tournament.maxParticipants ? ` / ${tournament.maxParticipants}` : ""
-          } players`,
-        ]
-          .filter(Boolean)
-          .join(" • ")}
+      {/* Line 2: Meta info - Status, Type, Format */}
+      <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+        <span className={`capitalize ${statusColor} group-hover:text-[#ffffff] transition-colors`}>{statusLabel}</span>
+        <span>•</span>
+        <span className="capitalize">{tournamentTypeLabel}</span>
+        <span>•</span>
+        <span className="capitalize">{formatLabel}</span>
+      </div>
+
+      {/* Line 3: Meta info - Date, City, Participants */}
+      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+        <span>{formatDateShort(tournament.startDate)}</span>
+        {tournament.city && (
+          <>
+            <span>•</span>
+            <span>{tournament.city}</span>
+          </>
+        )}
+        <span>•</span>
+        <span>
+          {tournament.participants.length}
+          {tournament.maxParticipants ? ` / ${tournament.maxParticipants}` : ""} players
+        </span>
       </div>
     </Link>
   );
-}
-
-function InfoPill({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="inline-flex items-center gap-1.5 bg-[#d9d9d9] px-2.5 py-1">
-      <span className="truncate">{label}</span>
-    </div>
-  );
-}
-
-function getStatusConfig(status: string) {
-  switch (status) {
-    case "completed":
-      return {
-        label: "Completed",
-        badge: "bg-emerald-100 text-emerald-700",
-      };
-    case "in_progress":
-      return {
-        label: "In Progress",
-        badge: "bg-blue-100 text-blue-700",
-      };
-    case "upcoming":
-      return {
-        label: "Upcoming",
-        badge: "bg-orange-100 text-orange-700",
-      };
-    case "draft":
-      return {
-        label: "Draft",
-        badge: "bg-[#d9d9d9] text-[#353535]",
-      };
-    default:
-      return {
-        label: status.replace(/_/g, " "),
-        badge: "bg-[#d9d9d9] text-[#353535]",
-      };
-  }
 }
 
 export default TournamentCard;

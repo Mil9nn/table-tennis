@@ -303,38 +303,70 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       // Shot Data - Only add if shotType is provided (required for shot recording)
       if (increment > 0 && shotType) {
-        let shotPlayerId = playerId || pendingPlayer?.playerId;
+        // Use the explicitly passed playerId first, then fallback to pendingPlayer
+        // Only use fallback defaults if neither is available
+        let shotPlayerId: string | undefined = undefined;
+        
+        // Check if playerId was explicitly passed (even if it's an empty string, we want to know)
+        if (playerId !== undefined && playerId !== null && playerId !== "") {
+          shotPlayerId = playerId;
+        } else if (pendingPlayer?.playerId) {
+          shotPlayerId = pendingPlayer.playerId;
+        }
 
+        // Only use default fallback if no player was explicitly selected
+        // This ensures we respect the user's selection
         if (!shotPlayerId) {
           const isDoubles =
             (match.matchType as string) === "doubles" ||
             (match.matchType as string) === "mixed_doubles";
           if (isDoubles) {
+            // For doubles, default to first player on the side (not server)
             shotPlayerId =
               player === "side1"
-                ? match.participants?.[0]?._id
-                : match.participants?.[2]?._id;
+                ? match.participants?.[0]?._id?.toString()
+                : match.participants?.[2]?._id?.toString();
           } else {
+            // For singles, there's only one player per side
             shotPlayerId =
               player === "side1"
-                ? match.participants?.[0]?._id
-                : match.participants?.[1]?._id;
+                ? match.participants?.[0]?._id?.toString()
+                : match.participants?.[1]?._id?.toString();
           }
         }
 
+        // Ensure shotPlayerId is a string
         if (shotPlayerId) {
+          shotPlayerId = typeof shotPlayerId === 'string' ? shotPlayerId : String(shotPlayerId);
           let serverId: string | null = null;
 
           const currentServer = get().currentServer;
 
           if (currentServer) {
-            if (currentServer.startsWith("side1")) {
-              serverId = match.participants?.[0]?._id?.toString();
-            } else if (currentServer.startsWith("side2")) {
-              serverId =
-                match.participants?.[
-                  match.matchType === "singles" ? 1 : 2
-                ]?._id?.toString();
+            const isDoubles = (match.matchType as string) === "doubles" || (match.matchType as string) === "mixed_doubles";
+            
+            if (isDoubles) {
+              // For doubles, map rotation key to participant index correctly
+              // "side1_main" -> participants[0]
+              // "side1_partner" -> participants[1]
+              // "side2_main" -> participants[2]
+              // "side2_partner" -> participants[3]
+              if (currentServer === "side1_main") {
+                serverId = match.participants?.[0]?._id?.toString();
+              } else if (currentServer === "side1_partner") {
+                serverId = match.participants?.[1]?._id?.toString();
+              } else if (currentServer === "side2_main") {
+                serverId = match.participants?.[2]?._id?.toString();
+              } else if (currentServer === "side2_partner") {
+                serverId = match.participants?.[3]?._id?.toString();
+              }
+            } else {
+              // For singles, map side to participant index
+              if (currentServer === "side1") {
+                serverId = match.participants?.[0]?._id?.toString();
+              } else if (currentServer === "side2") {
+                serverId = match.participants?.[1]?._id?.toString();
+              }
             }
           }
 

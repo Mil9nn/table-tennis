@@ -664,21 +664,130 @@ export async function generateGroupMatches(
   // For doubles with pairs, use pair IDs as participants for group allocation
   let allocationParticipants = participantIds;
   if (isDoubles && doublesPairs.length > 0) {
-    // CRITICAL: Deduplicate pair IDs to prevent duplicate entries
-    const pairIds = doublesPairs.map((pair: any) => pair._id.toString());
-    allocationParticipants = Array.from(new Set(pairIds));
+    // Check if participantIds already contains pair IDs (from hybrid service)
+    // by verifying if they exist in doublesPairs
+    const validPairIds = new Set(
+      doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean)
+    );
+    
+    // Check if participantIds are already pair IDs
+    const participantIdsArePairIds = participantIds.length > 0 && 
+      participantIds.every((id: string) => {
+        const normalizedId = id.toString();
+        return validPairIds.has(normalizedId);
+      });
+    
+    if (participantIdsArePairIds) {
+      // participantIds already contains pair IDs (e.g., from hybrid service)
+      // Use them directly after deduplication
+      allocationParticipants = Array.from(new Set(
+        participantIds.map((p: any) => p.toString())
+      ));
+    } else {
+      // participantIds contains player IDs, extract pair IDs from doublesPairs
+      // CRITICAL: Deduplicate by canonical player combination (ROOT FIX)
+      // This ensures we only use unique pairs even if duplicates exist in database
+      const uniquePairsMap = new Map<string, { pairId: string; pair: any }>(); // Map: canonicalKey -> {pairId, pair}
+      
+      for (const pair of doublesPairs) {
+        if (!pair || !pair._id) {
+          console.warn(`[generateGroupMatches] Skipping invalid pair (missing _id)`);
+          continue;
+        }
+        
+        const pairId = pair._id.toString();
+        const player1Id = pair.player1?.toString() || '';
+        const player2Id = pair.player2?.toString() || '';
+        
+        if (!player1Id || !player2Id) {
+          console.warn(`[generateGroupMatches] Skipping invalid pair (missing players): ${pairId}`);
+          continue;
+        }
+        
+        // Create canonical key (order-independent player combination)
+        const canonicalKey = player1Id < player2Id 
+          ? `${player1Id}:${player2Id}` 
+          : `${player2Id}:${player1Id}`;
+        
+        // Only keep the first occurrence of each canonical pair
+        if (!uniquePairsMap.has(canonicalKey)) {
+          uniquePairsMap.set(canonicalKey, { pairId, pair });
+        } else {
+          const existing = uniquePairsMap.get(canonicalKey);
+          console.warn(`[generateGroupMatches] Duplicate pair detected: players ${canonicalKey}. Existing ID: ${existing?.pairId}, Duplicate ID: ${pairId}. Keeping first occurrence.`);
+        }
+      }
+      
+      allocationParticipants = Array.from(uniquePairsMap.values()).map(p => p.pairId);
+      
+      // CRITICAL VALIDATION: Ensure we have exactly the expected number of pairs
+      const expectedPairs = tournament.participants.length / 2;
+      if (allocationParticipants.length !== expectedPairs) {
+        throw new Error(
+          `Pair count mismatch: expected ${expectedPairs} unique pairs for ${tournament.participants.length} participants, ` +
+          `but found ${allocationParticipants.length} after deduplication. ` +
+          `Original doublesPairs array had ${doublesPairs.length} entries. ` +
+          `This suggests duplicate pairs exist in the database. Please reconfigure pairs.`
+        );
+      }
+      
+      if (doublesPairs.length !== allocationParticipants.length) {
+        console.warn(`[generateGroupMatches] Deduplication removed ${doublesPairs.length - allocationParticipants.length} duplicate pairs from database`);
+      }
+    }
   }
 
   // CRITICAL: Ensure participant IDs are deduplicated before allocation
   allocationParticipants = Array.from(new Set(
     allocationParticipants.map((p: any) => typeof p === 'string' ? p : String(p))
   ));
+  
+  // CRITICAL: Determine numberOfGroups - for hybrid tournaments, use hybridConfig if numberOfGroups is not set
+  const numberOfGroups = tournament.numberOfGroups ?? 
+    (tournament as any).hybridConfig?.roundRobinNumberOfGroups ?? 
+    1;
+  
+  // Final validation: log allocation details
+  console.log(`[generateGroupMatches] Final allocation: ${allocationParticipants.length} participants for ${numberOfGroups} groups`);
+  console.log(`[generateGroupMatches] numberOfGroups source - tournament.numberOfGroups: ${tournament.numberOfGroups}, hybridConfig.roundRobinNumberOfGroups: ${(tournament as any).hybridConfig?.roundRobinNumberOfGroups}`);
+  if (isDoubles) {
+    console.log(`[generateGroupMatches] Expected pairs: ${tournament.participants.length / 2}, Got: ${allocationParticipants.length}`);
+    console.log(`[generateGroupMatches] Expected pairs per group: ${allocationParticipants.length / numberOfGroups}`);
+  }
 
   const groupAllocations = allocateGroups(
     allocationParticipants,
-    tournament.numberOfGroups!,
+    numberOfGroups,
     seeding.length > 0 ? seeding : undefined
   );
+  
+  // Validate group allocations
+  const totalAllocated = groupAllocations.reduce((sum, g) => sum + g.participants.length, 0);
+  console.log(`[generateGroupMatches] Group allocation complete: ${totalAllocated} participants allocated across ${groupAllocations.length} groups`);
+  
+  // Log detailed group allocation
+  groupAllocations.forEach((group, index) => {
+    console.log(`[generateGroupMatches] Group ${group.groupName}: ${group.participants.length} participants`);
+  });
+  
+  if (totalAllocated !== allocationParticipants.length) {
+    console.error(`[generateGroupMatches] WARNING: Allocation mismatch! Expected ${allocationParticipants.length} participants, got ${totalAllocated} in groups`);
+    throw new Error(`Group allocation failed: expected ${allocationParticipants.length} participants but allocated ${totalAllocated}`);
+  }
+  
+  // Additional validation for doubles: ensure pairs per group is correct
+  if (isDoubles) {
+    const expectedPairsPerGroup = allocationParticipants.length / numberOfGroups;
+    const hasImbalance = groupAllocations.some(g => g.participants.length !== expectedPairsPerGroup);
+    if (hasImbalance) {
+      console.warn(`[generateGroupMatches] WARNING: Group size imbalance detected for doubles. Expected ${expectedPairsPerGroup} pairs per group.`);
+      groupAllocations.forEach((group) => {
+        if (group.participants.length !== expectedPairsPerGroup) {
+          console.warn(`[generateGroupMatches] Group ${group.groupName} has ${group.participants.length} pairs instead of ${expectedPairsPerGroup}`);
+        }
+      });
+    }
+  }
 
   const groups = [];
 
@@ -760,6 +869,12 @@ export async function generateGroupMatches(
       `Group ${groupAlloc.groupName}`
     );
 
+    // Log group creation details
+    console.log(`[generateGroupMatches] Creating group ${groupAlloc.groupName} with ${groupAlloc.participants.length} participants`);
+    if (isDoubles) {
+      console.log(`[generateGroupMatches] Group ${groupAlloc.groupName} participant IDs (should be pair IDs):`, groupAlloc.participants);
+    }
+    
     groups.push({
       groupId: groupAlloc.groupId,
       groupName: groupAlloc.groupName,
@@ -768,6 +883,35 @@ export async function generateGroupMatches(
       standings: groupStandings,
     });
   }
+
+  // Final validation: verify allocation is correct (after groups are fully constructed)
+  const finalTotalAllocated = groups.reduce((sum, g) => sum + g.participants.length, 0);
+  const expectedTotal = allocationParticipants.length;
+  
+  console.log(`[generateGroupMatches] Final validation - Expected: ${expectedTotal} participants, Allocated: ${finalTotalAllocated}`);
+  groups.forEach((group) => {
+    console.log(`[generateGroupMatches] Group ${group.groupName}: ${group.participants.length} participants stored`);
+  });
+  
+  if (finalTotalAllocated !== expectedTotal) {
+    console.error(`[generateGroupMatches] CRITICAL: Allocation mismatch! Expected ${expectedTotal} participants, got ${finalTotalAllocated} in groups`);
+    throw new Error(`Group allocation failed: expected ${expectedTotal} participants but allocated ${finalTotalAllocated}`);
+  }
+  
+  // Additional validation: ensure no duplicate participants across groups
+  const allParticipantIds = new Set<string>();
+  for (const group of groups) {
+    for (const participantId of group.participants) {
+      const normalizedId = participantId.toString();
+      if (allParticipantIds.has(normalizedId)) {
+        console.error(`[generateGroupMatches] CRITICAL: Duplicate participant ${normalizedId} found in multiple groups!`);
+        throw new Error(`Duplicate participant ${normalizedId} found in multiple groups - allocation logic error`);
+      }
+      allParticipantIds.add(normalizedId);
+    }
+  }
+  
+  console.log(`[generateGroupMatches] Validation complete - All ${allParticipantIds.size} participants are unique across groups`);
 
   tournament.groups = groups as any;
   tournament.rounds = []; // No overall rounds, only group rounds
@@ -793,8 +937,29 @@ export async function generateSingleRoundRobinMatches(
   let scheduleSeeding = seeding;
 
   if (isDoubles && doublesPairs.length > 0) {
-    // Use pair IDs instead of individual player IDs
-    scheduleParticipants = doublesPairs.map((pair: any) => pair._id.toString());
+    // Check if participantIds already contains pair IDs (from hybrid service)
+    // by verifying if they exist in doublesPairs
+    const validPairIds = new Set(
+      doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean)
+    );
+    
+    // Check if participantIds are already pair IDs
+    const participantIdsArePairIds = participantIds.length > 0 && 
+      participantIds.every((id: string) => {
+        const normalizedId = id.toString();
+        return validPairIds.has(normalizedId);
+      });
+    
+    if (participantIdsArePairIds) {
+      // participantIds already contains pair IDs (e.g., from hybrid service)
+      // Use them directly after deduplication
+      scheduleParticipants = Array.from(new Set(
+        participantIds.map((p: any) => p.toString())
+      ));
+    } else {
+      // participantIds contains player IDs, extract pair IDs from doublesPairs
+      scheduleParticipants = doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean);
+    }
     
     // Map seeding to pairs (if seeding exists)
     // For now, we'll use pair order as seeding

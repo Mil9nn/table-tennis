@@ -87,7 +87,7 @@ export default function TournamentsPage() {
 
         // Add sort parameters
         if (filters.sort === "recent") {
-          params.append("sortBy", "startDate");
+          params.append("sortBy", "createdAt");
           params.append("sortOrder", "desc");
         } else if (filters.sort === "upcoming") {
           params.append("sortBy", "startDate");

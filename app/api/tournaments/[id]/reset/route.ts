@@ -73,7 +73,10 @@ export async function POST(
       tournament.groups.forEach((group: any) => {
         group.rounds = [];
         group.standings = [];
+        group.participants = []; // Clear participants from groups
       });
+      // Mark groups as modified so Mongoose saves the changes
+      (tournament as any).markModified("groups");
     }
 
     // Clear bracket for knockout/hybrid

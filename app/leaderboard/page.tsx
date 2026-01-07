@@ -14,9 +14,6 @@ import type { LeaderboardType } from "./types";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import type { LeaderboardFilters as FilterType } from "@/lib/leaderboard/filterUtils";
 
-import GroupWorkIcon from "@mui/icons-material/GroupWork";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 export default function LeaderboardPage() {
    const { user } = useAuthStore();
@@ -109,10 +106,7 @@ export default function LeaderboardPage() {
                   data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
               >
-                <div className="flex items-center justify-center gap-2">
-                  <AutoAwesomeIcon className="w-4 h-4" />
-                  <span>Individual</span>
-                </div>
+                <span className="text-xs">Individual</span>
               </TabsTrigger>
 
               {/* Teams Tab */}
@@ -127,10 +121,7 @@ export default function LeaderboardPage() {
                   data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
               >
-                <div className="flex items-center justify-center gap-2">
-                  <GroupWorkIcon className="w-4 h-4" />
-                  <span>Teams</span>
-                </div>
+                <span className="text-xs">Teams</span>
               </TabsTrigger>
 
               {/* Tournaments Tab */}
@@ -145,10 +136,7 @@ export default function LeaderboardPage() {
                   data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
                 "
               >
-                <div className="flex items-center justify-center gap-2">
-                  <EmojiEventsIcon className="w-4 h-4" />
-                  <span>Tournaments</span>
-                </div>
+                <span className="text-xs">Tournaments</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>

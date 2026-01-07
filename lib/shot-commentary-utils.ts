@@ -1,6 +1,7 @@
 import { Shot, Side } from "@/types/shot.type";
-import { Participant } from "@/types/match.type";
+import { Participant, InitialServerConfig } from "@/types/match.type";
 import { getAbsoluteSector, getRelativeSector } from "@/lib/sector-utils";
+import { flipDoublesRotationForNextGame } from "@/services/match/serverCalculationService";
 
 export interface ShotCommentary {
   // ABSOLUTE (perspective-independent - used for statistics)
@@ -643,15 +644,18 @@ function getServerInfo(shot: Shot, participants?: Participant[]): { name: string
   
   // If participants provided, find the server
   if (participants && participants.length > 0) {
-    const server = participants.find(p => {
+    const serverIndex = participants.findIndex(p => {
       const pid = typeof p === 'string' ? p : p._id?.toString();
       return pid === serverId;
     });
     
-    if (server) {
+    if (serverIndex !== -1) {
+      const server = participants[serverIndex];
       const serverObj = typeof server === 'string' ? null : server;
+      const serverName = serverObj?.fullName || serverObj?.username || "Unknown";
+      
       return {
-        name: serverObj?.fullName || serverObj?.username || "Unknown",
+        name: serverName,
         id: serverId
       };
     }
@@ -670,16 +674,153 @@ function getServerInfo(shot: Shot, participants?: Participant[]): { name: string
 }
 
 /**
- * Helper function to get receiver information (opposite side of server)
- * The receiver is on the opposite side of the server
+ * Helper function to map rotation key to participant index
+ * Rotation keys: "side1_main" -> 0, "side1_partner" -> 1, "side2_main" -> 2, "side2_partner" -> 3
+ * Or: "team1_main" -> 0, "team1_partner" -> 1, "team2_main" -> 2, "team2_partner" -> 3
  */
-function getReceiverInfo(shot: Shot, participants?: Participant[]): { name: string; id: string | null } | null {
+function getParticipantIndexFromRotationKey(rotationKey: string): number {
+  if (rotationKey.includes("main")) {
+    if (rotationKey.startsWith("side1") || rotationKey.startsWith("team1")) {
+      return 0;
+    } else {
+      return 2;
+    }
+  } else if (rotationKey.includes("partner")) {
+    if (rotationKey.startsWith("side1") || rotationKey.startsWith("team1")) {
+      return 1;
+    } else {
+      return 3;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Helper function to get receiver information from rotation
+ * For doubles, calculates the specific receiver based on rotation order
+ * For singles, receiver is the other player
+ */
+function getReceiverInfo(
+  shot: Shot, 
+  participants?: Participant[],
+  serverConfig?: InitialServerConfig | null,
+  gameNumber?: number,
+  currentGameScore?: { side1Score: number; side2Score: number }
+): { name: string; id: string | null } | null {
   if (!shot.server || !participants || participants.length === 0) return null;
   
   const serverId = typeof shot.server === 'string' ? shot.server : shot.server._id?.toString() || null;
   if (!serverId) return null;
   
-  // Find server to determine which side they're on
+  const isDoubles = participants.length === 4;
+  
+  // Singles: receiver is always the other player
+  if (participants.length === 2) {
+    const serverIndex = participants.findIndex(p => {
+      const pid = typeof p === 'string' ? p : p._id?.toString();
+      return pid === serverId;
+    });
+    
+    if (serverIndex === -1) return null;
+    
+    const receiver = participants[serverIndex === 0 ? 1 : 0] || null;
+    if (!receiver) return null;
+    
+    const receiverObj = typeof receiver === 'string' ? null : receiver;
+    const receiverName = receiverObj?.fullName || receiverObj?.username || "Unknown";
+    
+    return {
+      name: receiverName,
+      id: receiverObj?._id?.toString() || null
+    };
+  }
+  
+  // Doubles: calculate receiver from rotation
+  if (isDoubles && serverConfig?.serverOrder && serverConfig.serverOrder.length === 4) {
+    // Get the rotation for this game (account for flips every 2 games)
+    let rotation = [...serverConfig.serverOrder];
+    if (gameNumber && gameNumber % 2 === 0) {
+      rotation = flipDoublesRotationForNextGame(rotation);
+    }
+    
+    // Find which player is serving
+    const serverIndex = participants.findIndex(p => {
+      const pid = typeof p === 'string' ? p : p._id?.toString();
+      return pid === serverId;
+    });
+    
+    if (serverIndex === -1) return null;
+    
+    // Map server participant index to expected rotation key
+    // participants[0] = side1_main or team1_main
+    // participants[1] = side1_partner or team1_partner
+    // participants[2] = side2_main or team2_main
+    // participants[3] = side2_partner or team2_partner
+    const expectedServerKeys = [
+      rotation.find(key => (key.includes("side1") || key.includes("team1")) && key.includes("main")),
+      rotation.find(key => (key.includes("side1") || key.includes("team1")) && key.includes("partner")),
+      rotation.find(key => (key.includes("side2") || key.includes("team2")) && key.includes("main")),
+      rotation.find(key => (key.includes("side2") || key.includes("team2")) && key.includes("partner"))
+    ];
+    
+    const serverRotationKey = expectedServerKeys[serverIndex];
+    
+    // If we can't find the server in rotation, fallback to simple opposite side logic
+    if (!serverRotationKey) {
+      const isServerSide1 = serverIndex < 2;
+      const receiver = isServerSide1 ? participants[2] : participants[0];
+      if (!receiver) return null;
+      const receiverObj = typeof receiver === 'string' ? null : receiver;
+      return {
+        name: receiverObj?.fullName || receiverObj?.username || "Unknown",
+        id: receiverObj?._id?.toString() || null
+      };
+    }
+    
+    // Calculate total points to determine current position in rotation cycle
+    const totalPoints = currentGameScore 
+      ? currentGameScore.side1Score + currentGameScore.side2Score 
+      : 0;
+    const serveCycle = Math.floor(totalPoints / 2);
+    const currentRotationIndex = serveCycle % 4;
+    
+    // The rotation cycles through: [server, receiver, server's partner, receiver's partner]
+    // At any point, the current server is at rotation[currentRotationIndex]
+    // The receiver is at rotation[(currentRotationIndex + 1) % 4]
+    // Verify that the server from the shot matches the expected server at this rotation position
+    const expectedServerKey = rotation[currentRotationIndex];
+    if (expectedServerKey !== serverRotationKey) {
+      // Server doesn't match expected position - fallback to simple logic
+      const isServerSide1 = serverIndex < 2;
+      const receiver = isServerSide1 ? participants[2] : participants[0];
+      if (!receiver) return null;
+      const receiverObj = typeof receiver === 'string' ? null : receiver;
+      return {
+        name: receiverObj?.fullName || receiverObj?.username || "Unknown",
+        id: receiverObj?._id?.toString() || null
+      };
+    }
+    
+    const receiverRotationIndex = (currentRotationIndex + 1) % 4;
+    const receiverRotationKey = rotation[receiverRotationIndex];
+    
+    // Map receiver rotation key to participant index
+    const receiverParticipantIndex = getParticipantIndexFromRotationKey(receiverRotationKey);
+    if (receiverParticipantIndex === -1 || receiverParticipantIndex >= participants.length) return null;
+    
+    const receiver = participants[receiverParticipantIndex];
+    if (!receiver) return null;
+    
+    const receiverObj = typeof receiver === 'string' ? null : receiver;
+    const receiverName = receiverObj?.fullName || receiverObj?.username || "Unknown";
+    
+    return {
+      name: receiverName,
+      id: receiverObj?._id?.toString() || null
+    };
+  }
+  
+  // Fallback: if no serverConfig, use simple opposite side logic
   const serverIndex = participants.findIndex(p => {
     const pid = typeof p === 'string' ? p : p._id?.toString();
     return pid === serverId;
@@ -687,25 +828,11 @@ function getReceiverInfo(shot: Shot, participants?: Participant[]): { name: stri
   
   if (serverIndex === -1) return null;
   
-  // Determine which side server is on
-  // Side1 = indices 0,1 (or 0 for singles); Side2 = indices 2,3 (or 1 for singles)
-  const isServerSide1 = participants.length === 2 ? serverIndex === 0 : serverIndex < 2;
-  
-  // Receiver is on opposite side
-  let receiver: Participant | null = null;
-  
-  if (participants.length === 2) {
-    // Singles: receiver is the other player
-    receiver = participants[serverIndex === 0 ? 1 : 0] || null;
-  } else if (participants.length === 4) {
-    // Doubles: receiver is on opposite side (pick first player of opposite side)
-    receiver = isServerSide1 ? (participants[2] || null) : (participants[0] || null);
-  }
-  
+  const isServerSide1 = serverIndex < 2;
+  const receiver = isServerSide1 ? participants[2] : participants[0];
   if (!receiver) return null;
   
   const receiverObj = typeof receiver === 'string' ? null : receiver;
-  
   return {
     name: receiverObj?.fullName || receiverObj?.username || "Unknown",
     id: receiverObj?._id?.toString() || null
@@ -772,25 +899,34 @@ export function generateFullCommentary(
   finalScore?: { side1Sets: number; side2Sets: number },
   side1Name?: string,
   side2Name?: string,
-  currentGameScore?: { side1Score: number; side2Score: number }
+  currentGameScore?: { side1Score: number; side2Score: number },
+  serverConfig?: InitialServerConfig | null,
+  gameNumber?: number
 ): string {
   const commentary = analyzeShotPlacement(shot);
   const strokeName = formatStrokeName(shot.stroke);
   
   // Get server and receiver info
   const serverInfo = getServerInfo(shot, participants);
-  const receiverInfo = getReceiverInfo(shot, participants);
+  const receiverInfo = getReceiverInfo(shot, participants, serverConfig, gameNumber, currentGameScore);
   
   // Get winner (player who hit the shot)
+  // Show only the specific player who made the shot, not their partner
+  const isDoubles = participants && participants.length === 4;
   const winnerId = typeof shot.player === 'string' ? shot.player : shot.player._id?.toString() || null;
   let winnerName = "Unknown";
+  
   if (participants && winnerId) {
-    const winner = participants.find(p => {
+    const winnerIndex = participants.findIndex(p => {
       const pid = typeof p === 'string' ? p : p._id?.toString();
       return pid === winnerId;
     });
-    const winnerObj = typeof winner === 'string' ? null : winner;
-    winnerName = winnerObj?.fullName || winnerObj?.username || "Unknown";
+    
+    if (winnerIndex !== -1) {
+      const winner = participants[winnerIndex];
+      const winnerObj = typeof winner === 'string' ? null : winner;
+      winnerName = winnerObj?.fullName || winnerObj?.username || "Unknown";
+    }
   } else {
     const playerObj = typeof shot.player === 'string' ? null : shot.player;
     winnerName = playerObj?.fullName || playerObj?.username || "Unknown";
@@ -866,8 +1002,8 @@ export function generateFullCommentary(
   // Join shot parts with commas where appropriate
   const shotDescription = shotParts.join(", ");
   
-  // Determine winner's first name for score display
-  const winnerFirstName = winnerName.split(" ")[0];
+  // Use full name for the player who made the shot
+  const winnerDisplayName = winnerName;
   
   // Get game score
   let gameScoreText = "";
@@ -888,6 +1024,7 @@ export function generateFullCommentary(
   let fullCommentary = "";
   
   // Server and receiver info - "serves to" instead of "serving"
+  // For doubles, server and receiver are individual players (not both players)
   if (serverInfo && receiverInfo) {
     fullCommentary = `<strong>${serverInfo.name}</strong> serves to <strong>${receiverInfo.name}</strong>.<br />`;
   } else if (serverInfo) {
@@ -895,7 +1032,7 @@ export function generateFullCommentary(
   }
   
   // Winner and shot description - "wins the point with a" instead of "wins the point by"
-  fullCommentary += `<strong>${winnerFirstName}</strong> wins the point with a <strong>${shotDescription}</strong>.`;
+  fullCommentary += `<strong>${winnerDisplayName}</strong> ${isDoubles ? 'win' : 'wins'} the point with a <strong>${shotDescription}</strong>.`;
   
   // Game score
   if (gameScoreText) {

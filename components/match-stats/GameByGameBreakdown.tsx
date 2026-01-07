@@ -223,7 +223,7 @@ function GameStrokeChart({
           />
           <Bar
             dataKey="value"
-            radius={4}
+            radius={[4, 4, 0, 0]}
             isAnimationActive={isInView}
           >
             {strokeData.map((d, i) => (

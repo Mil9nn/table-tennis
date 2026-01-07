@@ -78,20 +78,61 @@ export async function POST(
   // Pairs must be recreated after adding participants
   if (
     !isTeamTournament &&
-    (tournament as any).matchType === "doubles" &&
-    (tournament as any).doublesPairs &&
-    (tournament as any).doublesPairs.length > 0
+    (tournament as any).matchType === "doubles"
   ) {
-    (tournament as any).doublesPairs = [];
-    (tournament as any).markModified("doublesPairs");
+    if ((tournament as any).doublesPairs && (tournament as any).doublesPairs.length > 0) {
+      (tournament as any).doublesPairs = [];
+      (tournament as any).markModified("doublesPairs");
+    }
   }
 
-  await tournament.save();
+  // Log tournament state before save
+  console.log("[add-participant] Before save - Tournament state:", {
+    format: tournament.format,
+    matchType: (tournament as any).matchType,
+    participantCount: tournament.participants.length,
+    drawGenerated: tournament.drawGenerated,
+    status: tournament.status,
+    hasHybridConfig: !!(tournament as any).hybridConfig,
+    hasGroups: !!(tournament as any).groups && (tournament as any).groups.length > 0,
+  });
+
+  try {
+    await tournament.save();
+    console.log("[add-participant] Save successful");
+  } catch (saveError: any) {
+    console.error("[add-participant] Error saving tournament:", saveError);
+    console.error("[add-participant] Error name:", saveError.name);
+    console.error("[add-participant] Error message:", saveError.message);
+    console.error("[add-participant] Error stack:", saveError.stack);
+    console.error("[add-participant] Tournament state at error:", {
+      format: tournament.format,
+      matchType: (tournament as any).matchType,
+      participantCount: tournament.participants.length,
+      hasDoublesPairs: !!(tournament as any).doublesPairs,
+      doublesPairsLength: (tournament as any).doublesPairs?.length || 0,
+      drawGenerated: tournament.drawGenerated,
+      drawGeneratedType: typeof tournament.drawGenerated,
+      drawGeneratedValue: tournament.drawGenerated,
+      status: tournament.status,
+      hasHybridConfig: !!(tournament as any).hybridConfig,
+    });
+    if (saveError.errors) {
+      console.error("[add-participant] Mongoose validation errors:", JSON.stringify(saveError.errors, null, 2));
+    }
+    // Re-throw the original error so we can see the actual Mongoose error
+    throw saveError;
+  }
 
   // Populate tournament data based on category
-  await (tournament as any).populate("participants");
-  await (tournament as any).populate("organizer");
-  await (tournament as any).populate("seeding.participant");
+  try {
+    await (tournament as any).populate("participants");
+    await (tournament as any).populate("organizer");
+    await (tournament as any).populate("seeding.participant");
+  } catch (populateError: any) {
+    console.error("[add-participant] Error populating tournament:", populateError);
+    // Don't fail the request if populate fails, just log it
+  }
 
   return jsonOk({
     message: isTeamTournament
@@ -101,7 +142,14 @@ export async function POST(
       : "Participant added successfully!",
     tournament,
   });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("[add-participant] Unexpected error:", error);
+    console.error("[add-participant] Error stack:", error.stack);
+    console.error("[add-participant] Error details:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+    });
     return jsonError(error);
   }
 }

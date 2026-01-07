@@ -393,24 +393,51 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       return;
     }
 
-    // Determine winner ID based on winnerSide
-    // Handle both ObjectId and populated object formats
-    const getParticipantId = (participant: any): string => {
-      if (typeof participant === "string") return participant;
-      if (participant?._id) return participant._id.toString();
-      return participant.toString();
-    };
+    // Check if this is a doubles tournament
+    const isDoubles = tournament.matchType === "doubles";
 
-    // For doubles, winnerSide still indicates which side won
-    // But we need to use the first player of the winning side as the identifier
-    if (match.participants.length === 4) {
-      // Doubles match - use first player of winning side
+    // For doubles matches, we need to find the bracket match first
+    // because the bracket uses pair IDs, not individual player IDs
+    if (isDoubles && match.participants.length === 4) {
+      // Find the bracket match to get pair IDs
+      let bracketMatch: any = null;
+      for (const round of tournament.bracket.rounds || []) {
+        const found = round.matches.find(
+          (m: any) => m.matchId?.toString() === match._id.toString()
+        );
+        if (found) {
+          bracketMatch = found;
+          break;
+        }
+      }
+
+      if (
+        !bracketMatch ||
+        !bracketMatch.participant1 ||
+        !bracketMatch.participant2
+      ) {
+        console.error(
+          "[updateKnockoutBracket] Could not find bracket match for doubles match",
+          {
+            matchId: match._id,
+          }
+        );
+        return;
+      }
+
+      // Use the pair ID from the bracket match based on winnerSide
       winnerId =
         match.winnerSide === "side1"
-          ? getParticipantId(match.participants[0])
-          : getParticipantId(match.participants[2]);
+          ? bracketMatch.participant1.toString()
+          : bracketMatch.participant2.toString();
     } else {
-      // Singles match
+      // Singles match - use player ID directly
+      const getParticipantId = (participant: any): string => {
+        if (typeof participant === "string") return participant;
+        if (participant?._id) return participant._id.toString();
+        return participant.toString();
+      };
+
       winnerId =
         match.winnerSide === "side1"
           ? getParticipantId(match.participants[0])
@@ -668,9 +695,22 @@ export async function updateRoundRobinStandings(tournament: any) {
     tournament.groups.length > 0 &&
     tournament.format !== "round_robin"
   ) {
-    for (const group of tournament.groups) {
+    for (let groupIndex = 0; groupIndex < tournament.groups.length; groupIndex++) {
+      const group = tournament.groups[groupIndex];
+      
+      // Validate group structure
+      if (!group) {
+        console.warn(`[updateRoundRobinStandings] Group at index ${groupIndex} is undefined, skipping`);
+        continue;
+      }
+      
+      if (!group.rounds || !Array.isArray(group.rounds)) {
+        console.warn(`[updateRoundRobinStandings] Group ${group.groupId || groupIndex} has no rounds, skipping`);
+        continue;
+      }
+      
       // Fetch all matches for this group
-      const groupMatchIds = group.rounds.flatMap((r: any) => r.matches);
+      const groupMatchIds = group.rounds.flatMap((r: any) => r.matches || []);
       const matches = await fetchMatches(groupMatchIds, true);
 
       // Convert team matches to MatchResult format if needed
@@ -686,7 +726,24 @@ export async function updateRoundRobinStandings(tournament: any) {
       // Get group participants and normalize them
       // CRITICAL: For doubles, group.participants might be player IDs, not pair IDs
       // We need to normalize them to ensure we get canonical team IDs
-      let groupParticipantIds = group.participants.map((p: any) => p.toString());
+      if (!group.participants || !Array.isArray(group.participants) || group.participants.length === 0) {
+        console.warn(`[updateRoundRobinStandings] Group ${group.groupId || groupIndex} has no participants, skipping`);
+        continue;
+      }
+      
+      let groupParticipantIds = group.participants
+        .filter((p: any) => p != null) // Filter out null/undefined
+        .map((p: any) => {
+          if (typeof p === 'string') return p;
+          if (p?._id) return p._id.toString();
+          return p.toString();
+        })
+        .filter((id: string) => id != null && id !== ''); // Filter out empty strings
+      
+      if (groupParticipantIds.length === 0) {
+        console.warn(`[updateRoundRobinStandings] Group ${group.groupId || groupIndex} has no valid participant IDs, skipping`);
+        continue;
+      }
       
       // For doubles tournaments, normalize each participant ID (might be a player ID that needs to map to a pair)
       if (isDoubles) {
@@ -727,9 +784,14 @@ export async function updateRoundRobinStandings(tournament: any) {
         headToHead: s.headToHead ? Object.fromEntries(s.headToHead) : {},
       }));
       
-      // CRITICAL: Mark group standings as modified so Mongoose saves the changes
-      tournament.markModified("groups");
+      // CRITICAL: Mark the specific group's standings as modified
+      // This ensures Mongoose detects nested array changes within the groups array
+      tournament.markModified(`groups.${groupIndex}.standings`);
     }
+    
+    // CRITICAL: Also mark the entire groups array as modified
+    // This ensures Mongoose saves all changes to the groups structure
+    tournament.markModified("groups");
 
     // Generate overall standings from group winners
     // For hybrid tournaments, use qualifyingPerGroup from hybridConfig
@@ -744,12 +806,19 @@ export async function updateRoundRobinStandings(tournament: any) {
     const qualifiers: any[] = [];
 
     tournament.groups.forEach((group: any) => {
+      // Skip groups that don't have standings (might have been skipped in processing)
+      if (!group || !group.standings || !Array.isArray(group.standings) || group.standings.length === 0) {
+        return;
+      }
+      
       const topN = group.standings.slice(0, advancePerGroup);
       qualifiers.push(
-        ...topN.map((q: any) => ({
-          ...q,
-          headToHead: q.headToHead || {},
-        }))
+        ...topN
+          .filter((q: any) => q != null && q.participant != null) // Filter out null/undefined entries
+          .map((q: any) => ({
+            ...q,
+            headToHead: q.headToHead || {},
+          }))
       );
     });
 
@@ -758,10 +827,20 @@ export async function updateRoundRobinStandings(tournament: any) {
     // qualified from multiple groups (shouldn't happen, but safety check)
     const qualifiersMap = new Map<string, any>();
     qualifiers.forEach((q: any) => {
+      // Skip if participant is missing
+      if (!q || !q.participant) {
+        return;
+      }
+      
       // Normalize participant ID to string
-      const participantId = typeof q.participant === 'string' 
-        ? q.participant 
-        : (q.participant?._id ? q.participant._id.toString() : q.participant.toString());
+      let participantId: string | null = null;
+      if (typeof q.participant === 'string') {
+        participantId = q.participant;
+      } else if (q.participant?._id) {
+        participantId = q.participant._id.toString();
+      } else if (q.participant != null) {
+        participantId = q.participant.toString();
+      }
       
       if (participantId && !qualifiersMap.has(participantId)) {
         qualifiersMap.set(participantId, q);
@@ -830,28 +909,64 @@ export async function updateRoundRobinStandings(tournament: any) {
 
   // Update round completion for groups
   if (usesGroups && tournament.groups) {
-    for (const group of tournament.groups) {
-      for (const round of group.rounds || []) {
+    for (let groupIndex = 0; groupIndex < tournament.groups.length; groupIndex++) {
+      const group = tournament.groups[groupIndex];
+      if (!group || !group.rounds || !Array.isArray(group.rounds)) {
+        continue;
+      }
+      
+      for (let roundIndex = 0; roundIndex < group.rounds.length; roundIndex++) {
+        const round = group.rounds[roundIndex];
+        if (!round || !round.matches) {
+          continue;
+        }
+        
         const roundMatches = round.matches.map((m: any) =>
           matchMap.get(m.toString())
         );
+        const wasCompleted = round.completed;
         round.completed = roundMatches.every(
           (m: any) => m && m.status === "completed"
         );
+        
+        // Mark round as modified if completion status changed
+        if (wasCompleted !== round.completed) {
+          tournament.markModified(`groups.${groupIndex}.rounds.${roundIndex}.completed`);
+        }
       }
+      
+      // Mark group rounds as modified
+      tournament.markModified(`groups.${groupIndex}.rounds`);
     }
+    
+    // Also mark entire groups array as modified
+    tournament.markModified("groups");
   }
 
   // Update round completion for single round-robin
   if (tournament.rounds && !usesGroups) {
-    for (const round of tournament.rounds) {
+    for (let roundIndex = 0; roundIndex < tournament.rounds.length; roundIndex++) {
+      const round = tournament.rounds[roundIndex];
+      if (!round || !round.matches) {
+        continue;
+      }
+      
       const roundMatches = round.matches.map((m: any) =>
         matchMap.get(m.toString())
       );
+      const wasCompleted = round.completed;
       round.completed = roundMatches.every(
         (m: any) => m && m.status === "completed"
       );
+      
+      // Mark round as modified if completion status changed
+      if (wasCompleted !== round.completed) {
+        tournament.markModified(`rounds.${roundIndex}.completed`);
+      }
     }
+    
+    // Mark rounds array as modified
+    tournament.markModified("rounds");
   }
 
   // Check if all rounds are completed and update tournament status

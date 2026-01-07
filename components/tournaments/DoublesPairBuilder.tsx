@@ -8,22 +8,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-
-interface Participant {
-  _id: string;
-  username: string;
-  fullName?: string;
-  profileImage?: string;
-}
+import { 
+  Participant as TournamentParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+  isUserParticipant
+} from "@/types/tournament.type";
 
 export interface DoublesPairData {
   _id: string;
-  player1: Participant;
-  player2: Participant;
+  player1: TournamentParticipant;
+  player2: TournamentParticipant;
 }
 
 interface DoublesPairBuilderProps {
-  participants: Participant[];
+  participants: TournamentParticipant[];
   existingPairs?: DoublesPairData[];
   onPairsChange: (pairs: DoublesPairData[]) => void;
   disabled?: boolean;
@@ -123,7 +122,9 @@ export default function DoublesPairBuilder({
 
     for (let i = 0; i < shuffled.length - 1; i += 2) {
       newPairs.push({
-        _id: `pair-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+        _id: `pair-${Date.now()}-${i}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
         player1: shuffled[i],
         player2: shuffled[i + 1],
       });
@@ -143,8 +144,9 @@ export default function DoublesPairBuilder({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-indigo-600" />
-          <h3 className="text-lg font-semibold">Create Doubles Pairs</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Doubles pairs
+          </h3>
         </div>
         <Badge variant="outline" className="text-xs">
           {pairs.length} pairs / {Math.floor(participants.length / 2)} needed
@@ -154,12 +156,11 @@ export default function DoublesPairBuilder({
       {/* Warning for odd players */}
       {hasOddPlayers && (
         <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-3">
+          <CardContent>
             <div className="flex items-center gap-2 text-amber-700 text-sm">
               <AlertCircle className="w-4 h-4" />
               <span>
-                Odd number of players ({participants.length}). One player will
-                not be paired.
+                You have an odd number of players ({participants.length}). Please add or remove one player.
               </span>
             </div>
           </CardContent>
@@ -169,11 +170,6 @@ export default function DoublesPairBuilder({
       {/* Created Pairs */}
       {pairs.length > 0 && (
         <Card>
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm font-medium">
-              Created Pairs ({pairs.length})
-            </CardTitle>
-          </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <AnimatePresence>
@@ -193,27 +189,27 @@ export default function DoublesPairBuilder({
                     </Badge>
                     <div className="flex items-center gap-1 flex-1 min-w-0">
                       <Avatar className="w-6 h-6">
-                        <AvatarImage src={pair.player1.profileImage} />
+                        <AvatarImage src={getParticipantImage(pair.player1)} />
                         <AvatarFallback className="text-[10px]">
-                          {(pair.player1.fullName || pair.player1.username)
+                          {getParticipantDisplayName(pair.player1)
                             .substring(0, 2)
                             .toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-xs font-medium truncate">
-                        {pair.player1.fullName || pair.player1.username}
+                        {getParticipantDisplayName(pair.player1)}
                       </span>
                       <span className="text-xs text-muted-foreground">&</span>
                       <Avatar className="w-6 h-6">
-                        <AvatarImage src={pair.player2.profileImage} />
+                        <AvatarImage src={getParticipantImage(pair.player2)} />
                         <AvatarFallback className="text-[10px]">
-                          {(pair.player2.fullName || pair.player2.username)
+                          {getParticipantDisplayName(pair.player2)
                             .substring(0, 2)
                             .toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-xs font-medium truncate">
-                        {pair.player2.fullName || pair.player2.username}
+                        {getParticipantDisplayName(pair.player2)}
                       </span>
                     </div>
                     {!disabled && (
@@ -269,23 +265,27 @@ export default function DoublesPairBuilder({
                     flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
                     ${
                       isSelected(player._id)
-                        ? "bg-indigo-100 border-indigo-400 ring-2 ring-indigo-200"
-                        : "bg-white border-slate-200 hover:border-indigo-300 hover:bg-indigo-50"
+                        ? "border-indigo-400 ring-1 ring-indigo-200"
+                        : "bg-white border-slate-200 hover:border-indigo-300"
                     }
-                    ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                    ${
+                      disabled
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer"
+                    }
                   `}
                   whileTap={{ scale: disabled ? 1 : 0.98 }}
                 >
                   <Avatar className="w-6 h-6">
-                    <AvatarImage src={player.profileImage} />
+                    <AvatarImage src={getParticipantImage(player)} />
                     <AvatarFallback className="text-[10px]">
-                      {(player.fullName || player.username)
+                      {getParticipantDisplayName(player)
                         .substring(0, 2)
                         .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">
-                    {player.fullName || player.username}
+                  <span className="text-xs font-medium">
+                    {getParticipantDisplayName(player)}
                   </span>
                   {isSelected(player._id) && (
                     <Check className="w-4 h-4 text-indigo-600" />
@@ -308,20 +308,6 @@ export default function DoublesPairBuilder({
             Create Pair
           </Button>
         </motion.div>
-      )}
-
-      {/* Completion Status */}
-      {isComplete && pairs.length > 0 && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-green-700">
-              <Check className="w-5 h-5" />
-              <span className="font-medium">
-                All players have been paired! You can now configure the matches.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

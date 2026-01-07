@@ -4,12 +4,43 @@
  * Usage: npx tsx scripts/delete-tournament.ts
  */
 
-import { connectDB } from "@/lib/mongodb";
-import TournamentIndividual from "@/models/TournamentIndividual";
-import TournamentTeam from "@/models/TournamentTeam";
-import IndividualMatch from "@/models/IndividualMatch";
-import TeamMatch from "@/models/TeamMatch";
-import BracketState from "@/models/BracketState";
+// Load environment variables first - MUST be before any other imports
+const dotenv = require("dotenv");
+const path = require("path");
+
+// Load .env files from project root
+const projectRoot = process.cwd();
+const envLocalPath = path.resolve(projectRoot, ".env.local");
+const envPath = path.resolve(projectRoot, ".env");
+
+// Try .env.local first, then fallback to .env
+dotenv.config({ path: envLocalPath });
+dotenv.config({ path: envPath });
+
+// Verify MONGODB_URI is loaded
+if (!process.env.MONGODB_URI) {
+  console.error("❌ MONGODB_URI not found in environment variables");
+  process.exit(1);
+}
+
+// Connect directly to MongoDB without going through env validation
+import mongoose from "mongoose";
+
+// Now import models
+import TournamentIndividual from "../models/TournamentIndividual";
+import TournamentTeam from "../models/TournamentTeam";
+import IndividualMatch from "../models/IndividualMatch";
+import TeamMatch from "../models/TeamMatch";
+import BracketState from "../models/BracketState";
+
+// Custom connect function that bypasses env validation
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+  await mongoose.connect(process.env.MONGODB_URI!);
+  return mongoose.connection;
+};
 
 async function deleteTournamentAndMatches() {
   try {

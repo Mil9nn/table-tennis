@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { validateRequest, updateTournamentSchema } from "@/lib/validations";
+import mongoose from "mongoose";
 
 // CRITICAL: Import models in correct order to ensure discriminators are registered
 // 1. Import base Match model first
@@ -36,6 +37,84 @@ function getParticipantPopulateConfig(category: "individual" | "team") {
 }
 
 // Helper to get match model based on tournament category
+/**
+ * Helper: Normalize pair ID to consistent string format
+ */
+function normalizePairId(pairId: any): string {
+  if (!pairId) return '';
+  if (typeof pairId === 'string') return pairId;
+  if (pairId?.toString) return pairId.toString();
+  return String(pairId);
+}
+
+/**
+ * Helper: Ensure doublesPairs are populated with player information
+ * Returns populated pairs with normalized IDs
+ */
+async function ensureDoublesPairsPopulated(doublesPairs: any[]): Promise<any[]> {
+  if (!doublesPairs || doublesPairs.length === 0) {
+    return [];
+  }
+
+  // Extract player IDs (handle both ObjectId and populated User objects)
+  const playerIds: string[] = [];
+  doublesPairs.forEach((pair: any) => {
+    // player1 and player2 are ObjectIds in the database
+    // If already populated, they'll be objects with _id
+    // If not populated, they'll be ObjectIds
+    const p1Id = pair.player1?._id?.toString() || pair.player1?.toString();
+    const p2Id = pair.player2?._id?.toString() || pair.player2?.toString();
+    if (p1Id) playerIds.push(p1Id);
+    if (p2Id) playerIds.push(p2Id);
+  });
+
+  // Convert playerIds to ObjectIds for MongoDB query
+  const playerObjectIds = playerIds
+    .filter((id): id is string => Boolean(id && mongoose.Types.ObjectId.isValid(id)))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  // Fetch users that aren't already populated
+  const users = playerObjectIds.length > 0
+    ? await User.find({ _id: { $in: playerObjectIds } })
+        .select("username fullName profileImage")
+        .lean()
+    : [];
+  const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+
+  // Populate pairs with user info (handle both already-populated and unpopulated cases)
+  const populatedPairs = doublesPairs.map((pair: any) => {
+    const p1Id = pair.player1?._id?.toString() || pair.player1?.toString();
+    const p2Id = pair.player2?._id?.toString() || pair.player2?.toString();
+
+    // Check if already populated (has _id property indicating it's a User object)
+    const player1Populated = pair.player1 && typeof pair.player1 === 'object' && pair.player1._id && pair.player1.username;
+    const player2Populated = pair.player2 && typeof pair.player2 === 'object' && pair.player2._id && pair.player2.username;
+
+    return {
+      _id: pair._id,
+      player1: player1Populated
+        ? pair.player1 // Already populated
+        : (p1Id ? userMap.get(p1Id) || null : null),
+      player2: player2Populated
+        ? pair.player2 // Already populated
+        : (p2Id ? userMap.get(p2Id) || null : null),
+    };
+  });
+
+  // Log if any players weren't found
+  const missingPlayers = populatedPairs.filter(p => !p.player1 || !p.player2);
+  if (missingPlayers.length > 0) {
+    console.warn(`[ensureDoublesPairsPopulated] ${missingPlayers.length} pairs have missing player data`);
+    missingPlayers.forEach((pair, idx) => {
+      const p1Id = doublesPairs[idx]?.player1?.toString();
+      const p2Id = doublesPairs[idx]?.player2?.toString();
+      console.warn(`[ensureDoublesPairsPopulated] Pair ${pair._id}: player1=${p1Id} (found: ${!!pair.player1}), player2=${p2Id} (found: ${!!pair.player2})`);
+    });
+  }
+
+  return populatedPairs;
+}
+
 function getMatchModel(category: "individual" | "team") {
   return category === "team" ? TeamMatch : IndividualMatch;
 }
@@ -140,16 +219,21 @@ export async function GET(
           options: { strictPopulate: false } // Don't fail if some users don't exist
         });
       
-      // For doubles tournaments, don't populate standings.participant as User
-      // because it's actually a pair ID, not a user ID. We'll handle it manually later.
+      // For doubles tournaments, don't populate standings.participant or groups.standings.participant as User
+      // because they're actually pair IDs, not user IDs. We'll handle it manually later.
       if (!isDoublesTournament) {
         query = query
           .populate("standings.participant", "username fullName profileImage")
-          .populate("groups.standings.participant", "username fullName profileImage");
+          .populate("groups.standings.participant", "username fullName profileImage")
+          .populate("groups.participants", "username fullName profileImage");
+      } else {
+        // CRITICAL: For doubles tournaments, groups.participants and groups.standings.participant contain pair IDs, not user IDs
+        // DO NOT populate them as Users - this would cause incorrect data
+        // We'll manually populate them as pair objects later
+        // No populate needed here for doubles tournaments
       }
       
       query = query
-        .populate("groups.participants", "username fullName profileImage")
         .populate("seeding.participant", "username fullName profileImage")
         .populate("qualifiedParticipants", "username fullName profileImage");
     }
@@ -399,28 +483,18 @@ export async function GET(
       tournamentData.doublesPairs &&
       tournamentData.doublesPairs.length > 0
     ) {
-      const playerIds = tournamentData.doublesPairs.flatMap((pair: any) => [
-        pair.player1,
-        pair.player2,
-      ]);
-      const users = await User.find({ _id: { $in: playerIds } }).select(
-        "username fullName profileImage"
-      );
+      // Ensure doublesPairs are populated with player information
+      const populatedPairs = await ensureDoublesPairsPopulated(tournamentData.doublesPairs);
+      tournamentData.doublesPairs = populatedPairs;
 
-      // Create a map for quick lookup
-      const userMap = new Map(users.map((u) => [u._id.toString(), u.toObject()]));
-
-      // Populate the pairs
-      tournamentData.doublesPairs = tournamentData.doublesPairs.map((pair: any) => ({
-        _id: pair._id,
-        player1: userMap.get(pair.player1?.toString()),
-        player2: userMap.get(pair.player2?.toString()),
-      }));
-
-      // Create a map of pair ID -> populated pair for standings lookup
-      const pairMap = new Map(
-        tournamentData.doublesPairs.map((pair: any) => [pair._id?.toString(), pair])
-      );
+      // Create a map of pair ID -> populated pair for standings lookup (with normalized IDs)
+      const pairMap = new Map<string, any>();
+      populatedPairs.forEach((pair: any) => {
+        const pairId = normalizePairId(pair._id);
+        if (pairId) {
+          pairMap.set(pairId, pair);
+        }
+      });
 
       // For doubles tournaments, standings use pair IDs instead of player IDs
       // We need to populate standings.participant with pair info
@@ -445,11 +519,11 @@ export async function GET(
 
           // Check if participant is already a populated User object (from mongoose populate)
           if (standing.participant && typeof standing.participant === 'object' && standing.participant._id) {
-            const participantId = standing.participant._id.toString();
+            const participantId = normalizePairId(standing.participant._id);
             // Try to find pair by participant ID (could be a user ID)
             pair = playerToPairMap.get(participantId);
             if (pair) {
-              pairId = pair._id?.toString();
+              pairId = normalizePairId(pair._id);
             } else {
               // If not found by user ID, try as pair ID
               pair = pairMap.get(participantId);
@@ -459,7 +533,7 @@ export async function GET(
             }
           } else {
             // Participant is still an ID string (pair ID)
-            pairId = standing.participant?.toString();
+            pairId = normalizePairId(standing.participant);
             pair = pairMap.get(pairId || '');
           }
           
@@ -470,7 +544,7 @@ export async function GET(
             return {
               ...standing,
               participant: {
-                _id: pairId,
+                _id: normalizePairId(pairId),
                 fullName: `${player1Name} / ${player2Name}`,
                 username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
                 profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
@@ -482,12 +556,23 @@ export async function GET(
             };
           }
           
-          // If pair not found, return standing as is (might be filtered on frontend)
-          return standing;
+          // If pair not found, this is a data integrity issue
+          const participantId = normalizePairId(standing.participant) || 'unknown';
+          console.error(`[GET tournament] DATA INTEGRITY ERROR: Pair not found for standing participant: ${participantId}`);
+          return {
+            ...standing,
+            participant: {
+              _id: participantId,
+              fullName: `[ERROR: Pair not found]`,
+              username: `error_${participantId}`,
+              isPair: true,
+              _error: true,
+            },
+          };
         });
       }
 
-      // Also populate group standings with pair info
+      // Also populate group participants and standings with pair info
       if (tournamentData.groups && Array.isArray(tournamentData.groups)) {
         // Create a reverse map: player ID -> pair (for cases where participant was populated as User)
         const playerToPairMap = new Map<string, any>();
@@ -501,6 +586,61 @@ export async function GET(
         });
 
         tournamentData.groups = tournamentData.groups.map((group: any) => {
+          // Populate group participants as pairs (for doubles tournaments, participants are pair IDs)
+          if (group.participants && Array.isArray(group.participants)) {
+            group.participants = group.participants.map((participant: any) => {
+              let pair: any = null;
+              let pairId: string | null = null;
+
+              // Check if participant is already a populated User object (from mongoose populate attempt)
+              if (participant && typeof participant === 'object' && participant._id) {
+                const participantId = normalizePairId(participant._id);
+                // Try to find pair by participant ID (could be a user ID from failed populate)
+                pair = playerToPairMap.get(participantId);
+                if (pair) {
+                  pairId = normalizePairId(pair._id);
+                } else {
+                  // If not found by user ID, try as pair ID
+                  pair = pairMap.get(participantId);
+                  if (pair) {
+                    pairId = participantId;
+                  }
+                }
+              } else {
+                // Participant is still an ID string (pair ID)
+                pairId = normalizePairId(participant);
+                pair = pairMap.get(pairId || '');
+              }
+              
+              if (pair && pairId) {
+                // Create a pseudo-participant object for the pair
+                const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+                const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+                return {
+                  _id: normalizePairId(pairId),
+                  fullName: `${player1Name} / ${player2Name}`,
+                  username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
+                  profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
+                  // Store original pair info for reference
+                  isPair: true,
+                  player1: pair.player1,
+                  player2: pair.player2,
+                };
+              }
+              
+              // If pair not found, this is a data integrity issue
+              const participantId = normalizePairId(participant) || 'unknown';
+              console.error(`[GET tournament] DATA INTEGRITY ERROR: Pair not found for group participant: ${participantId}`);
+              return {
+                _id: participantId,
+                fullName: `[ERROR: Pair not found]`,
+                username: `error_${participantId}`,
+                isPair: true,
+                _error: true,
+              };
+            });
+          }
+
           if (group.standings && Array.isArray(group.standings)) {
             // NOTE: The new standings architecture ensures no duplicates at the source,
             // so we only need to populate pair information here
@@ -511,11 +651,11 @@ export async function GET(
 
               // Check if participant is already a populated User object (from mongoose populate)
               if (standing.participant && typeof standing.participant === 'object' && standing.participant._id) {
-                const participantId = standing.participant._id.toString();
+                const participantId = normalizePairId(standing.participant._id);
                 // Try to find pair by participant ID (could be a user ID)
                 pair = playerToPairMap.get(participantId);
                 if (pair) {
-                  pairId = pair._id?.toString();
+                  pairId = normalizePairId(pair._id);
                 } else {
                   // If not found by user ID, try as pair ID
                   pair = pairMap.get(participantId);
@@ -525,7 +665,7 @@ export async function GET(
                 }
               } else {
                 // Participant is still an ID string (pair ID)
-                pairId = standing.participant?.toString();
+                pairId = normalizePairId(standing.participant);
                 pair = pairMap.get(pairId || '');
               }
               
@@ -536,7 +676,7 @@ export async function GET(
                 return {
                   ...standing,
                   participant: {
-                    _id: pairId,
+                    _id: normalizePairId(pairId),
                     fullName: `${player1Name} / ${player2Name}`,
                     username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
                     profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
@@ -548,12 +688,57 @@ export async function GET(
                 };
               }
               
-              // If pair not found, return standing as is
-              return standing;
+              // If pair not found, this is a data integrity issue
+              const participantId = normalizePairId(standing.participant) || 'unknown';
+              console.error(`[GET tournament] DATA INTEGRITY ERROR: Pair not found for group standing participant: ${participantId}`);
+              return {
+                ...standing,
+                participant: {
+                  _id: participantId,
+                  fullName: `[ERROR: Pair not found]`,
+                  username: `error_${participantId}`,
+                  isPair: true,
+                  _error: true,
+                },
+              };
             });
           }
           return group;
         });
+      }
+      
+      // Validation: Check for data integrity issues
+      const errors: string[] = [];
+      if (tournamentData.standings) {
+        tournamentData.standings.forEach((standing: any, idx: number) => {
+          if ((standing.participant as any)?._error) {
+            errors.push(`Standing ${idx + 1}: Pair not found for participant ${standing.participant._id}`);
+          }
+        });
+      }
+      if (tournamentData.groups) {
+        tournamentData.groups.forEach((group: any) => {
+          if (group.standings) {
+            group.standings.forEach((standing: any, idx: number) => {
+              if ((standing.participant as any)?._error) {
+                errors.push(`Group ${group.groupId || 'unknown'}, standing ${idx + 1}: Pair not found for participant ${standing.participant._id}`);
+              }
+            });
+          }
+          if (group.participants) {
+            group.participants.forEach((participant: any, idx: number) => {
+              if ((participant as any)?._error) {
+                errors.push(`Group ${group.groupId || 'unknown'}, participant ${idx + 1}: Pair not found for participant ${participant._id}`);
+              }
+            });
+          }
+        });
+      }
+      
+      if (errors.length > 0) {
+        console.error(`[GET tournament] DATA INTEGRITY ERRORS found:`, errors);
+        // Still return the response, but log errors for debugging
+        // The UI will show error indicators for invalid participants
       }
     }
     

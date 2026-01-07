@@ -152,11 +152,6 @@ export function ManageDoublesPairsDialog({
                 to be paired
               </span>
             )}
-            {allPaired && (
-              <span className="text-green-600 font-medium">
-                ✓ All players paired
-              </span>
-            )}
           </div>
 
           <div className="flex gap-2">

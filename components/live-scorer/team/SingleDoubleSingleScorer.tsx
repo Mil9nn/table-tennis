@@ -15,6 +15,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
 import InitialServerDialog from "@/components/ServerDialog";
 import MatchStatusBadge from "@/components/MatchStatusBadge";
@@ -264,7 +270,7 @@ export default function SingleDoubleSingleScorer({
 };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-2">
+    <div className="max-w-6xl mx-auto">
       {/* Team Match Score Overview */}
       <Card className="shadow-none rounded-none">
         <CardHeader>
@@ -289,78 +295,72 @@ export default function SingleDoubleSingleScorer({
         </CardContent>
       </Card>
 
-      {/* SubMatch Navigator */}
-      <Card className="rounded-none shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Rubber Sequence</CardTitle>
-          <Badge variant="outline">
-            {getSubMatchLabel(currentSubMatchIndex)}
-          </Badge>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
-              disabled={currentSubMatchIndex === 0}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
+      {/* SubMatch Navigator - Collapsible */}
+      <Accordion type="single" collapsible defaultValue="">
+        <AccordionItem value="rubber-navigator" className="border rounded-md">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline">
+            <div className="flex items-center gap-2 w-full">
+              <CardTitle className="text-sm font-medium">
+                Rubber {currentSubMatchIndex + 1}: {teamMatchPlayers.side1.map((p) => p.name).join(" & ")} vs {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
+              </CardTitle>
+              <Badge variant="outline" className="ml-auto">
+                {getSubMatchLabel(currentSubMatchIndex)}
+              </Badge>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-0">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 px-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+                disabled={currentSubMatchIndex === 0}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
 
-            {match.subMatches.map((sm, idx) => {
-              const isActive = idx === currentSubMatchIndex;
-              const isCompleted = sm.status === "completed";
+              {match.subMatches.map((sm, idx) => {
+                const isActive = idx === currentSubMatchIndex;
+                const isCompleted = sm.status === "completed";
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => goToSubMatch(idx)}
-                  className={`
-                    px-4 py-2 rounded-lg border-2 whitespace-nowrap text-sm font-medium transition-all
-                    ${
-                      isActive
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : isCompleted
-                        ? "border-green-200 bg-green-50 text-green-700"
-                        : "border-gray-200 hover:border-gray-300"
-                    }
-                  `}
-                >
-                  {getSubMatchLabel(idx)}
-                  {isCompleted && sm.winnerSide && (
-                    <span className="ml-2">✓</span>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => goToSubMatch(idx)}
+                    className={`
+                      px-4 py-2 rounded-lg border-2 whitespace-nowrap text-sm font-medium transition-all
+                      ${
+                        isActive
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : isCompleted
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-gray-200 hover:border-gray-300"
+                      }
+                    `}
+                  >
+                    {getSubMatchLabel(idx)}
+                    {isCompleted && sm.winnerSide && (
+                      <span className="ml-2">✓</span>
+                    )}
+                  </button>
+                );
+              })}
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
-              disabled={currentSubMatchIndex === match.subMatches.length - 1}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+                disabled={currentSubMatchIndex === match.subMatches.length - 1}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Current SubMatch Details */}
-      <Card className="rounded-none">
-        <CardHeader>
-          <div className="flex flex-col gap-2">
-            <CardTitle className="w-full flex items-center justify-between gap-2">
-              <span>{getSubMatchLabel(currentSubMatchIndex)}</span>
-              <MatchStatusBadge status={currentSubMatch.status as MatchStatus}  />
-            </CardTitle>
-            <p className="text-xs font-semibold">
-              {teamMatchPlayers.side1.map((p) => p.name).join(" & ")} vs{" "}
-              {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
-            </p>
-          </div>
-        </CardHeader>
+      <Card className="rounded-none py-0">
         <CardContent className="p-0">
           {currentSubMatch.status === "completed" ? (
             <div className="text-center py-8">
@@ -432,6 +432,7 @@ export default function SingleDoubleSingleScorer({
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
                   participants={[...player1, ...player2] as any}
+                  serverConfig={currentSubMatch.serverConfig}
                 />
               </div>
             </>

@@ -29,6 +29,7 @@ interface ManageGroupsDialogProps {
   onUpdate: (groups: Group[]) => void;
   drawGenerated?: boolean;
   hasPlayedMatches?: boolean;
+  numberOfGroups?: number; // Maximum number of groups allowed (from tournament config)
 }
 
 export function ManageGroupsDialog({
@@ -40,6 +41,7 @@ export function ManageGroupsDialog({
   onUpdate,
   drawGenerated = false,
   hasPlayedMatches = false,
+  numberOfGroups,
 }: ManageGroupsDialogProps) {
   const [localGroups, setLocalGroups] = useState<Group[]>([]);
   const [saving, setSaving] = useState(false);
@@ -120,6 +122,12 @@ export function ManageGroupsDialog({
 
   // Create a new group
   const createNewGroup = () => {
+    // Check if we've reached the configured number of groups
+    if (numberOfGroups && localGroups.length >= numberOfGroups) {
+      toast.error(`Maximum number of groups reached (${numberOfGroups}). This tournament is configured for ${numberOfGroups} groups.`);
+      return;
+    }
+
     const groupLabels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const existingGroupIds = new Set(localGroups.map((g) => g.groupId));
     let newGroupId = "";
@@ -160,6 +168,15 @@ export function ManageGroupsDialog({
       );
       return;
     }
+
+    // Check if deleting would go below the required number of groups
+    if (numberOfGroups && localGroups.length <= numberOfGroups) {
+      toast.error(
+        `Cannot delete group. This tournament requires exactly ${numberOfGroups} groups.`
+      );
+      return;
+    }
+
     setLocalGroups((prev) => prev.filter((g) => g.groupId !== groupId));
   };
 
@@ -353,13 +370,21 @@ export function ManageGroupsDialog({
               )}
 
               {/* Create New Group Button */}
-              <Button
-                variant="outline"
-                onClick={createNewGroup}
-                className="w-full"
-              >
-                Create New Group
-              </Button>
+              {(!numberOfGroups || localGroups.length < numberOfGroups) && (
+                <Button
+                  variant="outline"
+                  onClick={createNewGroup}
+                  className="w-full"
+                  disabled={numberOfGroups ? localGroups.length >= numberOfGroups : false}
+                >
+                  Create New Group
+                </Button>
+              )}
+              {numberOfGroups && localGroups.length >= numberOfGroups && (
+                <div className="text-center py-2 text-sm text-muted-foreground">
+                  Maximum {numberOfGroups} groups configured for this tournament
+                </div>
+              )}
             </div>
           </ScrollArea>
         </div>

@@ -6,6 +6,9 @@ import Image from "next/image";
 import {
   Standing,
   TeamPlayerStats,
+  getParticipantDisplayName,
+  getParticipantImage,
+  isUserParticipant,
 } from "@/types/tournament.type";
 import { axiosInstance } from "@/lib/axiosInstance";
 
@@ -28,7 +31,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Flame, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -122,13 +124,20 @@ export function EnhancedStandingsTable({
   const isTeamTournament = category === "team";
   const isDoubles = matchType === "doubles";
 
-  // CRITICAL: Deduplicate standings by participant ID to prevent duplicate entries
-  // This is a safety net in case duplicates exist in the data
+  // Use standings directly - no filtering workarounds
+  // If there are data integrity issues, they should be fixed at the source
+  // Show all standings, even if they have errors (with visual indicators)
   const deduplicatedStandings = React.useMemo(() => {
+    // Simple deduplication by participant ID (keep first occurrence)
     const seen = new Map<string, Standing>();
+    const result: Standing[] = [];
     
-    return standings.filter((s) => {
-      if (!s.participant || !s.participant._id) return false;
+    standings.forEach((s) => {
+      if (!s.participant || !s.participant._id) {
+        // Include invalid standings but mark them
+        result.push(s);
+        return;
+      }
       
       // Normalize participant ID to string for consistent comparison
       const participantId = typeof s.participant._id === 'string' 
@@ -138,15 +147,12 @@ export function EnhancedStandingsTable({
       // Keep only the first occurrence of each participant
       if (!seen.has(participantId)) {
         seen.set(participantId, s);
-        return true;
+        result.push(s);
       }
-      
-      // Log duplicate for debugging
-      console.warn(
-        `[EnhancedStandingsTable] Duplicate standing entry found for participant ${participantId}. Keeping first occurrence.`
-      );
-      return false;
+      // Skip duplicates silently - they should be fixed at the source
     });
+    
+    return result;
   }, [standings]);
 
   const formChip = (r: string) => {
@@ -207,14 +213,46 @@ export function EnhancedStandingsTable({
 
     setLoadingDetails(true);
     try {
+      // Find the participant from standings first to get full participant data
+      const standingParticipant = deduplicatedStandings.find(
+        (s) => {
+          const id = typeof s.participant._id === 'string' 
+            ? s.participant._id 
+            : String(s.participant._id);
+          return id === participantId;
+        }
+      )?.participant;
+
       const { data } = await axiosInstance.get(
         `tournaments/${tournamentId}/leaderboard/detailed`
       );
       const player = data.leaderboard.find(
-        (p: DetailedPlayerStats) => p.participant._id === participantId
+        (p: DetailedPlayerStats) => {
+          const id = typeof p.participant._id === 'string'
+            ? p.participant._id
+            : String(p.participant._id);
+          return id === participantId;
+        }
       );
+      
       if (player) {
-        setSelectedPlayer(player);
+        // Merge participant data from standings with API response to ensure we have full participant info
+        const standingParticipantData = standingParticipant as any;
+        const mergedPlayer: DetailedPlayerStats = {
+          ...player,
+          participant: {
+            ...player.participant,
+            // Override with standing participant data if available (more complete)
+            ...(standingParticipantData && {
+              username: standingParticipantData.username || player.participant.username,
+              fullName: standingParticipantData.fullName || player.participant.fullName,
+              profileImage: standingParticipantData.profileImage || player.participant.profileImage,
+              name: standingParticipantData.name || player.participant.name,
+              logo: standingParticipantData.logo || player.participant.logo,
+            }),
+          },
+        };
+        setSelectedPlayer(mergedPlayer);
         setShowPlayerDialog(true);
       }
     } catch (error) {
@@ -226,14 +264,13 @@ export function EnhancedStandingsTable({
 
   const getDisplayName = (p: any): string => {
     if (!p) return "Unknown";
-    if (p.name && !p.username) return p.name;
     
     // Check if this is a doubles pair
     if (isDoubles) {
       // First check if participant has pair info directly (preferred method)
-      if (p.isPair || (p.player1 && p.player2)) {
-        const player1Name = p.player1?.fullName || p.player1?.username || "Player 1";
-        const player2Name = p.player2?.fullName || p.player2?.username || "Player 2";
+      if ((p as any).isPair || ((p as any).player1 && (p as any).player2)) {
+        const player1Name = getParticipantDisplayName((p as any).player1);
+        const player2Name = getParticipantDisplayName((p as any).player2);
         return `${player1Name}/${player2Name}`;
       }
       
@@ -252,43 +289,44 @@ export function EnhancedStandingsTable({
       }
     }
     
-    return p.fullName || p.username || p.name || "Unknown";
+    return getParticipantDisplayName(p);
   };
 
   const getSubtext = (p: any): string => {
     if (!p) return "";
-    if (p.name && !p.username) {
-      return p.city || `${p.players?.length || 0} players`;
+    
+    // For team participants
+    if (!isUserParticipant(p)) {
+      return (p as any).city || `${(p as any).players?.length || 0} players`;
     }
     
     // For doubles pairs, show usernames
-    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
-      const player1Username = p.player1?.username || "p1";
-      const player2Username = p.player2?.username || "p2";
+    if (isDoubles && ((p as any).isPair || ((p as any).player1 && (p as any).player2))) {
+      const player1Username = (p as any).player1?.username || "p1";
+      const player2Username = (p as any).player2?.username || "p2";
       return `@${player1Username} & @${player2Username}`;
     }
     
-    return `@${p.username || "unknown"}`;
+    return `@${(p as any).username || "unknown"}`;
   };
 
   const getImage = (p: any): string | undefined => {
     if (!p) return undefined;
-    if (p.name && !p.username) return p.logo;
     
     // For doubles pairs, prefer first player's image
-    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
-      return p.player1?.profileImage || p.player2?.profileImage;
+    if (isDoubles && ((p as any).isPair || ((p as any).player1 && (p as any).player2))) {
+      return getParticipantImage((p as any).player1) || getParticipantImage((p as any).player2);
     }
     
-    return p.profileImage;
+    return getParticipantImage(p);
   };
 
   const getInitial = (p: any): string => {
     if (!p) return "?";
     
     // For doubles pairs, use first letter of first player
-    if (isDoubles && (p.isPair || (p.player1 && p.player2))) {
-      const player1Name = p.player1?.fullName || p.player1?.username || "Player 1";
+    if (isDoubles && ((p as any).isPair || ((p as any).player1 && (p as any).player2))) {
+      const player1Name = getParticipantDisplayName((p as any).player1);
       return player1Name.charAt(0).toUpperCase() || "?";
     }
     
@@ -396,9 +434,12 @@ export function EnhancedStandingsTable({
           <TableBody>
             {deduplicatedStandings.map((s, index) => {
               const highlight = s.rank <= highlightTop;
-              const participantLink = isTeamTournament
-                ? `/teams/${s.participant._id}`
-                : `/profile/${s.participant._id}`;
+              const hasError = (s.participant as any)?._error || !s.participant || !s.participant._id;
+              const participantLink = hasError 
+                ? "#" 
+                : (isTeamTournament
+                    ? `/teams/${s.participant._id}`
+                    : `/profile/${s.participant._id}`);
               const isExpanded = expandedTeam === s.participant._id;
               const hasPlayerStats =
                 isTeamTournament && s.playerStats && s.playerStats.length > 0;
@@ -413,7 +454,7 @@ export function EnhancedStandingsTable({
                   <TableRow
                     className={cn(
                       "transition-all",
-                      highlight ? "bg-indigo-50/60" : "hover:bg-slate-50"
+                      hasError ? "bg-red-50/50" : highlight ? "bg-indigo-50/60" : "hover:bg-slate-50"
                     )}
                   >
                     {/* Rank */}
@@ -423,28 +464,46 @@ export function EnhancedStandingsTable({
 
                     {/* Player/Team */}
                     <TableCell>
-                      <Link
-                        href={participantLink}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                      >
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage
-                            src={getImage(s.participant)}
-                            alt={getDisplayName(s.participant)}
-                          />
-                          <AvatarFallback className="text-xs">
-                            {getInitial(s.participant)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col leading-tight">
-                          <span className="text-[13px] font-medium text-slate-700">
-                            {getDisplayName(s.participant)}
-                          </span>
-                          <span className="text-[11px] text-slate-500">
-                            {getSubtext(s.participant)}
-                          </span>
+                      {hasError ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-7 w-7 border-2 border-red-300">
+                            <AvatarFallback className="text-xs bg-red-100 text-red-700">
+                              !
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col leading-tight">
+                            <span className="text-[13px] font-medium text-red-700">
+                              {getDisplayName(s.participant) || "[ERROR: Invalid participant]"}
+                            </span>
+                            <span className="text-[11px] text-red-600">
+                              Data integrity issue
+                            </span>
+                          </div>
                         </div>
-                      </Link>
+                      ) : (
+                        <Link
+                          href={participantLink}
+                          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        >
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage
+                              src={getImage(s.participant)}
+                              alt={getDisplayName(s.participant)}
+                            />
+                            <AvatarFallback className="text-xs">
+                              {getInitial(s.participant)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col leading-tight">
+                            <span className="text-[13px] font-medium text-slate-700">
+                              {getDisplayName(s.participant)}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              {getSubtext(s.participant)}
+                            </span>
+                          </div>
+                        </Link>
+                      )}
                     </TableCell>
 
                     {/* MP */}
@@ -646,22 +705,24 @@ export function EnhancedStandingsTable({
             {selectedPlayer && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={getImage(selectedPlayer.participant)}
-                        alt={getDisplayName(selectedPlayer.participant)}
-                      />
-                      <AvatarFallback className="text-[11px]">
-                        {getInitial(selectedPlayer.participant)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="text-base font-semibold text-slate-800">
-                        {getDisplayName(selectedPlayer.participant)}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-normal">
-                        {getSubtext(selectedPlayer.participant)}
+                  <DialogTitle className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage
+                          src={getImage(selectedPlayer.participant)}
+                          alt={getDisplayName(selectedPlayer.participant)}
+                        />
+                        <AvatarFallback className="text-[11px]">
+                          {getInitial(selectedPlayer.participant)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-base font-semibold text-slate-800">
+                          {getDisplayName(selectedPlayer.participant)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-normal">
+                          {getSubtext(selectedPlayer.participant)}
+                        </div>
                       </div>
                     </div>
                     <Badge className="bg-indigo-100 text-indigo-700 text-[11px] font-semibold px-2.5 py-1">
@@ -669,158 +730,62 @@ export function EnhancedStandingsTable({
                     </Badge>
                   </DialogTitle>
                   <DialogDescription className="text-[11px] text-slate-500">
-                    Complete match history and head-to-head records
+                    Complete match history
                   </DialogDescription>
                 </DialogHeader>
 
-                <Tabs defaultValue="matches" className="w-full mt-4">
-                  <TabsList className="grid w-full grid-cols-2 h-9">
-                    <TabsTrigger value="matches" className="text-[12px]">
-                      Match History
-                    </TabsTrigger>
-                    <TabsTrigger value="h2h" className="text-[12px]">
-                      Head-to-Head
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="matches" className="mt-3">
-                    {selectedPlayer.matchHistory.length === 0 ? (
-                      <div className="text-center text-slate-500 text-[12px] py-12">
-                        No matches played yet
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {selectedPlayer.matchHistory.map((match) => (
-                          <div
-                            key={match.matchId}
-                            className="flex items-center justify-between py-2.5 px-3 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <div
-                                className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                                  match.result === "win"
-                                    ? "bg-green-100 text-green-700"
-                                    : match.result === "loss"
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-slate-200 text-slate-600"
-                                }`}
-                              >
-                                {match.result === "win"
-                                  ? "W"
+                <div className="mt-4">
+                  {selectedPlayer.matchHistory.length === 0 ? (
+                    <div className="text-center text-slate-500 text-[12px] py-12">
+                      No matches played yet
+                    </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {selectedPlayer.matchHistory.map((match) => (
+                        <div
+                          key={match.matchId}
+                          className="flex items-center justify-between py-2.5 px-3 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div
+                              className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                match.result === "win"
+                                  ? "bg-green-100 text-green-700"
                                   : match.result === "loss"
-                                  ? "L"
-                                  : "D"}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-medium text-[13px] text-slate-700 truncate">
-                                  vs {getDisplayName(match.opponent)}
-                                </div>
-                                <div className="text-[11px] text-slate-500">
-                                  {match.groupId ? "Group Stage" : "Round Robin"}
-                                  {match.roundNumber &&
-                                    ` • Round ${match.roundNumber}`}
-                                </div>
-                              </div>
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-slate-200 text-slate-600"
+                              }`}
+                            >
+                              {match.result === "win"
+                                ? "W"
+                                : match.result === "loss"
+                                ? "L"
+                                : "D"}
                             </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-base font-semibold text-slate-800">
-                                {match.score}
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-[13px] text-slate-700 truncate">
+                                {getDisplayName(match.opponent)}
                               </div>
-                              <div className="text-[10px] text-slate-500">
-                                {match.pointsScored}-{match.pointsConceded} pts
+                              <div className="text-[11px] text-slate-500">
+                                {match.groupId ? "Group Stage" : "Round Robin"}
+                                {match.roundNumber &&
+                                  ` • Round ${match.roundNumber}`}
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="h2h" className="mt-4">
-                    {selectedPlayer.headToHead.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-12">
-                        No head-to-head data available
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedPlayer.headToHead.map((h2h) => {
-                          const winRate =
-                            h2h.matches > 0 ? (h2h.wins / h2h.matches) * 100 : 0;
-                          return (
-                            <div
-                              key={h2h.opponentId}
-                              className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="font-semibold text-sm">
-                                  vs {getDisplayName(h2h.opponent)}
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {h2h.matches}{" "}
-                                  {h2h.matches === 1 ? "match" : "matches"}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-4 mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-green-600">
-                                    {h2h.wins}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    W
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-red-600">
-                                    {h2h.losses}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    L
-                                  </span>
-                                </div>
-                                {h2h.draws > 0 && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-lg font-bold text-gray-600">
-                                      {h2h.draws}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      D
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="ml-auto text-right">
-                                  <div className="text-sm font-semibold">
-                                    {winRate.toFixed(0)}%
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Win Rate
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex gap-4 text-xs">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-muted-foreground">
-                                    Sets:
-                                  </span>
-                                  <span className="font-medium">
-                                    {h2h.setsWon}-{h2h.setsLost}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-muted-foreground">
-                                    Points:
-                                  </span>
-                                  <span className="font-medium">
-                                    {h2h.pointsScored}-{h2h.pointsConceded}
-                                  </span>
-                                </div>
-                              </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-base font-semibold text-slate-800">
+                              {match.score}
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                            <div className="text-[10px] text-slate-500">
+                              {match.pointsScored}-{match.pointsConceded} pts
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </DialogContent>

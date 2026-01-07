@@ -127,10 +127,20 @@ const PlayerRow = ({
         </Link>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-sm text-[#353535]">
-              {getDisplayName(entry.player)}
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-sm text-[#353535]">
+                {getDisplayName(entry.player)}
+              </p>
+              {entry.stats.currentStreak !== 0 && (
+                <StreakBadge streak={entry.stats.currentStreak} />
+              )}
+            </div>
+            <div>
+              <span className="text-xs text-[#353535]">
+                Winrate: <span className="font-semibold" style={{ color: "#3c6e71" }}>{entry.stats.winRate}%</span>
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-xs mt-1">
             <div className="flex items-center gap-1 text-[#353535]">
@@ -142,31 +152,22 @@ const PlayerRow = ({
               <strong className="font-semibold">{entry.stats.losses}</strong>
               <span className="text-[#a8a8a8] font-medium"> losses</span>
             </div>
-            {entry.stats.currentStreak !== 0 && (
-              <>
-                <StreakBadge streak={entry.stats.currentStreak} />
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs">
+            <span style={{ color: "#d9d9d9" }}>•</span>
             <div className="flex items-center gap-1 text-[#353535]">
               <strong className="font-semibold">{entry.stats.setsWon}</strong>
-              <span className="text-[#a8a8a8] font-medium"> sets won</span>
+              <span className="text-[#a8a8a8] font-medium">
+                <span className="hidden sm:inline">sets won</span>
+                <span className="sm:hidden">sw</span>
+              </span>
             </div>
             <span style={{ color: "#d9d9d9" }}>•</span>
             <div className="flex items-center gap-1 text-[#353535]">
               <strong className="font-semibold">{entry.stats.setsLost}</strong>
-              <span className="text-[#a8a8a8] font-medium"> sets lost</span>
+              <span className="text-[#a8a8a8] font-medium">
+                <span className="hidden sm:inline">sets lost</span>
+                <span className="sm:hidden">sl</span>
+              </span>
             </div>
-          </div>
-        </div>
-
-        <div className="text-right min-w-fit">
-          <div className="text-xs font-medium text-[#6c6868] uppercase tracking-wider mb-1">
-            Win Rate
-          </div>
-          <div className="text-sm font-bold" style={{ color: "#3c6e71" }}>
-            {entry.stats.winRate}%
           </div>
         </div>
       </div>

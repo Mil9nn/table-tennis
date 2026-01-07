@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface TableCourtProps {
@@ -27,8 +27,33 @@ export default function TableCourt({
     y: number;
   } | null>(null);
 
+  // Detect if we're on a large screen (skip zoom step)
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  
+  useEffect(() => {
+    // Check if screen width is >= 1024px (lg breakpoint)
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Table scaling state - replaces old zoom functionality
-  const [tableScaled, setTableScaled] = useState(startScaled);
+  // On large screens, always keep it false (no scaling needed)
+  const [tableScaled, setTableScaled] = useState(isLargeScreen ? false : startScaled);
+  
+  // Update tableScaled when screen size changes
+  useEffect(() => {
+    if (isLargeScreen) {
+      setTableScaled(false);
+    } else {
+      setTableScaled(startScaled);
+    }
+  }, [isLargeScreen, startScaled]);
 
   // Helper function to determine if coordinates are on table surface
   const isOnTableSurface = (x: number, y: number): boolean => {
@@ -44,15 +69,19 @@ export default function TableCourt({
     const relativeX = (clientX - rect.left) / rect.width;
     const relativeY = (clientY - rect.top) / rect.height;
 
-    if (tableScaled) {
-      // Scaled mode: entire container is table (0-100)
-      const x = relativeX * 100;
-      const y = relativeY * 100;
-      return { x, y };
-    } else {
+    // On large screens, always use normal mode calculation (no scaling)
+    // Normal mode: container represents -100 to 200 range
+    // Table surface is in the center 33.33% (from 33.33% to 66.66% of container)
+    // This maps to 0-100 in logical coordinates
+    if (isLargeScreen || !tableScaled) {
       // Normal mode: container represents -100 to 200
       const x = relativeX * 300 - 100;
       const y = relativeY * 300 - 100;
+      return { x, y };
+    } else {
+      // Scaled mode: entire container is table (0-100)
+      const x = relativeX * 100;
+      const y = relativeY * 100;
       return { x, y };
     }
   };
@@ -61,6 +90,19 @@ export default function TableCourt({
     const rect = e.currentTarget.getBoundingClientRect();
     const { x, y } = getLogicalCoordinates(e.clientX, e.clientY, rect);
 
+    // On large screens, skip zoom step and allow direct clicking
+    if (isLargeScreen) {
+      // Validate restrictions
+      if (restrictToSide === "left" && x > 50) return;
+      if (restrictToSide === "right" && x < 50) return;
+      if (mode === "landing" && !isOnTableSurface(x, y)) return;
+      
+      // Direct click - place shot immediately
+      onCourtClick(x, y);
+      return;
+    }
+
+    // Small screens: Use zoom functionality
     // CASE 1: First click on table in normal view → enter scaled mode
     if (!tableScaled && isOnTableSurface(x, y)) {
       setTableScaled(true);
@@ -119,14 +161,14 @@ export default function TableCourt({
           setHoverPosition(null);
         }}
         className={`relative w-full max-w-full lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto aspect-[2.74/1.525] bg-gray-200 shadow-2xl hover:shadow-3xl transition-all duration-300 overflow-hidden border border-gray-300 ${
-          tableScaled ? 'cursor-zoom-out' : 'cursor-crosshair'
+          isLargeScreen ? 'cursor-crosshair' : (tableScaled ? 'cursor-zoom-out' : 'cursor-crosshair')
         }`}
       >
         {/* Transformable content wrapper */}
         <motion.div
           className="absolute inset-0"
           animate={{
-            scale: tableScaled ? 3 : 1,
+            scale: isLargeScreen ? 1 : (tableScaled ? 3 : 1),
           }}
           transition={{
             type: "spring",

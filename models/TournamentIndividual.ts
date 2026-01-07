@@ -246,15 +246,12 @@ tournamentIndividualSchema.index({ category: 1 });
 tournamentIndividualSchema.index({ matchType: 1 });
 tournamentIndividualSchema.index({ participants: 1 });
 
-// Validation: Doubles requires even number of participants
-tournamentIndividualSchema.pre('save', function(next) {
-  if ((this as any).matchType === 'doubles') {
-    if ((this as any).participants.length % 2 !== 0) {
-      return next(new Error('Doubles tournaments require an even number of participants'));
-    }
-  }
-  next();
-});
+// REMOVED: Pre-save validation for even number of participants in doubles tournaments
+// This validation was preventing users from adding participants one at a time.
+// Instead, validation is now done at the appropriate time:
+// 1. When generating matches/draw (in generate-matches route)
+// 2. When creating doubles pairs (in doubles-pairs route)
+// This allows users to freely add participants before generating the draw.
 
 // Virtual to populate bracket from BracketState collection
 tournamentIndividualSchema.virtual('bracket', {

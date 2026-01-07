@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
     }
 
-    const userId = decoded.userId;
+    // Get userId from query parameter if viewing another user's profile, otherwise use authenticated user
+    const searchParams = request.nextUrl.searchParams;
+    const targetUserId = searchParams.get("userId") || decoded.userId;
+    
+    // Use targetUserId for fetching matches, but keep decoded.userId for authentication
+    const userId = targetUserId;
 
     // TEMPORARILY DISABLED: Subscription check for frontend development
     // const featureCheck = await requireFeature(request, "shotAnalysisAccess");
@@ -48,11 +53,13 @@ export async function GET(request: NextRequest) {
       return side === "side2" || side === "team2" ? 100 - landingX : landingX;
     }
 
-    // Fetch all completed matches
+    // Fetch all completed matches (no limit - get all matches)
     const individualMatches = await IndividualMatch.find({
       participants: userId,
       status: "completed",
-    }).lean();
+    })
+      .populate("participants", "username fullName profileImage")
+      .lean();
 
     const teamMatches = await TeamMatch.find({
       status: "completed",
@@ -60,7 +67,10 @@ export async function GET(request: NextRequest) {
         { "team1.players.user": userId },
         { "team2.players.user": userId },
       ],
-    }).lean();
+    })
+      .populate("team1.players.user", "username fullName profileImage")
+      .populate("team2.players.user", "username fullName profileImage")
+      .lean();
 
     // Initialize shot type distribution
     const shotTypeDistribution: Record<string, number> = {
@@ -132,13 +142,28 @@ export async function GET(request: NextRequest) {
     const opponentLineStats: Record<string, number> = { "down the line": 0, diagonal: 0, "cross court": 0, "middle line": 0 };
 
     // Process individual matches
+    let totalMatchesProcessed = 0;
+    let totalGamesProcessed = 0;
+    let totalShotsFound = 0;
+    let userShotsFound = 0;
+
     individualMatches.forEach((match: any) => {
+      totalMatchesProcessed++;
       // Determine user's side in this match
       const userSide = match.participants.findIndex((p: any) => p.toString() === userId.toString()) === 0 ? "side1" : "side2";
 
       match.games?.forEach((game: any) => {
+        if (game.shots && game.shots.length > 0) {
+          totalGamesProcessed++;
+        }
         game.shots?.forEach((shot: any) => {
-          if (shot.player?.toString() === userId) {
+          totalShotsFound++;
+          // Compare player IDs - handle both ObjectId and string formats
+          const shotPlayerId = shot.player?.toString();
+          const userIdStr = userId.toString();
+          
+          if (shotPlayerId === userIdStr) {
+            userShotsFound++;
             // Count shot types
             if (shot.stroke && shotTypeDistribution.hasOwnProperty(shot.stroke)) {
               shotTypeDistribution[shot.stroke]++;
@@ -186,39 +211,53 @@ export async function GET(request: NextRequest) {
                 if (analysis.originZone) userOriginZoneStats[analysis.originZone]++;
               }
             }
-          } else if (shot.player?.toString() !== userId) {
+          } else {
             // This is an opponent's shot that scored
-            if (shot.landingX !== undefined && shot.landingY !== undefined &&
-                shot.originX !== undefined && shot.originY !== undefined) {
-              // Normalize to user's defensive perspective
-              // If user was on side2, opponent was on side1, so flip coordinates
-              const normalizedOriginX = userSide === "side2" ? 100 - shot.originX : shot.originX;
-              const normalizedLandingX = userSide === "side2" ? 100 - shot.landingX : shot.landingX;
+            const shotPlayerId = shot.player?.toString();
+            const userIdStr = userId.toString();
+            
+            if (shotPlayerId && shotPlayerId !== userIdStr) {
+              if (shot.landingX !== undefined && shot.landingY !== undefined &&
+                  shot.originX !== undefined && shot.originY !== undefined) {
+                // Normalize to user's defensive perspective
+                // If user was on side2, opponent was on side1, so flip coordinates
+                const normalizedOriginX = userSide === "side2" ? 100 - shot.originX : shot.originX;
+                const normalizedLandingX = userSide === "side2" ? 100 - shot.landingX : shot.landingX;
 
-              const opponentShotData = {
-                originX: normalizedOriginX,
-                originY: shot.originY,
-                landingX: normalizedLandingX,
-                landingY: shot.landingY,
-                stroke: shot.stroke,
-                player: shot.player,
-                side: (userSide === "side1" ? "side2" : "side1") as Side, // Opponent's side
-              };
-              opponentShots.push(opponentShotData);
+                const opponentShotData = {
+                  originX: normalizedOriginX,
+                  originY: shot.originY,
+                  landingX: normalizedLandingX,
+                  landingY: shot.landingY,
+                  stroke: shot.stroke,
+                  player: shot.player,
+                  side: (userSide === "side1" ? "side2" : "side1") as Side, // Opponent's side
+                };
+                opponentShots.push(opponentShotData);
 
-              // Analyze opponent shot placement for defensive weaknesses
-              const analysis = analyzeShotPlacement(opponentShotData, userSide);
-              if (analysis.zone) opponentZoneStats[analysis.zone]++;
-              if (analysis.sector) opponentSectorStats[analysis.sector]++;
-              if (analysis.line) opponentLineStats[analysis.line]++;
+                // Analyze opponent shot placement for defensive weaknesses
+                const analysis = analyzeShotPlacement(opponentShotData, userSide);
+                if (analysis.zone) opponentZoneStats[analysis.zone]++;
+                if (analysis.sector) opponentSectorStats[analysis.sector]++;
+                if (analysis.line) opponentLineStats[analysis.line]++;
+              }
             }
           }
         });
       });
     });
 
+    // Log processing stats
+    console.log(`[Shots Analysis] Processed ${totalMatchesProcessed} individual matches, ${totalGamesProcessed} games, ${totalShotsFound} total shots, ${userShotsFound} user shots`);
+
     // Process team matches
+    let teamMatchesProcessed = 0;
+    let teamGamesProcessed = 0;
+    let teamShotsFound = 0;
+    let teamUserShotsFound = 0;
+
     teamMatches.forEach((match: any) => {
+      teamMatchesProcessed++;
       match.subMatches?.forEach((sub: any) => {
         const playerIds = [
           ...(Array.isArray(sub.playerTeam1) ? sub.playerTeam1 : [sub.playerTeam1]),
@@ -233,8 +272,17 @@ export async function GET(request: NextRequest) {
           const userSide = userInTeam1 ? "team1" : "team2";
 
           sub.games?.forEach((game: any) => {
+            if (game.shots && game.shots.length > 0) {
+              teamGamesProcessed++;
+            }
             game.shots?.forEach((shot: any) => {
-              if (shot.player?.toString() === userId) {
+              teamShotsFound++;
+              // Compare player IDs - handle both ObjectId and string formats
+              const shotPlayerId = shot.player?.toString();
+              const userIdStr = userId.toString();
+              
+              if (shotPlayerId === userIdStr) {
+                teamUserShotsFound++;
                 // Count shot types
                 if (shot.stroke && shotTypeDistribution.hasOwnProperty(shot.stroke)) {
                   shotTypeDistribution[shot.stroke]++;
@@ -285,35 +333,40 @@ export async function GET(request: NextRequest) {
                     if (analysis.originZone) userOriginZoneStats[analysis.originZone]++;
                   }
                 }
-              } else if (shot.player?.toString() !== userId) {
+              } else {
                 // This is an opponent's shot that scored
-                if (shot.landingX !== undefined && shot.landingY !== undefined &&
-                    shot.originX !== undefined && shot.originY !== undefined) {
-                  // Normalize to user's defensive perspective
-                  let shotSide = shot.side;
-                  if (!shotSide) {
-                    shotSide = userSide;
+                const shotPlayerId = shot.player?.toString();
+                const userIdStr = userId.toString();
+                
+                if (shotPlayerId && shotPlayerId !== userIdStr) {
+                  if (shot.landingX !== undefined && shot.landingY !== undefined &&
+                      shot.originX !== undefined && shot.originY !== undefined) {
+                    // Normalize to user's defensive perspective
+                    let shotSide = shot.side;
+                    if (!shotSide) {
+                      shotSide = userSide;
+                    }
+                    // If user was on team2, opponent was on team1, so flip coordinates
+                    const normalizedOriginX = userSide === "team2" ? 100 - shot.originX : shot.originX;
+                    const normalizedLandingX = userSide === "team2" ? 100 - shot.landingX : shot.landingX;
+
+                    const opponentShotData = {
+                      originX: normalizedOriginX,
+                      originY: shot.originY,
+                      landingX: normalizedLandingX,
+                      landingY: shot.landingY,
+                      stroke: shot.stroke,
+                      player: shot.player,
+                      side: (userSide === "team1" ? "team2" : "team1") as Side, // Opponent's side
+                    };
+                    opponentShots.push(opponentShotData);
+
+                    // Analyze opponent shot placement for defensive weaknesses
+                    const analysis = analyzeShotPlacement(opponentShotData, userSide);
+                    if (analysis.zone) opponentZoneStats[analysis.zone]++;
+                    if (analysis.sector) opponentSectorStats[analysis.sector]++;
+                    if (analysis.line) opponentLineStats[analysis.line]++;
                   }
-                  // If user was on team2, opponent was on team1, so flip coordinates
-                  const normalizedOriginX = userSide === "team2" ? 100 - shot.originX : shot.originX;
-                  const normalizedLandingX = userSide === "team2" ? 100 - shot.landingX : shot.landingX;
-
-                  const opponentShotData = {
-                    originX: normalizedOriginX,
-                    originY: shot.originY,
-                    landingX: normalizedLandingX,
-                    landingY: shot.landingY,
-                    stroke: shot.stroke,
-                    player: shot.player,
-                    side: (userSide === "team1" ? "team2" : "team1") as Side, // Opponent's side
-                  };
-                  opponentShots.push(opponentShotData);
-
-                  // Analyze opponent shot placement for defensive weaknesses
-                  const analysis = analyzeShotPlacement(opponentShotData, userSide);
-                  if (analysis.zone) opponentZoneStats[analysis.zone]++;
-                  if (analysis.sector) opponentSectorStats[analysis.sector]++;
-                  if (analysis.line) opponentLineStats[analysis.line]++;
                 }
               }
             });
@@ -344,6 +397,11 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Log final stats
+    console.log(`[Shots Analysis] Team matches: ${teamMatchesProcessed} matches, ${teamGamesProcessed} games, ${teamShotsFound} total shots, ${teamUserShotsFound} user shots`);
+    console.log(`[Shots Analysis] Shot type distribution:`, shotTypeDistribution);
+    console.log(`[Shots Analysis] Total shots collected: ${allShots.length} user shots, ${opponentShots.length} opponent shots`);
+
     // Convert shot distribution to array format for charts
     const shotDistributionArray = Object.entries(shotTypeDistribution)
       .filter(([_, count]) => count > 0)
@@ -363,24 +421,28 @@ export async function GET(request: NextRequest) {
       }))
     ).filter(zone => zone.value > 0);
 
+    const responseData = {
+      shotDistribution: shotDistributionArray,
+      heatmap: heatmapData,
+      heatmapGrid: heatmapWithDominant, // Grid with dominant shot type and count
+      serveTypeDistribution: serveTypeDistribution,
+      allShots, // Individual shots for wagon wheel visualization
+      opponentShots, // Opponent shots that scored against user
+      // Zone/Sector/Line statistics
+      userZoneStats,
+      userSectorStats,
+      userLineStats,
+      userOriginZoneStats,
+      opponentZoneStats,
+      opponentSectorStats,
+      opponentLineStats,
+    };
+
+    console.log(`[Shots Analysis] Returning data with ${shotDistributionArray.length} shot types, ${allShots.length} user shots, ${opponentShots.length} opponent shots`);
+
     return NextResponse.json({
       success: true,
-      data: {
-        shotDistribution: shotDistributionArray,
-        heatmap: heatmapData,
-        heatmapGrid: heatmapWithDominant, // Grid with dominant shot type and count
-        serveTypeDistribution: serveTypeDistribution,
-        allShots, // Individual shots for wagon wheel visualization
-        opponentShots, // Opponent shots that scored against user
-        // Zone/Sector/Line statistics
-        userZoneStats,
-        userSectorStats,
-        userLineStats,
-        userOriginZoneStats,
-        opponentZoneStats,
-        opponentSectorStats,
-        opponentLineStats,
-      },
+      data: responseData,
     });
   } catch (error) {
     console.error("Shots analysis error:", error);

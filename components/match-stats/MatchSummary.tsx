@@ -31,7 +31,9 @@ export function MatchSummary({
           <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-9 w-9">
               <AvatarFallback className="bg-[#3c6e71]/10 text-[#3c6e71] text-xs font-semibold">
-                {side1Name.slice(0, 2).toUpperCase()}
+                {side1Name.includes(" & ") 
+                  ? side1Name.split(" & ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                  : side1Name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
@@ -61,7 +63,9 @@ export function MatchSummary({
           <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-9 w-9">
               <AvatarFallback className="bg-[#284b63]/10 text-[#284b63] text-xs font-semibold">
-                {side2Name.slice(0, 2).toUpperCase()}
+                {side2Name.includes(" & ") 
+                  ? side2Name.split(" & ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                  : side2Name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 

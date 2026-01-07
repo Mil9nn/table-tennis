@@ -201,33 +201,40 @@ export default function MatchDetailsPage() {
 
       {/* PAGE BODY */}
       <main className="max-w-6xl mx-auto px-2">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 bg-white">
-          <section className="">
-            <MatchScore match={match} />
-
-            {!isIndividualMatch(match) && (
-              <>
-                <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/50">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    Teams & Lineup
-                  </h3>
-                </div>
-
-                <TeamMatchFormat match={match} />
-                <TeamMatchLineup match={match} />
-              </>
-            )}
-
-            {isIndividualMatch(match) && match.games?.length > 0 && (
-              <GamesHistory match={match} />
-            )}
-          </section>
-
-          {/* CONTROL ZONE */}
-          <aside className="">
+        <div className="">
+          {/* Match Information */}
+          <div className="bg-white">
             <MatchInfo match={match} />
-            <MatchActions match={match} matchId={matchId} isScorer={isScorer} />
-          </aside>
+          </div>
+
+          {/* Match Stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 bg-white">
+            <section className="">
+              <MatchScore match={match} />
+
+              {!isIndividualMatch(match) && (
+                <>
+                  <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/50">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Teams & Lineup
+                    </h3>
+                  </div>
+
+                  <TeamMatchFormat match={match} />
+                  <TeamMatchLineup match={match} />
+                </>
+              )}
+
+              {isIndividualMatch(match) && match.games?.length > 0 && (
+                <GamesHistory match={match} />
+              )}
+            </section>
+
+            {/* Actions */}
+            <aside className="">
+              <MatchActions match={match} matchId={matchId} isScorer={isScorer} />
+            </aside>
+          </div>
         </div>
       </main>
     </div>

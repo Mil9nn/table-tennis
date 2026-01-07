@@ -217,19 +217,6 @@ export async function POST(
       );
     }
 
-    // Verify tournament has a knockout bracket (either pure knockout or hybrid in knockout phase)
-    const hasKnockoutBracket = 
-      tournament.bracket && 
-      (tournament.format === "knockout" || 
-       (tournament.format === "hybrid" && tournament.currentPhase === "knockout"));
-    
-    if (!hasKnockoutBracket) {
-      return NextResponse.json(
-        { error: "This endpoint requires a tournament with an active knockout bracket" },
-        { status: 400 }
-      );
-    }
-
     // Verify allowCustomMatching is enabled
     if (!tournament.knockoutConfig?.allowCustomMatching) {
       return NextResponse.json(
@@ -254,23 +241,14 @@ export async function POST(
       }
     }
 
-    // Load bracket from BracketState if not in tournament document
-    if (!tournament.bracket) {
-      const bracketState = await BracketState.findOne({ tournament: id });
-      if (bracketState) {
-        // Convert BracketState document to bracket object
-        (tournament as any).bracket = {
-          size: bracketState.size,
-          rounds: bracketState.rounds,
-          currentRound: bracketState.currentRound,
-          completed: bracketState.completed,
-          thirdPlaceMatch: bracketState.thirdPlaceMatch,
-        };
-      }
-    }
-
-    // Verify bracket exists
-    if (!tournament.bracket) {
+    // Verify tournament has a knockout bracket (either pure knockout or hybrid in knockout phase)
+    // Check this AFTER loading from BracketState
+    const hasKnockoutBracket = 
+      tournament.bracket && 
+      (tournament.format === "knockout" || 
+       (tournament.format === "hybrid" && tournament.currentPhase === "knockout"));
+    
+    if (!hasKnockoutBracket) {
       return NextResponse.json(
         { error: "Tournament bracket not found. Generate bracket first." },
         { status: 404 }

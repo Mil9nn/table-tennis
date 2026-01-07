@@ -34,7 +34,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="flex items-center shrink-0">
-                  <Avatar className="w-7 h-7">
+                  <Avatar className="w-6 h-6">
                     <AvatarImage src={match.team1?.logo} alt={match.team1?.name} />
                     <AvatarFallback style={{ fontSize: '0.75rem', fontWeight: '600', ...getAvatarFallbackStyle(match.team1?._id) }}>
                       {match.team1?.name?.charAt(0)?.toUpperCase() || "T"}
@@ -80,7 +80,7 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
                   {match.team2?.name || "Team 2"}
                 </span>
                 <div className="flex items-center shrink-0">
-                  <Avatar className="w-7 h-7">
+                  <Avatar className="w-6 h-6">
                     <AvatarImage src={match.team2?.logo} alt={match.team2?.name} />
                     <AvatarFallback style={{ fontSize: '0.75rem', fontWeight: '600', ...getAvatarFallbackStyle(match.team2?._id) }}>
                       {match.team2?.name?.charAt(0)?.toUpperCase() || "T"}

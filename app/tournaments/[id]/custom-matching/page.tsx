@@ -6,7 +6,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tournament, isUserParticipant } from "@/types/tournament.type";
+import { Tournament, isUserParticipant, isTeamParticipant } from "@/types/tournament.type";
 import CustomKnockoutMatcher from "@/components/tournaments/CustomKnockoutMatcher";
 
 export default function CustomMatchingPage() {
@@ -58,20 +58,23 @@ export default function CustomMatchingPage() {
   }
 
   // Check if tournament has a knockout bracket (either pure knockout or hybrid in knockout phase)
-  const hasKnockoutBracket = 
-    tournament.bracket && 
-    (tournament.format === "knockout" || 
-     (tournament.format === "hybrid" && tournament.currentPhase === "knockout"));
+  const hasKnockoutBracket =
+    tournament.bracket &&
+    (tournament.format === "knockout" ||
+      (tournament.format === "hybrid" &&
+        tournament.currentPhase === "knockout"));
 
   if (!hasKnockoutBracket) {
     return (
       <div className="text-center py-12">
         <p>This tournament does not have a knockout bracket</p>
-        {tournament.format === "hybrid" && tournament.currentPhase !== "knockout" && (
-          <p className="text-sm text-gray-500 mt-2">
-            Please complete the round-robin phase and transition to knockout phase first.
-          </p>
-        )}
+        {tournament.format === "hybrid" &&
+          tournament.currentPhase !== "knockout" && (
+            <p className="text-sm text-gray-500 mt-2">
+              Please complete the round-robin phase and transition to knockout
+              phase first.
+            </p>
+          )}
         <Button
           variant="outline"
           onClick={() => router.push(`/tournaments/${tournamentId}`)}
@@ -92,28 +95,29 @@ export default function CustomMatchingPage() {
     currentRound?.matches?.some((m: any) => m.completed);
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-white to-zinc-50">
+    <div className="min-h-screen bg-gradient-to-b from-white via-zinc-50 to-zinc-100/60">
       {/* Header */}
-      <header className="sticky top-0 z-20 backdrop-blur-md bg-white/70 border-b border-zinc-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-4">
+      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-zinc-200 shadow-sm">
+        <div className="max-w-6xl mx-auto px-5 py-5 space-y-5">
+          {/* Title Row */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push(`/tournaments/${tournamentId}`)}
-              className="p-2 -ml-2 rounded-xl hover:bg-zinc-100 transition"
+              className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 transition shadow-sm"
             >
               <ChevronLeft className="w-5 h-5 text-zinc-700" />
             </button>
 
-            <div>
-              <h1 className="text-xl font-semibold text-zinc-900">
+            <div className="flex flex-col">
+              <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
                 Custom Bracket Matching
               </h1>
               <p className="text-sm text-zinc-500">{tournament.name}</p>
             </div>
           </div>
 
-          {/* Round Selector Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* Round Selector */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {tournament.bracket?.rounds.map((round) => {
               const hasCompleted = round.matches?.some(
                 (match: any) => match.completed
@@ -126,19 +130,19 @@ export default function CustomMatchingPage() {
                   disabled={locked}
                   onClick={() => setSelectedRound(round.roundNumber)}
                   className={`
-                    px-4 py-2 text-sm rounded-full border transition
-                    whitespace-nowrap
-                    ${
-                      locked
-                        ? "border-zinc-200 bg-zinc-100 text-zinc-400 cursor-not-allowed"
-                        : selectedRound === round.roundNumber
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-zinc-300 hover:bg-zinc-100"
-                    }
-                  `}
+                px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap
+                transition-all duration-200
+                ${
+                  locked
+                    ? "bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200"
+                    : selectedRound === round.roundNumber
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                    : "bg-white border border-zinc-300 hover:border-zinc-400 hover:shadow-sm"
+                }
+              `}
                 >
                   {round.roundName}
-                  {locked && " 🔒"}
+                  {locked && <span className="ml-1 text-xs">LOCKED</span>}
                 </button>
               );
             })}
@@ -146,41 +150,51 @@ export default function CustomMatchingPage() {
 
           {/* Locked Warning */}
           {isRoundLocked && (
-            <div className="flex items-center gap-2 text-amber-700 text-sm bg-amber-50 border border-amber-200 p-3 rounded-lg">
-              ⚠️ This round has already started and cannot be modified.
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl shadow-sm">
+              <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+              <p className="text-sm font-medium">
+                This round has already started and cannot be modified.
+              </p>
             </div>
           )}
         </div>
       </header>
 
       {/* Content */}
-      <main
-        className="
-          max-w-6xl mx-auto px-4 py-8
-          animate-[fadeIn_0.3s_ease-out]
-        "
-      >
-        <CustomKnockoutMatcher
-          tournamentId={tournamentId}
-          bracket={tournament.bracket!}
-          participants={
-            // For hybrid tournaments in knockout phase, use qualified participants only
-            // For pure knockout tournaments, use all participants
-            tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants
-              ? tournament.qualifiedParticipants.filter(isUserParticipant)
-              : tournament.participants.filter(isUserParticipant)
-          }
-          qualifiedParticipantIds={
-            // Pass qualified participant IDs for validation and UI indicators
-            tournament.format === "hybrid" && tournament.currentPhase === "knockout" && tournament.qualifiedParticipants
-              ? new Set(tournament.qualifiedParticipants.map((p: any) => p._id?.toString() || p.toString()))
-              : new Set(tournament.participants.map((p: any) => p._id?.toString() || p.toString()))
-          }
-          currentRound={selectedRound}
-          onSuccess={handleSuccess}
-          matchType={tournament.matchType}
-          existingPairs={tournament.doublesPairs}
-        />
+      <main className="max-w-6xl mx-auto">
+        <div className="p-4 animate-[fadeIn_0.25s_ease-out]">
+          <CustomKnockoutMatcher
+            tournamentId={tournamentId}
+            bracket={tournament.bracket!}
+            isTeamTournament={tournament.category === "team"}
+            participants={
+              tournament.format === "hybrid" &&
+              tournament.currentPhase === "knockout" &&
+              tournament.qualifiedParticipants
+                ? tournament.qualifiedParticipants
+                : tournament.participants
+            }
+            qualifiedParticipantIds={
+              tournament.format === "hybrid" &&
+              tournament.currentPhase === "knockout" &&
+              tournament.qualifiedParticipants
+                ? new Set(
+                    tournament.qualifiedParticipants.map(
+                      (p: any) => p._id?.toString() || p.toString()
+                    )
+                  )
+                : new Set(
+                    tournament.participants.map(
+                      (p: any) => p._id?.toString() || p.toString()
+                    )
+                  )
+            }
+            currentRound={selectedRound}
+            onSuccess={handleSuccess}
+            matchType={tournament.matchType}
+            existingPairs={tournament.doublesPairs}
+          />
+        </div>
       </main>
     </div>
   );

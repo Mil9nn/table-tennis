@@ -128,44 +128,44 @@ const TeamStatsPage = ({ userId }: TeamStatsPageProps = {}) => {
             description="Team statistics will appear after team matches are played!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Team Matches */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Team Matches Played
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {teamStats.total}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   {teamStats.wins}W - {teamStats.losses}L
                 </p>
               </div>
 
               {/* Team Win Rate */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Team Win Rate
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {teamWinRate}%
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   Overall team performance
                 </p>
               </div>
             </div>
 
             {/* Individual Performance */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Individual Games */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Individual Games Played
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {teamStats.subMatchesPlayed}
                 </p>
                 <p className="text-xs text-[#353535] mt-3">

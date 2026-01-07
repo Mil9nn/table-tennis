@@ -213,7 +213,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 bg-blue-100">
+    <div className="max-w-7xl mx-auto bg-blue-100">
       <Accordion type="single" collapsible defaultValue="">
         <AccordionItem value="custom-format">
           {/* Accordion Expanded Content */}
@@ -276,21 +276,21 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
               </CardContent>
             </Card>
 
-            {/* --- SUBMATCH NAVIGATOR CARD --- */}
-            <Card className="border-none rounded-none py-2">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold">
-                    Rubber Sequence
-                  </CardTitle>
-                  <Badge variant="secondary" className="text-sm">
-                    Rubber {currentSubMatchIndex + 1} of{" "}
-                    {match.subMatches.length}
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent>
+            {/* --- SUBMATCH NAVIGATOR CARD - Collapsible --- */}
+            <Accordion type="single" collapsible defaultValue="" className="border rounded-md">
+              <AccordionItem value="rubber-navigator" className="border-0">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center justify-between w-full">
+                    <CardTitle className="text-sm font-medium">
+                      Rubber {currentSubMatchIndex + 1}: {teamMatchPlayers.side1.map((p) => p.name).join(" & ")} vs {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
+                    </CardTitle>
+                    <Badge variant="secondary" className="text-sm ml-auto">
+                      {currentSubMatchIndex + 1} / {match.subMatches.length}
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-0">
+                  <div className="px-4 pb-4">
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {/* Previous Button */}
                   <Button
@@ -356,41 +356,16 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
 
       {/* Current SubMatch Details - Modern Card */}
-      <Card className="border-none rounded-none">
-        <CardHeader className="">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <span className="text-lg font-bold">
-                  Rubber {currentSubMatchIndex + 1}
-                </span>
-                <MatchTypeBadge
-                  type={currentSubMatch.matchType}
-                  size="sm"
-                  showIcon={false}
-                />
-              </div>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">
-                  {teamMatchPlayers.side1.map((p) => p.name).join(" & ")}
-                </span>
-                <span className="mx-2 text-gray-400">vs</span>
-                <span className="font-medium">
-                  {teamMatchPlayers.side2.map((p) => p.name).join(" & ")}
-                </span>
-              </p>
-            </div>
-            <MatchStatusBadge status={currentSubMatch.status as MatchStatus} />
-          </div>
-        </CardHeader>
-
+      <Card className="border-none rounded-none py-0">
         <CardContent className="p-0">
           {currentSubMatch.status === "completed" ? (
             <div className="text-center py-12 space-y-4">
@@ -465,6 +440,7 @@ export default function CustomFormatScorer({ match }: CustomFormatScorerProps) {
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
                   participants={[...player1, ...player2] as any}
+                  serverConfig={currentSubMatch.serverConfig}
                 />
               </div>
             </>

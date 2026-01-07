@@ -17,13 +17,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { KnockoutBracket } from "@/types/tournamentDraw";
 import DoublesPairBuilder, { DoublesPairData } from "./DoublesPairBuilder";
+import { 
+  Participant as TournamentParticipant,
+  getParticipantDisplayName,
+  getParticipantImage,
+  isTeamParticipant,
+  isUserParticipant
+} from "@/types/tournament.type";
 
-interface Participant {
-  _id: string;
-  username: string;
-  fullName?: string;
-  profileImage?: string;
-}
+// Support both user and team participants
+type Participant = TournamentParticipant;
 
 // Persisted pair from tournament.doublesPairs
 interface PersistedPair {
@@ -47,6 +50,7 @@ interface CustomKnockoutMatcherProps {
   onSuccess?: () => void;
   matchType?: "singles" | "doubles";
   existingPairs?: PersistedPair[]; // Pairs from tournament.doublesPairs
+  isTeamTournament?: boolean; // Whether this is a team tournament
 }
 
 export default function CustomKnockoutMatcher({
@@ -58,6 +62,7 @@ export default function CustomKnockoutMatcher({
   onSuccess,
   matchType = "singles",
   existingPairs = [],
+  isTeamTournament = false,
 }: CustomKnockoutMatcherProps) {
   const [matchups, setMatchups] = useState<CustomMatchup[]>([]);
   const [saving, setSaving] = useState(false);
@@ -124,26 +129,28 @@ export default function CustomKnockoutMatcher({
     if (isDoubles) {
       // For doubles, use pair IDs
       if (currentRound === 1) {
-        return new Set(pairs.map((pair) => pair._id));
+        return new Set(pairs.map((pair) => pair._id.toString()));
       }
       const eliminated = getEliminatedEntryIds(currentRound);
       const eligible = new Set<string>();
       for (const pair of pairs) {
-        if (!eliminated.has(pair._id)) {
-          eligible.add(pair._id);
+        const pairIdStr = pair._id.toString();
+        if (!eliminated.has(pairIdStr)) {
+          eligible.add(pairIdStr);
         }
       }
       return eligible;
     } else {
       // For singles, use individual player IDs
       if (currentRound === 1) {
-        return new Set(participants.map((p) => p._id));
+        return new Set(participants.map((p) => p._id.toString()));
       }
       const eliminated = getEliminatedEntryIds(currentRound);
       const eligible = new Set<string>();
       for (const participant of participants) {
-        if (!eliminated.has(participant._id)) {
-          eligible.add(participant._id);
+        const participantIdStr = participant._id.toString();
+        if (!eliminated.has(participantIdStr)) {
+          eligible.add(participantIdStr);
         }
       }
       return eligible;
@@ -188,8 +195,8 @@ export default function CustomKnockoutMatcher({
     const used = new Set<string>();
     matchups.forEach((matchup, idx) => {
       if (idx === excludeMatchIndex) return;
-      if (matchup.participant1) used.add(matchup.participant1);
-      if (matchup.participant2) used.add(matchup.participant2);
+      if (matchup.participant1) used.add(matchup.participant1.toString());
+      if (matchup.participant2) used.add(matchup.participant2.toString());
     });
     return used;
   };
@@ -212,7 +219,10 @@ export default function CustomKnockoutMatcher({
   const getAvailablePairs = (excludeMatchIndex?: number): DoublesPairData[] => {
     const used = getUsedIds(excludeMatchIndex);
     return pairs.filter(
-      (pair) => !used.has(pair._id) && eligibleIds.has(pair._id)
+      (pair) => {
+        const pairIdStr = pair._id.toString();
+        return !used.has(pairIdStr) && eligibleIds.has(pairIdStr);
+      }
     );
   };
 
@@ -487,104 +497,120 @@ export default function CustomKnockoutMatcher({
                           }
                         >
                           <SelectTrigger className={isDoubles ? "h-auto min-h-15 py-2" : "h-11 w-full"}>
-                            <SelectValue placeholder={isDoubles ? "Select pair" : "Select player"}>
+                            <SelectValue placeholder={isDoubles ? "Select pair" : isTeamTournament ? "Select team" : "Select player"}>
                               {isDoubles && pair1 ? (
                                 <div className="flex flex-col gap-2">
                                   <div className="flex items-center gap-2">
                                     <Avatar className="w-5 h-5 shrink-0">
-                                      <AvatarImage src={pair1.player1.profileImage} />
+                                      <AvatarImage src={getParticipantImage(pair1.player1)} />
                                       <AvatarFallback className="text-[10px]">
-                                        {(pair1.player1.fullName || pair1.player1.username).substring(0, 2).toUpperCase()}
+                                        {getParticipantDisplayName(pair1.player1).substring(0, 2).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
                                     <span className="text-xs font-medium">
-                                      {pair1.player1.fullName || pair1.player1.username}
+                                      {getParticipantDisplayName(pair1.player1)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                   <Avatar className="w-5 h-5 shrink-0">
-                                    <AvatarImage src={pair1.player2.profileImage} />
+                                    <AvatarImage src={getParticipantImage(pair1.player2)} />
                                     <AvatarFallback className="text-[10px]">
-                                      {(pair1.player2.fullName || pair1.player2.username).substring(0, 2).toUpperCase()}
+                                      {getParticipantDisplayName(pair1.player2).substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-xs font-medium">
-                                    {pair1.player2.fullName || pair1.player2.username}
+                                    {getParticipantDisplayName(pair1.player2)}
                                   </span>
                                   </div>
                                 </div>
                               ) : !isDoubles && p1 ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar className="w-6 h-6 shrink-0">
-                                    <AvatarImage src={p1.profileImage} />
+                                    <AvatarImage src={getParticipantImage(p1)} />
                                     <AvatarFallback className="text-xs">
-                                      {(p1.fullName || p1.username).substring(0, 2).toUpperCase()}
+                                      {getParticipantDisplayName(p1).substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-sm font-medium truncate">
-                                    {p1.fullName || p1.username}
+                                    {getParticipantDisplayName(p1)}
                                   </span>
                                 </div>
                               ) : (
-                                <span>{isDoubles ? "Select pair" : "Select player"}</span>
+                                <span>{isDoubles ? "Select pair" : isTeamTournament ? "Select team" : "Select player"}</span>
                               )}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {availableForP1.length > 0 ? (
                               availableForP1.map((item: any) => {
+                                // Check if actually eliminated (lost in previous round)
+                                const isEliminated = eliminatedIds.has(item._id.toString());
+                                
+                                // For hybrid tournaments, check if qualified
+                                // For pure knockout, all non-eliminated are eligible
                                 const isQualified = qualifiedParticipantIds 
-                                  ? qualifiedParticipantIds.has(item._id || (item.player1?._id && item.player2?._id ? item._id : item.player1?._id))
-                                  : true; // If no qualifiedParticipantIds provided, assume all are qualified (pure knockout)
+                                  ? (isDoubles 
+                                      ? (qualifiedParticipantIds.has(item.player1?._id) && qualifiedParticipantIds.has(item.player2?._id))
+                                      : qualifiedParticipantIds.has(item._id))
+                                  : !isEliminated; // For pure knockout, eligible if not eliminated
                                 
                                 return (
                                   <SelectItem
                                     key={item._id}
                                     value={item._id}
+                                    disabled={isEliminated}
                                   >
                                     {isDoubles ? (
                                       <div className="flex items-center gap-2 flex-wrap py-1">
                                         <Avatar className="w-5 h-5 shrink-0">
-                                          <AvatarImage src={item.player1?.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item.player1)} />
                                           <AvatarFallback className="text-[10px]">
-                                            {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
+                                            {item.player1 ? getParticipantDisplayName(item.player1).substring(0, 2).toUpperCase() : ""}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="text-xs">
-                                          {item.player1?.fullName || item.player1?.username}
+                                          {item.player1 ? getParticipantDisplayName(item.player1) : ""}
                                         </span>
                                         <span className="text-xs text-muted-foreground">&</span>
                                         <Avatar className="w-5 h-5 shrink-0">
-                                          <AvatarImage src={item.player2?.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item.player2)} />
                                           <AvatarFallback className="text-[10px]">
-                                            {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
+                                            {item.player2 ? getParticipantDisplayName(item.player2).substring(0, 2).toUpperCase() : ""}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="text-xs">
-                                          {item.player2?.fullName || item.player2?.username}
+                                          {item.player2 ? getParticipantDisplayName(item.player2) : ""}
                                         </span>
-                                        {qualifiedParticipantIds && (
-                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
-                                            {isQualified ? "Qualified" : "Eliminated"}
+                                        {isEliminated ? (
+                                          <Badge variant="destructive" className="ml-auto text-[10px]">
+                                            Eliminated
                                           </Badge>
-                                        )}
+                                        ) : qualifiedParticipantIds ? (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Not Qualified"}
+                                          </Badge>
+                                        ) : null}
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-2">
                                         <Avatar className="w-6 h-6 shrink-0">
-                                          <AvatarImage src={item.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item)} />
                                           <AvatarFallback className="text-xs">
-                                            {(item.fullName || item.username).substring(0, 2).toUpperCase()}
+                                            {getParticipantDisplayName(item).substring(0, 2).toUpperCase()}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="truncate">
-                                          {item.fullName || item.username}
+                                          {getParticipantDisplayName(item)}
                                         </span>
-                                        {qualifiedParticipantIds && (
-                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
-                                            {isQualified ? "Qualified" : "Eliminated"}
+                                        {isEliminated ? (
+                                          <Badge variant="destructive" className="ml-auto text-[10px]">
+                                            Eliminated
                                           </Badge>
-                                        )}
+                                        ) : qualifiedParticipantIds ? (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Not Qualified"}
+                                          </Badge>
+                                        ) : null}
                                       </div>
                                     )}
                                   </SelectItem>
@@ -592,7 +618,7 @@ export default function CustomKnockoutMatcher({
                               })
                             ) : (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                No available {isDoubles ? "pairs" : "players"}
+                                No available {isDoubles ? "pairs" : isTeamTournament ? "teams" : "players"}
                               </div>
                             )}
                           </SelectContent>
@@ -615,105 +641,121 @@ export default function CustomKnockoutMatcher({
                           }
                         >
                           <SelectTrigger className={isDoubles ? "h-auto min-h-15 py-2" : "h-11 w-full"}>
-                            <SelectValue placeholder={isDoubles ? "Select pair" : "Select player"}>
+                            <SelectValue placeholder={isDoubles ? "Select pair" : isTeamTournament ? "Select team" : "Select player"}>
                               {isDoubles && pair2 ? (
                                 <div className="flex flex-col gap-2">
                                   <div className="flex items-center gap-2">
                                     <Avatar className="w-5 h-5 shrink-0">
-                                    <AvatarImage src={pair2.player1.profileImage} />
+                                    <AvatarImage src={getParticipantImage(pair2.player1)} />
                                     <AvatarFallback className="text-[10px]">
-                                      {(pair2.player1.fullName || pair2.player1.username).substring(0, 2).toUpperCase()}
+                                      {getParticipantDisplayName(pair2.player1).substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-xs font-medium">
-                                    {pair2.player1.fullName || pair2.player1.username}
+                                    {getParticipantDisplayName(pair2.player1)}
                                   </span>
                                   </div>
                                   
                                   <div className="flex items-center gap-2">
                                     <Avatar className="w-5 h-5 shrink-0">
-                                    <AvatarImage src={pair2.player2.profileImage} />
+                                    <AvatarImage src={getParticipantImage(pair2.player2)} />
                                     <AvatarFallback className="text-[10px]">
-                                      {(pair2.player2.fullName || pair2.player2.username).substring(0, 2).toUpperCase()}
+                                      {getParticipantDisplayName(pair2.player2).substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-xs font-medium">
-                                    {pair2.player2.fullName || pair2.player2.username}
+                                    {getParticipantDisplayName(pair2.player2)}
                                   </span>
                                   </div>
                                 </div>
                               ) : !isDoubles && p2 ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar className="w-6 h-6 shrink-0">
-                                    <AvatarImage src={p2.profileImage} />
+                                    <AvatarImage src={getParticipantImage(p2)} />
                                     <AvatarFallback className="text-xs">
-                                      {(p2.fullName || p2.username).substring(0, 2).toUpperCase()}
+                                      {getParticipantDisplayName(p2).substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-sm font-medium truncate">
-                                    {p2.fullName || p2.username}
+                                    {getParticipantDisplayName(p2)}
                                   </span>
                                 </div>
                               ) : (
-                                <span>{isDoubles ? "Select pair" : "Select player"}</span>
+                                <span>{isDoubles ? "Select pair" : isTeamTournament ? "Select team" : "Select player"}</span>
                               )}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {availableForP2.length > 0 ? (
                               availableForP2.map((item: any) => {
+                                // Check if actually eliminated (lost in previous round)
+                                const isEliminated = eliminatedIds.has(item._id.toString());
+                                
+                                // For hybrid tournaments, check if qualified
+                                // For pure knockout, all non-eliminated are eligible
                                 const isQualified = qualifiedParticipantIds 
-                                  ? qualifiedParticipantIds.has(item._id || (item.player1?._id && item.player2?._id ? item._id : item.player1?._id))
-                                  : true; // If no qualifiedParticipantIds provided, assume all are qualified (pure knockout)
+                                  ? (isDoubles 
+                                      ? (qualifiedParticipantIds.has(item.player1?._id) && qualifiedParticipantIds.has(item.player2?._id))
+                                      : qualifiedParticipantIds.has(item._id))
+                                  : !isEliminated; // For pure knockout, eligible if not eliminated
                                 
                                 return (
                                   <SelectItem
                                     key={item._id}
                                     value={item._id}
+                                    disabled={isEliminated}
                                   >
                                     {isDoubles ? (
                                       <div className="flex items-center gap-2 flex-wrap py-1">
                                         <Avatar className="w-5 h-5 shrink-0">
-                                          <AvatarImage src={item.player1?.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item.player1)} />
                                           <AvatarFallback className="text-[10px]">
-                                            {(item.player1?.fullName || item.player1?.username || "").substring(0, 2).toUpperCase()}
+                                            {item.player1 ? getParticipantDisplayName(item.player1).substring(0, 2).toUpperCase() : ""}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="text-xs">
-                                          {item.player1?.fullName || item.player1?.username}
+                                          {item.player1 ? getParticipantDisplayName(item.player1) : ""}
                                         </span>
                                         <span className="text-xs text-muted-foreground">&</span>
                                         <Avatar className="w-5 h-5 shrink-0">
-                                          <AvatarImage src={item.player2?.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item.player2)} />
                                           <AvatarFallback className="text-[10px]">
-                                            {(item.player2?.fullName || item.player2?.username || "").substring(0, 2).toUpperCase()}
+                                            {item.player2 ? getParticipantDisplayName(item.player2).substring(0, 2).toUpperCase() : ""}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="text-xs">
-                                          {item.player2?.fullName || item.player2?.username}
+                                          {item.player2 ? getParticipantDisplayName(item.player2) : ""}
                                         </span>
-                                        {qualifiedParticipantIds && (
-                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
-                                            {isQualified ? "Qualified" : "Eliminated"}
+                                        {isEliminated ? (
+                                          <Badge variant="destructive" className="ml-auto text-[10px]">
+                                            Eliminated
                                           </Badge>
-                                        )}
+                                        ) : qualifiedParticipantIds ? (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Not Qualified"}
+                                          </Badge>
+                                        ) : null}
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-2">
                                         <Avatar className="w-6 h-6 shrink-0">
-                                          <AvatarImage src={item.profileImage} />
+                                          <AvatarImage src={getParticipantImage(item)} />
                                           <AvatarFallback className="text-xs">
-                                            {(item.fullName || item.username).substring(0, 2).toUpperCase()}
+                                            {getParticipantDisplayName(item).substring(0, 2).toUpperCase()}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="truncate">
-                                          {item.fullName || item.username}
+                                          {getParticipantDisplayName(item)}
                                         </span>
-                                        {qualifiedParticipantIds && (
-                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
-                                            {isQualified ? "Qualified" : "Eliminated"}
+                                        {isEliminated ? (
+                                          <Badge variant="destructive" className="ml-auto text-[10px]">
+                                            Eliminated
                                           </Badge>
-                                        )}
+                                        ) : qualifiedParticipantIds ? (
+                                          <Badge variant={isQualified ? "default" : "destructive"} className="ml-auto text-[10px]">
+                                            {isQualified ? "Qualified" : "Not Qualified"}
+                                          </Badge>
+                                        ) : null}
                                       </div>
                                     )}
                                   </SelectItem>
@@ -721,7 +763,7 @@ export default function CustomKnockoutMatcher({
                               })
                             ) : (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                No available {isDoubles ? "pairs" : "players"}
+                                No available {isDoubles ? "pairs" : isTeamTournament ? "teams" : "players"}
                               </div>
                             )}
                           </SelectContent>
@@ -763,12 +805,12 @@ export default function CustomKnockoutMatcher({
                   {unmatchedEligibleParticipants.map((participant) => (
                     <Badge key={participant._id} variant="outline" className="bg-white">
                       <Avatar className="w-4 h-4 mr-1.5">
-                        <AvatarImage src={participant.profileImage} />
+                        <AvatarImage src={getParticipantImage(participant)} />
                         <AvatarFallback className="text-[8px]">
-                          {(participant.fullName || participant.username).substring(0, 2).toUpperCase()}
+                          {getParticipantDisplayName(participant).substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {participant.fullName || participant.username}
+                      {getParticipantDisplayName(participant)}
                     </Badge>
                   ))}
                 </div>
@@ -795,9 +837,9 @@ export default function CustomKnockoutMatcher({
                   {eliminatedPairs.map((pair) => (
                     <Badge key={pair._id} variant="outline" className="bg-white opacity-60 py-1.5 px-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs">{pair.player1.fullName || pair.player1.username}</span>
+                        <span className="text-xs">{getParticipantDisplayName(pair.player1)}</span>
                         <span className="text-xs text-muted-foreground mx-0.5">&</span>
-                        <span className="text-xs">{pair.player2.fullName || pair.player2.username}</span>
+                        <span className="text-xs">{getParticipantDisplayName(pair.player2)}</span>
                       </div>
                     </Badge>
                   ))}
@@ -823,7 +865,7 @@ export default function CustomKnockoutMatcher({
                 <div className="flex flex-wrap gap-2">
                   {eliminatedParticipants.map((participant) => (
                     <Badge key={participant._id} variant="outline" className="bg-white opacity-60">
-                      {participant.fullName || participant.username}
+                      {getParticipantDisplayName(participant)}
                     </Badge>
                   ))}
                 </div>

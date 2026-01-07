@@ -76,16 +76,16 @@ interface EnhancedMatchData {
 
 const getLocalParticipantName = (p: Participant | null): string => {
   if (!p) return "TBD";
-  if (p.name && !p.username) return p.name;
-  return p.fullName || p.username || "Unknown";
+  // Use the helper function that handles both users and teams
+  return getParticipantDisplayName(p);
 };
 
 const getLocalParticipantImage = (
   p: Participant | null
 ): string | undefined => {
   if (!p) return undefined;
-  if (p.name && !p.username) return p.logo;
-  return p.profileImage;
+  // Use the helper function that handles both users and teams
+  return getParticipantImage(p);
 };
 
 const getLocalParticipantInitials = (p: Participant | null): string => {
@@ -135,21 +135,29 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   }, [participants, isDoubles, doublesPairs]);
 
   const participantMap = useMemo(() => {
-    const userParticipants = participants.filter(isUserParticipant);
-    const converted = userParticipants
-      .map((p) => {
-        if (isUserParticipant(p)) {
-          return {
-            _id: p._id,
-            username: p.username,
-            fullName: p.fullName,
-            profileImage: p.profileImage,
-          };
-        }
-        return null;
-      })
-      .filter((p): p is NonNullable<typeof p> => p !== null);
-    return createParticipantMap(converted);
+    const converted = participants.map((p) => {
+      if (isUserParticipant(p)) {
+        return {
+          _id: p._id,
+          username: p.username,
+          fullName: p.fullName,
+          profileImage: p.profileImage,
+        };
+      } else if (isTeamParticipant(p)) {
+        return {
+          _id: p._id,
+          name: p.name, // Teams use 'name' not 'username'
+          logo: p.logo, // Teams use 'logo' not 'profileImage'
+          // Add optional fields for compatibility with ParticipantBase interface
+          // Note: Don't include 'username' as isTeamParticipant checks !('username' in participant)
+          fullName: p.name,
+          profileImage: p.logo,
+        };
+      }
+      return null;
+    }).filter((p): p is NonNullable<typeof p> => p !== null);
+    
+    return createParticipantMap(converted as any);
   }, [participants]);
 
   const matchByPosition = useMemo(() => {
@@ -215,7 +223,12 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       displayState = "tbd";
     }
 
-    const canClick = matchDoc !== null && displayState !== "bye";
+    // Only allow clicking if match has participants assigned and a match document exists
+    // TBD matches should not be clickable
+    const canClick = 
+      matchDoc !== null && 
+      displayState !== "bye" && 
+      displayState !== "tbd";
     const showScore =
       displayState === "completed" && matchDoc?.finalScore !== undefined;
 

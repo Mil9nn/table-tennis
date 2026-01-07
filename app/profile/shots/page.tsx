@@ -23,10 +23,9 @@ interface ShotAnalysisPageProps {
   userId?: string;
 }
 
-// SVG Heatmap Component (matches ZoneHeatmap structure)
-const ShotLandingHeatmapSVG = ({
+// Shot Landing Heatmap Component (matches ZoneHeatmap design)
+const ShotLandingHeatmap = ({
   heatmapGrid,
-  getHeatmapStyle,
   formatShotName,
   maxHeatmapValue,
   SHOT_TYPE_COLORS,
@@ -36,17 +35,42 @@ const ShotLandingHeatmapSVG = ({
     dominantStroke: string | null;
     shotTypes: Record<string, number>;
   }[][];
-  getHeatmapStyle: (cell: any) => React.CSSProperties;
   formatShotName: (stroke: string) => string;
   maxHeatmapValue: number;
   SHOT_TYPE_COLORS: Record<string, string>;
 }) => {
-  const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredZone, setHoveredZone] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // Helper to get SVG fill color (converts CSS style to rgba for SVG)
-  const getSVGFillColor = (cell: any) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    handler();
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  /* -------------------------------
+     Geometry (Table = SVG Canvas)
+  -------------------------------- */
+  const TABLE_WIDTH = 1000;
+  const TABLE_HEIGHT = 560;
+
+  const GRID_COLS = 20;
+  const GRID_ROWS = 9;
+
+  const CELL_WIDTH = TABLE_WIDTH / GRID_COLS;
+  const CELL_HEIGHT = TABLE_HEIGHT / GRID_ROWS;
+
+  /* -------------------------------
+     Color Logic
+  -------------------------------- */
+  const getZoneColor = (cell: any): string => {
     if (!cell || cell.count === 0) {
-      return "rgba(148, 163, 184, 0.25)";
+      return "rgba(148, 163, 184, 0.2)";
     }
 
     const baseColor =
@@ -67,67 +91,21 @@ const ShotLandingHeatmapSVG = ({
       return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
     
-    return baseColor; // Already rgba or rgb
+    return baseColor;
   };
 
-  // Geometry (Table = SVG Canvas) - matching ZoneHeatmap
-  const TABLE_WIDTH = 1000;
-  const TABLE_HEIGHT = 560;
+  const hoveredCell =
+    hoveredZone && heatmapGrid[hoveredZone.y]?.[hoveredZone.x];
 
-  // Grid dimensions matching zone-sector analysis (20x9 grid)
-  // X-axis: 20 columns (5% width each) aligned with zone boundaries
-  // Y-axis: 9 rows (~11.11% height each) aligned with sector boundaries
-  const GRID_ROWS = 9;
-  const GRID_COLS = 20;
-
-  const CELL_WIDTH = TABLE_WIDTH / GRID_COLS;
-  const CELL_HEIGHT = TABLE_HEIGHT / GRID_ROWS;
-
-  const hoveredCellData = hoveredCell && heatmapGrid[hoveredCell.y]?.[hoveredCell.x];
-
-  // Helper to get zone from column index (x)
-  const getZoneFromColumn = (x: number): "short" | "mid" | "deep" => {
-    if (x <= 4) return "deep";      // Columns 0-4 (0-25%): Left Deep
-    if (x <= 7) return "mid";       // Columns 5-7 (25-40%): Left Mid
-    if (x <= 9) return "short";     // Columns 8-9 (40-50%): Left Short
-    if (x <= 11) return "short";    // Columns 10-11 (50-60%): Right Short
-    if (x <= 14) return "mid";      // Columns 12-14 (60-75%): Right Mid
-    return "deep";                  // Columns 15-19 (75-100%): Right Deep
-  };
-
-  // Helper to get sector from row index (y)
-  const getSectorFromRow = (y: number): "backhand" | "crossover" | "forehand" => {
-    if (y <= 2) return "backhand";   // Rows 0-2 (0-33.33%): Top/Backhand
-    if (y <= 5) return "crossover";  // Rows 3-5 (33.33-66.67%): Middle/Crossover
-    return "forehand";                // Rows 6-8 (66.67-100%): Bottom/Forehand
-  };
-
-  // Helper to format zone name
-  const formatZoneName = (zone: "short" | "mid" | "deep"): string => {
-    if (zone === "mid") return "Mid";
-    return zone.charAt(0).toUpperCase() + zone.slice(1);
-  };
-
-  // Helper to format sector name
-  const formatSectorName = (sector: "backhand" | "crossover" | "forehand"): string => {
-    if (sector === "crossover") return "Crossover";
-    return sector.charAt(0).toUpperCase() + sector.slice(1);
-  };
-
-  // Get zone-sector label for hovered cell
-  const getZoneSectorLabel = (x: number, y: number): string => {
-    const zone = getZoneFromColumn(x);
-    const sector = getSectorFromRow(y);
-    return `${formatZoneName(zone)} ${formatSectorName(sector)}`;
-  };
-
-  // Tooltip positioning
-  const tooltipLeft = hoveredCell
-    ? ((hoveredCell.x + 0.5) / GRID_COLS) * 100
+  /* -------------------------------
+     Tooltip Position
+  -------------------------------- */
+  const tooltipLeft = hoveredZone
+    ? ((hoveredZone.x + 0.5) / GRID_COLS) * 100
     : 0;
 
-  const tooltipTopRaw = hoveredCell
-    ? ((hoveredCell.y + 0.5) / GRID_ROWS) * 100
+  const tooltipTopRaw = hoveredZone
+    ? ((hoveredZone.y + 0.5) / GRID_ROWS) * 100
     : 0;
 
   const tooltipTop = Math.min(Math.max(tooltipTopRaw, 10), 90);
@@ -137,242 +115,261 @@ const ShotLandingHeatmapSVG = ({
     left: isRightSide ? "auto" : `${tooltipLeft}%`,
     right: isRightSide ? `${100 - tooltipLeft}%` : "auto",
     top: `${tooltipTop}%`,
-    transform: isRightSide
-      ? "translate(-12px, -50%)"
-      : "translate(12px, -50%)",
+    transform: isRightSide ? "translate(-14px, -50%)" : "translate(14px, -50%)",
+  };
+
+  /* -------------------------------
+     Naming Helpers
+  -------------------------------- */
+  const getZoneName = (x: number): string => {
+    if (x <= 4) return "Deep";
+    if (x <= 7) return "Mid";
+    if (x <= 9) return "Short";
+    if (x <= 11) return "Short";
+    if (x <= 14) return "Mid";
+    return "Deep";
+  };
+
+  const getSectorName = (y: number): string => {
+    if (y <= 2) return "Backhand";
+    if (y <= 5) return "Crossover";
+    return "Forehand";
+  };
+
+  const getZoneSectorLabel = (x: number, y: number): string => {
+    return `${getZoneName(x)} ${getSectorName(y)}`;
   };
 
   return (
-    <div className="relative w-full aspect-video max-h-[80vh]">
-      <svg
-        viewBox={`0 0 ${TABLE_WIDTH} ${TABLE_HEIGHT}`}
-        preserveAspectRatio="xMidYMid meet"
-        className="w-full h-full"
-      >
-        {/* Table Surface */}
-        <rect
-          x={0}
-          y={0}
-          width={TABLE_WIDTH}
-          height={TABLE_HEIGHT}
-          fill="#1E40AF"
-          stroke="#ffffff"
-          strokeWidth={6}
-        />
+    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      {/* Header */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-neutral-900">
+          Shot Landing Heatmap
+        </h3>
+        <p className="mt-1 text-xs text-neutral-500">
+          Heatmap of point-winning shots by table zone. Colors represent dominant shot type, intensity shows shot frequency.
+        </p>
+      </div>
 
-        {/* Center Line (white, semi-transparent) */}
-        <line
-          x1={TABLE_WIDTH / 2}
-          y1={0}
-          x2={TABLE_WIDTH / 2}
-          y2={TABLE_HEIGHT}
-          stroke="#ffffff"
-          strokeWidth={3}
-          opacity={0.6}
-        />
+      {/* Heatmap */}
+      <div className="relative w-full aspect-video max-h-[80vh] overflow-hidden bg-neutral-50">
+        <svg
+          viewBox={`0 0 ${TABLE_WIDTH} ${TABLE_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-full"
+        >
+          {/* Table */}
+          <rect
+            x={0}
+            y={0}
+            width={TABLE_WIDTH}
+            height={TABLE_HEIGHT}
+            fill="#1E3A8A"
+            stroke="#ffffff"
+            strokeWidth={4}
+          />
 
-        {/* Net (solid black) */}
-        <line
-          x1={TABLE_WIDTH / 2}
-          y1={0}
-          x2={TABLE_WIDTH / 2}
-          y2={TABLE_HEIGHT}
-          stroke="#000000"
-          strokeWidth={4}
-          opacity={1}
-        />
+          {/* Net */}
+          <line
+            x1={TABLE_WIDTH / 2}
+            y1={0}
+            x2={TABLE_WIDTH / 2}
+            y2={TABLE_HEIGHT}
+            stroke="#000000"
+            strokeWidth={3}
+          />
 
-        {/* Minor grid lines (faded) - All cell divisions */}
-        {/* Vertical lines for all 20 columns */}
-        {Array.from({ length: GRID_COLS - 1 }, (_, i) => {
-          const x = (i + 1) * CELL_WIDTH;
-          // Skip zone dividing lines (they'll be drawn separately with firm styling)
-          const isZoneLine = 
-            Math.abs(x - TABLE_WIDTH * 0.25) < 1 ||
-            Math.abs(x - TABLE_WIDTH * 0.40) < 1 ||
-            Math.abs(x - TABLE_WIDTH * 0.50) < 1 ||
-            Math.abs(x - TABLE_WIDTH * 0.60) < 1 ||
-            Math.abs(x - TABLE_WIDTH * 0.75) < 1;
-          
-          if (isZoneLine) return null;
-          
-          return (
+          {/* Center line */}
+          <line
+            x1={TABLE_WIDTH / 2}
+            y1={0}
+            x2={TABLE_WIDTH / 2}
+            y2={TABLE_HEIGHT}
+            stroke="#ffffff"
+            strokeWidth={2}
+            opacity={0.4}
+          />
+
+          {/* Sector lines */}
+          <line
+            x1={0}
+            y1={TABLE_HEIGHT * 0.3333}
+            x2={TABLE_WIDTH}
+            y2={TABLE_HEIGHT * 0.3333}
+            stroke="#ffffff"
+            strokeWidth={1.5}
+            opacity={0.35}
+          />
+          <line
+            x1={0}
+            y1={TABLE_HEIGHT * 0.6667}
+            x2={TABLE_WIDTH}
+            y2={TABLE_HEIGHT * 0.6667}
+            stroke="#ffffff"
+            strokeWidth={1.5}
+            opacity={0.35}
+          />
+
+          {/* Zone lines */}
+          {[0.25, 0.4, 0.6, 0.75].map((x) => (
             <line
-              key={`v-grid-${i}`}
-              x1={x}
+              key={x}
+              x1={TABLE_WIDTH * x}
               y1={0}
-              x2={x}
+              x2={TABLE_WIDTH * x}
               y2={TABLE_HEIGHT}
               stroke="#ffffff"
-              strokeWidth={1}
-              opacity={0.15}
+              strokeWidth={1.5}
+              opacity={0.35}
             />
-          );
-        })}
+          ))}
 
-        {/* Horizontal lines for all 9 rows */}
-        {Array.from({ length: GRID_ROWS - 1 }, (_, i) => {
-          const y = (i + 1) * CELL_HEIGHT;
-          // Skip sector dividing lines (they'll be drawn separately with firm styling)
-          const isSectorLine = 
-            Math.abs(y - TABLE_HEIGHT * 0.3333) < 1 ||
-            Math.abs(y - TABLE_HEIGHT * 0.6667) < 1;
-          
-          if (isSectorLine) return null;
-          
-          return (
-            <line
-              key={`h-grid-${i}`}
-              x1={0}
-              y1={y}
-              x2={TABLE_WIDTH}
-              y2={y}
-              stroke="#ffffff"
-              strokeWidth={1}
-              opacity={0.15}
-            />
-          );
-        })}
+          {/* Heatmap Cells */}
+          {heatmapGrid.map((row, y) =>
+            row.map((cell, x) => {
+              const isHovered = hoveredZone?.x === x && hoveredZone?.y === y;
 
-        {/* Heatmap Cells */}
-        {heatmapGrid.map((row, y) =>
-          row.map((cell, x) => {
-            const isHovered = hoveredCell?.x === x && hoveredCell?.y === y;
-            const fillColor = getSVGFillColor(cell);
+              return (
+                <g key={`${x}-${y}`}>
+                  <rect
+                    x={x * CELL_WIDTH}
+                    y={y * CELL_HEIGHT}
+                    width={CELL_WIDTH}
+                    height={CELL_HEIGHT}
+                    fill={getZoneColor(cell)}
+                    stroke={isHovered ? "#ffffff" : "rgba(255,255,255,0.2)"}
+                    strokeWidth={isHovered ? 3 : 1}
+                    vectorEffect="non-scaling-stroke"
+                    opacity={cell.count === 0 ? 0.25 : 0.9}
+                    onMouseEnter={() => setHoveredZone({ x, y })}
+                    onMouseLeave={() => setHoveredZone(null)}
+                    style={{
+                      cursor: cell.count > 0 ? "pointer" : "default",
+                    }}
+                  />
 
-            return (
-              <g key={`${x}-${y}`}>
-                <rect
-                  x={x * CELL_WIDTH}
-                  y={y * CELL_HEIGHT}
-                  width={CELL_WIDTH}
-                  height={CELL_HEIGHT}
-                  fill={fillColor}
-                  stroke={isHovered ? "#ffffff" : "rgba(255,255,255,0.25)"}
-                  strokeWidth={isHovered ? 4 : 1}
-                  vectorEffect="non-scaling-stroke"
-                  onMouseEnter={() => setHoveredCell({ x, y })}
-                  onMouseLeave={() => setHoveredCell(null)}
-                  style={{
-                    cursor: cell?.count > 0 ? "pointer" : "default",
-                  }}
-                />
-              </g>
-            );
-          })
-        )}
-
-        {/* Firm Zone dividing lines (vertical) - Drawn on top of cells */}
-        {/* Left side divisions */}
-        <line
-          x1={TABLE_WIDTH * 0.25}
-          y1={0}
-          x2={TABLE_WIDTH * 0.25}
-          y2={TABLE_HEIGHT}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-        <line
-          x1={TABLE_WIDTH * 0.40}
-          y1={0}
-          x2={TABLE_WIDTH * 0.40}
-          y2={TABLE_HEIGHT}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-        {/* Center line (net) - already drawn, but also a zone boundary */}
-        {/* Right side divisions */}
-        <line
-          x1={TABLE_WIDTH * 0.60}
-          y1={0}
-          x2={TABLE_WIDTH * 0.60}
-          y2={TABLE_HEIGHT}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-        <line
-          x1={TABLE_WIDTH * 0.75}
-          y1={0}
-          x2={TABLE_WIDTH * 0.75}
-          y2={TABLE_HEIGHT}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-
-        {/* Firm Sector dividing lines (horizontal) - Drawn on top of cells */}
-        <line
-          x1={0}
-          y1={TABLE_HEIGHT * 0.3333}
-          x2={TABLE_WIDTH}
-          y2={TABLE_HEIGHT * 0.3333}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-        <line
-          x1={0}
-          y1={TABLE_HEIGHT * 0.6667}
-          x2={TABLE_WIDTH}
-          y2={TABLE_HEIGHT * 0.6667}
-          stroke="#000000"
-          strokeWidth={3}
-        />
-      </svg>
-
-      {/* Tooltip - Show for all cells, including empty ones */}
-      {hoveredCell && (
-        <div
-          className="absolute z-20 bg-[#353535] text-white text-[9px] rounded-lg px-2 py-1.5 shadow-lg min-w-[140px]"
-          style={tooltipStyle}
-        >
-          {/* Zone-Sector Label */}
-          <div className="font-bold mb-1.5 text-[10px] border-b border-gray-600 pb-1">
-            {getZoneSectorLabel(hoveredCell.x, hoveredCell.y)}
-          </div>
-          
-          {hoveredCellData && hoveredCellData.count > 0 ? (
-            <>
-              {/* Shot Count */}
-              <div className="text-gray-300 mb-1.5">
-                <span className="font-semibold">{hoveredCellData.count}</span> shot{hoveredCellData.count > 1 ? "s" : ""}
-              </div>
-
-              {/* Dominant Stroke */}
-              {hoveredCellData.dominantStroke && (
-                <div className="mb-1.5">
-                  <span className="text-gray-400 text-[8px]">Dominant: </span>
-                  <span className="font-semibold">
-                    {formatShotName(hoveredCellData.dominantStroke)}
-                  </span>
-                </div>
-              )}
-
-              {/* Shot Type Breakdown */}
-              {hoveredCellData.shotTypes &&
-                Object.keys(hoveredCellData.shotTypes).length > 1 && (
-                  <div className="border-t border-gray-700 mt-1.5 pt-1.5 text-gray-400">
-                    <div className="text-[8px] mb-1 text-gray-500">Breakdown:</div>
-                    {Object.entries(hoveredCellData.shotTypes)
-                      .sort(([, a], [, b]) => (b as number) - (a as number))
-                      .slice(0, 3)
-                      .map(([stroke, count]) => (
-                        <div key={stroke} className="text-[8px] flex justify-between gap-2">
-                          <span>{formatShotName(stroke)}:</span>
-                          <span className="font-semibold">{count}</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-            </>
-          ) : (
-            <div className="text-gray-400 text-[9px]">
-              No shots in this zone
-            </div>
+                  {cell.count > 0 && (
+                    <text
+                      x={x * CELL_WIDTH + CELL_WIDTH / 2}
+                      y={y * CELL_HEIGHT + CELL_HEIGHT / 2}
+                      fill="#ffffff"
+                      fontSize={CELL_WIDTH * 0.32}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontWeight="600"
+                      opacity={0.85}
+                      pointerEvents="none"
+                    >
+                      {cell.count}
+                    </text>
+                  )}
+                </g>
+              );
+            })
           )}
-        </div>
-      )}
+        </svg>
+
+        {/* Tooltip */}
+        {hoveredCell &&
+          hoveredCell.count > 0 &&
+          (isMobile ? (
+            /* Mobile: Docked panel */
+            <div className="absolute w-[calc(100%-24px)] inset-x-3 bottom-0.5 z-40 rounded-lg border border-neutral-200 bg-white p-4 text-xs shadow-xl">
+              <TooltipContent
+                hoveredCell={hoveredCell}
+                x={hoveredZone!.x}
+                y={hoveredZone!.y}
+                getZoneSectorLabel={getZoneSectorLabel}
+                formatShotName={formatShotName}
+              />
+            </div>
+          ) : (
+            /* Desktop: Floating tooltip */
+            <div
+              className="absolute z-30 w-64 rounded-md border border-neutral-200 bg-white p-4 text-xs shadow-lg pointer-events-none"
+              style={tooltipStyle}
+            >
+              <TooltipContent
+                hoveredCell={hoveredCell}
+                x={hoveredZone!.x}
+                y={hoveredZone!.y}
+                getZoneSectorLabel={getZoneSectorLabel}
+                formatShotName={formatShotName}
+              />
+            </div>
+          ))}
+      </div>
     </div>
   );
 };
+
+function TooltipContent({
+  hoveredCell,
+  x,
+  y,
+  getZoneSectorLabel,
+  formatShotName,
+}: {
+  hoveredCell: any;
+  x: number;
+  y: number;
+  getZoneSectorLabel: (x: number, y: number) => string;
+  formatShotName: (stroke: string) => string;
+}) {
+  return (
+    <>
+      <p className="mb-2 font-semibold text-neutral-900">
+        {getZoneSectorLabel(x, y)}
+      </p>
+
+      <div className="space-y-1.5 text-neutral-600">
+        <div className="flex justify-between">
+          <span>Total shots</span>
+          <span className="font-semibold text-neutral-900">
+            {hoveredCell.count}
+          </span>
+        </div>
+
+        {hoveredCell.dominantStroke && (
+          <div className="flex justify-between border-t border-neutral-200 pt-2">
+            <span>Primary shot</span>
+            <span className="font-semibold text-neutral-900">
+              {formatShotName(hoveredCell.dominantStroke)}
+            </span>
+          </div>
+        )}
+
+        {hoveredCell.shotTypes &&
+          Object.keys(hoveredCell.shotTypes).length > 1 && (
+            <div className="border-t border-neutral-200 pt-2">
+              <p className="mb-1.5 text-xs font-medium text-neutral-500">
+                Shot breakdown:
+              </p>
+              <div className="space-y-1">
+                {Object.entries(hoveredCell.shotTypes)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .slice(0, 3)
+                  .map(([stroke, count]) => (
+                    <div
+                      key={stroke}
+                      className="flex justify-between text-xs"
+                    >
+                      <span className="text-neutral-600">
+                        {formatShotName(stroke)}
+                      </span>
+                      <span className="font-semibold text-neutral-900">
+                        {count as number}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+      </div>
+    </>
+  );
+}
 
 const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
   const router = useRouter();
@@ -383,17 +380,35 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
     const fetchShotAnalysis = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/profile/shots-analysis`);
-        setShotData(response.data.data);
-      } catch (error) {
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/shots-analysis?userId=${userId}` : `/profile/shots-analysis`;
+        const response = await axiosInstance.get(apiPath);
+        console.log("[Shots Page] API Response:", response.data);
+        
+        if (response.data.success && response.data.data) {
+          const data = response.data.data;
+          console.log("[Shots Page] Shot data received:", {
+            shotDistribution: data.shotDistribution?.length || 0,
+            allShots: data.allShots?.length || 0,
+            opponentShots: data.opponentShots?.length || 0,
+            heatmapGrid: data.heatmapGrid ? "exists" : "missing"
+          });
+          setShotData(data);
+        } else {
+          console.error("Shot analysis API returned unsuccessful response:", response.data);
+          setShotData(null);
+        }
+      } catch (error: any) {
         console.error("Failed to fetch shot analysis:", error);
+        console.error("Error details:", error.response?.data || error.message);
+        setShotData(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchShotAnalysis();
-  }, []);
+  }, [userId]);
 
   const shotDistribution = shotData?.shotDistribution || [];
   const serveTypeDistribution: Record<string, number> =
@@ -438,30 +453,6 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
     .flat()
     .reduce((max: number, cell: any) => Math.max(max, cell?.count || 0), 0);
 
-  // Get heatmap cell style based on dominant shot type and intensity
-  const getHeatmapStyle = (cell: {
-    count: number;
-    dominantStroke: string | null;
-  }) => {
-    if (!cell || cell.count === 0) {
-      return { backgroundColor: "rgba(148, 163, 184, 0.25)" }; // Semi-transparent gray overlay on blue background
-    }
-
-    const baseColor =
-      cell.dominantStroke && SHOT_TYPE_COLORS[cell.dominantStroke]
-        ? SHOT_TYPE_COLORS[cell.dominantStroke]
-        : "#3c6e71";
-
-    // Calculate opacity based on intensity (0.3 to 1.0 range)
-    const intensity = Math.min(cell.count / maxHeatmapValue, 1);
-    const opacity = 0.3 + intensity * 0.7;
-
-    return {
-      backgroundColor: baseColor,
-      opacity,
-    };
-  };
-
   // Format shot type name for tooltip
   const formatShotName = (stroke: string) => {
     return stroke
@@ -474,6 +465,14 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
     (sum: number, shot: any) => sum + shot.count,
     0
   );
+
+  // Check if we have any shot data at all (from any source)
+  const hasAnyShotData = totalShots > 0 || 
+    (shotData?.allShots && shotData.allShots.length > 0) ||
+    (shotData?.opponentShots && shotData.opponentShots.length > 0) ||
+    (shotData?.heatmapGrid && shotData.heatmapGrid.some((row: any[]) => 
+      row.some((cell: any) => cell?.count > 0)
+    ));
 
   return (
     <div className="min-h-screen bg-[#ffffff]">
@@ -491,36 +490,36 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
           <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
             <Loader2 className="animate-spin text-[#3c6e71]" />
           </div>
-        ) : totalShots === 0 ? (
+        ) : !shotData || !hasAnyShotData ? (
           <EmptyState
             icon={BubbleChart}
             title="No shot data available."
             description="Shot statistics will appear after matches are played!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Winning Shots
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {totalShots}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   Point-winning shots across all matches
                 </p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Most Used Shot
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {shotDistribution[0]?.name || "N/A"}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   {shotDistribution[0]?.count || 0} times •{" "}
                   {shotDistribution[0]
                     ? (
@@ -534,8 +533,8 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
             </div>
 
             {/* Bar Chart */}
-            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+            <div className="p-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                 Shot Type Distribution
               </h3>
               <div className="h-80">
@@ -568,39 +567,21 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
 
             {/* Heatmap */}
             {heatmapGrid.length > 0 && (
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
-                  Shot Landing Heatmap
-                </h3>
-                <p className="text-xs text-[#353535] mb-6">
-                  Aggregated shot landing positions from all your matches.
-                  Colors represent dominant shot type in each zone. Brighter =
-                  more shots.
-                </p>
-
-                <ShotLandingHeatmapSVG heatmapGrid={heatmapGrid} getHeatmapStyle={getHeatmapStyle} formatShotName={formatShotName} maxHeatmapValue={maxHeatmapValue} SHOT_TYPE_COLORS={SHOT_TYPE_COLORS} />
-
-                {/* Legend */}
-                <div className="mt-6">
-                  <div className="text-center">
-                    <p className="text-xs font-bold text-[#353535]">
-                      Left Side ← | → Right Side
-                    </p>
-                    <p className="text-[10px] text-[#666666] mt-1">
-                      (All shots normalized to consistent perspective)
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <ShotLandingHeatmap
+                heatmapGrid={heatmapGrid}
+                formatShotName={formatShotName}
+                maxHeatmapValue={maxHeatmapValue}
+                SHOT_TYPE_COLORS={SHOT_TYPE_COLORS}
+              />
             )}
 
             {/* Shot Trajectories - Wagon Wheel */}
             {allShots.length > 0 && (
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
+              <div className="p-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-2">
                   Your Shot Trajectories
                 </h3>
-                <p className="text-xs text-[#353535] mb-6">
+                <p className="text-xs text-[#353535] mb-4">
                   Detailed view of your shot placement and trajectories across
                   all matches. Filter by shot type to see patterns.
                 </p>
@@ -610,11 +591,11 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
 
             {/* Opponent Shot Trajectories */}
             {opponentShots.length > 0 && (
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
+              <div className="p-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-2">
                   Opponent Shot Trajectories
                 </h3>
-                <p className="text-xs text-[#353535] mb-6">
+                <p className="text-xs text-[#353535] mb-4">
                   Where your opponents&apos; shots land when they score against
                   you. Identify defensive weaknesses and vulnerable zones.
                 </p>
@@ -624,11 +605,11 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
 
             {/* Zone/Sector/Line Analysis */}
             {totalShots > 0 && (
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
+              <div className="p-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-2">
                   Targeting Analysis
                 </h3>
-                <p className="text-xs text-[#353535] mb-6">
+                <p className="text-xs text-[#353535] mb-4">
                   Breakdown of zones, sectors, and lines you target, plus where
                   opponents exploit you defensively.
                 </p>

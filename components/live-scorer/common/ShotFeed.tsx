@@ -8,7 +8,7 @@ import {
   generateShortCommentary,
 } from "@/lib/shot-commentary-utils";
 
-import { Participant } from "@/types/match.type";
+import { Participant, InitialServerConfig } from "@/types/match.type";
 
 interface ShotFeedProps {
   games: {
@@ -21,6 +21,7 @@ interface ShotFeedProps {
   currentGame: number;
   participants: Participant[];
   finalScore?: { side1Sets: number; side2Sets: number };
+  serverConfig?: InitialServerConfig | null;
 }
 
 function formatShotType(stroke?: string | null) {
@@ -36,20 +37,33 @@ export default function ShotFeed({
   currentGame,
   participants,
   finalScore,
+  serverConfig,
 }: ShotFeedProps) {
   // Derive side names from participants
-  const side1Name =
-    participants.length > 0
-      ? typeof participants[0] === "string"
-        ? participants[0]
-        : participants[0].fullName || participants[0].username || "Player 1"
-      : "Player 1";
-  const side2Name =
-    participants.length > 1
-      ? typeof participants[1] === "string"
-        ? participants[1]
-        : participants[1].fullName || participants[1].username || "Player 2"
-      : "Player 2";
+  // For doubles (4 participants): Side 1 = [0,1], Side 2 = [2,3]
+  // For singles (2 participants): Side 1 = [0], Side 2 = [1]
+  const isDoubles = participants.length === 4;
+  
+  const getParticipantName = (p: Participant | string): string => {
+    if (typeof p === "string") return p;
+    return p.fullName || p.username || "Unknown";
+  };
+
+  const side1Name = isDoubles
+    ? participants.length >= 2
+      ? `${getParticipantName(participants[0])} & ${getParticipantName(participants[1])}`
+      : "Side 1"
+    : participants.length > 0
+    ? getParticipantName(participants[0])
+    : "Player 1";
+    
+  const side2Name = isDoubles
+    ? participants.length >= 4
+      ? `${getParticipantName(participants[2])} & ${getParticipantName(participants[3])}`
+      : "Side 2"
+    : participants.length > 1
+    ? getParticipantName(participants[1])
+    : "Player 2";
   const [expandedGames, setExpandedGames] = useState<number[]>([currentGame]);
 
   const toggleGame = (gameNumber: number) => {
@@ -195,7 +209,9 @@ export default function ShotFeed({
                             currentSetScore,
                             side1Name,
                             side2Name,
-                            currentGameScore
+                            currentGameScore,
+                            serverConfig,
+                            game.gameNumber
                           );
                         } else {
                           // Fallback to short commentary if we don't have participants

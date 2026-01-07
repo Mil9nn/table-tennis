@@ -112,70 +112,67 @@ const TournamentsPage = ({ userId }: { userId?: string }) => {
             description="Tournament statistics will appear after tournaments are played!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Total Tournaments */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Tournaments Played
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {overview.totalTournaments}
                 </p>
               </div>
 
               {/* Championships */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Championships Won
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {overview.tournamentWins}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   {winRate}% win rate
                 </p>
               </div>
 
               {/* Finals Reached */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Finals Reached
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {overview.finalsReached}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">
+                <p className="text-xs text-[#353535] mt-1.5">
                   {finalsRate}% of tournaments
                 </p>
               </div>
 
               {/* Semifinals Reached */}
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Semifinals Reached
                 </h3>
-                <p className="text-4xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {overview.semifinalsReached}
                 </p>
-                <p className="text-xs text-[#353535] mt-3">Top 4 finishes</p>
+                <p className="text-xs text-[#353535] mt-1.5">Top 4 finishes</p>
               </div>
             </div>
 
             {/* Recent Tournaments */}
             {recentTournaments.length > 0 && (
-              <div className="space-y-4">
-                <div>
+              <div className="space-y-3">
+                <div className="px-4">
                   <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
                     Recent Tournaments
                   </h2>
-                  <p className="text-xs text-[#353535] mt-1">
-                    Your recent tournament participation
-                  </p>
                 </div>
 
-                <div className="bg-[#ffffff] border border-[#d9d9d9]">
+                <div>
                   <div className="divide-y divide-[#d9d9d9]">
                     {recentTournaments.map((tournament: any, index: number) => (
                       <div
@@ -183,12 +180,12 @@ const TournamentsPage = ({ userId }: { userId?: string }) => {
                         onClick={() =>
                           router.push(`/tournaments/${tournament._id}`)
                         }
-                        className="p-6 hover:bg-[#f5f5f5] transition-colors cursor-pointer border-b border-[#d9d9d9] last:border-0"
+                        className="p-3 hover:bg-[#f5f5f5] transition-colors cursor-pointer"
                       >
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="p-3 bg-[#f0f9ff] rounded">
-                              <Trophy className="w-5 h-5 text-[#3c6e71]" />
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="p-2 bg-[#f0f9ff] rounded">
+                              <Trophy className="w-4 h-4 text-[#3c6e71]" />
                             </div>
 
                             <div className="flex-1 min-w-0">
@@ -229,37 +226,37 @@ const TournamentsPage = ({ userId }: { userId?: string }) => {
             )}
 
             {/* Achievement Summary */}
-            <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-6">
+            <div className="p-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                 Medal Summary
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-[#fef9e7] border border-[#e5d598] rounded">
-                  <Medal className="w-8 h-8 text-[#fbbf24] mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-[#353535]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="text-center p-3">
+                  <Medal className="w-6 h-6 text-[#fbbf24] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#353535]">
                     {overview.tournamentWins || 0}
                   </p>
-                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                  <p className="text-xs text-[#353535] mt-1.5 font-semibold">
                     Gold Medals
                   </p>
                 </div>
 
-                <div className="text-center p-4 bg-[#f3f4f6] border border-[#d1d5db] rounded">
-                  <Medal className="w-8 h-8 text-[#9ca3af] mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-[#353535]">
+                <div className="text-center p-3">
+                  <Medal className="w-6 h-6 text-[#9ca3af] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#353535]">
                     {Math.max(0, (overview.finalsReached || 0) - (overview.tournamentWins || 0))}
                   </p>
-                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                  <p className="text-xs text-[#353535] mt-1.5 font-semibold">
                     Silver Medals
                   </p>
                 </div>
 
-                <div className="text-center p-4 bg-[#fed7aa] border border-[#fdba74] rounded">
-                  <Medal className="w-8 h-8 text-[#d97706] mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-[#353535]">
+                <div className="text-center p-3">
+                  <Medal className="w-6 h-6 text-[#d97706] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-[#353535]">
                     {Math.max(0, (overview.semifinalsReached || 0) - (overview.finalsReached || 0))}
                   </p>
-                  <p className="text-xs text-[#353535] mt-2 font-semibold">
+                  <p className="text-xs text-[#353535] mt-1.5 font-semibold">
                     Bronze Medals
                   </p>
                 </div>

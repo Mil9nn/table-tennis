@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import Tournament from "@/models/Tournament";
 import mongoose from "mongoose";
 
 /**
@@ -156,23 +157,89 @@ export async function POST(
       );
     }
 
-    // Convert pairs to the format expected by the schema
-    const doublesPairsData = pairs.map((pair) => ({
-      player1: new mongoose.Types.ObjectId(pair.player1),
-      player2: new mongoose.Types.ObjectId(pair.player2),
-    }));
+    // CRITICAL: Deduplicate pairs by canonical player combination BEFORE saving
+    // This prevents duplicate pairs (same players, different IDs) from being stored
+    const uniquePairsMap = new Map<string, any>(); // Map: canonicalKey -> pairData
+    
+    for (const pair of pairs) {
+      const player1Id = pair.player1?.toString() || '';
+      const player2Id = pair.player2?.toString() || '';
+      
+      if (!player1Id || !player2Id) {
+        continue; // Skip invalid pairs
+      }
+      
+      // Create canonical key (order-independent player combination)
+      const canonicalKey = player1Id < player2Id 
+        ? `${player1Id}:${player2Id}` 
+        : `${player2Id}:${player1Id}`;
+      
+      // Only keep the first occurrence of each canonical pair
+      if (!uniquePairsMap.has(canonicalKey)) {
+        const pairData: any = {
+          player1: new mongoose.Types.ObjectId(player1Id),
+          player2: new mongoose.Types.ObjectId(player2Id),
+        };
+        
+        // Preserve _id if it exists and is a valid ObjectId
+        if (pair._id && mongoose.Types.ObjectId.isValid(pair._id)) {
+          // Only preserve if it's not a temporary ID (starting with 'pair-')
+          const pairIdStr = pair._id.toString();
+          if (!pairIdStr.startsWith('pair-')) {
+            pairData._id = new mongoose.Types.ObjectId(pair._id);
+          }
+        }
+        
+        uniquePairsMap.set(canonicalKey, pairData);
+      } else {
+        console.warn(`[doubles-pairs] Duplicate pair detected (same players, different ID): ${canonicalKey}, skipping`);
+      }
+    }
+    
+    const doublesPairsData = Array.from(uniquePairsMap.values());
+    
+    // Validate we have the expected number of unique pairs
+    const expectedPairs = participantIds.length / 2;
+    if (doublesPairsData.length !== expectedPairs) {
+      throw ApiError.badRequest(
+        `Expected ${expectedPairs} unique pairs for ${participantIds.length} participants, but found ${doublesPairsData.length} after deduplication. This suggests duplicate pairs were provided.`
+      );
+    }
 
     // Update tournament doubles pairs
     (tournament as any).doublesPairs = doublesPairsData;
     (tournament as any).markModified("doublesPairs");
+    
+    console.log("[doubles-pairs] Saving pairs:", {
+      count: doublesPairsData.length,
+      pairsWithIds: doublesPairsData.filter(p => p._id).length,
+      firstPair: doublesPairsData[0] ? {
+        _id: doublesPairsData[0]._id?.toString(),
+        player1: doublesPairsData[0].player1.toString(),
+        player2: doublesPairsData[0].player2.toString(),
+      } : null,
+    });
+    
     await tournament.save();
+    
+    // Reload tournament to get the saved pairs with their _id values
+    const savedTournament = await Tournament.findById(id);
+    if (savedTournament) {
+      console.log("[doubles-pairs] After save - pairs in DB:", {
+        count: (savedTournament as any).doublesPairs?.length || 0,
+        firstPair: (savedTournament as any).doublesPairs?.[0] ? {
+          _id: (savedTournament as any).doublesPairs[0]._id?.toString(),
+          player1: (savedTournament as any).doublesPairs[0].player1?.toString(),
+          player2: (savedTournament as any).doublesPairs[0].player2?.toString(),
+        } : null,
+      });
+    }
 
-    // Reload and populate for response
-    await (tournament as any).populate("organizer");
-    await (tournament as any).populate("participants");
-
+    // Use the saved tournament's pairs (they have proper _id values from database)
+    const savedPairs = savedTournament ? (savedTournament as any).doublesPairs || [] : (tournament as any).doublesPairs || [];
+    
     // Manually populate doubles pairs for response
-    const playerIds = doublesPairsData.flatMap((pair) => [
+    const playerIds = savedPairs.flatMap((pair: any) => [
       pair.player1,
       pair.player2,
     ]);
@@ -181,10 +248,10 @@ export async function POST(
     );
     const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
-    const populatedPairs = doublesPairsData.map((pair, index) => ({
-      _id: (tournament as any).doublesPairs[index]._id,
-      player1: userMap.get(pair.player1.toString()),
-      player2: userMap.get(pair.player2.toString()),
+    const populatedPairs = savedPairs.map((pair: any) => ({
+      _id: pair._id?.toString() || pair._id,
+      player1: userMap.get(pair.player1?.toString() || pair.player1),
+      player2: userMap.get(pair.player2?.toString() || pair.player2),
     }));
 
     return jsonOk({

@@ -55,6 +55,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         });
       }
 
+      // ✅ Clear server config so server dialog will show again
+      match.serverConfig = null;
+      match.currentServer = null;
+
       // ✅ FIXED: If match was completed, revert status and recalculate sets
       if (match.status === "completed") {
         match.status = "in_progress";

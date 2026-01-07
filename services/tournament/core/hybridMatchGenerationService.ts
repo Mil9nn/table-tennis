@@ -72,10 +72,111 @@ export async function generateHybridRoundRobinPhase(
   const hybridConfig = tournament.hybridConfig!;
 
   if (hybridConfig.roundRobinUseGroups) {
+    // Determine participant IDs to use for group allocation
+    // For doubles tournaments, use pair IDs instead of individual player IDs
+    const isDoubles = (tournament as any).matchType === "doubles";
+    let participantIdsForAllocation: string[] = tournament.participants.map((p) => p.toString());
+    
+    // Log initial state
+    console.log(`[hybridMatchGeneration] Starting group allocation - isDoubles: ${isDoubles}, initial participants: ${participantIdsForAllocation.length}`);
+    
+    if (isDoubles) {
+      const doublesPairs = (tournament as any).doublesPairs || [];
+      
+      // Validate that pairs exist for doubles tournaments
+      if (doublesPairs.length === 0) {
+        return {
+          success: false,
+          phase: "round_robin",
+          matchesCreated: 0,
+          message: "Cannot generate groups for doubles tournament",
+          errors: [
+            "Doubles pairs must be configured before generating groups. Please create doubles pairs first."
+          ],
+        };
+      }
+      
+      console.log(`[hybridMatchGeneration] Doubles tournament detected - ${doublesPairs.length} pairs in database, ${tournament.participants.length} players`);
+      
+      // CRITICAL: Deduplicate pairs by canonical player combination
+      // This is the ROOT FIX - ensures we only use unique pairs even if duplicates exist in DB
+      const uniquePairsMap = new Map<string, { pairId: string; pair: any }>(); // Map: canonicalKey -> {pairId, pair}
+      
+      for (const pair of doublesPairs) {
+        if (!pair || !pair._id) {
+          console.warn(`[hybridMatchGeneration] Skipping invalid pair (missing _id)`);
+          continue;
+        }
+        
+        const pairId = pair._id.toString();
+        const player1Id = pair.player1?.toString() || '';
+        const player2Id = pair.player2?.toString() || '';
+        
+        if (!player1Id || !player2Id) {
+          console.warn(`[hybridMatchGeneration] Skipping invalid pair (missing players): ${pairId}`);
+          continue;
+        }
+        
+        // Create canonical key (order-independent player combination)
+        const canonicalKey = player1Id < player2Id 
+          ? `${player1Id}:${player2Id}` 
+          : `${player2Id}:${player1Id}`;
+        
+        // Only keep the first occurrence of each canonical pair
+        if (!uniquePairsMap.has(canonicalKey)) {
+          uniquePairsMap.set(canonicalKey, { pairId, pair });
+        } else {
+          const existing = uniquePairsMap.get(canonicalKey);
+          console.warn(`[hybridMatchGeneration] Duplicate pair detected: players ${canonicalKey}. Existing ID: ${existing?.pairId}, Duplicate ID: ${pairId}. Keeping first occurrence.`);
+        }
+      }
+      
+      const uniquePairIds = Array.from(uniquePairsMap.values()).map(p => p.pairId);
+      
+      // CRITICAL VALIDATION: Ensure we have exactly the expected number of pairs
+      const expectedPairs = tournament.participants.length / 2;
+      console.log(`[hybridMatchGeneration] Pair validation - Expected: ${expectedPairs} pairs, Found: ${uniquePairIds.length} unique pairs`);
+      
+      if (uniquePairIds.length !== expectedPairs) {
+        return {
+          success: false,
+          phase: "round_robin",
+          matchesCreated: 0,
+          message: "Invalid pairs configuration",
+          errors: [
+            `Expected ${expectedPairs} unique pairs for ${tournament.participants.length} participants, but found ${uniquePairIds.length} after deduplication. ` +
+            `Original doublesPairs array had ${doublesPairs.length} entries. ` +
+            `This suggests duplicate pairs exist in the database. Please reconfigure pairs.`
+          ],
+        };
+      }
+      
+      if (uniquePairIds.length === 0) {
+        return {
+          success: false,
+          phase: "round_robin",
+          matchesCreated: 0,
+          message: "Cannot generate groups for doubles tournament",
+          errors: [
+            "No valid doubles pairs found. Please reconfigure pairs."
+          ],
+        };
+      }
+      
+      // Use deduplicated pair IDs
+      participantIdsForAllocation = uniquePairIds;
+      
+      console.log(`[hybridMatchGeneration] Using ${participantIdsForAllocation.length} pair IDs for group allocation (converted from ${tournament.participants.length} player IDs)`);
+      
+      if (doublesPairs.length !== uniquePairIds.length) {
+        console.warn(`[hybridMatchGeneration] Deduplication removed ${doublesPairs.length - uniquePairIds.length} duplicate pairs from database`);
+      }
+    }
+    
     // Generate group-based round-robin
     await generateGroupMatches(
       tournament,
-      tournament.participants.map((p) => p.toString()),
+      participantIdsForAllocation,
       tournament.seeding || [],
       options.scorerId.toString(),
       {
@@ -107,10 +208,52 @@ export async function generateHybridRoundRobinPhase(
       warnings: configValidation.errors.length > 0 ? configValidation.errors : undefined,
     };
   } else {
+    // Generate single group round-robin (no groups)
+    // For doubles, validate pairs exist and use pair IDs
+    const isDoubles = (tournament as any).matchType === "doubles";
+    let participantIdsForAllocation: string[] = tournament.participants.map((p) => p.toString());
+    
+    if (isDoubles) {
+      const doublesPairs = (tournament as any).doublesPairs || [];
+      
+      // Validate that pairs exist for doubles tournaments
+      if (doublesPairs.length === 0) {
+        return {
+          success: false,
+          phase: "round_robin",
+          matchesCreated: 0,
+          message: "Cannot generate matches for doubles tournament",
+          errors: [
+            "Doubles pairs must be configured before generating matches. Please create doubles pairs first."
+          ],
+        };
+      }
+      
+      // Use pair IDs instead of individual player IDs
+      const pairIds = doublesPairs
+        .filter((pair: any) => pair != null && pair._id != null)
+        .map((pair: any) => pair._id.toString());
+      
+      if (pairIds.length === 0) {
+        return {
+          success: false,
+          phase: "round_robin",
+          matchesCreated: 0,
+          message: "Cannot generate matches for doubles tournament",
+          errors: [
+            "No valid doubles pairs found. Please reconfigure pairs."
+          ],
+        };
+      }
+      
+      // Deduplicate pair IDs
+      participantIdsForAllocation = Array.from(new Set(pairIds));
+    }
+    
     // Generate single group round-robin
     await generateSingleRoundRobinMatches(
       tournament,
-      tournament.participants.map((p) => p.toString()),
+      participantIdsForAllocation,
       tournament.seeding || [],
       options.scorerId.toString(),
       {

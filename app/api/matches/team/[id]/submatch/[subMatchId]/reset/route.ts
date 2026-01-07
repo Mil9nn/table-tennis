@@ -62,6 +62,10 @@ export async function POST(
         subMatch.games[gameIndex].shots = [];
       }
 
+      // ✅ Clear server config so server dialog will show again
+      subMatch.serverConfig = null;
+      (subMatch as any).currentServer = null;
+
       // If submatch was completed, revert it
       if (subMatch.status === "completed") {
         subMatch.status = "in_progress";

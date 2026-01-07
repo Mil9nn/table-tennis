@@ -85,50 +85,47 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
             description="Your recent matches will appear here once you start playing!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4">
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-4">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Total Matches
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">
+                <p className="text-2xl font-bold text-[#353535]">
                   {matches.length}
                 </p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Wins
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">{wins}</p>
+                <p className="text-2xl font-bold text-[#353535]">{wins}</p>
               </div>
 
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
+              <div className="p-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
                   Losses
                 </h3>
-                <p className="text-3xl font-bold text-[#353535]">{losses}</p>
+                <p className="text-2xl font-bold text-[#353535]">{losses}</p>
               </div>
             </div>
 
             {/* Match List */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="px-4">
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
                   Recent Matches
                 </h2>
-                <p className="text-xs text-[#353535] mt-1">
-                  Complete history of your recent matches and results
-                </p>
               </div>
 
-              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-4">
+              <section className="space-y-1 px-4">
                 {matches.map((match, index) => (
                   <div
                     key={index}
                     onClick={() => router.push(`/matches/${match._id}`)}
-                    className="group block border border-[#d9d9d9] bg-[#ffffff] p-3 px-4 transition-colors hover:bg-[#3c6e71]"
+                    className="group block p-2.5 transition-colors hover:bg-[#f5f5f5] cursor-pointer"
                   >
                     {/* Line 1: Opponent, Score, Result */}
                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
@@ -188,7 +185,7 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
                     </div>
 
                     {/* Line 2: Meta info */}
-                    <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                       <span className="capitalize">
                         {match.matchType?.replace(/_/g, " ")}
                       </span>

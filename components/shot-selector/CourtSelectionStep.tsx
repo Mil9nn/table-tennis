@@ -38,17 +38,6 @@ export function CourtSelectionStep({
           startScaled={mode === "landing"}
         />
       </div>
-
-      {/* Helper Text */}
-      {selectedPoint && (
-        <motion.div
-          className="text-center text-sm text-gray-600"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          Point selected. {isOrigin ? "Continue to landing point." : "Ready to submit."}
-        </motion.div>
-      )}
     </div>
   );
 }

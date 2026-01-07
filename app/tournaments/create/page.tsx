@@ -931,18 +931,6 @@ export default function CreateTournamentPage() {
               watchMatchType === "doubles" &&
               participants.length >= 2 && (
                 <section className="space-y-5">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Doubles pairs
-                  </h3>
-
-                  {participants.length % 2 !== 0 && (
-                    <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
-                      <p className="text-sm text-amber-800">
-                        You have an odd number of players. Please add or remove one player.
-                      </p>
-                    </div>
-                  )}
-
                   <DoublesPairBuilder
                     participants={participants}
                     existingPairs={doublesPairs}

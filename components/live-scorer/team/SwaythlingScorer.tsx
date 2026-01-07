@@ -20,6 +20,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import TeamMatchCompletedCard from "../common/TeamMatchCompletedCard";
 import InitialServerDialog from "@/components/ServerDialog";
 import MatchStatusBadge from "@/components/MatchStatusBadge";
@@ -213,7 +219,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-2">
+    <div className="max-w-6xl mx-auto">
       {/* Team Match Score Overview */}
       <Card className="border rounded-md shadow-none">
         <CardContent className="px-4">
@@ -244,83 +250,73 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
         </CardContent>
       </Card>
 
-      {/* SubMatch Navigator */}
-      <Card className="border rounded-md shadow-none">
-        <div className="flex items-center justify-between px-4">
-          {/* Left: Label */}
-          <div className="flex items-center gap-3">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Rubbers
-            </h3>
-            <Badge variant="secondary" className="h-5 px-2 text-[11px]">
-              {currentSubMatchIndex + 1} / {match.subMatches.length}
-            </Badge>
-          </div>
-
-          {/* Right: Navigator */}
-          <div className="flex items-center gap-1">
-            <IconNavButton
-              disabled={currentSubMatchIndex === 0}
-              onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </IconNavButton>
-
-            <div className="flex items-center gap-1 overflow-x-auto max-w-[50vw]">
-              {match.subMatches.map((sm, idx) => {
-                const isActive = idx === currentSubMatchIndex;
-                const isCompleted = sm.status === "completed";
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => goToSubMatch(idx)}
-                    className={`
-                h-7 min-w-[32px] px-2 rounded-md border text-xs font-medium transition
-                ${isActive && "border-primary bg-primary/10 text-primary"}
-                ${
-                  isCompleted &&
-                  !isActive &&
-                  "border-emerald-200 bg-emerald-50 text-emerald-700"
-                }
-                ${
-                  !isActive &&
-                  !isCompleted &&
-                  "border-muted hover:border-foreground/20"
-                }
-              `}
-                  >
-                    {idx + 1}
-                  </button>
-                );
-              })}
+      {/* SubMatch Navigator - Collapsible */}
+      <Accordion type="single" collapsible defaultValue="">
+        <AccordionItem value="rubber-navigator" className="border rounded-md">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline">
+            <div className="flex items-center gap-3 w-full">
+              <CardTitle className="text-sm font-medium">
+                Rubber {currentSubMatchIndex + 1}: {player1Name} vs {player2Name}
+              </CardTitle>
+              <Badge variant="secondary" className="h-5 px-2 text-[11px] ml-auto">
+                {currentSubMatchIndex + 1} / {match.subMatches.length}
+              </Badge>
             </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-0">
+            <div className="flex items-center justify-center px-4 pb-4">
+              <div className="flex items-center gap-1">
+                <IconNavButton
+                  disabled={currentSubMatchIndex === 0}
+                  onClick={() => goToSubMatch(currentSubMatchIndex - 1)}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </IconNavButton>
 
-            <IconNavButton
-              disabled={currentSubMatchIndex === match.subMatches.length - 1}
-              onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </IconNavButton>
-          </div>
-        </div>
-      </Card>
+                <div className="flex items-center gap-1 overflow-x-auto max-w-[50vw]">
+                  {match.subMatches.map((sm, idx) => {
+                    const isActive = idx === currentSubMatchIndex;
+                    const isCompleted = sm.status === "completed";
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => goToSubMatch(idx)}
+                        className={`
+                          h-7 min-w-[32px] px-2 rounded-md border text-xs font-medium transition
+                          ${isActive && "border-primary bg-primary/10 text-primary"}
+                          ${
+                            isCompleted &&
+                            !isActive &&
+                            "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          }
+                          ${
+                            !isActive &&
+                            !isCompleted &&
+                            "border-muted hover:border-foreground/20"
+                          }
+                        `}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <IconNavButton
+                  disabled={currentSubMatchIndex === match.subMatches.length - 1}
+                  onClick={() => goToSubMatch(currentSubMatchIndex + 1)}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </IconNavButton>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Current SubMatch Details */}
-      <Card className="rounded-none">
-        <CardHeader>
-          <div className="flex flex-col gap-2">
-            <CardTitle className="w-full flex items-center justify-between gap-2">
-              <span>Rubber {currentSubMatchIndex + 1}:</span>
-              <MatchStatusBadge
-                status={currentSubMatch.status as MatchStatus}
-              />
-            </CardTitle>
-            <p className="text-xs font-semibold">
-              {player1Name} vs {player2Name}
-            </p>
-          </div>
-        </CardHeader>
+      <Card className="rounded-none py-0">
         <CardContent className="p-0">
           {currentSubMatch.status === "completed" ? (
             <div className="text-center py-8">
@@ -399,6 +395,7 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
                   games={currentSubMatch.games || []}
                   currentGame={currentGame}
                   participants={[player1, player2] as any}
+                  serverConfig={currentSubMatch.serverConfig}
                 />
               </div>
             </>
