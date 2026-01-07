@@ -466,8 +466,7 @@ export async function PUT(
       // Initialize group standings
       // CRITICAL: Deduplicate participant IDs to prevent duplicate standings entries
       const uniqueGroupParticipantIds = Array.from(new Set(groupParticipantIds));
-      console.log(`[groups PUT] Group ${group.groupId}: Initializing standings for ${uniqueGroupParticipantIds.length} participants`);
-      console.log(`[groups PUT] Group ${group.groupId}: Participant IDs:`, uniqueGroupParticipantIds);
+      
       
       const groupStandings = uniqueGroupParticipantIds.map((pId) => ({
         participant: pId,
@@ -489,7 +488,7 @@ export async function PUT(
 
       group.rounds = groupRounds;
       group.standings = groupStandings;
-      console.log(`[groups PUT] Group ${group.groupId}: Created ${groupStandings.length} standings entries`);
+     
     }
 
     // CRITICAL: Mark groups as modified so Mongoose saves the changes
@@ -542,8 +541,7 @@ export async function PUT(
         }
       });
       
-      console.log(`[groups PUT] Created pairMap with ${pairMap.size} pairs`);
-      console.log(`[groups PUT] Pair IDs in map:`, Array.from(pairMap.keys()));
+      
       
       // Create reverse map: player ID -> pair (for cases where participant was populated as User)
       const playerToPairMap = new Map<string, any>();
@@ -614,10 +612,9 @@ export async function PUT(
           
           // Populate group standings as pairs
           if (group.standings && Array.isArray(group.standings)) {
-            console.log(`[groups PUT] Group ${group.groupId}: Populating ${group.standings.length} standings as pairs`);
+            
             const standingParticipantIds = group.standings.map((s: any) => s.participant?.toString() || s.participant);
-            console.log(`[groups PUT] Group ${group.groupId}: Standing participant IDs:`, standingParticipantIds);
-            console.log(`[groups PUT] Group ${group.groupId}: Available pair IDs:`, Array.from(pairMap.keys()));
+            
             
             group.standings = group.standings.map((standing: any) => {
               let pair: any = null;

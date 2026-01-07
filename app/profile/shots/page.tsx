@@ -383,16 +383,10 @@ const ShotAnalysisPage = ({ userId }: ShotAnalysisPageProps = {}) => {
         // Use userId prop if provided, otherwise use current user's profile
         const apiPath = userId ? `/profile/shots-analysis?userId=${userId}` : `/profile/shots-analysis`;
         const response = await axiosInstance.get(apiPath);
-        console.log("[Shots Page] API Response:", response.data);
+       
         
         if (response.data.success && response.data.data) {
           const data = response.data.data;
-          console.log("[Shots Page] Shot data received:", {
-            shotDistribution: data.shotDistribution?.length || 0,
-            allShots: data.allShots?.length || 0,
-            opponentShots: data.opponentShots?.length || 0,
-            heatmapGrid: data.heatmapGrid ? "exists" : "missing"
-          });
           setShotData(data);
         } else {
           console.error("Shot analysis API returned unsuccessful response:", response.data);

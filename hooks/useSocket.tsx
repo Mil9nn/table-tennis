@@ -41,11 +41,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
 
-  // Debug: Log environment variable status
-  if (typeof window !== "undefined") {
-    console.log("[Socket Debug] NEXT_PUBLIC_SOCKET_URL:", socketUrl || "NOT SET");
-    console.log("[Socket Debug] Current hostname:", window.location.hostname);
-  }
+  
 
   // Don't connect if URL is not configured (except in local dev)
   if (!socketUrl) {
@@ -66,7 +62,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   }
 
   const finalSocketUrl = socketUrl || "http://localhost:3000";
-  console.log("[Socket] Connecting to:", finalSocketUrl);
+  
 
   const newSocket: SocketType = io(finalSocketUrl, {
     path: "/socket.io/",
@@ -83,13 +79,13 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
   // Socket events
   newSocket.on("connect", () => {
-    console.log("[Socket] Connected:", newSocket.id);
+    
     setIsConnected(true);
     setError(null);
   });
 
   newSocket.on("disconnect", (reason) => {
-    console.log("[Socket] Disconnected:", reason);
+    
     setIsConnected(false);
   });
 
@@ -101,7 +97,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
   // Manager events (reconnect logic lives on io.Manager)
   newSocket.io.on("reconnect", (attemptNumber) => {
-    console.log("[Socket] Reconnected after", attemptNumber, "attempts");
+   
     setIsConnected(true);
     setError(null);
   });
@@ -116,7 +112,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   });
 
   return () => {
-    console.log("[Socket] Cleaning up connection");
+    
     newSocket.removeAllListeners();
     newSocket.io.removeAllListeners();
     newSocket.close();

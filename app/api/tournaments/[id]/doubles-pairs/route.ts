@@ -210,30 +210,12 @@ export async function POST(
     (tournament as any).doublesPairs = doublesPairsData;
     (tournament as any).markModified("doublesPairs");
     
-    console.log("[doubles-pairs] Saving pairs:", {
-      count: doublesPairsData.length,
-      pairsWithIds: doublesPairsData.filter(p => p._id).length,
-      firstPair: doublesPairsData[0] ? {
-        _id: doublesPairsData[0]._id?.toString(),
-        player1: doublesPairsData[0].player1.toString(),
-        player2: doublesPairsData[0].player2.toString(),
-      } : null,
-    });
+    
     
     await tournament.save();
     
     // Reload tournament to get the saved pairs with their _id values
     const savedTournament = await Tournament.findById(id);
-    if (savedTournament) {
-      console.log("[doubles-pairs] After save - pairs in DB:", {
-        count: (savedTournament as any).doublesPairs?.length || 0,
-        firstPair: (savedTournament as any).doublesPairs?.[0] ? {
-          _id: (savedTournament as any).doublesPairs[0]._id?.toString(),
-          player1: (savedTournament as any).doublesPairs[0].player1?.toString(),
-          player2: (savedTournament as any).doublesPairs[0].player2?.toString(),
-        } : null,
-      });
-    }
 
     // Use the saved tournament's pairs (they have proper _id values from database)
     const savedPairs = savedTournament ? (savedTournament as any).doublesPairs || [] : (tournament as any).doublesPairs || [];

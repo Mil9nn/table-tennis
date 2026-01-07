@@ -16,7 +16,7 @@ export default function SubscriptionSuccessPage() {
   useEffect(() => {
     // Track successful subscription
     if (paymentId || subscriptionId) {
-      console.log("Subscription successful:", { paymentId, subscriptionId });
+      
       // TODO: Track analytics event
     }
   }, [paymentId, subscriptionId]);

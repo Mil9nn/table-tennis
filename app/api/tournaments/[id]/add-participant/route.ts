@@ -86,20 +86,8 @@ export async function POST(
     }
   }
 
-  // Log tournament state before save
-  console.log("[add-participant] Before save - Tournament state:", {
-    format: tournament.format,
-    matchType: (tournament as any).matchType,
-    participantCount: tournament.participants.length,
-    drawGenerated: tournament.drawGenerated,
-    status: tournament.status,
-    hasHybridConfig: !!(tournament as any).hybridConfig,
-    hasGroups: !!(tournament as any).groups && (tournament as any).groups.length > 0,
-  });
-
   try {
     await tournament.save();
-    console.log("[add-participant] Save successful");
   } catch (saveError: any) {
     console.error("[add-participant] Error saving tournament:", saveError);
     console.error("[add-participant] Error name:", saveError.name);

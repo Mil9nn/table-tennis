@@ -440,7 +440,7 @@ function generateMatchScore(
  * Display shot data for a game
  */
 function displayShotData(gameNumber: number, shots: Shot[]): void {
-  console.log(`\n   📊 Game ${gameNumber} Shot Tracking (${shots.length} shots):`);
+  
   
   // Group by stroke type
   const strokeCounts: Record<string, number> = {};
@@ -456,32 +456,13 @@ function displayShotData(gameNumber: number, shots: Shot[]): void {
   }
 
   // Display stroke breakdown
-  console.log("      Strokes:");
+  
   Object.entries(strokeCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .forEach(([stroke, count]) => {
-      console.log(`        • ${stroke}: ${count}`);
+      
     });
-
-  // Display serve types if any serves
-  if (Object.keys(serveCounts).length > 0) {
-    console.log("      Serve Types:");
-    Object.entries(serveCounts).forEach(([type, count]) => {
-      console.log(`        • ${type}: ${count}`);
-    });
-  }
-
-  // Display sample shots with coordinates
-  console.log("      Sample Shots:");
-  shots.slice(0, 3).forEach((shot) => {
-    console.log(
-      `        Shot #${shot.shotNumber}: ${shot.stroke} | Origin(${shot.originX}, ${shot.originY}) → Landing(${shot.landingX}, ${shot.landingY})`
-    );
-  });
-  if (shots.length > 3) {
-    console.log(`        ... and ${shots.length - 3} more shots`);
-  }
 }
 
 /**
@@ -614,21 +595,21 @@ async function playRoundRobinMatches(
   let allMatchIds: string[] = [];
 
   if (tournament.useGroups && tournament.groups) {
-    console.log("\n🏓 Playing Round-Robin Phase (Groups)");
+   
     for (const group of tournament.groups) {
-      console.log(`\n📋 ${group.groupName}`);
+      
       for (const round of group.rounds) {
         allMatchIds.push(...round.matches.map((m: any) => m.toString()));
       }
     }
   } else {
-    console.log("\n🏓 Playing Round-Robin Phase");
+    
     for (const round of tournament.rounds) {
       allMatchIds.push(...round.matches.map((m: any) => m.toString()));
     }
   }
 
-  console.log(`   Total matches: ${allMatchIds.length}`);
+  
 
   for (const matchId of allMatchIds) {
     try {
@@ -647,7 +628,7 @@ async function playRoundRobinMatches(
     }
   }
 
-  console.log("   ✅ Round-robin phase completed");
+  
 }
 
 /**
@@ -660,14 +641,11 @@ async function displayRoundRobinStandings(tournamentId: string, Tournament: any,
     throw new Error(`Tournament ${tournamentId} not found`);
   }
 
-  console.log("\n" + "=".repeat(60));
-  console.log("📊 Round-Robin Phase Standings");
-  console.log("=".repeat(60));
+  
 
   if (tournament.useGroups && tournament.groups) {
     for (const group of tournament.groups) {
-      console.log(`\n${group.groupName}:`);
-      console.log("-".repeat(60));
+      
 
       const sortedStandings = [...group.standings].sort((a, b) => {
         if (a.points !== b.points) return b.points - a.points;
@@ -681,11 +659,7 @@ async function displayRoundRobinStandings(tournamentId: string, Tournament: any,
         );
 
         const name = user?.username || user?.fullName || "Unknown";
-        console.log(
-          `   ${index + 1}. ${name.padEnd(20)} | ` +
-            `P: ${standing.played} | W: ${standing.won} | L: ${standing.lost} | ` +
-            `Sets: ${standing.setsWon}-${standing.setsLost} | Pts: ${standing.points}`
-        );
+        
       });
     }
   } else {
@@ -701,15 +675,11 @@ async function displayRoundRobinStandings(tournamentId: string, Tournament: any,
       );
 
       const name = user?.username || user?.fullName || "Unknown";
-      console.log(
-        `   ${index + 1}. ${name.padEnd(20)} | ` +
-          `P: ${standing.played} | W: ${standing.won} | L: ${standing.lost} | ` +
-          `Sets: ${standing.setsWon}-${standing.setsLost} | Pts: ${standing.points}`
-      );
+      
     });
   }
 
-  console.log("=".repeat(60));
+  
 }
 
 /**
@@ -732,10 +702,7 @@ async function playKnockoutRound(
     throw new Error(`Round ${roundNumber} not found`);
   }
 
-  console.log(
-    `\n🏓 Playing Round ${roundNumber} (${round.roundName || `Round ${roundNumber}`})`
-  );
-  console.log(`   ${round.matches.length} match(es)`);
+  
 
   for (const bracketMatch of round.matches) {
     // Skip if match is already completed or is a bye
@@ -745,18 +712,14 @@ async function playKnockoutRound(
       !bracketMatch.participant2
     ) {
       if (bracketMatch.completed) {
-        console.log(
-          `   ⏭️  Match ${bracketMatch.bracketPosition.matchNumber} already completed`
-        );
+       
       }
       continue;
     }
 
     const matchId = bracketMatch.matchId?.toString();
     if (!matchId) {
-      console.log(
-        `   ⚠️  Match ${bracketMatch.bracketPosition.matchNumber} has no match document (bye?)`
-      );
+      
       continue;
     }
 
@@ -773,7 +736,7 @@ async function playKnockoutRound(
     const player2Name =
       participant2?.username || participant2?.fullName || "Unknown";
 
-    console.log(`   🎾 ${player1Name} vs ${player2Name}`);
+    
 
     // Play the match
     const winnerSide = await playMatch(matchId, organizerId, IndividualMatch);
@@ -791,7 +754,7 @@ async function playKnockoutRound(
     const winner = winnerSide === "side1" ? participant1 : participant2;
     const winnerName = winner?.username || winner?.fullName || "Unknown";
 
-    console.log(`      ✅ Winner: ${winnerName}`);
+    
 
     // Advance winner in bracket
     const { advanceWinner } = await import(
@@ -822,13 +785,9 @@ async function displayBracket(tournamentId: string, Tournament: any, users: any[
 
   const bracket: KnockoutBracket = tournament.bracket;
 
-  console.log("\n" + "=".repeat(60));
-  console.log("🏆 Knockout Phase Bracket");
-  console.log("=".repeat(60));
-
+  
   for (const round of bracket.rounds) {
-    console.log(`\n📋 ${round.roundName || `Round ${round.roundNumber}`}`);
-    console.log("-".repeat(60));
+    
 
     for (const match of round.matches) {
       const p1 = users.find(
@@ -859,11 +818,11 @@ async function displayBracket(tournamentId: string, Tournament: any, users: any[
         : "";
 
       if (match.completed) {
-        console.log(`   ✅ ${p1Name} vs ${p2Name} → Winner: ${winnerName}`);
+        
       } else if (match.participant1 && match.participant2) {
-        console.log(`   ⏳ ${p1Name} vs ${p2Name}`);
+        
       } else {
-        console.log(`   ⏸️  ${p1Name} vs ${p2Name} (pending)`);
+        
       }
     }
   }
@@ -877,9 +836,7 @@ async function displayBracket(tournamentId: string, Tournament: any, users: any[
       );
       const championName = champion?.username || champion?.fullName || "Unknown";
 
-      console.log("\n" + "=".repeat(60));
-      console.log(`👑 CHAMPION: ${championName}`);
-      console.log("=".repeat(60));
+      
     }
   }
 }
@@ -905,11 +862,11 @@ async function main() {
     } = await import("../services/tournament/core/phaseManagementService");
 
     // Connect to database
-    console.log("🔌 Connecting to database...");
+    
     await connectDB();
 
     // Fetch all users from database
-    console.log("\n📥 Fetching all players from database...");
+    
     const users = await User.find().select("_id username fullName");
 
     if (users.length < MIN_PLAYERS) {
@@ -918,7 +875,7 @@ async function main() {
       );
     }
 
-    console.log(`Found ${users.length} player(s)`);
+    
 
     // Use first user as organizer
     const organizer = users[0];
@@ -927,30 +884,28 @@ async function main() {
     // Use all users as participants
     const participantIds = users.map((u) => u._id.toString());
 
-    console.log(`\n🎯 Creating hybrid tournament with ${participantIds.length} players:`);
+   
     participantIds.forEach((id, index) => {
       const user = users.find((u) => u._id.toString() === id);
-      console.log(`   ${index + 1}. ${user?.username || user?.fullName || "Unknown"}`);
+      
     });
 
     // ============================================
     // CREATE TOURNAMENT
     // ============================================
-    console.log("\n🏆 Creating hybrid tournament...");
+    
     const tournamentId = await createTournament(
       `Smash Cup`,
       organizerId,
       participantIds,
       Tournament
     );
-    console.log(`   ✅ Tournament created: ${tournamentId}`);
+   
 
     // ============================================
     // ROUND-ROBIN PHASE
     // ============================================
-    console.log("\n" + "=".repeat(60));
-    console.log("PHASE 1: ROUND-ROBIN");
-    console.log("=".repeat(60));
+    
 
     // Reload tournament
     let tournament = await Tournament.findById(tournamentId);
@@ -959,7 +914,7 @@ async function main() {
     }
 
     // Generate round-robin matches
-    console.log("\n🔨 Generating round-robin phase matches...");
+    
     const rrResult = await generateHybridRoundRobinPhase(tournament, {
       scorerId: new mongoose.Types.ObjectId(organizerId),
       courtsAvailable: 1,
@@ -972,10 +927,8 @@ async function main() {
       );
     }
 
-    console.log(`   ✅ Generated ${rrResult.matchesCreated} matches`);
-    if (USE_GROUPS) {
-      console.log(`   ✅ Created ${rrResult.groupsCreated} groups`);
-    }
+    
+   
 
     // Play round-robin matches
     await playRoundRobinMatches(tournamentId, organizerId, Tournament, IndividualMatch, updateRoundRobinStandings);
@@ -986,9 +939,7 @@ async function main() {
     // ============================================
     // TRANSITION TO KNOCKOUT PHASE
     // ============================================
-    console.log("\n" + "=".repeat(60));
-    console.log("PHASE TRANSITION");
-    console.log("=".repeat(60));
+   
 
     // Reload tournament
     tournament = await Tournament.findById(tournamentId);
@@ -1004,7 +955,7 @@ async function main() {
       );
     }
 
-    console.log("\n✅ Round-robin phase complete. Transitioning to knockout...");
+    
 
     // Transition to knockout phase (this determines qualifiers and generates bracket)
     const koResult = await transitionToKnockoutPhase(tournament, {
@@ -1019,7 +970,7 @@ async function main() {
       );
     }
 
-    console.log(`\n📋 Qualified participants (${tournament.qualifiedParticipants?.length || 0}):`);
+    
 
     // Reload tournament to get updated qualified participants
     tournament = await Tournament.findById(tournamentId);
@@ -1031,18 +982,13 @@ async function main() {
     for (let i = 0; i < (tournament.qualifiedParticipants?.length || 0); i++) {
       const participantId = tournament.qualifiedParticipants![i];
       const user = users.find((u) => u._id.toString() === participantId.toString());
-      console.log(
-        `   ${i + 1}. ${user?.username || user?.fullName || "Unknown"}`
-      );
+      
     }
 
     // ============================================
     // KNOCKOUT PHASE
     // ============================================
-    console.log("\n" + "=".repeat(60));
-    console.log("PHASE 2: KNOCKOUT");
-    console.log("=".repeat(60));
-    console.log(`   ✅ Generated ${koResult.matchesCreated} matches`);
+    
 
     // Reload tournament
     tournament = await Tournament.findById(tournamentId);
@@ -1091,16 +1037,14 @@ async function main() {
     // Display final bracket and winner
     await displayBracket(tournamentId, Tournament, users);
 
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Hybrid tournament completed successfully!");
-    console.log("=".repeat(60));
+    
   } catch (error: any) {
     console.error("\n❌ Error:", error.message);
     console.error(error.stack);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log("\n🔌 Database connection closed");
+    
   }
 }
 

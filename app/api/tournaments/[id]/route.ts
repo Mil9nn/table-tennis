@@ -313,7 +313,7 @@ export async function GET(
               completed: bracketState.completed,
               thirdPlaceMatch: bracketState.thirdPlaceMatch,
             };
-            console.log(`[GET /tournaments/${id}] Loaded bracket from BracketState: ${bracketState.rounds.length} rounds`);
+            
           } else {
             console.warn(`[GET /tournaments/${id}] BracketState exists but has invalid structure`, {
               hasRounds: !!bracketState.rounds,

@@ -748,12 +748,8 @@ export async function generateGroupMatches(
     1;
   
   // Final validation: log allocation details
-  console.log(`[generateGroupMatches] Final allocation: ${allocationParticipants.length} participants for ${numberOfGroups} groups`);
-  console.log(`[generateGroupMatches] numberOfGroups source - tournament.numberOfGroups: ${tournament.numberOfGroups}, hybridConfig.roundRobinNumberOfGroups: ${(tournament as any).hybridConfig?.roundRobinNumberOfGroups}`);
-  if (isDoubles) {
-    console.log(`[generateGroupMatches] Expected pairs: ${tournament.participants.length / 2}, Got: ${allocationParticipants.length}`);
-    console.log(`[generateGroupMatches] Expected pairs per group: ${allocationParticipants.length / numberOfGroups}`);
-  }
+  
+  
 
   const groupAllocations = allocateGroups(
     allocationParticipants,
@@ -763,12 +759,9 @@ export async function generateGroupMatches(
   
   // Validate group allocations
   const totalAllocated = groupAllocations.reduce((sum, g) => sum + g.participants.length, 0);
-  console.log(`[generateGroupMatches] Group allocation complete: ${totalAllocated} participants allocated across ${groupAllocations.length} groups`);
   
-  // Log detailed group allocation
-  groupAllocations.forEach((group, index) => {
-    console.log(`[generateGroupMatches] Group ${group.groupName}: ${group.participants.length} participants`);
-  });
+  
+  
   
   if (totalAllocated !== allocationParticipants.length) {
     console.error(`[generateGroupMatches] WARNING: Allocation mismatch! Expected ${allocationParticipants.length} participants, got ${totalAllocated} in groups`);
@@ -870,10 +863,7 @@ export async function generateGroupMatches(
     );
 
     // Log group creation details
-    console.log(`[generateGroupMatches] Creating group ${groupAlloc.groupName} with ${groupAlloc.participants.length} participants`);
-    if (isDoubles) {
-      console.log(`[generateGroupMatches] Group ${groupAlloc.groupName} participant IDs (should be pair IDs):`, groupAlloc.participants);
-    }
+   
     
     groups.push({
       groupId: groupAlloc.groupId,
@@ -888,10 +878,7 @@ export async function generateGroupMatches(
   const finalTotalAllocated = groups.reduce((sum, g) => sum + g.participants.length, 0);
   const expectedTotal = allocationParticipants.length;
   
-  console.log(`[generateGroupMatches] Final validation - Expected: ${expectedTotal} participants, Allocated: ${finalTotalAllocated}`);
-  groups.forEach((group) => {
-    console.log(`[generateGroupMatches] Group ${group.groupName}: ${group.participants.length} participants stored`);
-  });
+  
   
   if (finalTotalAllocated !== expectedTotal) {
     console.error(`[generateGroupMatches] CRITICAL: Allocation mismatch! Expected ${expectedTotal} participants, got ${finalTotalAllocated} in groups`);
@@ -911,7 +898,7 @@ export async function generateGroupMatches(
     }
   }
   
-  console.log(`[generateGroupMatches] Validation complete - All ${allParticipantIds.size} participants are unique across groups`);
+  
 
   tournament.groups = groups as any;
   tournament.rounds = []; // No overall rounds, only group rounds
@@ -1061,11 +1048,7 @@ export async function generateKnockoutMatches(
   const allowCustomMatching =
     (tournament as any).knockoutConfig?.allowCustomMatching === true;
 
-  console.log(`[generateKnockoutMatches] Generating bracket for ${participantIds.length} participants`, {
-    tournamentId: tournament._id.toString(),
-    allowCustomMatching,
-    thirdPlaceMatch: (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
-  });
+  
 
   // Generate the knockout bracket
   let bracket;
@@ -1083,7 +1066,7 @@ export async function generateKnockoutMatches(
         skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
       }
     );
-    console.log(`[generateKnockoutMatches] Bracket structure generated: ${bracket?.rounds?.length || 0} rounds, size=${bracket?.size}`);
+    
   } catch (bracketGenError: any) {
     console.error("[generateKnockoutMatches] Error generating bracket structure:", bracketGenError);
     throw new Error(`Failed to generate bracket structure: ${bracketGenError.message}`);
@@ -1097,7 +1080,7 @@ export async function generateKnockoutMatches(
       options.courtsAvailable || 1,
       options.matchDuration || 60
     );
-    console.log("[generateKnockoutMatches] Bracket matches scheduled");
+    
   } catch (scheduleError: any) {
     console.error("[generateKnockoutMatches] Error scheduling bracket matches:", scheduleError);
     throw new Error(`Failed to schedule bracket matches: ${scheduleError.message}`);
@@ -1106,7 +1089,7 @@ export async function generateKnockoutMatches(
   // If custom matching is enabled, SKIP all automatic match document creation
   // The organizer will manually configure ALL matches starting from Round 1
   if (!allowCustomMatching) {
-    console.log("[generateKnockoutMatches] Creating match documents for all rounds");
+    
     // Normal mode: Create match documents for ALL rounds where both participants are known
     // This includes first round real matches AND matches in later rounds where
     // both participants have been determined via byes
@@ -1132,7 +1115,7 @@ export async function generateKnockoutMatches(
   } else {
     // Custom matching mode: Create EMPTY bracket structure only
     // Organizer will manually configure ALL matches (including Round 1) via custom matcher
-    console.log("[generateKnockoutMatches] Custom matching enabled - skipping match document creation");
+    
   }
 
   // Validate bracket structure before storing
@@ -1156,7 +1139,7 @@ export async function generateKnockoutMatches(
   // Without this, Mongoose won't save the bracket changes to database
   // Must be called after all bracket modifications are complete
   tournament.markModified("bracket");
-  console.log("[generateKnockoutMatches] Bracket stored in tournament object and marked as modified");
+ 
 
   return bracket;
 }

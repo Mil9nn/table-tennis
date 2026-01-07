@@ -78,8 +78,7 @@ export async function generateHybridRoundRobinPhase(
     const isDoubles = (tournament as any).matchType === "doubles";
     let participantIdsForAllocation: string[] = tournament.participants.map((p) => p.toString());
     
-    // Log initial state
-    console.log(`[hybridMatchGeneration] Starting group allocation - isDoubles: ${isDoubles}, initial participants: ${participantIdsForAllocation.length}`);
+    
     
     if (isDoubles) {
       const doublesPairs = (tournament as any).doublesPairs || [];
@@ -97,7 +96,7 @@ export async function generateHybridRoundRobinPhase(
         };
       }
       
-      console.log(`[hybridMatchGeneration] Doubles tournament detected - ${doublesPairs.length} pairs in database, ${tournament.participants.length} players`);
+      
       
       // CRITICAL: Deduplicate pairs by canonical player combination
       // This is the ROOT FIX - ensures we only use unique pairs even if duplicates exist in DB
@@ -136,7 +135,7 @@ export async function generateHybridRoundRobinPhase(
       
       // CRITICAL VALIDATION: Ensure we have exactly the expected number of pairs
       const expectedPairs = tournament.participants.length / 2;
-      console.log(`[hybridMatchGeneration] Pair validation - Expected: ${expectedPairs} pairs, Found: ${uniquePairIds.length} unique pairs`);
+      
       
       if (uniquePairIds.length !== expectedPairs) {
         return {
@@ -167,7 +166,7 @@ export async function generateHybridRoundRobinPhase(
       // Use deduplicated pair IDs
       participantIdsForAllocation = uniquePairIds;
       
-      console.log(`[hybridMatchGeneration] Using ${participantIdsForAllocation.length} pair IDs for group allocation (converted from ${tournament.participants.length} player IDs)`);
+      
       
       if (doublesPairs.length !== uniquePairIds.length) {
         console.warn(`[hybridMatchGeneration] Deduplication removed ${doublesPairs.length - uniquePairIds.length} duplicate pairs from database`);
@@ -412,8 +411,7 @@ export async function transitionToKnockoutPhase(
     consolationBracket: false,
   };
 
-  // Generate knockout matches
-  console.log(`[transitionToKnockoutPhase] Generating knockout bracket for ${tournament.qualifiedParticipants!.length} qualified participants`);
+  
   
   let bracket;
   try {
@@ -431,7 +429,7 @@ export async function transitionToKnockoutPhase(
         matchDuration: options.matchDuration,
       }
     );
-    console.log(`[transitionToKnockoutPhase] Bracket generated successfully: ${bracket?.rounds?.length || 0} rounds`);
+    
   } catch (bracketGenError: any) {
     console.error("[transitionToKnockoutPhase] Error generating bracket:", bracketGenError);
     return {
@@ -476,9 +474,7 @@ export async function transitionToKnockoutPhase(
     };
   }
 
-  // CRITICAL: Save tournament with bracket immediately after generation
-  // This ensures the bracket is persisted before creating BracketState
-  console.log("[transitionToKnockoutPhase] Saving tournament with bracket structure");
+  
   tournament.markModified("bracket");
   try {
     if (options.session) {
@@ -486,7 +482,7 @@ export async function transitionToKnockoutPhase(
     } else {
       await tournament.save();
     }
-    console.log("[transitionToKnockoutPhase] Tournament saved successfully");
+    
   } catch (saveError: any) {
     console.error("[transitionToKnockoutPhase] Failed to save tournament with bracket:", saveError);
     return {
@@ -501,7 +497,7 @@ export async function transitionToKnockoutPhase(
   // CRITICAL: Create/update BracketState document for proper persistence
   // This is MANDATORY - fail the transition if BracketState creation fails
   // BracketState ensures the bracket can be loaded even if tournament.bracket field has issues
-  console.log("[transitionToKnockoutPhase] Creating/updating BracketState document");
+  
   let bracketState;
   try {
     const { createOrUpdateBracketState } = await import("./bracketGenerationService");
@@ -516,10 +512,7 @@ export async function transitionToKnockoutPhase(
       throw new Error("BracketState creation returned null/undefined");
     }
     
-    console.log("[transitionToKnockoutPhase] BracketState created/updated successfully", {
-      bracketStateId: bracketState._id?.toString(),
-      roundsCount: bracketState.rounds?.length || 0,
-    });
+    
   } catch (bracketStateError: any) {
     console.error("[transitionToKnockoutPhase] Failed to create BracketState:", bracketStateError, {
       tournamentId: tournament._id.toString(),
@@ -539,7 +532,7 @@ export async function transitionToKnockoutPhase(
   }
 
   // Verify both tournament.bracket and BracketState exist and have valid structure
-  console.log("[transitionToKnockoutPhase] Validating bracket structure in both storage locations");
+  
   const hasTournamentBracket = tournament.bracket && 
     typeof tournament.bracket === 'object' && 
     Object.keys(tournament.bracket).length > 0 &&
@@ -582,10 +575,7 @@ export async function transitionToKnockoutPhase(
     (total: number, round: any) => total + (round.matches?.length || 0),
     0
   );
-  console.log(`[transitionToKnockoutPhase] Bracket validation successful: ${knockoutMatchCount} matches across ${tournament.bracket.rounds.length} rounds`);
-
-  // Complete transition
-  console.log("[transitionToKnockoutPhase] Completing transition to knockout phase");
+ 
   completeTransitionToKnockout(tournament);
 
   // Final save to ensure transition state is persisted
@@ -595,7 +585,7 @@ export async function transitionToKnockoutPhase(
     } else {
       await tournament.save();
     }
-    console.log("[transitionToKnockoutPhase] Transition completed successfully");
+    
   } catch (finalSaveError: any) {
     console.error("[transitionToKnockoutPhase] Failed to save tournament after transition:", finalSaveError);
     return {

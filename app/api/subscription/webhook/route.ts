@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(body);
-    console.log(`✅ Received Razorpay webhook: ${event.event}`);
+    
 
     await connectDB();
 
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        console.log(`⚠️  Unhandled event type: ${event.event}`);
+        
     }
 
     return NextResponse.json({ received: true });
@@ -125,7 +125,7 @@ async function handleSubscriptionActivated(subscription: any) {
     return;
   }
 
-  console.log(`✅ Creating ${tier} subscription for user ${userId}`);
+  
 
   // Get subscription details from Razorpay
   const razorpaySubscriptionId = subscription.id;
@@ -139,7 +139,7 @@ async function handleSubscriptionActivated(subscription: any) {
     razorpayPlanId: planId,
   });
 
-  console.log(`✅ Subscription created successfully for user ${userId}`);
+  
 }
 
 /**
@@ -149,7 +149,7 @@ async function handleSubscriptionCharged(payment: any, subscription: any) {
   const razorpaySubscriptionId = subscription.id;
 
   if (!razorpaySubscriptionId) {
-    console.log("⚠️  Payment has no subscription - skipping");
+    
     return;
   }
 
@@ -161,7 +161,7 @@ async function handleSubscriptionCharged(payment: any, subscription: any) {
     return;
   }
 
-  console.log(`✅ Payment succeeded for subscription ${dbSubscription._id}`);
+ 
 
   // Renew the subscription
   await renewSubscription(dbSubscription._id.toString(), {
@@ -171,7 +171,7 @@ async function handleSubscriptionCharged(payment: any, subscription: any) {
     razorpayInvoiceId: payment.invoice_id,
   });
 
-  console.log(`✅ Subscription renewed for user ${dbSubscription.user}`);
+  
 }
 
 /**
@@ -180,7 +180,7 @@ async function handleSubscriptionCharged(payment: any, subscription: any) {
 async function handlePaymentCaptured(payment: any) {
   // This handles one-time payments or initial subscription payments
   // The subscription.charged event is more specific for recurring payments
-  console.log(`✅ Payment captured: ${payment.id}`);
+ 
   
   // If this payment is linked to a subscription, handle it
   if (payment.subscription_id) {
@@ -212,12 +212,12 @@ async function handleSubscriptionCancelled(subscription: any) {
     return;
   }
 
-  console.log(`✅ Expiring subscription ${dbSubscription._id}`);
+  
 
   // Expire the subscription (downgrade to free tier)
   await expireSubscription(dbSubscription._id.toString());
 
-  console.log(`✅ Subscription ${dbSubscription._id} expired and downgraded to free`);
+ 
 }
 
 /**
@@ -233,13 +233,13 @@ async function handleSubscriptionPaused(subscription: any) {
     return;
   }
 
-  console.log(`✅ Pausing subscription ${dbSubscription._id}`);
+ 
 
   // Mark subscription as cancelled (will expire at period end)
   dbSubscription.status = "cancelled";
   await dbSubscription.save();
 
-  console.log(`✅ Subscription ${dbSubscription._id} paused`);
+  
 }
 
 /**
@@ -255,8 +255,7 @@ async function handleSubscriptionResumed(subscription: any) {
     return;
   }
 
-  console.log(`✅ Resuming subscription ${dbSubscription._id}`);
-
+  
   // Sync subscription data from Razorpay
   await syncSubscriptionWithRazorpay(dbSubscription._id.toString());
 
@@ -264,9 +263,8 @@ async function handleSubscriptionResumed(subscription: any) {
   const newTier = getTierFromPlanId(subscription.plan_id || "");
 
   if (newTier !== dbSubscription.tier && newTier !== "free") {
-    console.log(`✅ Updating subscription tier from ${dbSubscription.tier} to ${newTier}`);
+    
     await updateSubscriptionTier(dbSubscription.user.toString(), newTier);
   }
 
-  console.log(`✅ Subscription ${dbSubscription._id} resumed successfully`);
 }

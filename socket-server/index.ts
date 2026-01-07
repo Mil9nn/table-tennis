@@ -64,19 +64,17 @@ app.use("/api", emitRoutes);
 
 // Start server
 httpServer.listen(port, () => {
-  console.log(`[Socket Server] Server running on port ${port}`);
-  console.log(`[Socket Server] CORS allowed origins: ${allowedOrigins.join(", ")}`);
-  console.log(`[Socket Server] Socket.IO path: /socket.io/`);
+  
 });
 
 // Graceful shutdown
 const gracefulShutdown = () => {
-  console.log("\n[Socket Server] Received shutdown signal, closing connections...");
+  
 
   io.close(() => {
-    console.log("[Socket Server] All socket connections closed");
+    
     httpServer.close(() => {
-      console.log("[Socket Server] HTTP server closed");
+      
       process.exit(0);
     });
   });

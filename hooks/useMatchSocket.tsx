@@ -48,14 +48,10 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Join match room when connected
   useEffect(() => {
     if (!socket || !isConnected || !matchId || !enabled) {
-      if (!socket) console.log("[MatchSocket] No socket instance");
-      if (!isConnected) console.log("[MatchSocket] Not connected yet");
-      if (!matchId) console.log("[MatchSocket] No matchId");
-      if (!enabled) console.log("[MatchSocket] Socket disabled");
       return;
     }
 
-    console.log("[MatchSocket] Joining match room:", matchId, "Role:", role);
+    
 
     socket.emit("join:match", {
       matchId,
@@ -66,12 +62,12 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
     
     // Verify join was successful
     socket.once("viewer:joined", (data) => {
-      console.log("[MatchSocket] Successfully joined room:", data);
+      
     });
 
     // If late joiner (no match data yet), fetch current state
     if (!match) {
-      console.log("[MatchSocket] Late joiner - fetching match state");
+      
       fetchMatch(matchId, matchCategory).catch((err) => {
         console.error("[MatchSocket] Failed to fetch match state:", err);
       });
@@ -80,7 +76,7 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
     // Leave room on unmount
     return () => {
       if (socket) {
-        console.log("[MatchSocket] Leaving match room:", matchId);
+        
         socket.emit("leave:match", { matchId });
         setIsJoined(false);
       }
@@ -90,11 +86,11 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Handler: Score Update
   const handleScoreUpdate = useCallback(
     (data: ScoreUpdateEvent) => {
-      console.log("[MatchSocket] Score update:", data);
+      
 
       // Skip if we're the scorer and currently updating
       if (role === "scorer" && isUpdatingRef.current) {
-        console.log("[MatchSocket] Skipping own score update");
+        
         return;
       }
 
@@ -156,11 +152,11 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Handler: Shot Recorded
   const handleShotRecorded = useCallback(
     (data: ShotRecordedEvent) => {
-      console.log("[MatchSocket] Shot recorded:", data);
+      
 
       // Skip if we're the scorer and currently updating
       if (role === "scorer" && isUpdatingRef.current) {
-        console.log("[MatchSocket] Skipping own shot update");
+        
         return;
       }
 
@@ -199,11 +195,11 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Handler: Server Change
   const handleServerChange = useCallback(
     (data: ServerChangeEvent) => {
-      console.log("[MatchSocket] Server change:", data);
+      
 
       // Skip if we're the scorer and currently updating
       if (role === "scorer" && isUpdatingRef.current) {
-        console.log("[MatchSocket] Skipping own server change");
+       
         return;
       }
 
@@ -223,7 +219,7 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Handler: Game Completed
   const handleGameCompleted = useCallback(
     (data: GameCompletedEvent) => {
-      console.log("[MatchSocket] Game completed:", data);
+      
 
       if (data.matchId !== matchId || !match) {
         return;
@@ -238,7 +234,7 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
   // Handler: Match Completed
   const handleMatchCompleted = useCallback(
     (data: MatchCompletedEvent) => {
-      console.log("[MatchSocket] Match completed:", data);
+      
 
       if (data.matchId !== matchId) {
         return;

@@ -99,8 +99,7 @@ export function initializeSocketHandlers(
           socketMetadata.set(socketId, metadata);
         }
 
-        console.log(`[Socket Server] Client ${socketId} left room ${roomName}`);
-
+        
         // Get updated viewer count
         const sockets = await io.in(roomName).fetchSockets();
         const viewerCount = sockets.length;
@@ -126,9 +125,7 @@ export function initializeSocketHandlers(
 
     // Handle disconnect
     socket.on("disconnect", async (reason) => {
-      console.log(
-        `[Socket Server] Client disconnected: ${socketId}, reason: ${reason}`
-      );
+      
 
       // Notify room if user was in a match room
       const metadata = socketMetadata.get(socketId);
@@ -166,7 +163,7 @@ export function initializeSocketHandlers(
     }
   });
 
-  console.log("[Socket Server] Connection handlers initialized");
+  
 }
 
 /**

@@ -248,7 +248,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Log processing stats
-    console.log(`[Shots Analysis] Processed ${totalMatchesProcessed} individual matches, ${totalGamesProcessed} games, ${totalShotsFound} total shots, ${userShotsFound} user shots`);
+    
 
     // Process team matches
     let teamMatchesProcessed = 0;
@@ -398,9 +398,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Log final stats
-    console.log(`[Shots Analysis] Team matches: ${teamMatchesProcessed} matches, ${teamGamesProcessed} games, ${teamShotsFound} total shots, ${teamUserShotsFound} user shots`);
-    console.log(`[Shots Analysis] Shot type distribution:`, shotTypeDistribution);
-    console.log(`[Shots Analysis] Total shots collected: ${allShots.length} user shots, ${opponentShots.length} opponent shots`);
+    
 
     // Convert shot distribution to array format for charts
     const shotDistributionArray = Object.entries(shotTypeDistribution)
@@ -438,7 +436,7 @@ export async function GET(request: NextRequest) {
       opponentLineStats,
     };
 
-    console.log(`[Shots Analysis] Returning data with ${shotDistributionArray.length} shot types, ${allShots.length} user shots, ${opponentShots.length} opponent shots`);
+    
 
     return NextResponse.json({
       success: true,
