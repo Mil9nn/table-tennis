@@ -284,18 +284,46 @@ export async function GET(
 
     // For knockout/hybrid tournaments, load bracket from BracketState if not in tournament document
     if (tournament.format === "knockout" || tournament.format === "hybrid") {
-      // If bracket is not in tournament document, try to load from BracketState
-      if (!tournament.bracket) {
+      // For hybrid tournaments in knockout phase, bracket is required
+      const isHybridInKnockout = tournament.format === "hybrid" && tournament.currentPhase === "knockout";
+      
+      // If bracket is not in tournament document or is empty, try to load from BracketState
+      const hasBracket = tournament.bracket && 
+        typeof tournament.bracket === 'object' && 
+        Object.keys(tournament.bracket).length > 0 &&
+        tournament.bracket.rounds && 
+        Array.isArray(tournament.bracket.rounds) && 
+        tournament.bracket.rounds.length > 0;
+      
+      if (!hasBracket) {
+        // Try to load from BracketState
         const bracketState = await BracketState.findOne({ tournament: id });
         if (bracketState) {
-          // Convert BracketState document to bracket object
-          (tournament as any).bracket = {
-            size: bracketState.size,
-            rounds: bracketState.rounds,
-            currentRound: bracketState.currentRound,
-            completed: bracketState.completed,
-            thirdPlaceMatch: bracketState.thirdPlaceMatch,
-          };
+          // Validate BracketState has valid structure
+          const hasValidBracketState = bracketState.rounds &&
+            Array.isArray(bracketState.rounds) &&
+            bracketState.rounds.length > 0;
+          
+          if (hasValidBracketState) {
+            // Convert BracketState document to bracket object
+            (tournament as any).bracket = {
+              size: bracketState.size,
+              rounds: bracketState.rounds,
+              currentRound: bracketState.currentRound,
+              completed: bracketState.completed,
+              thirdPlaceMatch: bracketState.thirdPlaceMatch,
+            };
+            console.log(`[GET /tournaments/${id}] Loaded bracket from BracketState: ${bracketState.rounds.length} rounds`);
+          } else {
+            console.warn(`[GET /tournaments/${id}] BracketState exists but has invalid structure`, {
+              hasRounds: !!bracketState.rounds,
+              roundsType: typeof bracketState.rounds,
+              roundsLength: bracketState.rounds?.length || 0,
+            });
+          }
+        } else if (isHybridInKnockout) {
+          // For hybrid tournaments in knockout phase, bracket should exist
+          console.warn(`[GET /tournaments/${id}] Hybrid tournament in knockout phase but no bracket found in tournament.bracket or BracketState`);
         }
       }
     }

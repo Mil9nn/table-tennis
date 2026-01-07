@@ -32,7 +32,13 @@ function qualifyTopNPerGroup(
   tournament: Tournament,
   countPerGroup: number
 ): QualificationResult {
-  if (!tournament.useGroups || !tournament.groups || tournament.groups.length === 0) {
+  // For hybrid tournaments, check both useGroups and hybridConfig.roundRobinUseGroups
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
+
+  if (!usesGroups || !tournament.groups || tournament.groups.length === 0) {
     throw new Error("Tournament does not have groups configured");
   }
 

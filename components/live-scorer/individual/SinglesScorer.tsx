@@ -50,21 +50,26 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
 
     // If match is completed, initialize immediately to prevent race conditions
     if (match.status === "completed") {
-      setInitialMatch(match);
-      lastMatchId.current = match._id;
-      lastMatchStatus.current = match.status;
+      // Only re-initialize if match ID changed or we haven't initialized this match yet
+      if (lastMatchId.current !== match._id) {
+        setInitialMatch(match);
+        lastMatchId.current = match._id;
+        lastMatchStatus.current = match.status;
+      }
       return;
     }
 
     const matchChanged = lastMatchId.current !== match._id;
     const statusChanged = lastMatchStatus.current !== match.status;
 
+    // Only re-initialize when match ID changes or status changes significantly
+    // Don't re-initialize on every score update to prevent jitter
     if (matchChanged || (statusChanged && ((match.status as MatchStatus) === "completed" || lastMatchStatus.current === "completed"))) {
       setInitialMatch(match);
       lastMatchId.current = match._id;
       lastMatchStatus.current = match.status;
     }
-  }, [match, setInitialMatch]);
+  }, [match?._id, match?.status, setInitialMatch]); // Only depend on ID and status, not entire match object
 
   // Show server dialog immediately if no server is configured
   useEffect(() => {
@@ -115,19 +120,32 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
       return;
     }
 
-    // Determine which side scored last based on total score
-    const totalPoints = side1Score + side2Score;
     const games = match.games || [];
     const currentGameData = games.find((g: any) => g.gameNumber === currentGame);
     
-    if (!currentGameData || !currentGameData.shots || currentGameData.shots.length === 0) {
-      toast.error("No shots to undo");
+    if (!currentGameData) {
+      toast.error("No game data found");
       return;
     }
 
-    // Get the last shot to determine which side scored
-    const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-    const lastSide = lastShot.side as PlayerKey;
+    let lastSide: PlayerKey;
+
+    // If shots exist, use them to determine which side scored last (detailed mode)
+    if (currentGameData.shots && currentGameData.shots.length > 0) {
+      const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
+      lastSide = lastShot.side as PlayerKey;
+    } else {
+      // No shots available (simple mode) - determine which side to subtract from
+      // Subtract from the side with the higher score, or side1 if scores are equal
+      if (side1Score > side2Score) {
+        lastSide = "side1";
+      } else if (side2Score > side1Score) {
+        lastSide = "side2";
+      } else {
+        // Scores are equal - subtract from side1 as fallback
+        lastSide = "side1";
+      }
+    }
 
     await subtractPoint(lastSide);
   }, [side1Score, side2Score, match, currentGame, subtractPoint]);

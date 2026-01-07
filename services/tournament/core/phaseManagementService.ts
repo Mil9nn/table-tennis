@@ -45,17 +45,45 @@ export function isRoundRobinPhaseComplete(tournament: Tournament): boolean {
     return false;
   }
 
+  // Determine if tournament uses groups
+  // For hybrid tournaments, check both useGroups and hybridConfig.roundRobinUseGroups
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
+
   // Check if using groups
-  if (tournament.useGroups && tournament.groups) {
+  if (usesGroups && tournament.groups && tournament.groups.length > 0) {
     // All groups must have all rounds completed
-    return tournament.groups.every((group) =>
-      group.rounds.every((round) => round.completed)
-    );
+    // Also verify that groups have rounds and matches
+    return tournament.groups.every((group) => {
+      if (!group || !group.rounds || group.rounds.length === 0) {
+        return false; // Group has no rounds
+      }
+      
+      // All rounds in the group must be completed
+      return group.rounds.every((round: any) => {
+        // Round must exist, have matches, and be marked as completed
+        if (!round) return false;
+        if (!round.matches || round.matches.length === 0) {
+          return false; // Round has no matches
+        }
+        // Check if round is explicitly marked as completed
+        return round.completed === true;
+      });
+    });
   }
 
   // Check if all rounds are completed (non-grouped)
   if (tournament.rounds && tournament.rounds.length > 0) {
-    return tournament.rounds.every((round) => round.completed);
+    return tournament.rounds.every((round: any) => {
+      if (!round) return false;
+      if (!round.matches || round.matches.length === 0) {
+        return false; // Round has no matches
+      }
+      // Check if round is explicitly marked as completed
+      return round.completed === true;
+    });
   }
 
   return false;
@@ -95,6 +123,47 @@ export function canTransitionToKnockout(tournament: Tournament): {
     };
   }
 
+  // Determine if tournament uses groups
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
+
+  // Defensive check: if groups are expected, ensure they exist and are properly structured
+  if (usesGroups) {
+    if (!tournament.groups || tournament.groups.length === 0) {
+      return {
+        canTransition: false,
+        reason: "Tournament is configured to use groups but no groups exist",
+      };
+    }
+
+    // Validate that all groups have rounds
+    const groupsWithoutRounds = tournament.groups.filter(
+      (group) => !group.rounds || group.rounds.length === 0
+    );
+    if (groupsWithoutRounds.length > 0) {
+      return {
+        canTransition: false,
+        reason: `Some groups are missing rounds (${groupsWithoutRounds.length} group(s) affected)`,
+      };
+    }
+
+    // Validate that all groups have at least some matches
+    const groupsWithoutMatches = tournament.groups.filter((group) => {
+      const hasMatches = group.rounds.some(
+        (round: any) => round.matches && round.matches.length > 0
+      );
+      return !hasMatches;
+    });
+    if (groupsWithoutMatches.length > 0) {
+      return {
+        canTransition: false,
+        reason: `Some groups have no matches (${groupsWithoutMatches.length} group(s) affected)`,
+      };
+    }
+  }
+
   if (!isRoundRobinPhaseComplete(tournament)) {
     return {
       canTransition: false,
@@ -102,11 +171,25 @@ export function canTransitionToKnockout(tournament: Tournament): {
     };
   }
 
-  if (!tournament.standings || tournament.standings.length === 0) {
-    return {
-      canTransition: false,
-      reason: "Standings have not been calculated",
-    };
+  // For group tournaments, check if all groups have standings
+  if (usesGroups && tournament.groups) {
+    const groupsWithoutStandings = tournament.groups.filter(
+      (group) => !group.standings || !Array.isArray(group.standings) || group.standings.length === 0
+    );
+    if (groupsWithoutStandings.length > 0) {
+      return {
+        canTransition: false,
+        reason: `Standings have not been calculated for ${groupsWithoutStandings.length} group(s)`,
+      };
+    }
+  } else {
+    // For non-group tournaments, check overall standings
+    if (!tournament.standings || tournament.standings.length === 0) {
+      return {
+        canTransition: false,
+        reason: "Standings have not been calculated",
+      };
+    }
   }
 
   return { canTransition: true };

@@ -32,21 +32,43 @@ export async function GET(
     await requireAuth(req);
     const { id } = await context.params;
 
-    const { tournament, isTeamTournament } = await loadTournament(id, null, {
+    const { tournament: initialTournament, isTeamTournament } = await loadTournament(id, null, {
       skipConnect: true,
     });
 
     // Populate participants based on tournament category
-    await (tournament as any).populate("participants");
-    await (tournament as any).populate("qualifiedParticipants");
+    await (initialTournament as any).populate("participants");
+    await (initialTournament as any).populate("qualifiedParticipants");
 
     // If not hybrid, return basic info
-    if (tournament.format !== "hybrid") {
+    if (initialTournament.format !== "hybrid") {
       return jsonOk({
         isHybrid: false,
-        format: tournament.format,
+        format: initialTournament.format,
         message: "Tournament is not hybrid format",
       });
+    }
+
+    // For hybrid tournaments in round-robin phase, ensure round completion flags are up-to-date
+    // by triggering a standings update if needed (this will refresh round.completed flags)
+    let tournament: any = initialTournament;
+    if (initialTournament.format === "hybrid" && initialTournament.currentPhase === "round_robin") {
+      const { updateRoundRobinStandings } = await import("@/services/tournament/tournamentUpdateService");
+      // Reload tournament fresh to ensure we have latest data
+      let freshTournament: any = null;
+      if (isTeamTournament) {
+        const TournamentTeam = (await import("@/models/TournamentTeam")).default;
+        freshTournament = await (TournamentTeam as any).findById(id);
+      } else {
+        const TournamentIndividual = (await import("@/models/TournamentIndividual")).default;
+        freshTournament = await (TournamentIndividual as any).findById(id);
+      }
+      if (freshTournament) {
+        // Update standings and round completion flags
+        await updateRoundRobinStandings(freshTournament);
+        // Use the fresh tournament for status check
+        tournament = freshTournament;
+      }
     }
 
     // Get comprehensive hybrid status

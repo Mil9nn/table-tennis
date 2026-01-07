@@ -24,7 +24,13 @@ export async function onTournamentCompleted(
     throw new Error("Tournament not found");
   }
 
-  if (tournament.format !== "knockout") {
+  // Allow both pure knockout tournaments and hybrid tournaments with completed knockout phase
+  if (tournament.format === "hybrid") {
+    // For hybrid tournaments, verify knockout phase is complete
+    if (tournament.currentPhase !== "knockout") {
+      throw new Error("Hybrid tournament knockout phase is not complete");
+    }
+  } else if (tournament.format !== "knockout") {
     throw new Error("Tournament is not a knockout format");
   }
 

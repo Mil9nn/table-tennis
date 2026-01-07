@@ -68,13 +68,16 @@ export default function CustomMatchingPage() {
     return (
       <div className="text-center py-12">
         <p>This tournament does not have a knockout bracket</p>
-        {tournament.format === "hybrid" &&
-          tournament.currentPhase !== "knockout" && (
-            <p className="text-sm text-gray-500 mt-2">
-              Please complete the round-robin phase and transition to knockout
-              phase first.
-            </p>
-          )}
+        {tournament.format === "hybrid" && (
+          <div className="text-sm text-gray-500 mt-2 space-y-1">
+            {tournament.currentPhase !== "knockout" && (
+              <p>Please complete the round-robin phase and transition to knockout phase first.</p>
+            )}
+            {tournament.currentPhase === "knockout" && !tournament.bracket && (
+              <p>The bracket structure has not been created. Please try transitioning again or contact support.</p>
+            )}
+          </div>
+        )}
         <Button
           variant="outline"
           onClick={() => router.push(`/tournaments/${tournamentId}`)}

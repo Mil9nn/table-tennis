@@ -57,8 +57,13 @@ export default function TournamentStatisticsPage() {
     );
   }
 
-  // Check if tournament is knockout and has statistics
-  if (tournament.format !== "knockout" || !tournament.knockoutStatistics) {
+  // Check if tournament is in knockout phase and has statistics
+  // Allow both pure knockout tournaments and hybrid tournaments with completed knockout phase
+  const isInKnockoutPhase =
+    tournament.format === "knockout" ||
+    (tournament.format === "hybrid" && tournament.currentPhase === "knockout");
+
+  if (!isInKnockoutPhase || !tournament.knockoutStatistics) {
     return (
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -74,7 +79,7 @@ export default function TournamentStatisticsPage() {
             <CardContent className="py-12 text-center">
               <p className="text-slate-600">
                 No statistics available. This feature is only available for
-                knockout tournaments.
+                knockout tournaments or hybrid tournaments with completed knockout phase.
               </p>
             </CardContent>
           </Card>

@@ -223,12 +223,14 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       displayState = "tbd";
     }
 
-    // Only allow clicking if match has participants assigned and a match document exists
-    // TBD matches should not be clickable
+    // Allow clicking if:
+    // 1. Match has a match document (match exists in database), OR
+    // 2. Match has both participants assigned and is in "ready" state (for custom matching or matches not yet created)
+    // TBD and bye matches should not be clickable
     const canClick = 
-      matchDoc !== null && 
       displayState !== "bye" && 
-      displayState !== "tbd";
+      displayState !== "tbd" &&
+      (matchDoc !== null || displayState === "ready");
     const showScore =
       displayState === "completed" && matchDoc?.finalScore !== undefined;
 
@@ -435,9 +437,21 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       showScore,
     } = enhanced;
 
+    // Determine match ID to use for navigation
+    // Prefer matchDoc._id, but fall back to bracketMatch.matchId if matchDoc is null
+    // This handles cases where matches exist but aren't in the matchByPosition map
+    let matchId: string | null = null;
+    if (matchDoc?._id) {
+      matchId = String(matchDoc._id);
+    } else if (typeof bracketMatch.matchId === 'string') {
+      matchId = bracketMatch.matchId;
+    } else if (typeof bracketMatch.matchId === 'object' && bracketMatch.matchId && '_id' in bracketMatch.matchId) {
+      matchId = String((bracketMatch.matchId as { _id: any })._id);
+    }
+
     return (
       <div
-        onClick={() => canClick && matchDoc && onMatchClick?.(matchDoc._id)}
+        onClick={() => canClick && matchId && onMatchClick?.(matchId)}
         className={`relative w-full min-w-48 ${
           canClick ? "cursor-pointer" : ""
         }`}

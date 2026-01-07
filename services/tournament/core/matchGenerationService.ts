@@ -1061,32 +1061,52 @@ export async function generateKnockoutMatches(
   const allowCustomMatching =
     (tournament as any).knockoutConfig?.allowCustomMatching === true;
 
+  console.log(`[generateKnockoutMatches] Generating bracket for ${participantIds.length} participants`, {
+    tournamentId: tournament._id.toString(),
+    allowCustomMatching,
+    thirdPlaceMatch: (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+  });
+
   // Generate the knockout bracket
-  const bracket = generateKnockoutBracket(
-    participantIds,
-    seeding.map((s) => ({
-      participant: s.participant.toString(),
-      seedNumber: s.seedNumber,
-    })),
-    {
-      thirdPlaceMatch:
-        (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
-      scheduledDate: tournament.startDate,
-      skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
-    }
-  );
+  let bracket;
+  try {
+    bracket = generateKnockoutBracket(
+      participantIds,
+      seeding.map((s) => ({
+        participant: s.participant.toString(),
+        seedNumber: s.seedNumber,
+      })),
+      {
+        thirdPlaceMatch:
+          (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+        scheduledDate: tournament.startDate,
+        skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
+      }
+    );
+    console.log(`[generateKnockoutMatches] Bracket structure generated: ${bracket?.rounds?.length || 0} rounds, size=${bracket?.size}`);
+  } catch (bracketGenError: any) {
+    console.error("[generateKnockoutMatches] Error generating bracket structure:", bracketGenError);
+    throw new Error(`Failed to generate bracket structure: ${bracketGenError.message}`);
+  }
 
   // Schedule the bracket matches
-  scheduleBracketMatches(
-    bracket,
-    tournament.startDate,
-    options.courtsAvailable || 1,
-    options.matchDuration || 60
-  );
+  try {
+    scheduleBracketMatches(
+      bracket,
+      tournament.startDate,
+      options.courtsAvailable || 1,
+      options.matchDuration || 60
+    );
+    console.log("[generateKnockoutMatches] Bracket matches scheduled");
+  } catch (scheduleError: any) {
+    console.error("[generateKnockoutMatches] Error scheduling bracket matches:", scheduleError);
+    throw new Error(`Failed to schedule bracket matches: ${scheduleError.message}`);
+  }
 
   // If custom matching is enabled, SKIP all automatic match document creation
   // The organizer will manually configure ALL matches starting from Round 1
   if (!allowCustomMatching) {
+    console.log("[generateKnockoutMatches] Creating match documents for all rounds");
     // Normal mode: Create match documents for ALL rounds where both participants are known
     // This includes first round real matches AND matches in later rounds where
     // both participants have been determined via byes
@@ -1112,6 +1132,20 @@ export async function generateKnockoutMatches(
   } else {
     // Custom matching mode: Create EMPTY bracket structure only
     // Organizer will manually configure ALL matches (including Round 1) via custom matcher
+    console.log("[generateKnockoutMatches] Custom matching enabled - skipping match document creation");
+  }
+
+  // Validate bracket structure before storing
+  if (!bracket || !bracket.rounds || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
+    console.error("[generateKnockoutMatches] Invalid bracket structure", {
+      hasBracket: !!bracket,
+      hasRounds: !!bracket?.rounds,
+      roundsType: Array.isArray(bracket?.rounds) ? 'array' : typeof bracket?.rounds,
+      roundsLength: bracket?.rounds?.length || 0,
+    });
+    throw new Error(
+      `Invalid bracket structure generated: bracket=${!!bracket}, rounds=${bracket?.rounds ? 'exists' : 'missing'}, roundsLength=${bracket?.rounds?.length || 0}`
+    );
   }
 
   // Store bracket structure in tournament
@@ -1120,7 +1154,9 @@ export async function generateKnockoutMatches(
 
   // CRITICAL: Mark bracket as modified since it's Schema.Types.Mixed
   // Without this, Mongoose won't save the bracket changes to database
+  // Must be called after all bracket modifications are complete
   tournament.markModified("bracket");
+  console.log("[generateKnockoutMatches] Bracket stored in tournament object and marked as modified");
 
   return bracket;
 }

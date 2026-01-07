@@ -144,7 +144,11 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
   return {
     match: null,
-    setMatch: (m) => set({ match: m }),
+    setMatch: (m) => {
+      // Normalize match data when setting to ensure consistent format
+      const normalized = m ? normalizeMatch(m) : null;
+      set({ match: normalized });
+    },
 
     updating: false,
     fetchingMatch: false,

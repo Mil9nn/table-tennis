@@ -12,6 +12,7 @@ import { connectDB } from "@/lib/mongodb";
 import Tournament from "@/models/Tournament";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { transitionToKnockoutPhase, getPhaseInfo } from "@/services/tournament";
+import { loadTournament } from "@/lib/api/tournamentLoader";
 import mongoose from "mongoose";
 
 export async function POST(
@@ -34,29 +35,35 @@ export async function POST(
     const params = await context.params;
     const tournamentId = params.id;
 
-    // Find tournament
-    const tournament = await Tournament.findById(tournamentId);
+    // Load tournament using the correct model (Team vs Individual)
+    const { tournament: initialTournament, isTeamTournament } = await loadTournament(tournamentId, decoded.userId, {
+      skipConnect: true,
+      requireOrganizer: true,
+    });
+
+    // Verify it's a hybrid tournament
+    if (initialTournament.format !== "hybrid") {
+      return NextResponse.json(
+        { error: "Tournament must be hybrid format to transition phases" },
+        { status: 400 }
+      );
+    }
+
+    // Reload tournament fresh to avoid version conflicts
+    // This ensures we have the latest version after any concurrent updates (e.g., from hybrid-status endpoint)
+    let tournament: any = null;
+    if (isTeamTournament) {
+      const TournamentTeam = (await import("@/models/TournamentTeam")).default;
+      tournament = await (TournamentTeam as any).findById(tournamentId);
+    } else {
+      const TournamentIndividual = (await import("@/models/TournamentIndividual")).default;
+      tournament = await (TournamentIndividual as any).findById(tournamentId);
+    }
 
     if (!tournament) {
       return NextResponse.json(
         { error: "Tournament not found" },
         { status: 404 }
-      );
-    }
-
-    // Verify organizer
-    if (tournament.organizer.toString() !== decoded.userId) {
-      return NextResponse.json(
-        { error: "Only the organizer can transition tournament phases" },
-        { status: 403 }
-      );
-    }
-
-    // Verify it's a hybrid tournament
-    if (tournament.format !== "hybrid") {
-      return NextResponse.json(
-        { error: "Tournament must be hybrid format to transition phases" },
-        { status: 400 }
       );
     }
 
@@ -97,11 +104,46 @@ export async function POST(
     // Save tournament
     await tournament.save();
 
-    // Fetch updated tournament with populated data
-    const updatedTournament = await Tournament.findById(tournamentId)
-      .populate("participants", "name email profilePicture")
-      .populate("qualifiedParticipants", "name email profilePicture")
-      .populate("organizer", "name email");
+    // Fetch updated tournament with populated data using the correct model
+    // Also load bracket from BracketState if not in tournament document
+    let updatedTournament: any = null;
+    if (isTeamTournament) {
+      const TournamentTeam = (await import("@/models/TournamentTeam")).default;
+      updatedTournament = await (TournamentTeam as any).findById(tournamentId)
+        .populate("participants", "name email profilePicture")
+        .populate("qualifiedParticipants", "name email profilePicture")
+        .populate("organizer", "name email");
+    } else {
+      const TournamentIndividual = (await import("@/models/TournamentIndividual")).default;
+      updatedTournament = await (TournamentIndividual as any).findById(tournamentId)
+        .populate("participants", "name email profilePicture")
+        .populate("qualifiedParticipants", "name email profilePicture")
+        .populate("organizer", "name email");
+    }
+
+    // Load bracket from BracketState if not in tournament document or is empty
+    if (updatedTournament) {
+      const hasBracket = updatedTournament.bracket && 
+        typeof updatedTournament.bracket === 'object' && 
+        Object.keys(updatedTournament.bracket).length > 0 &&
+        updatedTournament.bracket.rounds && 
+        Array.isArray(updatedTournament.bracket.rounds) && 
+        updatedTournament.bracket.rounds.length > 0;
+      
+      if (!hasBracket) {
+        const BracketState = (await import("@/models/BracketState")).default;
+        const bracketState = await BracketState.findOne({ tournament: tournamentId });
+        if (bracketState) {
+          (updatedTournament as any).bracket = {
+            size: bracketState.size,
+            rounds: bracketState.rounds,
+            currentRound: bracketState.currentRound,
+            completed: bracketState.completed,
+            thirdPlaceMatch: bracketState.thirdPlaceMatch,
+          };
+        }
+      }
+    }
 
     return NextResponse.json(
       {

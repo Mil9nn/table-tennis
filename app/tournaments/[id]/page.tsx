@@ -48,6 +48,7 @@ export default function TournamentDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [generatingStats, setGeneratingStats] = useState(false);
   const [joinCodeDialogOpen, setJoinCodeDialogOpen] = useState(false);
   const [manageParticipantsOpen, setManageParticipantsOpen] = useState(false);
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
@@ -214,6 +215,20 @@ export default function TournamentDetailPage() {
       toast.error(err.response?.data?.error || "Failed to reset tournament");
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleGenerateStatistics = async () => {
+    setGeneratingStats(true);
+    try {
+      await axiosInstance.post(`/tournaments/${tournamentId}/finalize`);
+      toast.success("Statistics generated successfully!");
+      await fetchTournament(true);
+    } catch (err: any) {
+      console.error("Error generating statistics:", err);
+      toast.error(err.response?.data?.error || "Failed to generate statistics");
+    } finally {
+      setGeneratingStats(false);
     }
   };
 
@@ -806,6 +821,29 @@ export default function TournamentDetailPage() {
                               )}
                             </Button>
                           )}
+
+                        {/* Generate Statistics Button - Show for completed knockout tournaments or hybrid with completed knockout phase */}
+                        {isInKnockoutPhase &&
+                          tournament.bracket?.completed && (
+                            <Button
+                              onClick={handleGenerateStatistics}
+                              disabled={generatingStats}
+                              variant="outline"
+                              size="sm"
+                              className="text-[10px] font-semibold px-2.5 py-1.5 border border-[#3c6e71] text-[#3c6e71] hover:bg-[#3c6e71] hover:text-[#ffffff] disabled:opacity-50"
+                            >
+                              {generatingStats ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : tournament.knockoutStatistics ? (
+                                <>Regenerate Statistics</>
+                              ) : (
+                                <>Generate Statistics</>
+                              )}
+                            </Button>
+                          )}
                       </div>
                     </motion.div>
                   )}
@@ -817,53 +855,6 @@ export default function TournamentDetailPage() {
 
         {/* Content Area */}
         <div className="mx-auto">
-          {/* Error Recovery - Draw generated but no matches (only show if NOT custom matching) */}
-          {isOrganizer &&
-            tournament.drawGenerated &&
-            !canGenerateMatches &&
-            totalMatches === 0 &&
-            !hasPlayedMatches &&
-            isInKnockoutPhase &&
-            tournament.knockoutConfig?.allowCustomMatching !== true && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <div className="border border-[#d9d9d9] p-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
-                        No Matches Generated
-                      </h3>
-                      <p className="text-sm text-[#353535]">
-                        The draw was generated but no matches were created.
-                        Please reset and try again, or check your tournament
-                        configuration.
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleReset}
-                        disabled={resetting}
-                        variant="outline"
-                        className="border-[#d9d9d9] text-[#353535] hover:bg-[#3c6e71] hover:text-[#ffffff]"
-                      >
-                        {resetting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Resetting...
-                          </>
-                        ) : (
-                          <>Reset & Retry</>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
           {/* Hybrid Tournament Manager */}
           {tournament.format === "hybrid" && (
             <motion.div
@@ -1298,7 +1289,7 @@ export default function TournamentDetailPage() {
             </TabsContent>
 
             {/* Statistics Tab */}
-            {tournament.format === "knockout" &&
+            {isInKnockoutPhase &&
               tournament.knockoutStatistics && (
                 <TabsContent value="statistics" className="">
                   <div className="border border-[#d9d9d9] bg-[#ffffff] overflow-hidden">

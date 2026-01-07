@@ -62,7 +62,7 @@ export function TournamentOutcomeSection({ outcome }: TournamentOutcomeSectionPr
               3
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">3rd Place</span>
+              <span className="text-[9px] font-bold text-orange-600 uppercase tracking-tighter">Bronze</span>
               {outcome.thirdPlace ? (
                 <>
                   <span className="text-[11px] font-bold text-slate-900 uppercase truncate">

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import IndividualMatch from "@/models/IndividualMatch";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/mongodb";
+import { withAuth } from "@/lib/api-utils";
+import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
 
 export async function POST(
   req: NextRequest,
@@ -12,24 +13,26 @@ export async function POST(
     const { id } = await context.params;
     const serverConfig = await req.json();
 
-    const token = getTokenFromRequest(req);
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const auth = await withAuth(req);
+    if (!auth.success) return auth.response;
 
     const match = await IndividualMatch.findById(id);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.scorer?.toString() !== decoded.userId) {
+    // Check scoring permission
+    // For tournament matches: organizer or any assigned scorer can configure
+    // For standalone matches: only the assigned scorer can configure
+    let canScore = match.scorer?.toString() === auth.userId;
+    
+    if (!canScore && match.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    }
+    
+    if (!canScore) {
       return NextResponse.json(
-        { error: "Forbidden: only the assigned scorer can configure servers" },
+        { error: "Forbidden: you don't have permission to configure this match" },
         { status: 403 }
       );
     }

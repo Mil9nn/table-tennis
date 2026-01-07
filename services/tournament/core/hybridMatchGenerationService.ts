@@ -16,6 +16,7 @@ import {
   completeTransitionToKnockout,
   canTransitionToKnockout,
   validateHybridConfig,
+  isRoundRobinPhaseComplete,
 } from "./phaseManagementService";
 import {
   determineQualifiedParticipants,
@@ -326,14 +327,37 @@ export async function transitionToKnockoutPhase(
   }
 
   // Validate standings are calculated and up-to-date
-  if (!tournament.standings || tournament.standings.length === 0) {
-    return {
-      success: false,
-      phase: "round_robin",
-      matchesCreated: 0,
-      message: "Cannot transition to knockout phase",
-      errors: ["Standings must be calculated before transitioning. Please ensure all match results are recorded."],
-    };
+  // For group tournaments, check group standings; for non-group tournaments, check overall standings
+  const usesGroups =
+    tournament.useGroups ||
+    (tournament.format === "hybrid" &&
+      tournament.hybridConfig?.roundRobinUseGroups);
+
+  if (usesGroups) {
+    // Check if all groups have standings
+    const groupsWithoutStandings = tournament.groups?.filter(
+      (group) => !group.standings || !Array.isArray(group.standings) || group.standings.length === 0
+    ) || [];
+    if (groupsWithoutStandings.length > 0) {
+      return {
+        success: false,
+        phase: "round_robin",
+        matchesCreated: 0,
+        message: "Cannot transition to knockout phase",
+        errors: [`Standings have not been calculated for ${groupsWithoutStandings.length} group(s). Please ensure all match results are recorded.`],
+      };
+    }
+  } else {
+    // For non-group tournaments, check overall standings
+    if (!tournament.standings || tournament.standings.length === 0) {
+      return {
+        success: false,
+        phase: "round_robin",
+        matchesCreated: 0,
+        message: "Cannot transition to knockout phase",
+        errors: ["Standings must be calculated before transitioning. Please ensure all match results are recorded."],
+      };
+    }
   }
 
   // Validate qualification configuration
@@ -389,35 +413,198 @@ export async function transitionToKnockoutPhase(
   };
 
   // Generate knockout matches
-  await generateKnockoutMatches(
-    tournament,
-    tournament.qualifiedParticipants!.map((p) => p.toString()),
-    // Re-seed based on round-robin standings
-    tournament.qualifiedParticipants!.map((p, index) => ({
-      participant: p,
-      seedNumber: index + 1,
-    })),
-    options.scorerId.toString(),
-    {
-      courtsAvailable: options.courtsAvailable,
-      matchDuration: options.matchDuration,
+  console.log(`[transitionToKnockoutPhase] Generating knockout bracket for ${tournament.qualifiedParticipants!.length} qualified participants`);
+  
+  let bracket;
+  try {
+    bracket = await generateKnockoutMatches(
+      tournament,
+      tournament.qualifiedParticipants!.map((p) => p.toString()),
+      // Re-seed based on round-robin standings
+      tournament.qualifiedParticipants!.map((p, index) => ({
+        participant: p,
+        seedNumber: index + 1,
+      })),
+      options.scorerId.toString(),
+      {
+        courtsAvailable: options.courtsAvailable,
+        matchDuration: options.matchDuration,
+      }
+    );
+    console.log(`[transitionToKnockoutPhase] Bracket generated successfully: ${bracket?.rounds?.length || 0} rounds`);
+  } catch (bracketGenError: any) {
+    console.error("[transitionToKnockoutPhase] Error generating bracket:", bracketGenError);
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to generate knockout bracket",
+      errors: [`Bracket generation failed: ${bracketGenError.message}. Please try again.`],
+    };
+  }
+
+  // Verify bracket was created
+  if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
+    console.error("[transitionToKnockoutPhase] Bracket validation failed: bracket structure is invalid", {
+      hasBracket: !!bracket,
+      hasRounds: !!bracket?.rounds,
+      roundsLength: bracket?.rounds?.length || 0,
+    });
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to generate knockout bracket",
+      errors: ["Bracket structure was not created. Please try again."],
+    };
+  }
+
+  // Verify bracket is stored in tournament
+  if (!tournament.bracket || !tournament.bracket.rounds || tournament.bracket.rounds.length === 0) {
+    console.error("[transitionToKnockoutPhase] Bracket not stored in tournament object", {
+      hasBracket: !!tournament.bracket,
+      bracketType: typeof tournament.bracket,
+      hasRounds: !!tournament.bracket?.rounds,
+      roundsLength: tournament.bracket?.rounds?.length || 0,
+    });
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to store knockout bracket",
+      errors: ["Bracket structure was not saved to tournament. Please try again."],
+    };
+  }
+
+  // CRITICAL: Save tournament with bracket immediately after generation
+  // This ensures the bracket is persisted before creating BracketState
+  console.log("[transitionToKnockoutPhase] Saving tournament with bracket structure");
+  tournament.markModified("bracket");
+  try {
+    if (options.session) {
+      await tournament.save({ session: options.session });
+    } else {
+      await tournament.save();
     }
-  );
+    console.log("[transitionToKnockoutPhase] Tournament saved successfully");
+  } catch (saveError: any) {
+    console.error("[transitionToKnockoutPhase] Failed to save tournament with bracket:", saveError);
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to save tournament with bracket",
+      errors: [`Tournament save failed: ${saveError.message}. Please try again.`],
+    };
+  }
+
+  // CRITICAL: Create/update BracketState document for proper persistence
+  // This is MANDATORY - fail the transition if BracketState creation fails
+  // BracketState ensures the bracket can be loaded even if tournament.bracket field has issues
+  console.log("[transitionToKnockoutPhase] Creating/updating BracketState document");
+  let bracketState;
+  try {
+    const { createOrUpdateBracketState } = await import("./bracketGenerationService");
+    bracketState = await createOrUpdateBracketState(
+      tournament._id.toString(),
+      tournament.bracket as any,
+      options.session
+    );
+    
+    // Verify BracketState was created successfully
+    if (!bracketState) {
+      throw new Error("BracketState creation returned null/undefined");
+    }
+    
+    console.log("[transitionToKnockoutPhase] BracketState created/updated successfully", {
+      bracketStateId: bracketState._id?.toString(),
+      roundsCount: bracketState.rounds?.length || 0,
+    });
+  } catch (bracketStateError: any) {
+    console.error("[transitionToKnockoutPhase] Failed to create BracketState:", bracketStateError, {
+      tournamentId: tournament._id.toString(),
+      bracketSize: tournament.bracket?.size,
+      bracketRoundsCount: tournament.bracket?.rounds?.length,
+      errorStack: bracketStateError.stack,
+    });
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to persist bracket structure",
+      errors: [
+        `Bracket structure was created but could not be saved to BracketState: ${bracketStateError.message}. Please try transitioning again.`
+      ],
+    };
+  }
+
+  // Verify both tournament.bracket and BracketState exist and have valid structure
+  console.log("[transitionToKnockoutPhase] Validating bracket structure in both storage locations");
+  const hasTournamentBracket = tournament.bracket && 
+    typeof tournament.bracket === 'object' && 
+    Object.keys(tournament.bracket).length > 0 &&
+    tournament.bracket.rounds && 
+    Array.isArray(tournament.bracket.rounds) && 
+    tournament.bracket.rounds.length > 0;
+
+  const hasBracketState = bracketState &&
+    bracketState.rounds &&
+    Array.isArray(bracketState.rounds) &&
+    bracketState.rounds.length > 0;
+
+  if (!hasTournamentBracket || !hasBracketState) {
+    console.error("[transitionToKnockoutPhase] Bracket structure validation failed", {
+      tournamentBracket: {
+        exists: !!tournament.bracket,
+        type: typeof tournament.bracket,
+        hasRounds: !!tournament.bracket?.rounds,
+        roundsLength: tournament.bracket?.rounds?.length || 0,
+      },
+      bracketState: {
+        exists: !!bracketState,
+        hasRounds: !!bracketState?.rounds,
+        roundsLength: bracketState?.rounds?.length || 0,
+      },
+    });
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Bracket structure validation failed",
+      errors: [
+        `Bracket structure validation failed. Tournament bracket: ${hasTournamentBracket ? 'valid' : 'invalid'}, BracketState: ${hasBracketState ? 'valid' : 'invalid'}. Please try transitioning again.`
+      ],
+    };
+  }
 
   // Count knockout matches created
-  const knockoutMatchCount = tournament.bracket?.rounds.reduce(
-    (total: number, round: any) => total + round.matches.length,
+  const knockoutMatchCount = tournament.bracket.rounds.reduce(
+    (total: number, round: any) => total + (round.matches?.length || 0),
     0
-  ) || 0;
+  );
+  console.log(`[transitionToKnockoutPhase] Bracket validation successful: ${knockoutMatchCount} matches across ${tournament.bracket.rounds.length} rounds`);
 
   // Complete transition
+  console.log("[transitionToKnockoutPhase] Completing transition to knockout phase");
   completeTransitionToKnockout(tournament);
 
-  // Save tournament with bracket and knockout phase data
-  if (options.session) {
-    await tournament.save({ session: options.session });
-  } else {
-    await tournament.save();
+  // Final save to ensure transition state is persisted
+  try {
+    if (options.session) {
+      await tournament.save({ session: options.session });
+    } else {
+      await tournament.save();
+    }
+    console.log("[transitionToKnockoutPhase] Transition completed successfully");
+  } catch (finalSaveError: any) {
+    console.error("[transitionToKnockoutPhase] Failed to save tournament after transition:", finalSaveError);
+    return {
+      success: false,
+      phase: "round_robin",
+      matchesCreated: 0,
+      message: "Failed to save tournament after transition",
+      errors: [`Final save failed: ${finalSaveError.message}. The bracket was created but the transition state may not be saved.`],
+    };
   }
 
   return {
@@ -484,12 +671,15 @@ export function getHybridTournamentStatus(tournament: Tournament): {
 
   const currentPhase = tournament.currentPhase || "round_robin";
   const qualifiedCount = tournament.qualifiedParticipants?.length || 0;
+  const roundRobinComplete = isRoundRobinPhaseComplete(tournament);
   const transitionCheck = canTransitionToKnockout(tournament);
 
   let nextAction = "";
   if (currentPhase === "round_robin") {
-    if (transitionCheck.canTransition) {
+    if (roundRobinComplete && transitionCheck.canTransition) {
       nextAction = "Ready to transition to knockout phase";
+    } else if (roundRobinComplete && !transitionCheck.canTransition) {
+      nextAction = transitionCheck.reason || "Unable to transition. Please check tournament status.";
     } else {
       nextAction = "Complete round-robin matches";
     }
@@ -502,7 +692,7 @@ export function getHybridTournamentStatus(tournament: Tournament): {
   return {
     format: tournament.format,
     currentPhase,
-    roundRobinComplete: transitionCheck.canTransition,
+    roundRobinComplete,
     knockoutComplete: tournament.bracket?.completed || false,
     canTransition: transitionCheck.canTransition,
     qualifiedCount,

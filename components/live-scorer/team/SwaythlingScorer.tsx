@@ -203,17 +203,29 @@ export default function SwaythlingScorer({ match }: SwaythlingScorerProps) {
       (g: any) => g.gameNumber === currentGame
     );
 
-    if (
-      !currentGameData ||
-      !currentGameData.shots ||
-      currentGameData.shots.length === 0
-    ) {
-      toast.error("No shots to undo");
+    if (!currentGameData) {
+      toast.error("No game data found");
       return;
     }
 
-    const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
-    const lastSide = lastShot.side as "team1" | "team2";
+    let lastSide: "team1" | "team2";
+
+    // If shots exist, use them to determine which side scored last (detailed mode)
+    if (currentGameData.shots && currentGameData.shots.length > 0) {
+      const lastShot = currentGameData.shots[currentGameData.shots.length - 1];
+      lastSide = lastShot.side as "team1" | "team2";
+    } else {
+      // No shots available (simple mode) - determine which side to subtract from
+      // Subtract from the side with the higher score, or team1 if scores are equal
+      if (team1Score > team2Score) {
+        lastSide = "team1";
+      } else if (team2Score > team1Score) {
+        lastSide = "team2";
+      } else {
+        // Scores are equal - subtract from team1 as fallback
+        lastSide = "team1";
+      }
+    }
 
     await subtractPoint(lastSide);
   };

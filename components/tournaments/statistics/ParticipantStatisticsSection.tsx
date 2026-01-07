@@ -92,6 +92,7 @@ export function ParticipantStatisticsSection({
     const weights: Record<string, number> = {
       Champion: 7,
       "Runner-up": 6,
+      "Third Place": 5.5, // Between Runner-up (6) and Semi-finalist (5)
       "Semi-finalist": 5,
       "Quarter-finalist": 4,
       "Round of 16": 3,
@@ -127,6 +128,8 @@ export function ParticipantStatisticsSection({
         return "Gold";
       case "Runner-up":
         return "Silver";
+      case "Third Place":
+        return "Bronze";
       default:
         return position;
     }
@@ -139,6 +142,8 @@ export function ParticipantStatisticsSection({
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "Runner-up":
         return "bg-slate-200 text-slate-800 border-slate-300";
+      case "Third Place":
+        return "bg-orange-100 text-orange-700 border-orange-300";
       case "Semi-finalist":
         return "bg-orange-100 text-orange-700 border-orange-200";
       case "Quarter-finalist":

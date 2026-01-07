@@ -64,7 +64,18 @@ export async function generateKnockoutStatistics(
     throw new Error("Tournament not found");
   }
 
-  if (tournament.format !== "knockout") {
+  // Allow both pure knockout tournaments and hybrid tournaments with completed knockout phase
+  if (tournament.format === "hybrid") {
+    // For hybrid tournaments, verify knockout phase is complete
+    // Allow if tournament is already completed (has stats) or if current phase is knockout
+    if (tournament.status !== "completed" && tournament.currentPhase !== "knockout") {
+      throw new Error("Hybrid tournament knockout phase is not complete");
+    }
+    // If tournament is completed, verify it has a bracket (completed knockout phase)
+    if (tournament.status === "completed" && !tournament.bracket) {
+      throw new Error("Completed hybrid tournament does not have a bracket");
+    }
+  } else if (tournament.format !== "knockout") {
     throw new Error("Tournament is not a knockout format");
   }
 
@@ -74,11 +85,90 @@ export async function generateKnockoutStatistics(
     throw new Error("Bracket not found for tournament");
   }
 
-  // Fetch all matches
-  const matches = await Match.find({ tournament: tournamentId }).lean();
+  // Verify bracket is completed
+  if (!bracket.completed) {
+    throw new Error("Bracket is not completed. Cannot generate statistics.");
+  }
 
-  // Fetch participants with seeding info
-  const participants = await fetchParticipants(tournament, tournament.category);
+  // Collect match IDs from bracket structure (only bracket matches, not round-robin)
+  const matchIds: string[] = [];
+  for (const round of bracket.rounds) {
+    for (const match of round.matches) {
+      if (match.matchId) {
+        const matchId = typeof match.matchId === "string"
+          ? match.matchId
+          : String(match.matchId);
+        matchIds.push(matchId);
+      }
+    }
+  }
+  // Add third place match if it exists
+  if (bracket.thirdPlaceMatch?.matchId) {
+    const thirdPlaceId = typeof bracket.thirdPlaceMatch.matchId === "string"
+      ? bracket.thirdPlaceMatch.matchId
+      : String(bracket.thirdPlaceMatch.matchId);
+    matchIds.push(thirdPlaceId);
+  }
+
+  // Fetch only bracket matches (not round-robin matches)
+  // For pure knockout tournaments, this ensures only bracket matches are included
+  // For hybrid tournaments, this ensures only knockout phase matches are included
+  const matches = matchIds.length > 0
+    ? await Match.find({ _id: { $in: matchIds } }).lean()
+    : [];
+
+  // Collect participant IDs from bracket (only participants who are in knockout bracket)
+  const bracketParticipantIds = new Set<string>();
+  for (const round of bracket.rounds) {
+    for (const match of round.matches) {
+      if (match.participant1) {
+        const participantId = typeof match.participant1 === "string"
+          ? match.participant1
+          : String(match.participant1);
+        bracketParticipantIds.add(participantId);
+      }
+      if (match.participant2) {
+        const participantId = typeof match.participant2 === "string"
+          ? match.participant2
+          : String(match.participant2);
+        bracketParticipantIds.add(participantId);
+      }
+    }
+  }
+  // Include third place match participants
+  if (bracket.thirdPlaceMatch?.participant1) {
+    const participantId = typeof bracket.thirdPlaceMatch.participant1 === "string"
+      ? bracket.thirdPlaceMatch.participant1
+      : String(bracket.thirdPlaceMatch.participant1);
+    bracketParticipantIds.add(participantId);
+  }
+  if (bracket.thirdPlaceMatch?.participant2) {
+    const participantId = typeof bracket.thirdPlaceMatch.participant2 === "string"
+      ? bracket.thirdPlaceMatch.participant2
+      : String(bracket.thirdPlaceMatch.participant2);
+    bracketParticipantIds.add(participantId);
+  }
+
+  // For hybrid tournaments, use qualifiedParticipants if available, otherwise use bracket participants
+  // For pure knockout tournaments, use bracket participants
+  let participantIdsToFetch: string[];
+  if (tournament.format === "hybrid" && tournament.qualifiedParticipants) {
+    // For hybrid, only include qualified participants who are also in the bracket
+    const qualifiedIds = tournament.qualifiedParticipants.map((p: any) => p.toString());
+    participantIdsToFetch = Array.from(bracketParticipantIds).filter((id) =>
+      qualifiedIds.includes(id)
+    );
+  } else {
+    // For pure knockout, use all bracket participants
+    participantIdsToFetch = Array.from(bracketParticipantIds);
+  }
+
+  // Fetch participants with seeding info (only those in knockout bracket)
+  const participants = await fetchParticipants(
+    tournament,
+    tournament.category,
+    participantIdsToFetch
+  );
 
   // Calculate all statistics categories
    const outcome = extractTournamentOutcome(bracket, matches as unknown as MatchData[], participants, tournament.category);
@@ -86,7 +176,8 @@ export async function generateKnockoutStatistics(
      bracket,
      matches as unknown as MatchData[],
      participants,
-     tournament.category
+     tournament.category,
+     outcome.thirdPlace?.participantId // Pass third place ID to properly label them
    );
    const participantStats = calculateParticipantStats(matches as unknown as MatchData[], participants, tournament.category);
    const performanceMetrics = calculatePerformanceMetrics(matches as unknown as MatchData[], participants, tournament.category);
@@ -113,14 +204,22 @@ async function fetchTournament(tournamentId: string) {
 
 /**
  * Fetch participants with name and seeding information
+ * @param participantIds - Optional array of participant IDs to fetch. If provided, only these participants will be included.
+ *                         If not provided, all tournament participants will be fetched.
  */
 async function fetchParticipants(
    tournament: any,
-   category: "individual" | "team"
+   category: "individual" | "team",
+   participantIds?: string[]
  ): Promise<ParticipantInfo[]> {
    const participants: ParticipantInfo[] = [];
  
-   for (const participantId of tournament.participants) {
+   // Use provided participant IDs, or fall back to all tournament participants
+   const idsToFetch = participantIds && participantIds.length > 0
+     ? participantIds
+     : tournament.participants.map((p: any) => p.toString());
+ 
+   for (const participantId of idsToFetch) {
      const idStr = participantId.toString();
  
      if (category === "individual") {
@@ -217,6 +316,7 @@ function extractTournamentOutcome(
   let thirdPlace: Medalist | undefined;
   let thirdPlaceMatchScore: MatchScore | undefined;
 
+  // Case 1: Third place match exists and has a winner (normal case)
   if (bracket.thirdPlaceMatch && bracket.thirdPlaceMatch.winner) {
     const thirdPlaceMatchDoc = matches.find(
       (m) => m._id.toString() === bracket.thirdPlaceMatch?.matchId
@@ -228,6 +328,40 @@ function extractTournamentOutcome(
         bracket.thirdPlaceMatch.winner,
         category
       );
+    }
+  }
+  // Case 2: No third place match - determine third place from semi-finals
+  // Third place is the participant who lost to the champion in the semi-finals
+  else if (!bracket.thirdPlaceMatch && bracket.rounds.length >= 2 && championId) {
+    // Get semifinal round (second-to-last round)
+    const semifinalRound = bracket.rounds[bracket.rounds.length - 2];
+
+    if (semifinalRound && semifinalRound.matches.length > 0) {
+      // Find which semi-final match the champion came from
+      for (const semifinalMatch of semifinalRound.matches) {
+        if (semifinalMatch.winner === championId) {
+          // Found the semi-final where the champion won
+          // The loser from this semi-final is the third place
+          const thirdPlaceId =
+            semifinalMatch.participant1 === championId
+              ? semifinalMatch.participant2
+              : semifinalMatch.participant1;
+
+          if (thirdPlaceId) {
+            thirdPlace = getParticipantMedalist(thirdPlaceId, participants);
+            // Try to get the semi-final match score for display
+            const semifinalMatchDoc = matches.find(
+              (m) => m._id.toString() === semifinalMatch.matchId
+            );
+            if (semifinalMatchDoc) {
+              // Get score from the perspective of the third place finisher (loser in this semi-final)
+              // This shows their score in the match where they lost to the eventual champion
+              thirdPlaceMatchScore = getMatchScore(semifinalMatchDoc, thirdPlaceId, category);
+            }
+          }
+          break;
+        }
+      }
     }
   }
 
@@ -251,7 +385,8 @@ function calculateParticipantProgression(
   bracket: IBracketState,
   matches: MatchData[],
   participants: ParticipantInfo[],
-  category: "individual" | "team"
+  category: "individual" | "team",
+  thirdPlaceId?: string // Optional third place participant ID to properly label them
 ): ParticipantProgression[] {
   const progressions: ParticipantProgression[] = [];
   const totalRounds = bracket.rounds.length;
@@ -290,11 +425,17 @@ function calculateParticipantProgression(
     }
 
     // Determine round reached based on elimination
-    const roundReached = getRoundReachedLabel(
+    // If this participant is the third place finisher, label them as "Third Place"
+    let roundReached = getRoundReachedLabel(
       eliminationRoundNumber,
       totalRounds,
       bracket
     );
+
+    // Override label if this is the third place finisher
+    if (thirdPlaceId && participant.id === thirdPlaceId && roundReached === "Semi-finalist") {
+      roundReached = "Third Place";
+    }
 
     progressions.push({
       participantId: participant.id,
