@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
-import { Loader2, UserPlus, X, Save, Plus, Trash2 } from "lucide-react";
+import { Loader2, UserPlus, X, Save, Plus, Trash2, Edit2, Check, X as XIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Group, Participant, isUserParticipant, getParticipantDisplayName, getParticipantImage } from "@/types/tournament.type";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,6 +46,9 @@ export function ManageGroupsDialog({
 }: ManageGroupsDialogProps) {
   const [localGroups, setLocalGroups] = useState<Group[]>([]);
   const [saving, setSaving] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editedGroupNames, setEditedGroupNames] = useState<Record<string, string>>({});
+  const [groupNameErrors, setGroupNameErrors] = useState<Record<string, string>>({});
 
   // Initialize local groups when dialog opens
   useEffect(() => {
@@ -58,9 +62,19 @@ export function ManageGroupsDialog({
             participants: [...group.participants],
           }))
         );
+        // Initialize edited names with current group names
+        const initialNames: Record<string, string> = {};
+        initialGroups.forEach((group) => {
+          initialNames[group.groupId] = group.groupName;
+        });
+        setEditedGroupNames(initialNames);
       } else {
         setLocalGroups([]);
+        setEditedGroupNames({});
       }
+      // Reset editing state when dialog opens
+      setEditingGroupId(null);
+      setGroupNameErrors({});
     }
   }, [open, initialGroups]);
 
@@ -157,6 +171,147 @@ export function ManageGroupsDialog({
         standings: [],
       },
     ]);
+    
+    // Initialize edited name for the new group
+    setEditedGroupNames((prev) => ({
+      ...prev,
+      [newGroupId]: newGroupName,
+    }));
+  };
+
+  // Validate group name
+  const validateGroupName = (groupId: string, name: string): string | null => {
+    const trimmedName = name.trim();
+    
+    // Check empty
+    if (!trimmedName) {
+      return "Group name cannot be empty";
+    }
+    
+    // Check length
+    if (trimmedName.length > 50) {
+      return "Group name must be 50 characters or less";
+    }
+    
+    // Check uniqueness
+    const duplicate = localGroups.find(
+      (g) => g.groupId !== groupId && g.groupName === trimmedName
+    );
+    if (duplicate) {
+      return "Group name must be unique";
+    }
+    
+    return null; // Valid
+  };
+
+  // Start editing a group name
+  const startEditingGroupName = (groupId: string) => {
+    setEditingGroupId(groupId);
+    const group = localGroups.find((g) => g.groupId === groupId);
+    if (group) {
+      setEditedGroupNames((prev) => ({
+        ...prev,
+        [groupId]: group.groupName,
+      }));
+      setGroupNameErrors((prev) => ({
+        ...prev,
+        [groupId]: "",
+      }));
+    }
+  };
+
+  // Cancel editing a group name
+  const cancelEditingGroupName = (groupId: string) => {
+    setEditingGroupId(null);
+    const group = localGroups.find((g) => g.groupId === groupId);
+    if (group) {
+      setEditedGroupNames((prev) => ({
+        ...prev,
+        [groupId]: group.groupName,
+      }));
+    }
+    setGroupNameErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[groupId];
+      return newErrors;
+    });
+  };
+
+  // Save edited group name
+  const saveGroupName = (groupId: string) => {
+    const editedName = editedGroupNames[groupId] || "";
+    const error = validateGroupName(groupId, editedName);
+    
+    if (error) {
+      setGroupNameErrors((prev) => ({
+        ...prev,
+        [groupId]: error,
+      }));
+      return;
+    }
+    
+    // Update the group name in localGroups
+    const trimmedName = editedName.trim();
+    setLocalGroups((prev) =>
+      prev.map((group) =>
+        group.groupId === groupId
+          ? { ...group, groupName: trimmedName }
+          : group
+      )
+    );
+    
+    setEditingGroupId(null);
+    setGroupNameErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[groupId];
+      return newErrors;
+    });
+  };
+
+  // Handle group name input change
+  const handleGroupNameChange = (groupId: string, value: string) => {
+    setEditedGroupNames((prev) => ({
+      ...prev,
+      [groupId]: value,
+    }));
+    
+    // Clear error when user starts typing
+    if (groupNameErrors[groupId]) {
+      setGroupNameErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[groupId];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle group name input blur (auto-save on blur)
+  const handleGroupNameBlur = (groupId: string) => {
+    const editedName = editedGroupNames[groupId] || "";
+    const group = localGroups.find((g) => g.groupId === groupId);
+    
+    // If name hasn't changed, just cancel editing
+    if (group && editedName.trim() === group.groupName) {
+      cancelEditingGroupName(groupId);
+      return;
+    }
+    
+    // Otherwise, try to save
+    saveGroupName(groupId);
+  };
+
+  // Handle group name input key down (Enter to save, Escape to cancel)
+  const handleGroupNameKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    groupId: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveGroupName(groupId);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditingGroupName(groupId);
+    }
   };
 
   // Delete a group
@@ -182,12 +337,28 @@ export function ManageGroupsDialog({
 
   // Save changes
   const handleSave = async () => {
+    // Validate all group names before saving
+    const validationErrors: Record<string, string> = {};
+    for (const group of localGroups) {
+      const error = validateGroupName(group.groupId, group.groupName);
+      if (error) {
+        validationErrors[group.groupId] = error;
+      }
+    }
+
+    // If there are validation errors, show them and don't save
+    if (Object.keys(validationErrors).length > 0) {
+      setGroupNameErrors(validationErrors);
+      toast.error("Please fix group name errors before saving");
+      return;
+    }
+
     setSaving(true);
     try {
       // Prepare groups data (only groupId, groupName, and participants)
       const groupsData = localGroups.map((group) => ({
         groupId: group.groupId,
-        groupName: group.groupName,
+        groupName: group.groupName.trim(), // Ensure trimmed
         participants: group.participants.map((p) => p._id),
       }));
 
@@ -281,14 +452,64 @@ export function ManageGroupsDialog({
                     className="border rounded-lg p-4 bg-white"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-base">
-                          {group.groupName}
-                        </h3>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {editingGroupId === group.groupId ? (
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Input
+                              value={editedGroupNames.hasOwnProperty(group.groupId) ? editedGroupNames[group.groupId] : group.groupName}
+                              onChange={(e) => handleGroupNameChange(group.groupId, e.target.value)}
+                              onBlur={() => handleGroupNameBlur(group.groupId)}
+                              onKeyDown={(e) => handleGroupNameKeyDown(e, group.groupId)}
+                              className="flex-1 min-w-0"
+                              autoFocus
+                              maxLength={50}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => saveGroupName(group.groupId)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Check className="w-4 h-4 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelEditingGroupName(group.groupId)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <XIcon className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <h3 
+                              className="font-semibold text-base cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => startEditingGroupName(group.groupId)}
+                              title="Click to edit group name"
+                            >
+                              {group.groupName}
+                            </h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditingGroupName(group.groupId)}
+                              className="h-6 w-6 p-0"
+                              title="Edit group name"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
                         <Badge variant="secondary">
                           {group.participants.length} players
                         </Badge>
                       </div>
+                      {groupNameErrors[group.groupId] && (
+                        <div className="text-xs text-red-600 mr-2">
+                          {groupNameErrors[group.groupId]}
+                        </div>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -203,6 +203,7 @@ type TournamentFormValues = z.infer<typeof tournamentSchema>;
 export default function CreateTournamentPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false); // Ref for synchronous tracking to prevent race conditions
   const [participants, setParticipants] = useState<any[]>([]);
   const [doublesPairs, setDoublesPairs] = useState<DoublesPairData[]>([]);
   const [startDateOpen, setStartDateOpen] = useState(false);
@@ -323,7 +324,13 @@ export default function CreateTournamentPage() {
   // FORM SUBMISSION - Map to API format
   // ═══════════════════════════════════════════
   const onSubmit = async (data: TournamentFormValues) => {
+    // Prevent duplicate submissions - check both state and ref for maximum protection
+    if (isSubmitting || isSubmittingRef.current) {
+      return;
+    }
+
     // All validation is now handled by zod schema
+    isSubmittingRef.current = true; // Set ref immediately (synchronous)
     setIsSubmitting(true);
     try {
       
@@ -423,6 +430,7 @@ export default function CreateTournamentPage() {
       console.error("Error creating tournament:", err);
       toast.error(err.response?.data?.error || "Failed to create tournament");
     } finally {
+      isSubmittingRef.current = false; // Reset ref
       setIsSubmitting(false);
     }
   };

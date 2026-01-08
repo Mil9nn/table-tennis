@@ -284,13 +284,13 @@ export async function POST(
       }
     }
 
-    // Add shot data if provided
-    if (body.shotData?.player && body.shotData?.stroke) {
+    // Add shot data if provided (player is required, stroke is optional for simple mode)
+    if (body.shotData?.player) {
       const shot = {
         shotNumber: (currentGame.shots?.length || 0) + 1,
         side: body.shotData.side,
         player: body.shotData.player,
-        stroke: body.shotData.stroke,
+        stroke: body.shotData.stroke || null, // null in simple mode
         serveType: body.shotData.serveType || null,
         server: body.shotData.server || null,
         originX: body.shotData.originX,

@@ -906,97 +906,123 @@ export function generateFullCommentary(
   const commentary = analyzeShotPlacement(shot);
   const strokeName = formatStrokeName(shot.stroke);
   
-  // Get server and receiver info
+  // Check if detailed shot tracking data is available
+  // Detailed tracking requires both stroke type AND coordinates
+  const hasDetailedTracking =
+    shot.stroke != null &&
+    shot.originX != null &&
+    shot.originY != null &&
+    shot.landingX != null &&
+    shot.landingY != null;
+
+  // Check if this is doubles
+  const isDoubles = participants && participants.length === 4;
+  
+  // Get server and receiver info (always use individual player names)
   const serverInfo = getServerInfo(shot, participants);
   const receiverInfo = getReceiverInfo(shot, participants, serverConfig, gameNumber, currentGameScore);
-  
+
   // Get winner (player who hit the shot)
-  // Show only the specific player who made the shot, not their partner
-  const isDoubles = participants && participants.length === 4;
-  const winnerId = typeof shot.player === 'string' ? shot.player : shot.player._id?.toString() || null;
+  // In simple mode for doubles, use side name instead of individual player name
+  // because we don't know which specific player scored
   let winnerName = "Unknown";
   
-  if (participants && winnerId) {
-    const winnerIndex = participants.findIndex(p => {
-      const pid = typeof p === 'string' ? p : p._id?.toString();
-      return pid === winnerId;
-    });
-    
-    if (winnerIndex !== -1) {
-      const winner = participants[winnerIndex];
-      const winnerObj = typeof winner === 'string' ? null : winner;
-      winnerName = winnerObj?.fullName || winnerObj?.username || "Unknown";
+  // In simple mode (no detailed tracking) for doubles, use side name
+  if (!hasDetailedTracking && isDoubles) {
+    const winnerSide = shot.side as string;
+    if (winnerSide === "side1" || winnerSide === "team1") {
+      winnerName = side1Name || "Side 1";
+    } else if (winnerSide === "side2" || winnerSide === "team2") {
+      winnerName = side2Name || "Side 2";
     }
   } else {
-    const playerObj = typeof shot.player === 'string' ? null : shot.player;
-    winnerName = playerObj?.fullName || playerObj?.username || "Unknown";
+    // In detailed mode or singles, show individual player name
+    const winnerId = typeof shot.player === 'string' ? shot.player : shot.player._id?.toString() || null;
+    
+    if (participants && winnerId) {
+      const winnerIndex = participants.findIndex(p => {
+        const pid = typeof p === 'string' ? p : p._id?.toString();
+        return pid === winnerId;
+      });
+      
+      if (winnerIndex !== -1) {
+        const winner = participants[winnerIndex];
+        const winnerObj = typeof winner === 'string' ? null : winner;
+        winnerName = winnerObj?.fullName || winnerObj?.username || "Unknown";
+      }
+    } else {
+      const playerObj = typeof shot.player === 'string' ? null : shot.player;
+      winnerName = playerObj?.fullName || playerObj?.username || "Unknown";
+    }
   }
-  
+
   // Build shot description in natural language
   // Format: [shot type lowercase] from [distance], played [line] into [zone]
   // Note: Sectors are omitted from commentary as they're primarily for analytics
   const shotParts: string[] = [];
 
-  // Add shot type (lowercase)
-  const strokeLower = strokeName.toLowerCase();
-  shotParts.push(strokeLower);
-  
-  // Add distance descriptor if available (where shot was played from)
-  // Only mention distance if the player is hitting from OFF the table
-  const distanceDesc = formatDistanceDescriptor(commentary.originZone);
-  if (distanceDesc) {
-    shotParts.push(`from ${distanceDesc.toLowerCase()}`);
-  }
-  
-  // Add line of play if available, with proper formatting
-  if (commentary.line) {
-    // Format line: "cross court" -> "cross court", "down the line" -> "down the line", "middle line" -> "middle line"
-    shotParts.push(`played ${commentary.line}`);
-  }
-  
-  // Add landing details: focus on specific placement with zones
-  const landingDetails: string[] = [];
-  
-  // Check for extreme corners/edges first
-  if (shot.landingX !== null && shot.landingX !== undefined && shot.landingY !== null && shot.landingY !== undefined) {
-    const isExtremeLeft = shot.landingX < 12;
-    const isExtremeRight = shot.landingX > 88;
-    const isExtremeTop = shot.landingY < 12;
-    const isExtremeBottom = shot.landingY > 88;
+  // Only add stroke type and placement details if detailed tracking is available
+  if (hasDetailedTracking) {
+    // Add shot type (lowercase)
+    const strokeLower = strokeName.toLowerCase();
+    shotParts.push(strokeLower);
+    // Add distance descriptor if available (where shot was played from)
+    // Only mention distance if the player is hitting from OFF the table
+    const distanceDesc = formatDistanceDescriptor(commentary.originZone);
+    if (distanceDesc) {
+      shotParts.push(`from ${distanceDesc.toLowerCase()}`);
+    }
     
-    if (isExtremeLeft && isExtremeTop) {
-      landingDetails.push("into the extreme left corner of the table");
-    } else if (isExtremeRight && isExtremeTop) {
-      landingDetails.push("into the extreme right corner of the table");
-    } else if (isExtremeLeft && isExtremeBottom) {
-      landingDetails.push("into the extreme left corner (deep) of the table");
-    } else if (isExtremeRight && isExtremeBottom) {
-      landingDetails.push("into the extreme right corner (deep) of the table");
-    } else if (isExtremeLeft) {
-      landingDetails.push("into the extreme left side of the table");
-    } else if (isExtremeRight) {
-      landingDetails.push("into the extreme right side of the table");
-    } else if (isExtremeTop) {
-      landingDetails.push("close to the net");
-    } else if (isExtremeBottom) {
-      landingDetails.push("deep on the table");
+    // Add line of play if available, with proper formatting
+    if (commentary.line) {
+      // Format line: "cross court" -> "cross court", "down the line" -> "down the line", "middle line" -> "middle line"
+      shotParts.push(`played ${commentary.line}`);
+    }
+    
+    // Add landing details: focus on specific placement with zones
+    const landingDetails: string[] = [];
+    
+    // Check for extreme corners/edges first
+    if (shot.landingX !== null && shot.landingX !== undefined && shot.landingY !== null && shot.landingY !== undefined) {
+      const isExtremeLeft = shot.landingX < 12;
+      const isExtremeRight = shot.landingX > 88;
+      const isExtremeTop = shot.landingY < 12;
+      const isExtremeBottom = shot.landingY > 88;
+      
+      if (isExtremeLeft && isExtremeTop) {
+        landingDetails.push("into the extreme left corner of the table");
+      } else if (isExtremeRight && isExtremeTop) {
+        landingDetails.push("into the extreme right corner of the table");
+      } else if (isExtremeLeft && isExtremeBottom) {
+        landingDetails.push("into the extreme left corner (deep) of the table");
+      } else if (isExtremeRight && isExtremeBottom) {
+        landingDetails.push("into the extreme right corner (deep) of the table");
+      } else if (isExtremeLeft) {
+        landingDetails.push("into the extreme left side of the table");
+      } else if (isExtremeRight) {
+        landingDetails.push("into the extreme right side of the table");
+      } else if (isExtremeTop) {
+        landingDetails.push("close to the net");
+      } else if (isExtremeBottom) {
+        landingDetails.push("deep on the table");
+      } else {
+        // Use zone for non-extreme placements (lowercase)
+        const zoneName = formatZoneName(commentary.zone);
+        if (zoneName) {
+          landingDetails.push(`into the ${zoneName.toLowerCase()}`);
+        }
+      }
     } else {
-      // Use zone for non-extreme placements (lowercase)
+      // Fallback to zone (lowercase)
       const zoneName = formatZoneName(commentary.zone);
       if (zoneName) {
         landingDetails.push(`into the ${zoneName.toLowerCase()}`);
       }
     }
-  } else {
-    // Fallback to zone (lowercase)
-    const zoneName = formatZoneName(commentary.zone);
-    if (zoneName) {
-      landingDetails.push(`into the ${zoneName.toLowerCase()}`);
+    
+    if (landingDetails.length > 0) {
+      shotParts.push(landingDetails.join(", "));
     }
-  }
-  
-  if (landingDetails.length > 0) {
-    shotParts.push(landingDetails.join(", "));
   }
   
   // Join shot parts with commas where appropriate
@@ -1031,8 +1057,16 @@ export function generateFullCommentary(
     fullCommentary = `<strong>${serverInfo.name}</strong> serves. `;
   }
   
-  // Winner and shot description - "wins the point with a" instead of "wins the point by"
-  fullCommentary += `<strong>${winnerDisplayName}</strong> ${isDoubles ? 'win' : 'wins'} the point with a <strong>${shotDescription}</strong>.`;
+  // Winner and shot description
+  // If detailed tracking is available, include shot description; otherwise just say "wins the point"
+  // For doubles in simple mode, we use side names (singular), so use "wins"
+  // For doubles in detailed mode, we use individual player names, so use "win"
+  const usePluralVerb = isDoubles && hasDetailedTracking;
+  if (hasDetailedTracking && shotDescription) {
+    fullCommentary += `<strong>${winnerDisplayName}</strong> ${usePluralVerb ? 'win' : 'wins'} the point with a <strong>${shotDescription}</strong>.`;
+  } else {
+    fullCommentary += `<strong>${winnerDisplayName}</strong> ${usePluralVerb ? 'win' : 'wins'} the point.`;
+  }
   
   // Game score
   if (gameScoreText) {

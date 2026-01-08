@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import type { User } from "@/types/user";
-import ProfileCompletionCheck from "@/components/ProfileCompletionCheck";
 
 export default function AuthProvider({ user, children }: { user: User | null; children: React.ReactNode }) {
   const setUser = useAuthStore((state) => state.setUser);
@@ -14,10 +13,5 @@ export default function AuthProvider({ user, children }: { user: User | null; ch
     }
   }, [user, setUser]);
 
-  return (
-    <>
-      <ProfileCompletionCheck />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

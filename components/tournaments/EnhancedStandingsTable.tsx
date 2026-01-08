@@ -435,12 +435,13 @@ export function EnhancedStandingsTable({
             {deduplicatedStandings.map((s, index) => {
               const highlight = s.rank <= highlightTop;
               const hasError = (s.participant as any)?._error || !s.participant || !s.participant._id;
+              const participantId = s.participant?._id;
               const participantLink = hasError 
                 ? "#" 
                 : (isTeamTournament
-                    ? `/teams/${s.participant._id}`
-                    : `/profile/${s.participant._id}`);
-              const isExpanded = expandedTeam === s.participant._id;
+                    ? `/teams/${participantId}`
+                    : `/profile/${participantId}`);
+              const isExpanded = expandedTeam === participantId;
               const hasPlayerStats =
                 isTeamTournament && s.playerStats && s.playerStats.length > 0;
 
@@ -611,11 +612,11 @@ export function EnhancedStandingsTable({
                     {/* Actions / Expand */}
                     {isTeamTournament ? (
                       <TableCell className="text-center">
-                        {hasPlayerStats && (
+                        {hasPlayerStats && participantId && (
                           <button
                             onClick={() =>
                               setExpandedTeam(
-                                isExpanded ? null : s.participant._id
+                                isExpanded ? null : participantId
                               )
                             }
                             className="p-1 hover:bg-slate-200 rounded transition-colors"
@@ -630,12 +631,12 @@ export function EnhancedStandingsTable({
                         )}
                       </TableCell>
                     ) : (
-                      tournamentId && (
+                      tournamentId && participantId && (
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleViewPlayer(s.participant._id)}
+                            onClick={() => handleViewPlayer(participantId)}
                             disabled={loadingDetails}
                             className="h-7 text-[11px] px-2 text-slate-600 hover:text-slate-900"
                           >

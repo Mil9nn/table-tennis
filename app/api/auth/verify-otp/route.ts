@@ -5,6 +5,7 @@ import { VerificationToken } from "@/models/VerificationToken";
 import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { verifyOTPSchema } from "@/lib/validations/auth";
+import { generateToken, setAuthCookie } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for OTP verification
@@ -108,13 +109,39 @@ export async function POST(request: NextRequest) {
       // Delete the used OTP token
       await VerificationToken.deleteOne({ _id: otpToken._id });
 
-      return NextResponse.json(
+      // Auto-login: Generate JWT token and set auth cookie
+      let token;
+      try {
+        token = generateToken(user._id.toString());
+      } catch (tokenError: any) {
+        console.error("Failed to generate JWT token:", tokenError);
+        return NextResponse.json(
+          { 
+            message: "Authentication error - failed to generate token",
+            error: process.env.NODE_ENV === "development" ? tokenError.message : undefined
+          },
+          { status: 500 }
+        );
+      }
+
+      const response = NextResponse.json(
         { 
-          message: "Email verified successfully! You can now log in.",
-          verified: true
+          message: "Email verified successfully! Welcome to the app.",
+          verified: true,
+          user: {
+            _id: user._id,
+            username: user.username,
+            fullName: user.fullName,
+            email: user.email,
+            profileImage: user.profileImage,
+            isProfileComplete: user.isProfileComplete,
+          }
         },
         { status: 200 }
       );
+
+      setAuthCookie(response, token);
+      return response;
     } else if (purpose === "password_reset") {
       // Delete the used OTP token
       await VerificationToken.deleteOne({ _id: otpToken._id });

@@ -301,8 +301,10 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
         gameWinner: gameWinnerSide,
       };
 
-      // Shot Data - Only add if shotType is provided (required for shot recording)
-      if (increment > 0 && shotType) {
+      // Shot Data - Create shot data for both detailed and simple mode
+      // In detailed mode: includes stroke and coordinates
+      // In simple mode: includes only player, side, and server (for commentary)
+      if (increment > 0) {
         // Use the explicitly passed playerId first, then fallback to pendingPlayer
         // Only use fallback defaults if neither is available
         let shotPlayerId: string | undefined = undefined;
@@ -373,7 +375,7 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           requestBody.shotData = {
             side: player,
             player: shotPlayerId,
-            stroke: shotType,
+            stroke: shotType || null, // null in simple mode
             serveType: shotLocationData?.serveType || null,
             server: serverId,
             originX: shotLocationData?.originX,

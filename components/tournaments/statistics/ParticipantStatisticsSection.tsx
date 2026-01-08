@@ -153,245 +153,192 @@ export function ParticipantStatisticsSection({
     }
   };
 
+  // Get first name from full name
+  const getFirstName = (fullName: string): string => {
+    return fullName.split(' ')[0] || fullName;
+  };
+
   return (
-    <div className="w-full flex flex-col border border-slate-200 bg-white overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b bg-white">
-        <div className="flex items-center gap-1.5">
-          <TrendingUp className="w-3.5 h-3.5 text-slate-900" />
-          <h2 className="text-[10px] font-black uppercase tracking-tighter text-slate-800">
-            Participant Statistics
-          </h2>
-        </div>
-        <div className="text-[9px] font-mono font-bold text-slate-400">
-          {sortedData.length} Participants
-        </div>
-      </div>
+    <div className="w-full flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
 
-      {/* Scrollable Table */}
-      <div className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-200">
-        <Table className="border-collapse min-w-200 lg:min-w-full">
-          <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
-            <TableRow className="hover:bg-transparent border-b">
-              {/* Sticky Participant Name Column */}
-              <TableHead
-                 className="sticky left-0 bg-slate-50 z-10 h-7 px-3 text-[9px] font-bold uppercase text-slate-500 border-r"
-               >
-                 Participant
-               </TableHead>
-
-               {/* Final Status */}
-               <TableHead
-                 className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500"
-               >
-                 Final Status
-               </TableHead>
-
-               {/* MP */}
-               <TableHead
-                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
-               >
-                 MP
-               </TableHead>
-
-               {/* Record */}
-               <TableHead
-                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
-               >
-                 Record
-               </TableHead>
-
-               {/* Sets */}
-               <TableHead className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500">
-                 Sets
-               </TableHead>
-
-               {/* Set +/- */}
-               <TableHead className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500">
-                 Set +/-
-               </TableHead>
-
-               {/* Points */}
-               <TableHead
-                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
-               >
-                 Points
-               </TableHead>
-
-               {/* Point +/- */}
-               <TableHead
-                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
-               >
-                 Point +/-
-               </TableHead>
-
-               {/* Avg PTS/Set */}
-               <TableHead
-                 className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500"
-               >
-                 PTS/Set
-               </TableHead>
-
-              {/* Avg CON/Set */}
-              <TableHead className="h-7 px-2 text-center text-[9px] font-bold uppercase text-slate-500">
-                CON/Set
-              </TableHead>
-
-              {/* Peak Win */}
-              <TableHead className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500">
-                Peak Win
-              </TableHead>
-
-              {/* Peak Round */}
-              <TableHead className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500">
-                Peak Round
-              </TableHead>
-
-              {/* Eliminated By */}
-              <TableHead className="h-7 px-3 text-[9px] font-bold uppercase text-slate-500">
-                Eliminated By
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {sortedData.map((participant) => (
-              <TableRow
-                key={participant.participantId}
-                className="group border-b last:border-0"
-              >
-                {/* Participant Name (Sticky) */}
-                <TableCell className="sticky left-0 bg-white z-10 py-1.5 px-3 border-r">
-                  <div className="flex items-center gap-2">
-                    {participant.seedNumber && (
-                      <span className="text-[9px] font-mono text-slate-400">
-                        #{participant.seedNumber}
-                      </span>
-                    )}
-                    <span className="text-[11px] font-bold text-slate-900 whitespace-nowrap">
-                      {participant.participantName}
-                    </span>
-                  </div>
-                </TableCell>
-
-                {/* Final Status */}
-                <TableCell className="py-1.5 px-3">
-                  <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-tight whitespace-nowrap",
-                    getPositionBadgeClass(participant.roundReached)
-                  )}>
-                    {getPositionDisplayText(participant.roundReached)}
-                  </span>
-                </TableCell>
-
-                {/* MP */}
-                <TableCell className="py-1.5 px-2 text-center font-mono text-[11px] font-semibold text-slate-700">
-                  {participant.matchesPlayed}
-                </TableCell>
-
-                {/* Record (W-L) */}
-                <TableCell className="py-1.5 px-2 text-center">
-                  <div className="inline-flex items-baseline gap-1">
-                    <span className="text-[11px] font-mono font-black text-emerald-600">
-                      {participant.matchesWon}
-                    </span>
-                    <span className="text-[9px] text-slate-300">-</span>
-                    <span className="text-[11px] font-mono font-black text-rose-600">
-                      {participant.matchesLost}
-                    </span>
-                  </div>
-                </TableCell>
-
-                {/* Sets */}
-                <TableCell className="py-1.5 px-2 text-center">
-                  <span className="text-[10px] font-mono text-slate-600">
-                    {participant.setsWon}-{participant.setsLost}
-                  </span>
-                </TableCell>
-
-                {/* Set +/- */}
-                <TableCell className="py-1.5 px-2 text-center">
-                  <span className={cn(
-                    "text-[10px] font-mono font-bold",
-                    participant.setsDiff > 0 ? "text-blue-600" :
-                    participant.setsDiff < 0 ? "text-rose-500" : "text-slate-400"
-                  )}>
-                    {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
-                  </span>
-                </TableCell>
-
-                {/* Points */}
-                <TableCell className="py-1.5 px-2 text-center">
-                  <span className="text-[11px] font-mono font-black text-slate-900">
-                    {participant.pointsScored}
-                  </span>
-                </TableCell>
-
-                {/* Point +/- */}
-                <TableCell className="py-1.5 px-2 text-center">
-                  <span className={cn(
-                    "text-[10px] font-mono font-bold",
-                    participant.pointsDiff > 0 ? "text-emerald-600" :
-                    participant.pointsDiff < 0 ? "text-rose-500" : "text-slate-400"
-                  )}>
-                    {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
-                  </span>
-                </TableCell>
-
-                {/* Avg PTS/Set */}
-                <TableCell className="py-1.5 px-2 text-center font-mono text-[11px] font-semibold text-blue-600">
-                  {participant.avgPointsPerSet.toFixed(1)}
-                </TableCell>
-
-                {/* Avg CON/Set */}
-                <TableCell className="py-1.5 px-2 text-center font-mono text-[11px] font-semibold text-slate-600">
-                  {participant.avgPointsConcededPerSet.toFixed(1)}
-                </TableCell>
-
-                {/* Peak Win */}
-                <TableCell className="py-1.5 px-3">
-                  {participant.biggestWinOpponent !== "N/A" && participant.biggestWinOpponent ? (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-medium text-slate-700 whitespace-nowrap">
-                        {participant.biggestWinOpponent}
-                      </span>
-                      {participant.biggestWinScore && participant.biggestWinScore !== "N/A" && (
-                        <span className="text-[11px] font-black text-slate-900">
-                          {participant.biggestWinScore}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-400">—</span>
-                  )}
-                </TableCell>
-
-                {/* Peak Round */}
-                <TableCell className="py-1.5 px-3">
-                  {participant.biggestWinRound && participant.biggestWinRound !== "N/A" ? (
-                    <span className="text-[10px] text-slate-600 uppercase tracking-tight">
-                      {participant.biggestWinRound}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-400">—</span>
-                  )}
-                </TableCell>
-
-                {/* Eliminated By */}
-                <TableCell className="py-1.5 px-3">
-                  {participant.eliminatedBy ? (
-                    <span className="text-[10px] font-medium text-slate-700 whitespace-nowrap">
-                      {participant.eliminatedBy.participantName}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-yellow-600">—</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+  {/* Header */}
+  <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+    <div className="flex items-center gap-2">
+      <TrendingUp className="w-4 h-4 text-slate-800" />
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-800">
+        Participant Statistics
+      </h2>
     </div>
+
+    <div className="text-[11px] font-mono text-slate-500">
+      {sortedData.length} Participants
+    </div>
+  </div>
+
+  {/* Scrollable Table */}
+  <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
+    <Table className="min-w-[1100px] lg:min-w-full border-collapse">
+
+      {/* Table Head */}
+      <TableHeader className="bg-slate-50 sticky top-0 z-20">
+        <TableRow className="border-b">
+
+          <TableHead className="sticky left-0 z-30 bg-slate-50 h-9 px-2 md:px-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500 border-r">
+            Participant
+          </TableHead>
+
+          {[
+            "Final Status","MP","Record","Sets","Set +/-","Points","Point +/-",
+            "PTS/Set","CON/Set","Peak Win","Peak Round","Eliminated By"
+          ].map(label => (
+            <TableHead
+              key={label}
+              className="h-9 px-3 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+            >
+              {label}
+            </TableHead>
+          ))}
+
+        </TableRow>
+      </TableHeader>
+
+      {/* Table Body */}
+      <TableBody className="divide-y">
+
+        {sortedData.map((participant) => (
+          <TableRow
+            key={participant.participantId}
+            className="group hover:bg-slate-50/60 transition"
+          >
+
+            {/* Participant */}
+            <TableCell className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 py-2.5 px-2 md:px-4 border-r">
+              <div className="flex items-center gap-2">
+                {participant.seedNumber && (
+                  <span className="text-[10px] font-mono text-slate-400">
+                    #{participant.seedNumber}
+                  </span>
+                )}
+                <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">
+                  <span className="md:hidden">{getFirstName(participant.participantName)}</span>
+                  <span className="hidden md:inline">{participant.participantName}</span>
+                </span>
+              </div>
+            </TableCell>
+
+            {/* Final Status */}
+            <TableCell className="py-2.5 px-3">
+              <span className={cn(
+                "inline-flex items-center px-2.5 py-0.5 rounded-md border text-[10px] font-semibold uppercase tracking-tight",
+                getPositionBadgeClass(participant.roundReached)
+              )}>
+                {getPositionDisplayText(participant.roundReached)}
+              </span>
+            </TableCell>
+
+            {/* MP */}
+            <TableCell className="py-2.5 px-3 text-center font-mono text-sm font-medium text-slate-700">
+              {participant.matchesPlayed}
+            </TableCell>
+
+            {/* Record */}
+            <TableCell className="py-2.5 px-3 text-center">
+              <div className="inline-flex items-baseline gap-1.5">
+                <span className="text-sm font-mono font-semibold text-emerald-600">
+                  {participant.matchesWon}
+                </span>
+                <span className="text-[10px] text-slate-300">-</span>
+                <span className="text-sm font-mono font-semibold text-rose-600">
+                  {participant.matchesLost}
+                </span>
+              </div>
+            </TableCell>
+
+            {/* Sets */}
+            <TableCell className="py-2.5 px-3 text-center text-[11px] font-mono text-slate-600">
+              {participant.setsWon}-{participant.setsLost}
+            </TableCell>
+
+            {/* Set +/- */}
+            <TableCell className="py-2.5 px-3 text-center">
+              <span className={cn(
+                "text-[11px] font-mono font-semibold",
+                participant.setsDiff > 0 ? "text-blue-600" :
+                participant.setsDiff < 0 ? "text-rose-500" : "text-slate-400"
+              )}>
+                {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
+              </span>
+            </TableCell>
+
+            {/* Points */}
+            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-semibold text-slate-900">
+              {participant.pointsScored}
+            </TableCell>
+
+            {/* Point +/- */}
+            <TableCell className="py-2.5 px-3 text-center">
+              <span className={cn(
+                "text-[11px] font-mono font-semibold",
+                participant.pointsDiff > 0 ? "text-emerald-600" :
+                participant.pointsDiff < 0 ? "text-rose-500" : "text-slate-400"
+              )}>
+                {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
+              </span>
+            </TableCell>
+
+            {/* Avg PTS / Set */}
+            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-medium text-blue-600">
+              {participant.avgPointsPerSet.toFixed(1)}
+            </TableCell>
+
+            {/* Avg CON / Set */}
+            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-medium text-slate-600">
+              {participant.avgPointsConcededPerSet.toFixed(1)}
+            </TableCell>
+
+            {/* Peak Win */}
+            <TableCell className="py-2.5 px-3">
+              {participant.biggestWinOpponent !== "N/A" && participant.biggestWinOpponent ? (
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-medium text-slate-700">
+                    {participant.biggestWinOpponent}
+                  </span>
+                  {participant.biggestWinScore && participant.biggestWinScore !== "N/A" && (
+                    <span className="text-sm font-semibold text-slate-900">
+                      {participant.biggestWinScore}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-slate-400">—</span>
+              )}
+            </TableCell>
+
+            {/* Peak Round */}
+            <TableCell className="py-2.5 px-3 text-xs uppercase tracking-wide text-slate-600">
+              {participant.biggestWinRound && participant.biggestWinRound !== "N/A"
+                ? participant.biggestWinRound
+                : "—"}
+            </TableCell>
+
+            {/* Eliminated By */}
+            <TableCell className="py-2.5 px-3">
+              {participant.eliminatedBy ? (
+                <span className="text-xs font-medium text-slate-700">
+                  {participant.eliminatedBy.participantName}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-yellow-600">—</span>
+              )}
+            </TableCell>
+
+          </TableRow>
+        ))}
+
+      </TableBody>
+    </Table>
+  </div>
+</div>
+
   );
 }

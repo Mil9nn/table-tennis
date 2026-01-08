@@ -133,24 +133,26 @@ export default function ShotFeed({
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700 px-6 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                   {shots.length ? (
                     [...shots].reverse().map((shot, i) => {
+                      // Handle both cases: shot.player as object or as string ID
+                      const playerId = typeof shot.player === 'string' 
+                        ? shot.player 
+                        : shot.player?._id?.toString();
+                      
                       const player = participants.find(
-                        (p) => p._id === shot.player._id
+                        (p) => {
+                          const pId = typeof p === 'string' ? p : p._id?.toString();
+                          return pId === playerId;
+                        }
                       );
+                      
                       const playerName =
-                        player?.fullName ||
-                        player?.username ||
-                        shot.player.fullName ||
-                        shot.player.username ||
+                        (typeof player !== 'string' && player?.fullName) ||
+                        (typeof player !== 'string' && player?.username) ||
+                        (typeof shot.player !== 'string' && shot.player?.fullName) ||
+                        (typeof shot.player !== 'string' && shot.player?.username) ||
                         "Unknown Player";
 
                       const shotType = formatShotType(shot.stroke);
-
-                      // Generate advanced commentary if coordinates are available
-                      const hasCoordinates =
-                        shot.originX != null &&
-                        shot.originY != null &&
-                        shot.landingX != null &&
-                        shot.landingY != null;
 
                       // Calculate game score at the time of this shot
                       // Count shots by side up to and including this shot
@@ -198,25 +200,24 @@ export default function ShotFeed({
                         side2Sets: setsWonSide2,
                       };
 
+                      // Always generate commentary (generateFullCommentary handles missing coordinates gracefully)
                       let commentary: string | null = null;
-                      if (hasCoordinates) {
-                        if (participants) {
-                          // Use calculated set score (either from finalScore prop or calculated from games)
-                          commentary = generateFullCommentary(
-                            shot,
-                            participants,
-                            games,
-                            currentSetScore,
-                            side1Name,
-                            side2Name,
-                            currentGameScore,
-                            serverConfig,
-                            game.gameNumber
-                          );
-                        } else {
-                          // Fallback to short commentary if we don't have participants
-                          commentary = generateShortCommentary(shot);
-                        }
+                      if (participants) {
+                        // Use calculated set score (either from finalScore prop or calculated from games)
+                        commentary = generateFullCommentary(
+                          shot,
+                          participants,
+                          games,
+                          currentSetScore,
+                          side1Name,
+                          side2Name,
+                          currentGameScore,
+                          serverConfig,
+                          game.gameNumber
+                        );
+                      } else {
+                        // Fallback to short commentary if we don't have participants
+                        commentary = generateShortCommentary(shot);
                       }
 
                       return (

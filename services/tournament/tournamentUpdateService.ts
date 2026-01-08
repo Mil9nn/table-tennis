@@ -1,6 +1,7 @@
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import Tournament from "@/models/Tournament";
+import BracketState from "@/models/BracketState";
 import mongoose from "mongoose";
 import { calculateStandings as calculateStandingsLegacy } from "./core/standingsService";
 import { StandingsCalculator } from "./core/standings/standingsCalculator";
@@ -323,9 +324,52 @@ export async function updateTournamentAfterMatch(match: any) {
  * Automatically advances winner to next round and creates new match documents
  */
 async function updateKnockoutBracket(tournament: any, match: any) {
-  if (!tournament.bracket) {
-    console.error("[updateKnockoutBracket] Tournament has no bracket");
-    return;
+  // Helper function to check if bracket exists and is valid
+  const isBracketValid = (bracket: any): boolean => {
+    return (
+      bracket &&
+      typeof bracket === 'object' &&
+      Object.keys(bracket).length > 0 &&
+      bracket.rounds &&
+      Array.isArray(bracket.rounds) &&
+      bracket.rounds.length > 0
+    );
+  };
+
+  // Helper function to load bracket from BracketState
+  const loadBracketFromState = async (tournamentId: string): Promise<any | null> => {
+    try {
+      const bracketState = await BracketState.findOne({ tournament: tournamentId });
+      if (bracketState && isBracketValid({
+        rounds: bracketState.rounds,
+        currentRound: bracketState.currentRound,
+        completed: bracketState.completed,
+        thirdPlaceMatch: bracketState.thirdPlaceMatch,
+        size: bracketState.size
+      })) {
+        return {
+          size: bracketState.size,
+          rounds: bracketState.rounds,
+          currentRound: bracketState.currentRound,
+          completed: bracketState.completed,
+          thirdPlaceMatch: bracketState.thirdPlaceMatch,
+        };
+      }
+    } catch (error) {
+      console.error("[updateKnockoutBracket] Error loading bracket from BracketState:", error);
+    }
+    return null;
+  };
+
+  // Try to load bracket from tournament, or from BracketState if missing
+  if (!isBracketValid(tournament.bracket)) {
+    const loadedBracket = await loadBracketFromState(tournament._id.toString());
+    if (loadedBracket) {
+      tournament.bracket = loadedBracket;
+    } else {
+      console.error("[updateKnockoutBracket] Tournament has no bracket in tournament document or BracketState");
+      return;
+    }
   }
 
   // Check if this is a team match
@@ -460,6 +504,20 @@ async function updateKnockoutBracket(tournament: any, match: any) {
         return;
       }
 
+      // Ensure bracket exists - load from BracketState if missing from tournament document
+      if (!isBracketValid(freshTournament.bracket)) {
+        const loadedBracket = await loadBracketFromState(freshTournament._id.toString());
+        if (loadedBracket) {
+          freshTournament.bracket = loadedBracket;
+          freshTournament.markModified("bracket");
+        } else {
+          console.error(
+            "[updateKnockoutBracket] Tournament bracket not found in tournament document or BracketState"
+          );
+          return;
+        }
+      }
+
       // Check if this match was already processed
       let matchAlreadyProcessed = false;
       for (const round of freshTournament.bracket?.rounds || []) {
@@ -576,23 +634,40 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       await freshTournament.save();
 
       // Sync bracket state to BracketState model (required before generating statistics)
+      // This ensures both tournament.bracket and BracketState stay in sync
       try {
-        const BracketState = (await import("@/models/BracketState")).default;
-        const bracketState = await BracketState.findOne({ tournament: tournament._id });
+        let bracketState = await BracketState.findOne({ tournament: freshTournament._id });
 
-        if (bracketState) {
+        if (!bracketState) {
+          // Create BracketState if it doesn't exist
+          bracketState = new BracketState({
+            tournament: freshTournament._id,
+            size: updatedBracket.size || freshTournament.bracket?.size || 0,
+            rounds: updatedBracket.rounds,
+            currentRound: updatedBracket.currentRound,
+            completed: updatedBracket.completed,
+            thirdPlaceMatch: updatedBracket.thirdPlaceMatch,
+          });
+        } else {
+          // Update existing BracketState
           bracketState.rounds = updatedBracket.rounds;
           bracketState.currentRound = updatedBracket.currentRound;
           bracketState.completed = updatedBracket.completed;
           bracketState.thirdPlaceMatch = updatedBracket.thirdPlaceMatch;
-          await bracketState.save();
+          if (updatedBracket.size !== undefined) {
+            bracketState.size = updatedBracket.size;
+          }
         }
-      } catch (bracketStateErr) {
+
+        await bracketState.save();
+      } catch (bracketStateErr: any) {
+        // Log error but don't fail the entire update
+        // Tournament.bracket is the source of truth, but BracketState sync is important
         console.error(
-          "[updateKnockoutBracket] Warning: Failed to sync BracketState:",
-          bracketStateErr
+          "[updateKnockoutBracket] Error syncing BracketState:",
+          bracketStateErr?.message || bracketStateErr
         );
-        // Continue - Tournament.bracket is the source of truth
+        // Continue - Tournament.bracket is already saved and is the source of truth
       }
 
       // Automatically generate statistics if tournament was just completed

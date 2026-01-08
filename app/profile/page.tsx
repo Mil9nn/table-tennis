@@ -225,6 +225,28 @@ export const ProfilePageContent = ({ userId }: ProfilePageContentProps) => {
           <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
         </div>
 
+        {/* Complete Profile Button - Only show for own profile when incomplete */}
+        {isOwnProfile && currentUser && !currentUser.isProfileComplete && (
+          <div className="mb-8 p-4 bg-[#3c6e71]/10 border border-[#3c6e71]/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#353535] mb-1">
+                  Complete your profile
+                </h3>
+                <p className="text-xs text-[#8b8b8b]">
+                  Add more details to personalize your experience
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/complete-profile")}
+                className="px-4 py-2 text-sm font-semibold bg-[#3c6e71] text-[#ffffff] hover:bg-[#284b63] transition-colors rounded-lg"
+              >
+                Complete Profile
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#d9d9d9]">
           {navigationCards.map((card) => {

@@ -251,6 +251,8 @@ export async function PUT(
       );
     }
 
+    // Validate group names
+    const groupNames = new Map<string, string>(); // groupId -> groupName
     for (const group of updatedGroups) {
       if (!group.groupId || !group.groupName) {
         return NextResponse.json(
@@ -258,6 +260,37 @@ export async function PUT(
           { status: 400 }
         );
       }
+
+      // Trim group name
+      const trimmedName = group.groupName.trim();
+      
+      // Validate group name is not empty after trim
+      if (!trimmedName) {
+        return NextResponse.json(
+          { error: `Group ${group.groupId}: Group name cannot be empty` },
+          { status: 400 }
+        );
+      }
+
+      // Validate group name length
+      if (trimmedName.length > 50) {
+        return NextResponse.json(
+          { error: `Group ${group.groupId}: Group name must be 50 characters or less` },
+          { status: 400 }
+        );
+      }
+
+      // Check for duplicate group names
+      for (const [existingGroupId, existingName] of groupNames.entries()) {
+        if (existingName === trimmedName && existingGroupId !== group.groupId) {
+          return NextResponse.json(
+            { error: `Group names must be unique. "${trimmedName}" is used by multiple groups.` },
+            { status: 400 }
+          );
+        }
+      }
+
+      groupNames.set(group.groupId, trimmedName);
 
       for (const participantId of group.participants || []) {
         if (!validParticipantIds.has(participantId.toString())) {
@@ -267,6 +300,11 @@ export async function PUT(
           );
         }
       }
+    }
+
+    // Update group names with trimmed versions
+    for (const group of updatedGroups) {
+      group.groupName = group.groupName.trim();
     }
 
     // If matches are already generated, check if any have been played

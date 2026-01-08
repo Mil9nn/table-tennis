@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2, Mail, Shield } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const emailParam = searchParams.get("email");
+  const setUser = useAuthStore((state) => state.setUser);
 
   const [status, setStatus] = useState<"input" | "loading" | "success" | "error">("input");
   const [message, setMessage] = useState("");
@@ -47,7 +49,18 @@ function VerifyEmailContent() {
       });
       setStatus("success");
       setMessage(response.data.message);
+      
+      // Update auth store with user data (auto-login)
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
+      
       toast.success("Email verified successfully!");
+      
+      // Auto-redirect to home after a short delay
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
     } catch (error: any) {
       setStatus("error");
       const errorMessage = error.response?.data?.message || "Verification failed";
@@ -193,10 +206,10 @@ function VerifyEmailContent() {
               </h2>
               <p className="mt-1 text-sm text-gray-600">{message}</p>
               <Button
-                onClick={() => router.push("/auth/login")}
+                onClick={() => router.push("/")}
                 className="mt-6 w-full"
               >
-                Continue to login
+                Get Started
               </Button>
             </div>
           )}

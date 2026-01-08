@@ -187,30 +187,33 @@ export default function DoublesPairBuilder({
                     >
                       {index + 1}
                     </Badge>
-                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={getParticipantImage(pair.player1)} />
-                        <AvatarFallback className="text-[10px]">
-                          {getParticipantDisplayName(pair.player1)
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium truncate">
-                        {getParticipantDisplayName(pair.player1)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">&</span>
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={getParticipantImage(pair.player2)} />
-                        <AvatarFallback className="text-[10px]">
-                          {getParticipantDisplayName(pair.player2)
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium truncate">
-                        {getParticipantDisplayName(pair.player2)}
-                      </span>
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={getParticipantImage(pair.player1)} />
+                          <AvatarFallback className="text-[10px]">
+                            {getParticipantDisplayName(pair.player1)
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium">
+                          {getParticipantDisplayName(pair.player1)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={getParticipantImage(pair.player2)} />
+                          <AvatarFallback className="text-[10px]">
+                            {getParticipantDisplayName(pair.player2)
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium">
+                          {getParticipantDisplayName(pair.player2)}
+                        </span>
+                      </div>
                     </div>
                     {!disabled && (
                       <Button

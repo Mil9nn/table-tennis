@@ -47,9 +47,7 @@ export default function LoginPage() {
   async function onSubmit(values: LoginInput) {
     const response = await login(values);
     if (response?.user) {
-      router.push(
-        response.user.isProfileComplete ? "/" : "/complete-profile"
-      );
+      router.push("/");
     }
   }
 
