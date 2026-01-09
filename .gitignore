@@ -16,7 +16,13 @@
 # next.js
 /.next/
 /out/
+
+# IDE and tool directories
 /.claude/
+/.cursor/
+/.expo/
+/.vscode/
+/-p/
 
 # production
 /build

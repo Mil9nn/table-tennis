@@ -79,13 +79,20 @@ export async function POST(request: NextRequest) {
       attemptsLeft: 3,
     });
 
-    // 5. Send OTP email asynchronously (don't block registration)
+    // 5. Send OTP email (await to ensure it completes in serverless environments)
     // User can register even if email service is temporarily down
     // They can request a new OTP later via /api/auth/send-otp
-    sendOTPEmail(email, fullName, otp, "email_verification").catch((error) => {
-      console.error("Failed to send OTP email (async):", error);
+    let emailSent = false;
+    try {
+      emailSent = await sendOTPEmail(email, fullName, otp, "email_verification");
+      if (!emailSent) {
+        console.error("❌ [Register] Failed to send OTP email to:", email);
+        // Don't fail registration - OTP can be resent later via /api/auth/send-otp
+      }
+    } catch (emailError) {
+      console.error("❌ [Register] Error sending OTP email:", emailError instanceof Error ? emailError.message : String(emailError));
       // Don't fail registration - OTP can be resent later via /api/auth/send-otp
-    });
+    }
 
     // Return success - user created but NOT verified yet
     // User cannot log in until email is verified (login route checks isEmailVerified)
