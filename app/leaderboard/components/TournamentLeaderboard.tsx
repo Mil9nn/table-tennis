@@ -8,6 +8,8 @@ import { getAvatarFallbackStyle } from "@/lib/utils";
 import type { TournamentPlayerStats } from "../types";
 import { LeaderboardEmpty, LeaderboardLoading, RankBadge } from "./shared";
 import { getDisplayName, getInitials } from "../utils";
+import { TournamentPlayerModal } from "./TournamentPlayerModal";
+import { Trophy, Medal, Award } from "lucide-react";
 
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
@@ -129,10 +131,11 @@ const TournamentRow = ({
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs mt-1">
+          <div className="flex items-center gap-2 text-xs mt-1 flex-wrap">
             <div className="flex items-center gap-1 text-[#353535]">
+              <Trophy className="h-3 w-3" style={{ color: "#FFD700" }} />
               <strong className="font-semibold">{entry.stats.tournamentsWon}</strong>
-              <span className="text-[#a8a8a8] font-medium"> won</span>
+              <span className="text-[#a8a8a8] font-medium"> wins</span>
             </div>
             <span style={{ color: "#d9d9d9" }}>•</span>
             <div className="flex items-center gap-1 text-[#353535]">
@@ -141,20 +144,40 @@ const TournamentRow = ({
             </div>
             <span style={{ color: "#d9d9d9" }}>•</span>
             <div className="flex items-center gap-1 text-[#353535]">
+              <Medal className="h-3 w-3" style={{ color: "#C0C0C0" }} />
               <strong className="font-semibold">{entry.stats.finalsReached}</strong>
               <span className="text-[#a8a8a8] font-medium"> finals</span>
             </div>
+            {entry.stats.semiFinalsReached > 0 && (
+              <>
+                <span style={{ color: "#d9d9d9" }}>•</span>
+                <div className="flex items-center gap-1 text-[#353535]">
+                  <Award className="h-3 w-3" style={{ color: "#CD7F32" }} />
+                  <strong className="font-semibold">{entry.stats.semiFinalsReached}</strong>
+                  <span className="text-[#a8a8a8] font-medium"> semis</span>
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs mt-1">
             <div className="flex items-center gap-1 text-[#353535]">
               <strong className="font-semibold">{entry.stats.tournamentMatchWins}</strong>
-              <span className="text-[#a8a8a8] font-medium"> match wins</span>
-            </div>
-            <span style={{ color: "#d9d9d9" }}>•</span>
-            <div className="flex items-center gap-1 text-[#353535]">
+              <span className="text-[#a8a8a8] font-medium">-</span>
               <strong className="font-semibold">{entry.stats.tournamentMatchLosses}</strong>
-              <span className="text-[#a8a8a8] font-medium"> match losses</span>
+              <span className="text-[#a8a8a8] font-medium"> matches</span>
             </div>
+            {entry.stats.tournamentSetDifferential !== 0 && (
+              <>
+                <span style={{ color: "#d9d9d9" }}>•</span>
+                <div className="flex items-center gap-1 text-[#353535]">
+                  <strong className="font-semibold">
+                    {entry.stats.tournamentSetDifferential > 0 ? "+" : ""}
+                    {entry.stats.tournamentSetDifferential}
+                  </strong>
+                  <span className="text-[#a8a8a8] font-medium"> set diff</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -163,14 +186,18 @@ const TournamentRow = ({
             Win Rate
           </div>
           <div className="text-sm font-bold" style={{ color: "#3c6e71" }}>
-            {entry.stats.tournamentMatchWinRate}%
+            {entry.stats.tournamentMatchWinRate.toFixed(1)}%
           </div>
-          <div className="text-xs font-medium text-[#6c6868] uppercase tracking-wider mt-2 mb-1">
-            Points
-          </div>
-          <div className="text-sm font-semibold" style={{ color: "#353535" }}>
-            {entry.stats.totalPoints}
-          </div>
+          {entry.stats.totalTournamentPoints > 0 && (
+            <>
+              <div className="text-xs font-medium text-[#6c6868] uppercase tracking-wider mt-2 mb-1">
+                Points
+              </div>
+              <div className="text-sm font-semibold" style={{ color: "#353535" }}>
+                {entry.stats.totalTournamentPoints}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -204,7 +231,7 @@ export function TournamentLeaderboard({
   const others = data.slice(3);
 
   return (
-    <div>
+    <>
       {/* CURRENT USER ROW - shown at top if user is not in top 3 */}
       {currentUserEntry && currentUserEntry.rank > 3 && (
         <>
@@ -275,6 +302,12 @@ export function TournamentLeaderboard({
           );
         })}
       </div>
-    </div>
+
+      {/* Player Modal */}
+      <TournamentPlayerModal
+        player={selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+      />
+    </>
   );
 }

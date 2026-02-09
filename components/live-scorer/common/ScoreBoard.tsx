@@ -209,7 +209,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
       </div>
 
       {/* Center Controls */}
-      <div className="flex justify-center mt-4">
+      <div className="flex justify-center py-2">
         <CenterControls
           isMatchActive={isMatchActive}
           onToggleMatch={onToggleMatch}

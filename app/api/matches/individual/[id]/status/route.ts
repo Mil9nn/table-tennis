@@ -55,6 +55,10 @@ export async function POST(
 
     match.status = status;
 
+    if (status === "in_progress" && !match.startedAt) {
+      match.startedAt = new Date();
+    }
+
     if (
       status === "in_progress" &&
       !match.currentServer &&

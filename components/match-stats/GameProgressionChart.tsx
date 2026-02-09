@@ -8,6 +8,7 @@ import {
   Legend,
 } from "recharts";
 import { useInView } from "@/hooks/useInView";
+import { formatPlayerName } from "@/lib/player-name-utils";
 
 interface GameProgressionChartProps {
   data: Array<{ game: string; [key: string]: string | number }>;
@@ -63,19 +64,28 @@ export function GameProgressionChart({
                   border: "1px solid #d9d9d9",
                   borderRadius: 0,
                   boxShadow: "none",
+                  maxWidth: "200px",
+                  wordWrap: "break-word"
                 }}
                 labelStyle={{ color: "#353535" }}
-                formatter={(value: any, name: any) => [`${value} points`, name]}
+                formatter={(value: any, name: any) => {
+                  return [`${value} points`, formatPlayerName(name)];
+                }}
               />
-              <Legend wrapperStyle={{ paddingTop: 8 }} />
-              {/* App palette colors with variety */}
+              <Legend
+                wrapperStyle={{
+                  paddingTop: 8,
+                }}
+                className="hidden md:block"
+              />
+              {/* Modern high-contrast colors */}
               <Line
                 type="monotone"
                 dataKey={side1Name}
-                stroke="#3c6e71" // teal
-                strokeWidth={2}
-                dot={{ r: 3, fill: "#3c6e71" }}
-                activeDot={{ r: 5 }}
+                stroke="#6366f1" // modern indigo
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "#6366f1" }}
+                activeDot={{ r: 6, fill: "#4f46e5" }}
                 isAnimationActive={true}
                 animationBegin={0}
                 animationDuration={1200}
@@ -84,10 +94,10 @@ export function GameProgressionChart({
               <Line
                 type="monotone"
                 dataKey={side2Name}
-                stroke="#284b63" // navy
-                strokeWidth={2}
-                dot={{ r: 3, fill: "#284b63" }}
-                activeDot={{ r: 5 }}
+                stroke="#f59e0b" // modern amber
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "#f59e0b" }}
+                activeDot={{ r: 6, fill: "#d97706" }}
                 isAnimationActive={true}
                 animationBegin={200}
                 animationDuration={1200}

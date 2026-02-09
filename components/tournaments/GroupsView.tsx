@@ -6,7 +6,7 @@ import { Group } from "@/types/tournament.type";
 import { EnhancedStandingsTable } from "./EnhancedStandingsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Users, Trophy, CheckCircle2 } from "lucide-react";
+import { Users, Trophy } from "lucide-react";
 
 import GroupsIcon from '@mui/icons-material/Groups';
 
@@ -72,10 +72,9 @@ export function GroupsView({
                 value={group.groupId}
               >
                 <div className="flex items-center gap-2">
-                  <span>{group.groupName}</span>
-                  {status.allCompleted && (
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  )}
+                  <span className={status.allCompleted ? "text-green-500" : ""}>
+                    {group.groupName}
+                  </span>
                 </div>
               </TabsTrigger>
             );

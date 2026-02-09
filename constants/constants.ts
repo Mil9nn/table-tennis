@@ -104,8 +104,8 @@ export const SHOT_TYPE_COLORS: Record<string, string> = {
   backhand_flick: "#7C3AED",
 
   // Special cases (neutralized)
-  net_point: "#9CA3AF",   // neutral gray
-  serve_point: "#64748B", // slate
+  net_point: "#EA580C",
+  serve_point: "#64748B",
 };
 
 

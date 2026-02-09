@@ -58,6 +58,11 @@ export async function POST(
     if (body.status) {
       subMatch.status = body.status;
 
+      // Set match startedAt when first submatch goes to in_progress
+      if (body.status === "in_progress" && !match.startedAt) {
+        match.startedAt = new Date();
+      }
+
       if (body.status === "scheduled") {
         subMatch.winnerSide = null;
         subMatch.completed = false;

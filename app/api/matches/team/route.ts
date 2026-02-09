@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
     const sortObject: any = {};
     sortObject[sortBy] = sortOrder === "asc" ? 1 : -1;
 
-    let query = populateTeamMatch(TeamMatch.find(filter)).sort(sortObject);
+    let query = populateTeamMatch(TeamMatch.find(filter), { includeTournament: true }).sort(sortObject);
 
     if (skip > 0) query = query.skip(skip);
     if (limit > 0) query = query.limit(limit);

@@ -64,9 +64,9 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
 
   return (
     <div className="min-h-screen bg-[#ffffff]">
-      <div className="max-w-6xl mx-auto py-8">
+      <div className="max-w-6xl mx-auto py-4">
         {/* Page Title */}
-        <div className="mb-8 px-4">
+        <div className="px-4">
           <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
             Match History
           </h1>
@@ -85,30 +85,24 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
             description="Your recent matches will appear here once you start playing!"
           />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-4">
-              <div className="p-3">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
-                  Total Matches
-                </h3>
-                <p className="text-2xl font-bold text-[#353535]">
-                  {matches.length}
-                </p>
-              </div>
-
-              <div className="p-3">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
-                  Wins
-                </h3>
-                <p className="text-2xl font-bold text-[#353535]">{wins}</p>
-              </div>
-
-              <div className="p-3">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1.5">
-                  Losses
-                </h3>
-                <p className="text-2xl font-bold text-[#353535]">{losses}</p>
+            <div className="px-4">
+              <div className="p-2">
+                <div className="">
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Matches</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{matches.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Wins</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{wins}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs font-medium text-[#353535]">Losses</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{losses}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -166,11 +160,7 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
                           )}
                         </div>
                         <span
-                          className={`font-medium text-sm transition-colors group-hover:text-[#ffffff] ${
-                            match.result === "win"
-                              ? "text-green-600 group-hover:text-green-200"
-                              : "text-gray-800"
-                          }`}
+                          className="font-medium text-sm text-gray-800 transition-colors group-hover:text-[#ffffff]"
                         >
                           {match.type === "individual"
                             ? `${match.opponent || "Unknown"}`
@@ -197,6 +187,12 @@ const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
                           <span>{match.city}</span>
                         </>
                       )}
+                      <span>•</span>
+                      <span className={`font-medium ${
+                        match.result === "win" ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {match.result === "win" ? "Win" : "Loss"}
+                      </span>
                     </div>
                   </div>
                 ))}

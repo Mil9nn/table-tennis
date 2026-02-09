@@ -393,6 +393,7 @@ async function playMatch(matchId: string, scorerId: string): Promise<"side1" | "
 
   // Set match to in_progress
   match.status = "in_progress";
+  match.startedAt = new Date();
   match.scorer = new mongoose.Types.ObjectId(scorerId);
 
   // Get player IDs for shot tracking
@@ -415,7 +416,7 @@ async function playMatch(matchId: string, scorerId: string): Promise<"side1" | "
   match.winnerSide = winnerSide;
 
   match.status = "completed";
-  match.matchDuration = Date.now() - (match.createdAt?.getTime() || Date.now());
+  match.matchDuration = Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
 
   await match.save();
 

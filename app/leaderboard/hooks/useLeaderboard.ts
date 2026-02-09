@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
-import type { PlayerStats, TeamStats, TournamentPlayerStats, LeaderboardType } from "../types";
+import type { PlayerStats, TeamStats, LeaderboardType } from "../types";
 import type { LeaderboardFilters } from "@/lib/leaderboard/filterUtils";
 
 const ITEMS_PER_PAGE = 15;
@@ -8,7 +8,6 @@ const ITEMS_PER_PAGE = 15;
 interface UseLeaderboardReturn {
   leaderboard: PlayerStats[];
   teamLeaderboard: TeamStats[];
-  tournamentLeaderboard: TournamentPlayerStats[];
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -25,18 +24,19 @@ export function useLeaderboard(
 ): UseLeaderboardReturn {
   const [leaderboard, setLeaderboard] = useState<PlayerStats[]>([]);
   const [teamLeaderboard, setTeamLeaderboard] = useState<TeamStats[]>([]);
-  const [tournamentLeaderboard, setTournamentLeaderboard] = useState<TournamentPlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const requestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const buildQueryParams = useCallback(
     (skip: number, filters?: Partial<LeaderboardFilters>) => {
       const params = new URLSearchParams();
       
       // For Individual tab, add type filter if provided (not "all")
-      // For Teams/Tournaments tabs, don't add type param
+      // For Teams tab, don't add type param
       if (activeTab === "individual" && filters?.type && filters.type !== "all") {
         params.append("type", filters.type);
       }
@@ -56,8 +56,6 @@ export function useLeaderboard(
         if (filters.tournamentSeason) params.append("tournamentSeason", filters.tournamentSeason.toString());
         if (filters.matchFormat) params.append("matchFormat", filters.matchFormat);
         if (filters.eventCategory) params.append("eventCategory", filters.eventCategory);
-        if (filters.sortBy) params.append("sortBy", filters.sortBy);
-        if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
       }
       
       return params.toString();
@@ -67,6 +65,16 @@ export function useLeaderboard(
 
   const fetchData = useCallback(
     async (pageNum: number, append = false) => {
+      // Cancel any in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller and request ID for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      const currentRequestId = ++requestIdRef.current;
+
       try {
         if (append) {
           setLoadingMore(true);
@@ -79,29 +87,34 @@ export function useLeaderboard(
 
         if (activeTab === "teams") {
           const { data } = await axiosInstance.get(
-            `/leaderboard/teams?limit=${ITEMS_PER_PAGE}&skip=${skip}`
+            `/leaderboard/teams?limit=${ITEMS_PER_PAGE}&skip=${skip}`,
+            { signal: abortController.signal }
           );
+
+          // Ignore if this is not the latest request
+          if (currentRequestId !== requestIdRef.current) {
+            return;
+          }
+
           if (append) {
             setTeamLeaderboard((prev) => [...prev, ...(data.leaderboard || [])]);
           } else {
             setTeamLeaderboard(data.leaderboard || []);
           }
           setHasMore(data.pagination?.hasMore || false);
-        } else if (activeTab === "tournaments") {
-          const { data } = await axiosInstance.get(
-            `/leaderboard/tournaments?limit=${ITEMS_PER_PAGE}&skip=${skip}`
-          );
-          if (append) {
-            setTournamentLeaderboard((prev) => [...prev, ...(data.leaderboard || [])]);
-          } else {
-            setTournamentLeaderboard(data.leaderboard || []);
-          }
-          setHasMore(data.pagination?.hasMore || false);
         } else if (activeTab === "individual") {
           // Use filtered endpoint for individual leaderboard
           const queryParams = buildQueryParams(skip, options?.filters);
-          const { data } = await axiosInstance.get(`/leaderboard/filtered?${queryParams}`);
-          
+          const { data } = await axiosInstance.get(
+            `/leaderboard/filtered?${queryParams}`,
+            { signal: abortController.signal }
+          );
+
+          // Ignore if this is not the latest request
+          if (currentRequestId !== requestIdRef.current) {
+            return;
+          }
+
           if (append) {
             setLeaderboard((prev) => [...prev, ...(data.leaderboard || [])]);
           } else {
@@ -109,33 +122,61 @@ export function useLeaderboard(
           }
           setHasMore(data.pagination?.hasMore || false);
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Ignore abort/cancel errors (axios uses ERR_CANCELED for AbortController)
+        if (error.code === 'ERR_CANCELED' || error.name === 'AbortError' || error.name === 'CanceledError') {
+          return;
+        }
+
+        // Ignore if this is not the latest request
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
         console.error("Error fetching leaderboard:", error);
         if (activeTab === "teams") {
           if (!append) setTeamLeaderboard([]);
-        } else if (activeTab === "tournaments") {
-          if (!append) setTournamentLeaderboard([]);
         } else {
           if (!append) setLeaderboard([]);
         }
         setHasMore(false);
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        // Only update loading state if this is still the latest request
+        if (currentRequestId === requestIdRef.current) {
+          setLoading(false);
+          setLoadingMore(false);
+          if (abortControllerRef.current === abortController) {
+            abortControllerRef.current = null;
+          }
+        }
       }
     },
     [activeTab, options?.filters, buildQueryParams]
   );
 
   useEffect(() => {
+    // Cancel any in-flight requests when filters or tab change
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     // Reset state when tab or filters change
     setLeaderboard([]);
     setTeamLeaderboard([]);
-    setTournamentLeaderboard([]);
     setPage(0);
     setHasMore(true);
     fetchData(0, false);
   }, [activeTab, options?.filters, fetchData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const fetchMore = useCallback(() => {
     if (!loadingMore && !loading && hasMore) {
@@ -145,5 +186,5 @@ export function useLeaderboard(
     }
   }, [loadingMore, loading, hasMore, page, fetchData]);
 
-  return { leaderboard, teamLeaderboard, tournamentLeaderboard, loading, loadingMore, hasMore, fetchMore };
+  return { leaderboard, teamLeaderboard, loading, loadingMore, hasMore, fetchMore };
 }

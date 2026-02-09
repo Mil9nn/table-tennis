@@ -15,7 +15,7 @@ export function OverviewSection({ stats }: Props) {
   const { side1Name, side2Name } = getSideNames(match, stats.type);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Summary is intentionally first and dominant */}
       <MatchSummary
         side1Name={side1Name}

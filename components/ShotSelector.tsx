@@ -282,7 +282,7 @@ const ShotSelector = () => {
 
   return (
     <Dialog open={shotDialogOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[95vw] max-w-[98vw] max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="sm:max-w-[95vw] max-w-[98vw] max-h-[90vh] rounded-none overflow-y-auto p-0">
         <DialogTitle asChild>
           <VisuallyHidden>Shot Selector</VisuallyHidden>
         </DialogTitle>
@@ -344,7 +344,7 @@ const ShotSelector = () => {
         )}
 
         {/* Content Area */}
-        <div className="px-6 py-2">
+        <div className="pb-2 p-1">
           <AnimatePresence mode="wait">
             {state.currentStep === "player" && needsPlayerSelection && (
               <motion.div

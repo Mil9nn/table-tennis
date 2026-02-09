@@ -18,12 +18,8 @@ export interface LeaderboardFilters {
   // Competition context
   tournamentId?: string;
   tournamentSeason?: number; // Year
-  matchFormat?: 'league' | 'knockout' | 'friendly';
+  matchFormat?: 'friendly' | 'tournament';
   eventCategory?: 'singles' | 'doubles';
-  
-  // Sorting
-  sortBy?: 'winRate' | 'wins' | 'pointDifference' | 'winStreak' | 'matchesPlayed';
-  sortOrder?: 'asc' | 'desc';
   
   // Pagination
   limit?: number;
@@ -34,9 +30,7 @@ const VALID_MATCH_TYPES = ['singles', 'doubles'] as const;
 const VALID_GENDERS = ['male', 'female'] as const;
 const VALID_HANDEDNESS = ['left', 'right'] as const;
 const VALID_TIME_RANGES = ['all_time', 'this_year', 'this_month'] as const;
-const VALID_MATCH_FORMATS = ['league', 'knockout', 'friendly'] as const;
-const VALID_SORT_BY = ['winRate', 'wins', 'pointDifference', 'winStreak', 'matchesPlayed'] as const;
-const VALID_SORT_ORDERS = ['asc', 'desc'] as const;
+const VALID_MATCH_FORMATS = ['friendly', 'tournament'] as const;
 
 export interface DateRange {
   from: Date;
@@ -151,22 +145,6 @@ export function validateFilters(params: URLSearchParams): {
     errors.push(`Invalid 'eventCategory'. Must be one of: ${VALID_MATCH_TYPES.join(', ')}`);
   } else if (eventCategory) {
     filters.eventCategory = eventCategory as LeaderboardFilters['eventCategory'];
-  }
-
-  // Optional: sortBy
-  const sortBy = params.get('sortBy');
-  if (sortBy && !VALID_SORT_BY.includes(sortBy as any)) {
-    errors.push(`Invalid 'sortBy'. Must be one of: ${VALID_SORT_BY.join(', ')}`);
-  } else if (sortBy) {
-    filters.sortBy = sortBy as LeaderboardFilters['sortBy'];
-  }
-
-  // Optional: sortOrder
-  const sortOrder = params.get('sortOrder');
-  if (sortOrder && !VALID_SORT_ORDERS.includes(sortOrder as any)) {
-    errors.push(`Invalid 'sortOrder'. Must be one of: ${VALID_SORT_ORDERS.join(', ')}`);
-  } else if (sortOrder) {
-    filters.sortOrder = sortOrder as LeaderboardFilters['sortOrder'];
   }
 
   // Optional: limit

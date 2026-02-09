@@ -18,8 +18,8 @@ export default function GamesHistory({
   if (!games?.length) return null;
 
   return (
-    <section className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-      <header className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+    <section className="dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <header className="px-6 py-2 border-b border-zinc-100 dark:border-zinc-800">
         <h3 className="text-sm font-semibold tracking-tight">
           Match Timeline
         </h3>
@@ -28,7 +28,7 @@ export default function GamesHistory({
         </p>
       </header>
 
-      <div className="px-6 py-5 space-y-2">
+      <div className="px-6 py-2 space-y-2">
         {games.map((game) => (
           <GameHistoryItem
             key={game.gameNumber}
@@ -90,7 +90,7 @@ function GameHistoryItem({
       )}
 
       {isCurrent && (
-        <span className="ml-3 text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+        <span className="text-[10px] tracking-wide text-indigo-500 dark:text-indigo-400">
           Live
         </span>
       )}

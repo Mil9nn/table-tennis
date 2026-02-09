@@ -82,6 +82,9 @@ export async function POST(
         if (match.status === "completed") {
           match.status = "in_progress";
           match.winnerTeam = null;
+          if (!match.startedAt) {
+            match.startedAt = new Date();
+          }
         }
       }
     } else {

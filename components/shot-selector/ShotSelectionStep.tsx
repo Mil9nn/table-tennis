@@ -31,9 +31,9 @@ export function ShotSelectionStep({
   onSelect,
 }: ShotSelectionStepProps) {
   return (
-    <div className="space-y-2">
-      <div className="max-h-[520px] p-2 overflow-y-auto">
-        <div className="flex flex-wrap gap-2">
+    <div className="">
+      <div className="max-h-[520px] overflow-y-auto">
+        <div className="grid grid-cols-2 gap-4">
           {Object.entries(shotCategories).flatMap(([category, categoryData]) => {
             const bothVariants = hasBothVariants(categoryData.shots);
             
@@ -46,48 +46,39 @@ export function ShotSelectionStep({
               const isBHSelected = selectedShot === bhValue;
               
               return (
-                // Grouped FH/BH variant
-                <div key={category} className="rounded-lg border border-gray-200 bg-white overflow-hidden shrink-0">
-                  <div className="flex items-center divide-x divide-gray-200">
-                    {/* Shot type label */}
-                    <div className="px-2 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 min-w-[70px]">
-                      {getShotTypeName(categoryData.shots[0].value)}
-                    </div>
-                    
-                    {/* FH button */}
+                <div key={category} className="grid grid-cols-2 gap-2 bg-gray-100 p-1">
+                  {fhShot && (
                     <button
+                      key={fhShot.value}
                       type="button"
-                      onClick={() => {
-                        if (fhValue) onSelect(fhValue as Stroke);
-                      }}
+                      onClick={() => onSelect(fhShot.value as Stroke)}
                       className={cn(
-                        "px-2 py-1.5 text-xs transition-colors min-w-[40px]",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset",
+                        "rounded-sm border p-2 text-left text-xs transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
                         isFHSelected
-                          ? "bg-blue-500 text-white font-medium"
-                          : "hover:bg-gray-50 text-gray-700"
+                          ? "border-blue-500 bg-blue-50 text-gray-900"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
-                      FH
+                      {formatStrokeName(fhShot.value)}
                     </button>
-                    
-                    {/* BH button */}
+                  )}
+                  {bhShot && (
                     <button
+                      key={bhShot.value}
                       type="button"
-                      onClick={() => {
-                        if (bhValue) onSelect(bhValue as Stroke);
-                      }}
+                      onClick={() => onSelect(bhShot.value as Stroke)}
                       className={cn(
-                        "px-2 py-1.5 text-xs transition-colors min-w-[40px]",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset",
+                        "rounded-sm border p-2 text-left text-xs transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
                         isBHSelected
-                          ? "bg-blue-500 text-white font-medium"
-                          : "hover:bg-gray-50 text-gray-700"
+                          ? "border-blue-500 bg-blue-50 text-gray-900"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
-                      BH
+                      {formatStrokeName(bhShot.value)}
                     </button>
-                  </div>
+                  )}
                 </div>
               );
             } else {
@@ -96,20 +87,21 @@ export function ShotSelectionStep({
                 const isSelected = selectedShot === shot.value;
 
                 return (
-                  <button
-                    key={shot.value}
-                    type="button"
-                    onClick={() => onSelect(shot.value as Stroke)}
-                    className={cn(
-                      "rounded-lg border p-1.5 text-left text-xs transition-colors shrink-0",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
-                      isSelected
-                        ? "border-blue-500 bg-blue-50 text-gray-900"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                    )}
-                  >
-                    {formatStrokeName(shot.value)}
-                  </button>
+                  <div key={shot.value} className="grid grid-cols-2 gap-2 bg-gray-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => onSelect(shot.value as Stroke)}
+                      className={cn(
+                        "rounded-sm border p-2 text-left text-xs transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+                        isSelected
+                          ? "border-blue-500 bg-blue-50 text-gray-900"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                      )}
+                    >
+                      {formatStrokeName(shot.value)}
+                    </button>
+                  </div>
                 );
               });
             }

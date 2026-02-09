@@ -306,14 +306,14 @@ export default function MatchesPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
-                      Type
+                      Match Type
                     </label>
                     <Select
                       value={individualFilters.filters.type}
                       onValueChange={(val) => individualFilters.setFilter("type", val)}
                     >
                       <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
-                        <SelectValue placeholder="Filter by type" />
+                        <SelectValue placeholder="Filter by match type" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
@@ -336,7 +336,7 @@ export default function MatchesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="not_started">Scheduled</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
                         <SelectItem value="in_progress">Live</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                       </SelectContent>
@@ -401,7 +401,7 @@ export default function MatchesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="not_started">Scheduled</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
                         <SelectItem value="in_progress">Live</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                       </SelectContent>

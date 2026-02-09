@@ -151,32 +151,36 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
           <div className="space-y-6">
             {/* Performance Highlights */}
             <div className="px-4">
-              <div className="mb-3">
+              <div className="mb-2">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Performance Highlights
                 </h2>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                <div className="lg:col-span-1 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-2">
-                        Best Win Streak
-                      </h3>
-                      <p className="text-3xl font-bold text-[#353535]">
-                        {bestWinStreak}
-                      </p>
+              <div className="bg-[#ffffff] p-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-[#f8f9fa] rounded-lg">
+                      <WhatshotIcon
+                        className="text-[#3c6e71]"
+                        sx={{ fontSize: 24 }}
+                      />
                     </div>
                     <div>
-                      <WhatshotIcon
-                        fontSize="large"
-                        className="text-[#3c6e71]"
-                        sx={{ fontSize: 36 }}
-                      />
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-1">
+                        Best Win Streak
+                      </h3>
+                      <p className="text-xl font-bold text-[#353535]">
+                        {bestWinStreak}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Section Divider */}
+            <div className="px-4">
+              <div className="border-t border-[#e5e5e5] my-6"></div>
             </div>
 
             {/* A. Singles and Doubles Stats */}
@@ -190,7 +194,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Singles */}
                 <div className="p-4">
-                  <h3 className="text-xs font-bold text-[#353535] mb-4 uppercase tracking-wider">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                     Singles
                   </h3>
 
@@ -198,7 +202,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {/* Match Win Rate Progress Bar */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-[#353535]">
+                        <span className="text-xs font-medium text-[#3c6e71]">
                           Match Performance
                         </span>
                         <span className="text-xs text-[#3c6e71] font-semibold">
@@ -229,7 +233,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                           <span className="text-xs font-medium text-[#3c6e71]">
                             Sets
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-semibold">
+                          <span className="text-xs text-zinc-500 font-semibold">
                             {singlesStats.setsWon || 0}W /{" "}
                             {singlesStats.setsLost || 0}L
                           </span>
@@ -255,7 +259,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                             className="h-full bg-blue-500 opacity-70 rounded-full"
                           />
                         </div>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-xs text-zinc-500">
                           {(singlesStats.setsWon || 0) +
                             (singlesStats.setsLost || 0) >
                           0
@@ -279,7 +283,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                       Object.keys(singlesStats.matchesByTournamentType).length >
                         0 && (
                         <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
                             Tournament Types
                           </p>
                           <div className="space-y-2">
@@ -306,7 +310,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
 
                 {/* Doubles */}
                 <div className="p-4">
-                  <h3 className="text-xs font-bold text-[#353535] mb-4 uppercase tracking-wider">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
                     Doubles
                   </h3>
 
@@ -314,7 +318,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                     {/* Match Win Rate Progress Bar */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-[#353535]">
+                        <span className="text-xs font-medium text-[#353535]">
                           Match Performance
                         </span>
                         <span className="text-xs text-[#3c6e71] font-semibold">
@@ -345,7 +349,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                           <span className="text-xs font-medium text-[#3c6e71]">
                             Sets
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-semibold">
+                          <span className="text-xs text-zinc-500 font-semibold">
                             {doublesStats.setsWon || 0}W /{" "}
                             {doublesStats.setsLost || 0}L
                           </span>
@@ -371,7 +375,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                             className="h-full bg-purple-500 opacity-70 rounded-full"
                           />
                         </div>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-xs text-zinc-500">
                           {(doublesStats.setsWon || 0) +
                             (doublesStats.setsLost || 0) >
                           0
@@ -395,7 +399,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                       Object.keys(doublesStats.matchesByTournamentType).length >
                         0 && (
                         <div className="border-t border-[#d9d9d9] pt-4 mt-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#353535] mb-3">
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#353535] mb-3">
                             Tournament Types
                           </p>
                           <div className="space-y-2">
@@ -422,55 +426,47 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
               </div>
             </div>
 
+            {/* Section Divider */}
+            <div className="px-4">
+              <div className="border-t border-[#e5e5e5] my-6"></div>
+            </div>
+
             {/* B. Scoring Stats */}
             <div className="px-4">
-              <div className="mb-3">
+              <div>
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#353535]">
                   Scoring Statistics
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className="p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
-                    Total Points Scored
-                  </p>
-                  <p className="text-xl font-bold text-[#353535]">
-                    {scoring.totalPointsScored || 0}
-                  </p>
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
-                    Total Points Conceded
-                  </p>
-                  <p className="text-xl font-bold text-[#353535]">
-                    {scoring.totalPointsConceded || 0}
-                  </p>
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
-                    Avg Points Per Set
-                  </p>
-                  <p className="text-xl font-bold text-[#353535]">
-                    {scoring.avgPointsPerSet || 0}
-                  </p>
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
-                    Avg Points/Match
-                  </p>
-                  <p className="text-xl font-bold text-[#353535]">
-                    {avgPointsPerMatch}
-                  </p>
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c6e71] mb-1.5">
-                    Total Sets
-                  </p>
-                  <p className="text-xl font-bold text-[#353535]">
-                    {scoring.totalSets || 0}
-                  </p>
+              <div className="p-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Points Scored</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{scoring.totalPointsScored || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Points Conceded</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{scoring.totalPointsConceded || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Average Points Per Set</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{scoring.avgPointsPerSet || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Average Points Per Match</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{avgPointsPerMatch}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs font-medium text-[#353535]">Total Sets Played</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{scoring.totalSets || 0}</span>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Section Divider */}
+            <div className="px-4">
+              <div className="border-t border-[#e5e5e5] my-6"></div>
             </div>
 
             {/* C. Server Stats */}
@@ -481,33 +477,20 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                 </h2>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                        Total Serves
-                      </p>
-                      <p className="text-2xl font-bold text-[#353535]">
-                        {server.totalServes || 0}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                        Points Won on Serve
-                      </p>
-                      <p className="text-2xl font-bold text-[#353535]">
-                        {server.pointsWonOnServe || 0}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-[#3c6e71] font-bold mb-2">
-                        Serve Win %
-                      </p>
-                      <p className="text-2xl font-bold text-[#353535]">
-                        {server.serveWinPercentage || 0}
-                        <span className="text-sm">%</span>
-                      </p>
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Serves</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{server.totalServes || 0}</span>
                   </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Points Won on Serve</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{server.pointsWonOnServe || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs font-medium text-[#353535]">Serve Win Percentage</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{server.serveWinPercentage || 0}%</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -527,7 +510,7 @@ const PlayerStatsPage = ({ userId }: PlayerStatsPageProps = {}) => {
                         <XAxis dataKey="match" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 12 }} />
                         <Tooltip />
-                        <Legend />
+                        <Legend className="hidden md:block" />
                         <Line
                           type="monotone"
                           dataKey="points"

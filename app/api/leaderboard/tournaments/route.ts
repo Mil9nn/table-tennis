@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
 
     const query: any = {
       status: { $in: ["completed", "in_progress"] },
-      drawGenerated: true,
     };
 
+    // Include tournaments with drawGenerated: true OR completed tournaments
+    // (some tournaments might not have drawGenerated flag set but are still valid)
     if (matchType && matchType !== "all") {
       query.matchType = matchType;
     }
@@ -44,14 +45,56 @@ export async function GET(request: NextRequest) {
     const tournaments = await Tournament.find(query)
       .populate("standings.participant", "username fullName profileImage")
       .populate("participants", "username fullName profileImage")
+      .populate("groups.standings.participant", "username fullName profileImage")
       .lean();
 
     // Aggregate stats per player across all tournaments
     const playerStatsMap = new Map<string, any>();
 
     for (const tournament of tournaments as any[]) {
-      const standings = tournament.standings || [];
       const isCompleted = tournament.status === "completed";
+      
+      // Get standings from main standings array or from groups (for hybrid tournaments)
+      let standings = tournament.standings || [];
+      
+      // For hybrid tournaments with groups, also check group standings
+      // and aggregate them into overall standings if main standings are empty
+      if ((!standings || standings.length === 0) && tournament.format === "hybrid" && tournament.groups) {
+        const groupStandingsMap = new Map<string, any>();
+        
+        // Aggregate standings from all groups
+        for (const group of tournament.groups || []) {
+          if (group.standings && Array.isArray(group.standings)) {
+            for (const standing of group.standings) {
+              if (!standing.participant || !standing.participant._id) continue;
+              
+              const participantId = standing.participant._id.toString();
+              
+              if (!groupStandingsMap.has(participantId)) {
+                groupStandingsMap.set(participantId, {
+                  ...standing,
+                  participant: standing.participant,
+                });
+              } else {
+                // Merge stats from multiple groups
+                const existing = groupStandingsMap.get(participantId);
+                existing.played = (existing.played || 0) + (standing.played || 0);
+                existing.won = (existing.won || 0) + (standing.won || 0);
+                existing.points = (existing.points || 0) + (standing.points || 0);
+                // Keep the best rank (lowest number)
+                if (standing.rank && (!existing.rank || standing.rank < existing.rank)) {
+                  existing.rank = standing.rank;
+                }
+              }
+            }
+          }
+        }
+        
+        // Convert map to array for standings
+        if (groupStandingsMap.size > 0) {
+          standings = Array.from(groupStandingsMap.values());
+        }
+      }
 
       for (const standing of standings) {
         if (!standing.participant || !standing.participant._id) continue;

@@ -7,7 +7,6 @@ import { useLeaderboard } from "./hooks/useLeaderboard";
 import {
   PlayerLeaderboard,
   TeamLeaderboard,
-  TournamentLeaderboard,
   LeaderboardFilters,
 } from "./components";
 import type { LeaderboardType } from "./types";
@@ -23,7 +22,6 @@ export default function LeaderboardPage() {
   const {
     leaderboard,
     teamLeaderboard,
-    tournamentLeaderboard,
     loading,
     loadingMore,
     hasMore,
@@ -32,7 +30,6 @@ export default function LeaderboardPage() {
 
   const individualObserverTarget = useRef<HTMLDivElement>(null);
   const teamsObserverTarget = useRef<HTMLDivElement>(null);
-  const tournamentsObserverTarget = useRef<HTMLDivElement>(null);
 
   const getObserverTarget = () => {
     switch (activeTab) {
@@ -40,8 +37,6 @@ export default function LeaderboardPage() {
         return individualObserverTarget;
       case "teams":
         return teamsObserverTarget;
-      case "tournaments":
-        return tournamentsObserverTarget;
       default:
         return null;
     }
@@ -123,21 +118,6 @@ export default function LeaderboardPage() {
               >
                 <span className="text-xs">Teams</span>
               </TabsTrigger>
-
-              {/* Tournaments Tab */}
-              <TabsTrigger
-                value="tournaments"
-                className="
-                  flex-1 p-2 text-xs font-semibold uppercase tracking-wider rounded-none
-                  transition-all duration-200 border-0
-                  border-b-2 border-transparent
-                  text-[#353535] hover:bg-[#f5f5f5]
-                  data-[state=active]:border-[#3c6e71]
-                  data-[state=active]:text-[#3c6e71] data-[state=active]:bg-white
-                "
-              >
-                <span className="text-xs">Tournaments</span>
-              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -149,8 +129,8 @@ export default function LeaderboardPage() {
           value={activeTab}
           onValueChange={(v) => {
             setActiveTab(v as LeaderboardType);
-            // Clear filters when switching tabs (except for teams/tournaments)
-            if (v !== "teams" && v !== "tournaments") {
+            // Clear filters when switching tabs (except for teams)
+            if (v !== "teams") {
               setFilters({});
             }
           }}
@@ -187,21 +167,6 @@ export default function LeaderboardPage() {
             >
               <TeamLeaderboard
                 data={teamLeaderboard}
-                loading={loading}
-                currentUserId={user?._id}
-              />
-            </LeaderboardPanel>
-          </TabsContent>
-
-          <TabsContent value="tournaments" className="p-0">
-            <LeaderboardPanel
-              loading={loading}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              observerRef={tournamentsObserverTarget}
-            >
-              <TournamentLeaderboard
-                data={tournamentLeaderboard}
                 loading={loading}
                 currentUserId={user?._id}
               />

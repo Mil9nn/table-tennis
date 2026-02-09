@@ -238,7 +238,7 @@ export function getAvatarColor(identifier?: string): string {
  */
 export function getAvatarFallbackStyle(identifier?: string) {
   const backgroundColor = getAvatarColor(identifier);
-  const color = '#ffffff'; // White text works well with all our pastels
+  const color = '#000000'; // Black text works well with all our pastels
 
   return { backgroundColor, color };
 }

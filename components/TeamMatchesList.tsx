@@ -91,6 +91,12 @@ export default function TeamMatchesList({ matches }: TeamMatchesListProps) {
             </div>
 
             <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]" style={{ fontSize: '0.8125rem' }}>
+              {match.tournament?.name && (
+                <>
+                  <span>{match.tournament.name}</span>
+                  <span>•</span>
+                </>
+              )}
               <span>
                 {formatDate(match.createdAt)}
               </span>

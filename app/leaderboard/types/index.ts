@@ -13,6 +13,10 @@ export interface PlayerStats {
     winRate: number;
     setsWon: number;
     setsLost: number;
+    pointsScored?: number;
+    pointsConceded?: number;
+    totalPointsScored?: number; // From aggregation pipeline
+    totalPointsConceded?: number; // From aggregation pipeline
     currentStreak: number;
     bestStreak: number;
   };
@@ -93,16 +97,58 @@ export interface TournamentPlayerStats {
     profileImage?: string;
   };
   stats: {
+    // Tournament Participation
     tournamentsPlayed: number;
     tournamentsWon: number;
     finalsReached: number;
     semiFinalsReached: number;
+    quarterFinalsReached: number;
+    averageFinish: number;
+    bestFinish: number;
+    
+    // Match Performance
     tournamentMatches: number;
     tournamentMatchWins: number;
     tournamentMatchLosses: number;
     tournamentMatchWinRate: number;
-    totalPoints: number;
+    
+    // Set Performance
+    tournamentSetsWon: number;
+    tournamentSetsLost: number;
+    tournamentSetDifferential: number;
+    tournamentSetWinRate: number;
+    
+    // Point Performance
+    tournamentPointsScored: number;
+    tournamentPointsConceded: number;
+    tournamentPointDifferential: number;
+    avgPointsPerMatch: number;
+    
+    // Tournament Points (ITTF-style)
+    totalTournamentPoints: number;
+    
+    // Recent Performance
+    recentTournaments: number; // Last 30 days
   };
+  tournamentHistory?: TournamentHistoryEntry[]; // For modal
 }
 
-export type LeaderboardType = "individual" | "teams" | "tournaments";
+export interface TournamentHistoryEntry {
+  tournamentId: string;
+  tournamentName: string;
+  format: 'round_robin' | 'knockout' | 'hybrid';
+  matchType: 'singles' | 'doubles';
+  status: 'completed' | 'in_progress';
+  finishPosition: number | null;
+  matchesPlayed: number;
+  matchesWon: number;
+  matchesLost: number;
+  setsWon: number;
+  setsLost: number;
+  pointsScored: number;
+  pointsConceded: number;
+  startDate: Date;
+  endDate?: Date;
+}
+
+export type LeaderboardType = "individual" | "teams";

@@ -82,9 +82,28 @@ export async function GET() {
           : 0,
       }))
       .sort((a, b) => {
-        // Sort by wins first, then win rate
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        return b.winRate - a.winRate;
+        // Sort by table tennis ranking standard:
+        // 1. Match differential (wins - losses)
+        // 2. Set differential (setsWon - setsLost)
+        // 3. Win rate
+        // 4. Total matches
+        // 1. Match differential
+        const matchDiffA = a.wins - a.losses;
+        const matchDiffB = b.wins - b.losses;
+        if (matchDiffB !== matchDiffA) return matchDiffB - matchDiffA;
+
+        // 2. Set differential
+        const setDiffA = a.setsWon - a.setsLost;
+        const setDiffB = b.setsWon - b.setsLost;
+        if (setDiffB !== setDiffA) return setDiffB - setDiffA;
+
+        // 3. Win rate
+        if (b.winRate !== a.winRate) {
+          return b.winRate - a.winRate;
+        }
+
+        // 4. Total matches
+        return b.totalMatches - a.totalMatches;
       })
       .slice(0, 50); // Top 50 players
 

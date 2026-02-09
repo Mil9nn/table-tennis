@@ -63,6 +63,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       if (match.status === "completed") {
         match.status = "in_progress";
         match.winnerSide = null;
+        match.startedAt = new Date();
 
         // Recalculate set scores from completed games only
         const completedGames = match.games.filter((g: any) => g.winnerSide);
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       match.winnerSide = null;
       match.status = "scheduled";
       match.matchDuration = 0;
+      match.startedAt = undefined;
     }
 
     await match.save();

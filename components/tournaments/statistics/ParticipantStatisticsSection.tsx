@@ -6,9 +6,11 @@ import {
   ParticipantStats,
   PerformanceMetrics
 } from "@/types/knockoutStatistics.type";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ChevronDown, ChevronRight } from "lucide-react";
+import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ParticipantStatisticsSectionProps {
   progression: ParticipantProgression[];
@@ -57,6 +59,7 @@ export function ParticipantStatisticsSection({
 }: ParticipantStatisticsSectionProps) {
   const [sortKey, setSortKey] = useState<SortKey>("roundReached");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   // Combine all data by participantId
   const combinedData: CombinedParticipantData[] = progression.map((prog) => {
@@ -121,6 +124,16 @@ export function ParticipantStatisticsSection({
     setSortKey(key);
   };
 
+  const toggleRow = (participantId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(participantId)) {
+      newExpanded.delete(participantId);
+    } else {
+      newExpanded.add(participantId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
   // Get display text for position
   const getPositionDisplayText = (position: string) => {
     switch (position) {
@@ -135,21 +148,49 @@ export function ParticipantStatisticsSection({
     }
   };
 
+  // Get text color for position
+  const getPositionTextColor = (position: string) => {
+    switch (position) {
+      case "Champion":
+        return "text-amber-600";
+      case "Runner-up":
+        return "text-slate-500";
+      case "Third Place":
+        return "text-orange-600";
+      default:
+        return "text-slate-600";
+    }
+  };
+
   // Get badge color for position
   const getPositionBadgeClass = (position: string) => {
     switch (position) {
       case "Champion":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+        return "bg-amber-50 text-amber-700 border-amber-200";
       case "Runner-up":
-        return "bg-slate-200 text-slate-800 border-slate-300";
+        return "bg-slate-100 text-slate-700 border-slate-300";
       case "Third Place":
-        return "bg-orange-100 text-orange-700 border-orange-300";
+        return "bg-orange-50 text-orange-700 border-orange-200";
       case "Semi-finalist":
-        return "bg-orange-100 text-orange-700 border-orange-200";
+        return "bg-blue-50 text-blue-700 border-blue-200";
       case "Quarter-finalist":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-indigo-50 text-indigo-700 border-indigo-200";
       default:
-        return "bg-slate-100 text-slate-600 border-slate-200";
+        return "bg-slate-50 text-slate-600 border-slate-200";
+    }
+  };
+
+  // Get row background color for top 3 positions
+  const getRowBackgroundClass = (position: string) => {
+    switch (position) {
+      case "Champion":
+        return "bg-gradient-to-r from-amber-50/80 to-amber-50/40 border-l-4 border-l-amber-400";
+      case "Runner-up":
+        return "bg-gradient-to-r from-slate-50/80 to-slate-50/40 border-l-4 border-l-slate-400";
+      case "Third Place":
+        return "bg-gradient-to-r from-orange-50/80 to-orange-50/40 border-l-4 border-l-orange-400";
+      default:
+        return "";
     }
   };
 
@@ -159,182 +200,271 @@ export function ParticipantStatisticsSection({
   };
 
   return (
-    <div className="w-full flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div className="w-full bg-white overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              Knockout Stage Statistics
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              {sortedData.length} Participants
+            </p>
+          </div>
+        </div>
+      </div>
 
-  {/* Header */}
-  <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
-    <div className="flex items-center gap-2">
-      <TrendingUp className="w-4 h-4 text-slate-800" />
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-800">
-        Participant Statistics
-      </h2>
-    </div>
-
-    <div className="text-[11px] font-mono text-slate-500">
-      {sortedData.length} Participants
-    </div>
-  </div>
-
-  {/* Scrollable Table */}
-  <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
-    <Table className="min-w-[1100px] lg:min-w-full border-collapse">
-
-      {/* Table Head */}
-      <TableHeader className="bg-slate-50 sticky top-0 z-20">
-        <TableRow className="border-b">
-
-          <TableHead className="sticky left-0 z-30 bg-slate-50 h-9 px-2 md:px-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500 border-r">
-            Participant
-          </TableHead>
-
-          {[
-            "Final Status","MP","Record","Sets","Set +/-","Points","Point +/-",
-            "PTS/Set","CON/Set","Peak Win","Peak Round","Eliminated By"
-          ].map(label => (
-            <TableHead
-              key={label}
-              className="h-9 px-3 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500"
-            >
-              {label}
-            </TableHead>
-          ))}
-
-        </TableRow>
-      </TableHeader>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <Table className="w-full border-collapse">
+          {/* Table Head */}
+          <TableHeader className="bg-slate-50/50 border-b border-slate-200/60">
+            <TableRow className="hover:bg-slate-50/50">
+              <TableHead className="h-12 px-4 text-left">
+                <span className="text-xs font-semibold text-slate-700 tracking-wide">
+                  Participant
+                </span>
+              </TableHead>
+              <TableHead className="h-12 px-4 text-left">
+                <span className="text-xs font-semibold text-slate-700 tracking-wide">
+                  Status
+                </span>
+              </TableHead>
+              <TableHead className="h-12 px-4 text-center">
+                <span className="text-xs font-semibold text-slate-700 tracking-wide">
+                  Record
+                </span>
+              </TableHead>
+              <TableHead className="h-12 px-4 text-center">
+                <span className="text-xs font-semibold text-slate-700 tracking-wide">
+                  Eliminated By
+                </span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
       {/* Table Body */}
-      <TableBody className="divide-y">
-
-        {sortedData.map((participant) => (
-          <TableRow
-            key={participant.participantId}
-            className="group hover:bg-slate-50/60 transition"
-          >
-
-            {/* Participant */}
-            <TableCell className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 py-2.5 px-2 md:px-4 border-r">
-              <div className="flex items-center gap-2">
-                {participant.seedNumber && (
-                  <span className="text-[10px] font-mono text-slate-400">
-                    #{participant.seedNumber}
-                  </span>
+      <TableBody>
+        {sortedData.map((participant) => {
+          const isExpanded = expandedRows.has(participant.participantId);
+          
+          return (
+            <React.Fragment key={participant.participantId}>
+              <TableRow
+                className={cn(
+                  "cursor-pointer transition-all duration-200 border-b border-slate-200/60 hover:bg-slate-50/30",
+                  getRowBackgroundClass(participant.roundReached)
                 )}
-                <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">
-                  <span className="md:hidden">{getFirstName(participant.participantName)}</span>
-                  <span className="hidden md:inline">{participant.participantName}</span>
-                </span>
-              </div>
-            </TableCell>
-
-            {/* Final Status */}
-            <TableCell className="py-2.5 px-3">
-              <span className={cn(
-                "inline-flex items-center px-2.5 py-0.5 rounded-md border text-[10px] font-semibold uppercase tracking-tight",
-                getPositionBadgeClass(participant.roundReached)
-              )}>
-                {getPositionDisplayText(participant.roundReached)}
-              </span>
-            </TableCell>
-
-            {/* MP */}
-            <TableCell className="py-2.5 px-3 text-center font-mono text-sm font-medium text-slate-700">
-              {participant.matchesPlayed}
-            </TableCell>
-
-            {/* Record */}
-            <TableCell className="py-2.5 px-3 text-center">
-              <div className="inline-flex items-baseline gap-1.5">
-                <span className="text-sm font-mono font-semibold text-emerald-600">
-                  {participant.matchesWon}
-                </span>
-                <span className="text-[10px] text-slate-300">-</span>
-                <span className="text-sm font-mono font-semibold text-rose-600">
-                  {participant.matchesLost}
-                </span>
-              </div>
-            </TableCell>
-
-            {/* Sets */}
-            <TableCell className="py-2.5 px-3 text-center text-[11px] font-mono text-slate-600">
-              {participant.setsWon}-{participant.setsLost}
-            </TableCell>
-
-            {/* Set +/- */}
-            <TableCell className="py-2.5 px-3 text-center">
-              <span className={cn(
-                "text-[11px] font-mono font-semibold",
-                participant.setsDiff > 0 ? "text-blue-600" :
-                participant.setsDiff < 0 ? "text-rose-500" : "text-slate-400"
-              )}>
-                {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
-              </span>
-            </TableCell>
-
-            {/* Points */}
-            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-semibold text-slate-900">
-              {participant.pointsScored}
-            </TableCell>
-
-            {/* Point +/- */}
-            <TableCell className="py-2.5 px-3 text-center">
-              <span className={cn(
-                "text-[11px] font-mono font-semibold",
-                participant.pointsDiff > 0 ? "text-emerald-600" :
-                participant.pointsDiff < 0 ? "text-rose-500" : "text-slate-400"
-              )}>
-                {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
-              </span>
-            </TableCell>
-
-            {/* Avg PTS / Set */}
-            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-medium text-blue-600">
-              {participant.avgPointsPerSet.toFixed(1)}
-            </TableCell>
-
-            {/* Avg CON / Set */}
-            <TableCell className="py-2.5 px-3 text-center text-sm font-mono font-medium text-slate-600">
-              {participant.avgPointsConcededPerSet.toFixed(1)}
-            </TableCell>
-
-            {/* Peak Win */}
-            <TableCell className="py-2.5 px-3">
-              {participant.biggestWinOpponent !== "N/A" && participant.biggestWinOpponent ? (
-                <div className="flex flex-col leading-tight">
-                  <span className="text-xs font-medium text-slate-700">
-                    {participant.biggestWinOpponent}
-                  </span>
-                  {participant.biggestWinScore && participant.biggestWinScore !== "N/A" && (
+                onClick={() => toggleRow(participant.participantId)}
+              >
+                {/* Participant */}
+                <TableCell className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <button className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all duration-200">
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
                     <span className="text-sm font-semibold text-slate-900">
-                      {participant.biggestWinScore}
+                      {participant.participantName}
                     </span>
+                  </div>
+                </TableCell>
+
+                {/* Final Status */}
+                <TableCell className="px-4 py-3 text-left">
+                  <span className={cn(
+                    "text-xs font-medium",
+                    getPositionTextColor(participant.roundReached)
+                  )}>
+                    {getPositionDisplayText(participant.roundReached)}
+                  </span>
+                </TableCell>
+
+                {/* Record */}
+                <TableCell className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold text-emerald-600">
+                      {participant.matchesWon}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">—</span>
+                    <span className="text-sm font-bold text-rose-600">
+                      {participant.matchesLost}
+                    </span>
+                  </div>
+                </TableCell>
+
+                {/* Eliminated By */}
+                <TableCell className="px-4 py-3 text-left">
+                  {participant.eliminatedBy ? (
+                    <span className="text-xs font-medium text-slate-600">
+                      {participant.eliminatedBy.participantName}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
                   )}
-                </div>
-              ) : (
-                <span className="text-xs text-slate-400">—</span>
-              )}
-            </TableCell>
+                </TableCell>
+              </TableRow>
 
-            {/* Peak Round */}
-            <TableCell className="py-2.5 px-3 text-xs uppercase tracking-wide text-slate-600">
-              {participant.biggestWinRound && participant.biggestWinRound !== "N/A"
-                ? participant.biggestWinRound
-                : "—"}
-            </TableCell>
+              {/* Expanded Detail Row */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <TableRow>
+                    <TableCell 
+                      colSpan={4} 
+                      className={cn(
+                        "p-0 border-b border-slate-200/60",
+                        participant.roundReached === "Champion" ? "bg-amber-50/40" :
+                        participant.roundReached === "Runner-up" ? "bg-slate-50/40" :
+                        participant.roundReached === "Third Place" ? "bg-orange-50/40" :
+                        "bg-slate-50/30"
+                      )}
+                    >
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="max-h-[60vh] max-w-[calc(100vw-2rem)] overflow-x-auto overflow-y-auto p-6 space-y-4">
+                          {/* Match Statistics */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Matches Played
+                              </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {participant.matchesPlayed}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Record
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-emerald-600">
+                                  {participant.matchesWon}
+                                </span>
+                                <span className="text-xs text-slate-400 font-medium">—</span>
+                                <span className="text-sm font-medium text-rose-600">
+                                  {participant.matchesLost}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
 
-            {/* Eliminated By */}
-            <TableCell className="py-2.5 px-3">
-              {participant.eliminatedBy ? (
-                <span className="text-xs font-medium text-slate-700">
-                  {participant.eliminatedBy.participantName}
-                </span>
-              ) : (
-                <span className="text-xs font-semibold text-yellow-600">—</span>
-              )}
-            </TableCell>
+                          {/* Sets Statistics */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Sets
+                              </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {participant.setsWon} - {participant.setsLost}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Set Difference
+                              </span>
+                              <span className={cn(
+                                "text-sm font-medium",
+                                participant.setsDiff > 0 ? "text-emerald-600" :
+                                participant.setsDiff < 0 ? "text-rose-600" : "text-slate-900"
+                              )}>
+                                {participant.setsDiff > 0 ? `+${participant.setsDiff}` : participant.setsDiff}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Points Scored
+                              </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {participant.pointsScored}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Points Conceded
+                              </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {participant.pointsConceded}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Points Difference
+                              </span>
+                              <span className={cn(
+                                "text-sm font-medium",
+                                participant.pointsDiff > 0 ? "text-emerald-600" :
+                                participant.pointsDiff < 0 ? "text-rose-600" : "text-slate-900"
+                              )}>
+                                {participant.pointsDiff > 0 ? `+${participant.pointsDiff}` : participant.pointsDiff}
+                              </span>
+                            </div>
+                          </div>
 
-          </TableRow>
-        ))}
-
+                          {/* Performance Metrics */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Avg Points/Set
+                              </span>
+                              <span className="text-sm font-medium text-blue-600">
+                                {participant.avgPointsPerSet.toFixed(1)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Avg Conceded/Set
+                              </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {participant.avgPointsConcededPerSet.toFixed(1)}
+                              </span>
+                            </div>
+                            {participant.biggestWinOpponent !== "N/A" && participant.biggestWinOpponent && (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Biggest Win
+                                  </span>
+                                  <span className="text-sm font-medium text-slate-900 text-right">
+                                    {participant.biggestWinOpponent}
+                                    {participant.biggestWinScore && participant.biggestWinScore !== "N/A" && (
+                                      <span className="ml-2 text-slate-600">
+                                        ({participant.biggestWinScore})
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Peak Round
+                                  </span>
+                                  <span className="text-sm font-medium text-slate-900 uppercase">
+                                    {participant.biggestWinRound !== "N/A" ? participant.biggestWinRound : "—"}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </AnimatePresence>
+            </React.Fragment>
+          );
+        })}
       </TableBody>
     </Table>
   </div>

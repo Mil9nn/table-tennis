@@ -161,11 +161,11 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
   const isCompleted = status === "completed" || match.status === "completed";
 
   return (
-    <div className="space-y-6">
+    <div className="">
       {isCompleted ? (
         <MatchCompletedCard match={match} />
       ) : (
-        <>
+        <div className="">
           {match && <TrackingModeToggle />}
           <ScoreBoard
             match={match}
@@ -200,7 +200,7 @@ export default function SinglesScorer({ match }: SinglesScorerProps) {
           <ShotSelector />
 
           <InitialServerDialog matchType={match.matchType} participants={match.participants} />
-        </>
+        </div>
       )}
     </div>
   );

@@ -5,7 +5,9 @@ import type { FC } from "react";
 import type { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Trophy, Calendar } from "lucide-react";
+import { getAvatarFallbackStyle } from "@/lib/utils";
 import {
   createParticipantMap,
   resolveParticipant,
@@ -245,19 +247,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     };
   };
 
-  const getStatusIndicator = (
-    displayState: EnhancedMatchData["displayState"]
-  ) => {
-    switch (displayState) {
-      case "live":
-        return (
-          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-        );
-      default:
-        return null;
-    }
-  };
-
   const isWinner = (
     enhanced: EnhancedMatchData,
     participantIndex: number
@@ -304,14 +293,15 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     return getLocalParticipantName(participant);
   };
 
-  const renderParticipantRow = (
+  // Helper to get participant display info for schedule row format
+  const getParticipantDisplay = (
     participant: Participant | null,
     participantId: string | null,
     isWinnerSide: boolean,
     matchParticipants: any[] | undefined,
-    sideIndex: number,
-    score?: number
+    sideIndex: number
   ) => {
+    // Handle doubles with match participants array
     if (isDoubles && matchParticipants && matchParticipants.length === 4) {
       const startIdx = sideIndex === 0 ? 0 : 2;
       const players = [
@@ -320,113 +310,53 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       ].filter(Boolean);
 
       if (players.length === 2) {
-        return (
-          <>
-            <div className="flex flex-col gap-1 flex-1 min-w-0">
-              {players.map((player: any) => (
-                <div key={player._id} className="flex items-center gap-1">
-                  <Avatar className="h-4 w-4 shrink-0">
-                    <AvatarImage src={getParticipantImage(player)} />
-                    <AvatarFallback className="bg-slate-200 text-slate-700 text-[7px] font-medium">
-                      {getParticipantDisplayName(player)
-                        .substring(0, 2)
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span
-                    className={`text-[10px] truncate ${
-                      isWinnerSide
-                        ? "font-semibold text-green-600"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    {getParticipantDisplayName(player)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {score !== undefined && (
-              <span className="text-xs font-semibold text-slate-900 ml-1">
-                {score}
-              </span>
-            )}
-          </>
-        );
+        return {
+          type: "doubles" as const,
+          players: players.map((p: any) => ({
+            _id: p._id,
+            name: getParticipantDisplayName(p),
+            image: getParticipantImage(p),
+            initials: getParticipantDisplayName(p).substring(0, 2).toUpperCase(),
+          })),
+        };
       }
     }
 
+    // Handle doubles with pairs map
     const pair = getPairForParticipant(participantId);
-    const hasPair = isDoubles && pair && pair.players.length >= 2;
-
-    if (!participant && !hasPair) {
-      return <div className="flex-1 text-[10px] text-slate-400">TBD</div>;
+    if (isDoubles && pair && pair.players.length >= 2) {
+      return {
+        type: "doubles" as const,
+        players: pair.players.map((p) => ({
+          _id: p._id,
+          name: getParticipantDisplayName(p),
+          image: getParticipantImage(p),
+          initials: getParticipantDisplayName(p).substring(0, 2).toUpperCase(),
+        })),
+      };
     }
 
-    if (hasPair && pair) {
-      return (
-        <>
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            {pair.players.map((player) => (
-              <div key={player._id} className="flex items-center gap-1">
-                <Avatar className="h-4 w-4 shrink-0">
-                  <AvatarImage src={getParticipantImage(player)} />
-                  <AvatarFallback className="bg-slate-200 text-slate-700 text-[7px] font-medium">
-                    {getParticipantDisplayName(player)
-                      .substring(0, 2)
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span
-                  className={`text-[10px] truncate ${
-                    isWinnerSide
-                      ? "font-semibold text-green-600"
-                      : "text-slate-600"
-                  }`}
-                >
-                  {getParticipantDisplayName(player)}
-                </span>
-              </div>
-            ))}
-          </div>
-          {score !== undefined && (
-            <span className="text-xs font-semibold text-slate-900 ml-1">
-              {score}
-            </span>
-          )}
-        </>
-      );
+    // Handle singles or TBD
+    if (!participant) {
+      return {
+        type: "singles" as const,
+        name: "TBD",
+        image: undefined,
+        initials: "?",
+        isWinner: false,
+      };
     }
 
-    return (
-      <>
-        <Avatar className="h-5 w-5 shrink-0">
-          {getLocalParticipantImage(participant) ? (
-            <AvatarImage src={getLocalParticipantImage(participant)} />
-          ) : (
-            <AvatarFallback className="bg-slate-200 text-slate-700 text-[8px] font-medium">
-              {getLocalParticipantInitials(participant)}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div
-            className={`text-xs truncate ${
-              isWinnerSide ? "font-semibold text-green-600" : "text-slate-600"
-            }`}
-          >
-            {getLocalParticipantName(participant)}
-          </div>
-        </div>
-        {score !== undefined && (
-          <span className="text-xs font-semibold text-slate-900 ml-1">
-            {score}
-          </span>
-        )}
-      </>
-    );
+    return {
+      type: "singles" as const,
+      name: getLocalParticipantName(participant),
+      image: getLocalParticipantImage(participant),
+      initials: getLocalParticipantInitials(participant),
+      isWinner: isWinnerSide,
+    };
   };
 
-  const renderMatchCard = (bracketMatch: BracketMatch, roundNumber: number) => {
+  const renderMatchRow = (bracketMatch: BracketMatch) => {
     const enhanced = enhanceMatchData(bracketMatch);
     const {
       participant1,
@@ -438,8 +368,6 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     } = enhanced;
 
     // Determine match ID to use for navigation
-    // Prefer matchDoc._id, but fall back to bracketMatch.matchId if matchDoc is null
-    // This handles cases where matches exist but aren't in the matchByPosition map
     let matchId: string | null = null;
     if (matchDoc?._id) {
       matchId = String(matchDoc._id);
@@ -449,125 +377,230 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       matchId = String((bracketMatch.matchId as { _id: any })._id);
     }
 
+    const p1Display = getParticipantDisplay(
+      participant1,
+      bracketMatch.participant1,
+      isWinner(enhanced, 0),
+      (matchDoc as any)?.participants,
+      0
+    );
+
+    const p2Display = getParticipantDisplay(
+      participant2,
+      bracketMatch.participant2,
+      isWinner(enhanced, 1),
+      (matchDoc as any)?.participants,
+      1
+    );
+
+    const score = showScore && matchDoc?.finalScore
+      ? `${matchDoc.finalScore.side1Sets}-${matchDoc.finalScore.side2Sets}`
+      : null;
+
+    // Precompute some boolean flags
+    const isLive = displayState === "live";
+
+    // Handle bye matches
+    if (displayState === "bye") {
+      const advancingParticipant = participant1 || participant2 || bracketMatch.participant1 || bracketMatch.participant2;
+      const advancingName = advancingParticipant
+        ? getDisplayName(
+            participant1 || participant2,
+            bracketMatch.participant1 || bracketMatch.participant2
+          )
+        : "BYE";
+
+      return (
+        <div
+          className={`
+            flex items-center justify-between p-2.5
+            border-b border-black/5
+            ${canClick && matchId ? "cursor-pointer transition hover:bg-neutral-50" : ""}
+            ${isLive ? "bg-red-50" : ""}
+          `}
+          onClick={() => canClick && matchId && onMatchClick?.(matchId)}
+        >
+          <div className="flex-1 text-sm text-slate-600">
+            {advancingName} advances (Bye)
+          </div>
+          <Badge variant="outline" className="text-xs">
+            Bye
+          </Badge>
+        </div>
+      );
+    }
+
     return (
       <div
+        className={`
+          flex items-center justify-between p-2.5 gap-2
+          border-b border-black/5
+          ${canClick && matchId ? "cursor-pointer transition hover:bg-neutral-50" : ""}
+          ${isLive ? "bg-red-50" : ""}
+        `}
         onClick={() => canClick && matchId && onMatchClick?.(matchId)}
-        className={`relative w-full min-w-48 ${
-          canClick ? "cursor-pointer" : ""
-        }`}
       >
-        <Card
-          className={`
-            bg-white border transition-all duration-200
-            ${canClick ? "hover:border-slate-400 hover:shadow-md" : ""}
-            ${
-              displayState === "live"
-                ? "border-red-300 bg-red-50"
-                : "border-slate-200"
-            }
-          `}
+        {/* LEFT SIDE — Participant 1 */}
+        <div
+          className={`flex flex-1 ${
+            p1Display.type === "doubles"
+              ? "flex-col gap-1"
+              : "items-center gap-2"
+          }`}
         >
-          <CardContent className="p-2 space-y-1">
-            {/* Header with status and time */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                {getStatusIndicator(displayState)}
-                {displayState !== "completed" && (
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                    {displayState === "bye"
-                      ? "Bye"
-                      : displayState === "live"
-                      ? "Live"
-                      : displayState === "scheduled"
-                      ? "Scheduled"
-                      : displayState === "ready"
-                      ? "Ready"
-                      : "TBD"}
-                  </span>
+          {p1Display.type === "doubles" ? (
+            <>
+              {p1Display.players.map((player) => (
+                <div key={player._id} className="flex items-center gap-1.5">
+                  <Avatar className="h-6 w-6 shrink-0">
+                    {player.image ? (
+                      <AvatarImage src={player.image} />
+                    ) : (
+                      <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(player._id)}>
+                        {player.initials}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div
+                    className={`text-xs ${
+                      isWinner(enhanced, 0)
+                        ? "text-green-500 font-semibold"
+                        : "text-neutral-700"
+                    }`}
+                  >
+                    {player.name}
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <Avatar className="h-6 w-6 shrink-0">
+                {p1Display.image ? (
+                  <AvatarImage src={p1Display.image} />
+                ) : (
+                  <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(bracketMatch.participant1 || undefined)}>
+                    {p1Display.initials}
+                  </AvatarFallback>
                 )}
+              </Avatar>
+              <div
+                className={`text-xs ${
+                  isWinner(enhanced, 0)
+                    ? "text-green-500 font-semibold"
+                    : "text-neutral-700"
+                }`}
+              >
+                {p1Display.name}
               </div>
-              {matchDoc?.date && (
-                <div className="flex items-center gap-1 text-xs text-slate-500">
-                  <Calendar className="w-3 h-3" />
-                  <span>
-                    {new Date(matchDoc.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
+            </>
+          )}
+        </div>
+
+        {/* VS */}
+        <div className="text-[11px] text-muted-foreground font-semibold px-1">
+          vs
+        </div>
+
+        {/* RIGHT SIDE — Participant 2 */}
+        <div
+          className={`flex flex-1 ${
+            p2Display.type === "doubles"
+              ? "flex-col gap-1"
+              : "items-center gap-2"
+          }`}
+        >
+          {p2Display.type === "doubles" ? (
+            <>
+              {p2Display.players.map((player) => (
+                <div key={player._id} className="flex items-center gap-1.5">
+                  <Avatar className="h-6 w-6 shrink-0">
+                    {player.image ? (
+                      <AvatarImage src={player.image} />
+                    ) : (
+                      <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(player._id)}>
+                        {player.initials}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div
+                    className={`text-xs ${
+                      isWinner(enhanced, 1)
+                        ? "text-green-600 font-semibold"
+                        : "text-neutral-700"
+                    }`}
+                  >
+                    {player.name}
+                  </div>
                 </div>
-              )}
+              ))}
+            </>
+          ) : (
+            <>
+              <div
+                className={`text-xs ${
+                  isWinner(enhanced, 1)
+                    ? "text-green-600 font-semibold"
+                    : "text-neutral-700"
+                }`}
+              >
+                {p2Display.name}
+              </div>
+              <Avatar className="h-6 w-6 shrink-0">
+                {p2Display.image ? (
+                  <AvatarImage src={p2Display.image} />
+                ) : (
+                  <AvatarFallback className="text-xs" style={getAvatarFallbackStyle(bracketMatch.participant2 || undefined)}>
+                    {p2Display.initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </>
+          )}
+        </div>
+
+        {/* RIGHT SIDE — Score + Status + Date */}
+        <div className="flex items-center gap-2 ml-2 shrink-0">
+          {score && (
+            <div className="text-xs font-semibold">{score}</div>
+          )}
+          
+          {displayState === "live" && (
+            <Badge className="text-xs bg-red-500 text-white animate-pulse">
+              LIVE
+            </Badge>
+          )}
+          
+          {displayState === "scheduled" && (
+            <Badge variant="outline" className="text-xs">
+              Scheduled
+            </Badge>
+          )}
+          
+          {displayState === "ready" && (
+            <Badge variant="outline" className="text-xs">
+              Ready
+            </Badge>
+          )}
+          
+          {displayState === "tbd" && (
+            <Badge variant="outline" className="text-xs text-slate-400">
+              TBD
+            </Badge>
+          )}
+
+          {matchDoc?.date && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Calendar className="w-3 h-3" />
+              <span>
+                {new Date(matchDoc.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
             </div>
-
-            {/* Bye Match Display */}
-            {displayState === "bye" && (
-              <div className="py-1 text-center">
-                <div className="text-xs font-semibold text-slate-700">
-                  {participant1 || bracketMatch.participant1 ? (
-                    <>
-                      {getDisplayName(participant1, bracketMatch.participant1)}{" "}
-                      advances
-                    </>
-                  ) : participant2 || bracketMatch.participant2 ? (
-                    <>
-                      {getDisplayName(participant2, bracketMatch.participant2)}{" "}
-                      advances
-                    </>
-                  ) : (
-                    "BYE"
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Normal Match Display */}
-            {displayState !== "bye" && (
-              <>
-                {/* Participant 1 */}
-                <div className="flex items-center gap-1 p-1 rounded transition-colors hover:bg-slate-50">
-                  {renderParticipantRow(
-                    participant1,
-                    bracketMatch.participant1,
-                    isWinner(enhanced, 0),
-                    (matchDoc as any)?.participants,
-                    0,
-                    showScore && matchDoc?.finalScore
-                      ? matchDoc.finalScore.side1Sets
-                      : undefined
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div className="flex items-center gap-1 px-1">
-                  <div className="flex-1 h-px bg-slate-200" />
-                  <span className="text-[10px] font-medium text-slate-400">
-                    VS
-                  </span>
-                  <div className="flex-1 h-px bg-slate-200" />
-                </div>
-
-                {/* Participant 2 */}
-                <div className="flex items-center gap-1 p-1 rounded transition-colors hover:bg-slate-50">
-                  {renderParticipantRow(
-                    participant2,
-                    bracketMatch.participant2,
-                    isWinner(enhanced, 1),
-                    (matchDoc as any)?.participants,
-                    1,
-                    showScore && matchDoc?.finalScore
-                      ? matchDoc.finalScore.side2Sets
-                      : undefined
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Connector line */}
-        {roundNumber < bracket.rounds.length && (
-          <div className="absolute top-1/2 -right-8 w-8 h-px bg-slate-300 -translate-y-1/2" />
-        )}
+          )}
+        </div>
       </div>
     );
   };
@@ -587,119 +620,106 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Main Bracket */}
-      <div className="overflow-x-auto pb-4">
-        <div className="inline-flex gap-12 min-w-max px-4">
-          {bracket.rounds.map((round, roundIndex) => (
-            <div
-              key={round.roundNumber}
-              className="flex flex-col items-center gap-3"
-            >
-              {/* Round Header */}
-              <div className="py-1 px-2 text-center">
-                <h3 className="text-xs font-semibold text-slate-900">
-                  {round.roundName}
-                </h3>
-                {round.scheduledDate && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 justify-center">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {new Date(round.scheduledDate).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                        }
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
+    <div className="space-y-2">
+      {bracket.rounds.length === 0 ? (
+        <Card className="bg-white border-slate-200">
+          <CardContent className="p-6 text-center text-slate-500">
+            <Trophy className="w-8 h-8 mx-auto opacity-30 mb-2" />
+            <p className="text-xs font-medium">No bracket generated</p>
+            <p className="text-[10px] mt-1 text-slate-400">
+              Generate a knockout bracket to view the tournament structure
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Main Bracket Rounds */}
+          {bracket.rounds.map((round, roundIndex) => {
+            // Check if any match in this round is live
+            const hasLiveMatch = round.matches.some((bracketMatch) => {
+              const enhanced = enhanceMatchData(bracketMatch);
+              return enhanced.displayState === "live";
+            });
 
-              {/* Matches */}
-              <div
-                className="flex flex-col justify-around gap-4"
-                style={{
-                  minHeight: `${Math.max(300, round.matches.length * 110)}px`,
-                }}
+            return (
+              <section
+                key={round.roundNumber}
+                className="space-y-2"
               >
-                {round.matches.map((bracketMatch, matchIndex) => (
-                  <div key={matchIndex} className="relative flex items-center">
-                    {renderMatchCard(bracketMatch, round.roundNumber)}
+                {/* Round Header */}
+                <div>
+                  <h2 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                    {round.roundName || `Round ${round.roundNumber}`}
+                    {hasLiveMatch && (
+                      <Badge className="text-xs bg-red-500 text-white animate-pulse">
+                        LIVE
+                      </Badge>
+                    )}
+                    {round.scheduledDate && (
+                      <div className="flex items-center gap-1 text-xs text-slate-500 ml-auto">
+                        <Calendar className="w-3 h-3" />
+                        <span>
+                          {new Date(round.scheduledDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </h2>
+                </div>
 
-                    {/* Vertical connector lines */}
-                    {roundIndex > 0 &&
-                      matchIndex % 2 === 0 &&
-                      matchIndex < round.matches.length - 1 && (
-                        <div className="absolute -left-6 top-1/2 w-6">
-                          <svg
-                            className="absolute top-0 left-0 w-full overflow-visible"
-                            style={{ height: `${110 * 2}px` }}
-                          >
-                            <line
-                              x1="0"
-                              y1="0"
-                              x2="6"
-                              y2="0"
-                              stroke="#cbd5e1"
-                              strokeWidth="1"
-                            />
-                            <line
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2={110 * 2}
-                              stroke="#cbd5e1"
-                              strokeWidth="1"
-                            />
-                            <line
-                              x1="0"
-                              y1={110 * 2}
-                              x2="6"
-                              y2={110 * 2}
-                              stroke="#cbd5e1"
-                              strokeWidth="1"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                  </div>
-                ))}
+                {/* Matches Under Round */}
+                <div>
+                  {round.matches.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No matches scheduled
+                    </div>
+                  ) : (
+                    round.matches.map((bracketMatch, matchIndex) => (
+                      <div key={matchIndex}>
+                        {renderMatchRow(bracketMatch)}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })}
+
+          {/* Third Place Match */}
+          {showThirdPlace && bracket.thirdPlaceMatch && (
+            <section className="space-y-2 mt-4 pt-3 border-t border-black/5">
+              <div>
+                <h2 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Third Place Match
+                </h2>
+              </div>
+              <div>
+                {renderMatchRow(bracket.thirdPlaceMatch)}
+              </div>
+            </section>
+          )}
+
+          {/* Legend */}
+          <div className="mt-3 pt-2 border-t border-slate-200">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] text-slate-600">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span>Live</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-green-600 font-semibold">●</span>
+                <span>Winner</span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Third Place Match */}
-      {showThirdPlace && bracket.thirdPlaceMatch && (
-        <div className="mt-4 pt-3 border-t border-slate-200">
-          <div className="max-w-sm mx-auto">
-            <div className="text-center mb-2">
-              <h3 className="text-xs font-semibold text-slate-900 inline-flex items-center gap-1">
-                <Trophy className="w-3 h-3" />
-                Third Place
-              </h3>
-            </div>
-            {renderMatchCard(bracket.thirdPlaceMatch, -1)}
           </div>
-        </div>
+        </>
       )}
-
-      {/* Legend */}
-      <div className="mt-3 pt-2 border-t border-slate-200">
-        <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] text-slate-600">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-            <span>Live</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-green-600 font-semibold">●</span>
-            <span>Winner</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

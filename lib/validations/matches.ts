@@ -168,7 +168,7 @@ export const teamMatchFormatSchema = z.enum(["five_singles", "single_double_sing
 export const getMatchesQuerySchema = z.object({
   context: z.enum(["casual", "tournament", "all"]).optional(),
   type: matchTypeQuerySchema.optional(),
-  status: z.enum(["all", "not_started", "in_progress", "completed", "cancelled"]).optional(),
+  status: z.enum(["all", "scheduled", "in_progress", "completed", "cancelled"]).optional(),
   search: z.string().max(200).optional(),
   dateFrom: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateFrom format").optional(),
   dateTo: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateTo format").optional(),
@@ -181,7 +181,7 @@ export const getMatchesQuerySchema = z.object({
 // Query params for GET team matches
 export const getTeamMatchesQuerySchema = z.object({
   format: teamMatchFormatSchema.optional(),
-  status: z.enum(["all", "not_started", "in_progress", "completed", "cancelled"]).optional(),
+  status: z.enum(["all", "scheduled", "in_progress", "completed", "cancelled"]).optional(),
   search: z.string().max(200).optional(),
   dateFrom: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateFrom format").optional(),
   dateTo: z.string().refine((date) => !date || !isNaN(Date.parse(date)), "Invalid dateTo format").optional(),

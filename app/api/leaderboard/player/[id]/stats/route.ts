@@ -4,6 +4,7 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
+import mongoose from "mongoose";
 
 export async function GET(
   request: NextRequest,
@@ -33,140 +34,548 @@ export async function GET(
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
-    // Initialize stats accumulators
-    let totalMatches = 0;
-    let wins = 0;
-    let losses = 0;
-    let setsWon = 0;
-    let setsLost = 0;
-    let totalPointsScored = 0;
-    let totalPointsConceded = 0;
+    // Use MongoDB aggregation to calculate points - same approach as main leaderboard
+    // This ensures consistency and handles edge cases (empty games, missing scores, etc.)
+    const playerObjectId = new mongoose.Types.ObjectId(playerId);
+    
+    const individualAggregationPipeline: mongoose.PipelineStage[] = [
+      // Stage 1: Filter matches for this player
+      {
+        $match: {
+          participants: playerObjectId,
+          status: "completed",
+          matchType: matchType,
+          matchCategory: "individual",
+        },
+      },
+      // Stage 2: Add participant index
+      {
+        $addFields: {
+          participantsWithIndex: {
+            $map: {
+              input: { $range: [0, { $size: "$participants" }] },
+              as: "idx",
+              in: {
+                playerId: { $arrayElemAt: ["$participants", "$$idx"] },
+                index: "$$idx",
+              },
+            },
+          },
+        },
+      },
+      // Stage 3: Unwind participants
+      { $unwind: "$participantsWithIndex" },
+      // Stage 4: Filter to this player only
+      {
+        $match: {
+          "participantsWithIndex.playerId": playerObjectId,
+        },
+      },
+      // Stage 5: Calculate points using same logic as main leaderboard
+      {
+        $addFields: {
+          userSide: {
+            $cond: [
+              { $eq: ["$matchType", "singles"] },
+              {
+                $cond: [
+                  { $eq: ["$participantsWithIndex.index", 0] },
+                  "side1",
+                  "side2",
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$participantsWithIndex.index", 0] },
+                      { $eq: ["$participantsWithIndex.index", 1] },
+                    ],
+                  },
+                  "side1",
+                  "side2",
+                ],
+              },
+            ],
+          },
+          // Calculate points scored - same as aggregation builder
+          pointsScored: {
+            $reduce: {
+              input: { $ifNull: ["$games", []] },
+              initialValue: 0,
+              in: {
+                $add: [
+                  "$$value",
+                  {
+                    $cond: [
+                      { $eq: ["$matchType", "singles"] },
+                      {
+                        $cond: [
+                          { $eq: ["$participantsWithIndex.index", 0] },
+                          { $ifNull: ["$$this.side1Score", 0] },
+                          { $ifNull: ["$$this.side2Score", 0] },
+                        ],
+                      },
+                      {
+                        $cond: [
+                          {
+                            $or: [
+                              { $eq: ["$participantsWithIndex.index", 0] },
+                              { $eq: ["$participantsWithIndex.index", 1] },
+                            ],
+                          },
+                          { $ifNull: ["$$this.side1Score", 0] },
+                          { $ifNull: ["$$this.side2Score", 0] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          // Calculate points conceded
+          pointsConceded: {
+            $reduce: {
+              input: { $ifNull: ["$games", []] },
+              initialValue: 0,
+              in: {
+                $add: [
+                  "$$value",
+                  {
+                    $cond: [
+                      { $eq: ["$matchType", "singles"] },
+                      {
+                        $cond: [
+                          { $eq: ["$participantsWithIndex.index", 0] },
+                          { $ifNull: ["$$this.side2Score", 0] },
+                          { $ifNull: ["$$this.side1Score", 0] },
+                        ],
+                      },
+                      {
+                        $cond: [
+                          {
+                            $or: [
+                              { $eq: ["$participantsWithIndex.index", 0] },
+                              { $eq: ["$participantsWithIndex.index", 1] },
+                            ],
+                          },
+                          { $ifNull: ["$$this.side2Score", 0] },
+                          { $ifNull: ["$$this.side1Score", 0] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          // Calculate sets
+          setsWon: {
+            $cond: [
+              { $eq: ["$matchType", "singles"] },
+              {
+                $cond: [
+                  { $eq: ["$participantsWithIndex.index", 0] },
+                  { $ifNull: ["$finalScore.side1Sets", 0] },
+                  { $ifNull: ["$finalScore.side2Sets", 0] },
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$participantsWithIndex.index", 0] },
+                      { $eq: ["$participantsWithIndex.index", 1] },
+                    ],
+                  },
+                  { $ifNull: ["$finalScore.side1Sets", 0] },
+                  { $ifNull: ["$finalScore.side2Sets", 0] },
+                ],
+              },
+            ],
+          },
+          setsLost: {
+            $cond: [
+              { $eq: ["$matchType", "singles"] },
+              {
+                $cond: [
+                  { $eq: ["$participantsWithIndex.index", 0] },
+                  { $ifNull: ["$finalScore.side2Sets", 0] },
+                  { $ifNull: ["$finalScore.side1Sets", 0] },
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$participantsWithIndex.index", 0] },
+                      { $eq: ["$participantsWithIndex.index", 1] },
+                    ],
+                  },
+                  { $ifNull: ["$finalScore.side2Sets", 0] },
+                  { $ifNull: ["$finalScore.side1Sets", 0] },
+                ],
+              },
+            ],
+          },
+          // Determine if won
+          won: {
+            $cond: [
+              { $eq: ["$matchType", "singles"] },
+              {
+                $cond: [
+                  { $eq: ["$participantsWithIndex.index", 0] },
+                  { $eq: ["$winnerSide", "side1"] },
+                  { $eq: ["$winnerSide", "side2"] },
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$participantsWithIndex.index", 0] },
+                      { $eq: ["$participantsWithIndex.index", 1] },
+                    ],
+                  },
+                  { $eq: ["$winnerSide", "side1"] },
+                  { $eq: ["$winnerSide", "side2"] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      // Stage 6: Group to aggregate stats
+      {
+        $group: {
+          _id: null,
+          totalMatches: { $sum: 1 },
+          wins: { $sum: { $cond: ["$won", 1, 0] } },
+          losses: { $sum: { $cond: ["$won", 0, 1] } },
+          totalPointsScored: { $sum: "$pointsScored" },
+          totalPointsConceded: { $sum: "$pointsConceded" },
+          setsWon: { $sum: "$setsWon" },
+          setsLost: { $sum: "$setsLost" },
+          matches: {
+            $push: {
+              matchId: { $toString: "$_id" },
+              tournament: "$tournament",
+              finalScore: "$finalScore",
+              winnerSide: "$winnerSide",
+              createdAt: "$createdAt",
+              pointsScored: "$pointsScored",
+              pointsConceded: "$pointsConceded",
+            },
+          },
+        },
+      },
+    ];
+
+    const individualAggResult = await IndividualMatch.aggregate(individualAggregationPipeline).allowDiskUse(true);
+    const individualStats = individualAggResult[0] || {
+      totalMatches: 0,
+      wins: 0,
+      losses: 0,
+      totalPointsScored: 0,
+      totalPointsConceded: 0,
+      setsWon: 0,
+      setsLost: 0,
+      matches: [],
+    };
+
+
+    const distribution = { individual: 0, team: 0, tournament: 0 };
+
+
+    // Use aggregated stats
+    let totalMatches = individualStats.totalMatches;
+    let wins = individualStats.wins;
+    let losses = individualStats.losses;
+    let setsWon = individualStats.setsWon;
+    let setsLost = individualStats.setsLost;
+    let totalPointsScored = individualStats.totalPointsScored;
+    let totalPointsConceded = individualStats.totalPointsConceded;
     let totalServes = 0;
     let pointsWonOnServe = 0;
-    const distribution = { individual: 0, team: 0, tournament: 0 };
-    const recentMatches: any[] = [];
 
-    // Fetch individual matches
-    const individualMatches = await IndividualMatch.find({
+    // Still need to calculate serve stats from individual matches (requires games with shots)
+    const individualMatchesForServes = await IndividualMatch.find({
       participants: playerId,
       status: "completed",
       matchType: matchType,
     })
-      .populate("participants", "username fullName profileImage")
-      .populate("tournament", "name")
+      .select("participants games")
       .lean();
 
-    // Process individual matches
-    individualMatches.forEach((match: any) => {
-      const isSide1 = match.participants[0]._id.toString() === playerId;
-      const userSide = isSide1 ? "side1" : "side2";
-      const opponentSide = isSide1 ? "side2" : "side1";
-      const isWin = match.winnerSide === userSide;
+    individualMatchesForServes.forEach((match: any) => {
+      if (match.games && Array.isArray(match.games)) {
+        match.games.forEach((game: any) => {
+          if (!game || !game.shots) return;
 
-      totalMatches++;
-      if (isWin) wins++;
-      else losses++;
+          // Use the same logic as computeServeStats in lib/match-stats-utils.tsx
+          // For each shot: if shot.server === playerId, it's a serve
+          // If shot.player === shot.server === playerId, the player won the point on their serve
+          game.shots.forEach((shot: any) => {
+            if (!shot.server) return;
 
-      const userSets = match.finalScore?.[`${userSide}Sets`] || 0;
-      const opponentSets = match.finalScore?.[`${opponentSide}Sets`] || 0;
-      setsWon += userSets;
-      setsLost += opponentSets;
+            // Extract server ID
+            let serverId: string | null = null;
+            if (typeof shot.server === "string") {
+              serverId = shot.server;
+            } else if (shot.server?._id) {
+              serverId = shot.server._id.toString();
+            } else if (shot.server) {
+              serverId = shot.server.toString();
+            }
 
-      // Track distribution
-      if (match.tournament) {
-        distribution.tournament++;
-      } else {
-        distribution.individual++;
-      }
+            // Extract player ID (point winner)
+            let pointWinnerId: string | null = null;
+            if (typeof shot.player === "string") {
+              pointWinnerId = shot.player;
+            } else if (shot.player?._id) {
+              pointWinnerId = shot.player._id.toString();
+            } else if (shot.player) {
+              pointWinnerId = shot.player.toString();
+            }
 
-      // Process games for scoring and server stats
-      let matchPointsScored = 0;
-      let matchPointsConceded = 0;
-      let matchServes = 0;
-      let matchPointsWonOnServe = 0;
+            if (!serverId || !pointWinnerId) return;
 
-      match.games?.forEach((game: any) => {
-        const userScore = userSide === "side1" ? game.side1Score : game.side2Score;
-        const opponentScore = userSide === "side1" ? game.side2Score : game.side1Score;
+            // Count serves by this player
+            if (serverId === playerId) {
+              totalServes++;
 
-        matchPointsScored += userScore || 0;
-        matchPointsConceded += opponentScore || 0;
-
-        // Server stats from shots
-        let currentServer: string | null = null;
-
-        game.shots?.forEach((shot: any, shotIndex: number) => {
-          if (shot.server) {
-            currentServer = shot.server.toString();
-          }
-
-          if (shot.player?.toString() === playerId && currentServer === playerId) {
-            matchServes++;
-
-            // Check if user won the point on their serve
-            const nextShot = game.shots[shotIndex + 1];
-
-            if (!nextShot) {
-              if (userScore > opponentScore) {
-                matchPointsWonOnServe++;
-              }
-            } else {
-              let pointWon = false;
-              for (let i = shotIndex + 1; i < game.shots.length; i++) {
-                const futureShot = game.shots[i];
-                if (futureShot.server !== currentServer) {
-                  if (game.shots[i - 1]?.player?.toString() === playerId) {
-                    pointWon = true;
-                  }
-                  break;
-                }
-              }
-              if (pointWon) {
-                matchPointsWonOnServe++;
+              // Check if the player won the point on their serve
+              if (pointWinnerId === serverId) {
+                pointsWonOnServe++;
               }
             }
-          }
+          });
         });
-      });
-
-      totalPointsScored += matchPointsScored;
-      totalPointsConceded += matchPointsConceded;
-      totalServes += matchServes;
-      pointsWonOnServe += matchPointsWonOnServe;
-
-      // Add to recent matches
-      const opponentIndex = isSide1 ? 1 : 0;
-      const opponent = match.participants[opponentIndex];
-
-      recentMatches.push({
-        matchId: match._id.toString(),
-        opponent: opponent?.fullName || opponent?.username || "Unknown",
-        result: isWin ? "win" : "loss",
-        score: `${userSets}-${opponentSets}`,
-        pointsScored: matchPointsScored,
-        pointsConceded: matchPointsConceded,
-        date: match.createdAt,
-        source: match.tournament ? "tournament" : "individual",
-      });
+      }
     });
 
-    // Fetch team matches
-    const teamMatches = await TeamMatch.find({
+    // Process team matches using aggregation for points calculation
+    const teamAggregationPipeline: mongoose.PipelineStage[] = [
+      // Stage 1: Filter team matches where player participated
+      {
+        $match: {
+          status: "completed",
+          $or: [
+            { "team1.players.user": playerObjectId },
+            { "team2.players.user": playerObjectId },
+          ],
+        },
+      },
+      // Stage 2: Unwind subMatches
+      { $unwind: "$subMatches" },
+      // Stage 3: Filter submatches by matchType
+      {
+        $match: {
+          "subMatches.matchType": matchType,
+        },
+      },
+      // Stage 4: Check if player is in this submatch
+      {
+        $addFields: {
+          playerInSubmatch: {
+            $or: [
+              {
+                $in: [
+                  playerObjectId,
+                  {
+                    $map: {
+                      input: {
+                        $cond: [
+                          { $isArray: "$subMatches.playerTeam1" },
+                          "$subMatches.playerTeam1",
+                          ["$subMatches.playerTeam1"],
+                        ],
+                      },
+                      as: "p",
+                      in: { $ifNull: ["$$p", null] },
+                    },
+                  },
+                ],
+              },
+              {
+                $in: [
+                  playerObjectId,
+                  {
+                    $map: {
+                      input: {
+                        $cond: [
+                          { $isArray: "$subMatches.playerTeam2" },
+                          "$subMatches.playerTeam2",
+                          ["$subMatches.playerTeam2"],
+                        ],
+                      },
+                      as: "p",
+                      in: { $ifNull: ["$$p", null] },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          userInTeam1: {
+            $in: [
+              playerObjectId,
+              {
+                $map: {
+                  input: {
+                    $cond: [
+                      { $isArray: "$subMatches.playerTeam1" },
+                      "$subMatches.playerTeam1",
+                      ["$subMatches.playerTeam1"],
+                    ],
+                  },
+                  as: "p",
+                  in: { $ifNull: ["$$p", null] },
+                },
+              },
+            ],
+          },
+        },
+      },
+      // Stage 5: Filter to only submatches where player participated
+      {
+        $match: {
+          playerInSubmatch: true,
+        },
+      },
+      // Stage 6: Calculate points using same logic as main leaderboard
+      {
+        $addFields: {
+          // Calculate points scored
+          pointsScored: {
+            $reduce: {
+              input: { $ifNull: ["$subMatches.games", []] },
+              initialValue: 0,
+              in: {
+                $add: [
+                  "$$value",
+                  {
+                    $cond: [
+                      "$userInTeam1",
+                      { $ifNull: ["$$this.team1Score", 0] },
+                      { $ifNull: ["$$this.team2Score", 0] },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          // Calculate points conceded
+          pointsConceded: {
+            $reduce: {
+              input: { $ifNull: ["$subMatches.games", []] },
+              initialValue: 0,
+              in: {
+                $add: [
+                  "$$value",
+                  {
+                    $cond: [
+                      "$userInTeam1",
+                      { $ifNull: ["$$this.team2Score", 0] },
+                      { $ifNull: ["$$this.team1Score", 0] },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          // Calculate sets
+          setsWon: {
+            $cond: [
+              "$userInTeam1",
+              { $ifNull: ["$subMatches.finalScore.team1Games", 0] },
+              { $ifNull: ["$subMatches.finalScore.team2Games", 0] },
+            ],
+          },
+          setsLost: {
+            $cond: [
+              "$userInTeam1",
+              { $ifNull: ["$subMatches.finalScore.team2Games", 0] },
+              { $ifNull: ["$subMatches.finalScore.team1Games", 0] },
+            ],
+          },
+          // Determine if won
+          won: {
+            $cond: [
+              "$userInTeam1",
+              { $eq: ["$subMatches.winnerSide", "team1"] },
+              { $eq: ["$subMatches.winnerSide", "team2"] },
+            ],
+          },
+        },
+      },
+      // Stage 7: Group to aggregate stats
+      {
+        $group: {
+          _id: null,
+          totalMatches: { $sum: 1 },
+          wins: { $sum: { $cond: ["$won", 1, 0] } },
+          losses: { $sum: { $cond: ["$won", 0, 1] } },
+          totalPointsScored: { $sum: "$pointsScored" },
+          totalPointsConceded: { $sum: "$pointsConceded" },
+          setsWon: { $sum: "$setsWon" },
+          setsLost: { $sum: "$setsLost" },
+          matches: {
+            $push: {
+              matchId: { $toString: "$_id" },
+              submatchId: { $toString: "$subMatches._id" },
+              tournament: "$tournament",
+              finalScore: "$subMatches.finalScore",
+              winnerSide: "$subMatches.winnerSide",
+              createdAt: "$createdAt",
+              pointsScored: "$pointsScored",
+              pointsConceded: "$pointsConceded",
+              team1Name: "$team1.name",
+              team2Name: "$team2.name",
+              userInTeam1: "$userInTeam1",
+            },
+          },
+        },
+      },
+    ];
+
+    const teamAggResult = await TeamMatch.aggregate(teamAggregationPipeline).allowDiskUse(true);
+    const teamStats = teamAggResult[0] || {
+      totalMatches: 0,
+      wins: 0,
+      losses: 0,
+      totalPointsScored: 0,
+      totalPointsConceded: 0,
+      setsWon: 0,
+      setsLost: 0,
+      matches: [],
+    };
+
+    // Add team stats to totals
+    totalMatches += teamStats.totalMatches;
+    wins += teamStats.wins;
+    losses += teamStats.losses;
+    setsWon += teamStats.setsWon;
+    setsLost += teamStats.setsLost;
+    totalPointsScored += teamStats.totalPointsScored;
+    totalPointsConceded += teamStats.totalPointsConceded;
+
+
+
+    // Calculate serve stats from team matches (requires games with shots)
+    const teamMatchesForServes = await TeamMatch.find({
       status: "completed",
       $or: [
         { "team1.players.user": playerId },
         { "team2.players.user": playerId },
       ],
     })
-      .populate("team1.players.user team2.players.user", "username fullName profileImage")
-      .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
-      .populate("tournament", "name")
+      .select("subMatches")
       .lean();
 
-    // Process team submatches
-    teamMatches.forEach((teamMatch: any) => {
+    teamMatchesForServes.forEach((teamMatch: any) => {
       teamMatch.subMatches?.forEach((sub: any) => {
-        // Only process submatches that match the requested matchType
         if (sub.matchType !== matchType) return;
 
         const playerIds = [
@@ -180,77 +589,50 @@ export async function GET(
           .map((p: any) => p?._id?.toString() || p?.toString())
           .includes(playerId.toString());
 
-        const subWon = (userInTeam1 && sub.winnerSide === "team1") || (!userInTeam1 && sub.winnerSide === "team2");
+        if (sub.games && Array.isArray(sub.games)) {
+          sub.games.forEach((game: any) => {
+            if (!game || !game.shots) return;
 
-        totalMatches++;
-        if (subWon) wins++;
-        else losses++;
+            // Use the same logic as computeServeStats in lib/match-stats-utils.tsx
+            // For each shot: if shot.server === playerId, it's a serve
+            // If shot.player === shot.server === playerId, the player won the point on their serve
+            game.shots.forEach((shot: any) => {
+              if (!shot.server) return;
 
-        const userSets = sub.finalScore?.[userInTeam1 ? "team1Games" : "team2Games"] || 0;
-        const opponentSets = sub.finalScore?.[userInTeam1 ? "team2Games" : "team1Games"] || 0;
-        setsWon += userSets;
-        setsLost += opponentSets;
-
-        // Track distribution
-        if (teamMatch.tournament) {
-          distribution.tournament++;
-        } else {
-          distribution.team++;
-        }
-
-        // Process games for points and serve stats
-        let matchPointsScored = 0;
-        let matchPointsConceded = 0;
-        let matchServes = 0;
-        let matchPointsWonOnServe = 0;
-
-        sub.games?.forEach((game: any) => {
-          const userScore = userInTeam1 ? game.team1Score : game.team2Score;
-          const opponentScore = userInTeam1 ? game.team2Score : game.team1Score;
-
-          matchPointsScored += userScore || 0;
-          matchPointsConceded += opponentScore || 0;
-
-          // Server stats
-          let currentServer: string | null = null;
-          game.shots?.forEach((shot: any, shotIndex: number) => {
-            if (shot.server) {
-              currentServer = shot.server.toString();
-            }
-
-            if (shot.player?.toString() === playerId && currentServer === playerId) {
-              matchServes++;
-
-              const nextShot = game.shots[shotIndex + 1];
-              if (!nextShot && userScore > opponentScore) {
-                matchPointsWonOnServe++;
-              } else if (nextShot?.server !== currentServer) {
-                matchPointsWonOnServe++;
+              // Extract server ID
+              let serverId: string | null = null;
+              if (typeof shot.server === "string") {
+                serverId = shot.server;
+              } else if (shot.server?._id) {
+                serverId = shot.server._id.toString();
+              } else if (shot.server) {
+                serverId = shot.server.toString();
               }
-            }
+
+              // Extract player ID (point winner)
+              let pointWinnerId: string | null = null;
+              if (typeof shot.player === "string") {
+                pointWinnerId = shot.player;
+              } else if (shot.player?._id) {
+                pointWinnerId = shot.player._id.toString();
+              } else if (shot.player) {
+                pointWinnerId = shot.player.toString();
+              }
+
+              if (!serverId || !pointWinnerId) return;
+
+              // Count serves by this player
+              if (serverId === playerId) {
+                totalServes++;
+
+                // Check if the player won the point on their serve
+                if (pointWinnerId === serverId) {
+                  pointsWonOnServe++;
+                }
+              }
+            });
           });
-        });
-
-        totalPointsScored += matchPointsScored;
-        totalPointsConceded += matchPointsConceded;
-        totalServes += matchServes;
-        pointsWonOnServe += matchPointsWonOnServe;
-
-        // Add to recent matches
-        const isTeam1 = userInTeam1;
-        const opponentTeamSide = isTeam1 ? "team2" : "team1";
-        const opponentTeamName = teamMatch[opponentTeamSide]?.name || "Unknown Team";
-
-        recentMatches.push({
-          matchId: sub._id?.toString() || teamMatch._id.toString(),
-          opponent: opponentTeamName,
-          result: subWon ? "win" : "loss",
-          score: `${userSets}-${opponentSets}`,
-          pointsScored: matchPointsScored,
-          pointsConceded: matchPointsConceded,
-          date: teamMatch.createdAt,
-          source: teamMatch.tournament ? "tournament" : "team",
-        });
+        }
       });
     });
 
@@ -261,9 +643,6 @@ export async function GET(
     const avgConcededPerSet = totalSets > 0 ? totalPointsConceded / totalSets : 0;
     const serveWinPercentage = totalServes > 0 ? (pointsWonOnServe / totalServes) * 100 : 0;
 
-    // Sort recent matches by date and limit to 10
-    recentMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const limitedRecentMatches = recentMatches.slice(0, 10);
 
     return NextResponse.json({
       success: true,
@@ -289,7 +668,6 @@ export async function GET(
           serveWinPercentage: Math.round(serveWinPercentage * 10) / 10,
         },
         distribution,
-        recentMatches: limitedRecentMatches,
       },
       generatedAt: new Date(),
     });

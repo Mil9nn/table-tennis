@@ -6,8 +6,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { SHOT_TYPE_COLORS } from "@/constants/constants";
 import { useInView } from "@/hooks/useInView";
+import { formatPlayerName } from "@/lib/player-name-utils";
 
 /* ------------------------------
    Design System Palette
@@ -17,6 +17,17 @@ const PALETTE = {
   textSecondary: "#64748b",  // slate-500
   border: "rgba(15, 23, 42, 0.08)",
   grid: "rgba(15, 23, 42, 0.05)",
+};
+
+/* ------------------------------
+   Serve Type Colors
+-------------------------------- */
+const SERVE_TYPE_COLORS: Record<string, string> = {
+  side_spin: "#DC2626",   // red - aggressive serve
+  top_spin: "#F59E0B",    // amber - offensive serve  
+  back_spin: "#16A34A",   // green - defensive serve
+  mix_spin: "#7C3AED",    // purple - complex serve
+  no_spin: "#64748B",     // slate - neutral serve
 };
 
 interface ServeTypeChartProps {
@@ -35,7 +46,7 @@ export function ServeTypeChart({ data }: ServeTypeChartProps) {
   const { ref, isInView } = useInView({ threshold: 0.2 });
   if (!data || data.length === 0) return null;
 
-  const chartData = data.map((d) => ({ ...d, label: d.player }));
+  const chartData = data.map((d) => ({ ...d, label: formatPlayerName(d.player) }));
 
   return (
     <section
@@ -93,7 +104,13 @@ export function ServeTypeChart({ data }: ServeTypeChartProps) {
                           key={p.dataKey}
                           className="flex items-center justify-between gap-4 text-slate-700"
                         >
-                          <span>{p.name}</span>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: SERVE_TYPE_COLORS[p.dataKey] || "#64748B" }}
+                            />
+                            <span>{p.name}</span>
+                          </div>
                           <span className="font-semibold">{p.value}</span>
                         </div>
                       ))}
@@ -102,7 +119,7 @@ export function ServeTypeChart({ data }: ServeTypeChartProps) {
                 }}
               />
 
-              {Object.entries(SHOT_TYPE_COLORS).map(([key, color], i) => (
+              {Object.entries(SERVE_TYPE_COLORS).map(([key, color], i) => (
                 <Bar
                   key={key}
                   dataKey={key}

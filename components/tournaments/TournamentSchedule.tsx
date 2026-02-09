@@ -181,7 +181,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="">
       {rounds.length === 0 ? (
         <Card className="bg-white/60 backdrop-blur-sm border border-white/10">
           <CardContent className="p-8 text-center text-muted-foreground">
@@ -206,19 +206,12 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
           return (
             <section
               key={`${round.groupId || "main"}-${round.roundNumber}`}
-              className="space-y-2"
+              className=""
             >
-              {/* Group Header (only show for grouped tournaments) */}
-              {isNewGroup && round.groupName && (
-                <div className="mt-4 mb-2 pt-2 border-t border-slate-200">
-                  <h3 className="text-base font-bold text-indigo-700">
-                    {round.groupName}
-                  </h3>
-                </div>
-              )}
+              
 
               {/* Round Header */}
-              <div>
+              <div className="">
                 <h2 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
                   {format === "knockout" && round.roundName ? (
                     <>{round.roundName}</>
@@ -264,7 +257,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                       >
                         {/* LEFT SIDE — players/teams */}
                         <div
-                          className={`flex flex-1 min-w-0 ${
+                          className={`flex flex-1 ${
                             matchIsDoubles
                               ? "flex-col gap-1"
                               : "items-center gap-2"
@@ -290,7 +283,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                       )}
                                     </Avatar>
                                     <div
-                                      className={`text-xs truncate min-w-0 ${
+                                      className={`text-xs ${
                                         isWinner(match, 0)
                                           ? "text-green-500"
                                           : "text-neutral-700"
@@ -305,7 +298,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                           ) : (
                             // Singles: show single player
                             <>
-                              <Avatar className="h-7 w-7 shrink-0">
+                              <Avatar className="h-6 w-6 shrink-0">
                                 {getImage(participant1) ? (
                                   <AvatarImage src={getImage(participant1)} />
                                 ) : (
@@ -315,7 +308,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                 )}
                               </Avatar>
                               <div
-                                className={`text-sm truncate min-w-0 ${
+                                className={`text-xs ${
                                   isWinner(match, 0)
                                     ? "text-green-500"
                                     : "text-neutral-700"
@@ -334,7 +327,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
 
                         {/* RIGHT SIDE — players/teams */}
                         <div
-                          className={`flex flex-1 min-w-0 ${
+                          className={`flex flex-1 ${
                             matchIsDoubles
                               ? "flex-col gap-1"
                               : "items-center gap-2"
@@ -360,7 +353,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                                       )}
                                     </Avatar>
                                     <div
-                                      className={`text-xs truncate min-w-0 ${
+                                      className={`text-xs ${
                                         isWinner(match, 1)
                                           ? "text-green-600"
                                           : "text-neutral-700"
@@ -376,7 +369,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                             // Singles: show single player
                             <>
                               <div
-                                className={`text-sm truncate min-w-0 ${
+                                className={`text-xs ${
                                   isWinner(match, 1)
                                     ? "text-green-600"
                                     : "text-neutral-700"
@@ -384,7 +377,7 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
                               >
                                 {getDisplayName(participant2)}
                                 </div>
-                                <Avatar className="h-7 w-7 shrink-0">
+                                <Avatar className="h-6 w-6 shrink-0">
                                 {getImage(participant2) ? (
                                   <AvatarImage src={getImage(participant2)} />
                                 ) : (

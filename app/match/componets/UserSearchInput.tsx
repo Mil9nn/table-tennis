@@ -65,7 +65,7 @@ export default function UserSearchInput({
     <div className="relative w-full">
       {/* Selected State */}
       {selectedUser && !clearAfterSelect ? (
-        <div className="flex items-center justify-between px-3 py-2 border border-[#d9d9d9] bg-white">
+        <div className="flex items-center justify-between px-3 py-2 border border-[#d9d9d9] bg-white rounded-md">
           <div className="flex items-center gap-3">
             <Avatar className="h-7 w-7">
               <AvatarImage src={selectedUser.profileImage} />

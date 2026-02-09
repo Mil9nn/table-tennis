@@ -17,6 +17,7 @@ import { Shot } from "@/types/shot.type";
 import { Participant } from "@/types/match.type";
 import { computeStats, getShotColor } from "@/lib/match-stats-utils";
 import { formatStrokeName } from "@/lib/utils";
+import { formatPlayerName } from "@/lib/player-name-utils";
 import {
   generateShortCommentary,
   generateFullCommentary,
@@ -97,8 +98,8 @@ export function GameByGameBreakdown({
                   className="text-xs"
                 >
                   {game.winnerSide === "side1"
-                    ? side1Name
-                    : side2Name}
+                    ? formatPlayerName(side1Name)
+                    : formatPlayerName(side2Name)}
                 </Badge>
               )}
             </div>
@@ -132,52 +133,98 @@ export function GameByGameBreakdown({
 
                   let commentary: string | null = null;
 
-                  if (
-                    shot.originX != null &&
-                    participants &&
-                    finalScore &&
-                    finalScore.side1Sets != null &&
-                    finalScore.side2Sets != null
-                  ) {
+                  // Calculate current game score at the time of this shot
+                  // Count points for each side up to this shot
+                  let side1Points = 0;
+                  let side2Points = 0;
+                  
+                  for (let j = 0; j <= originalIndex; j++) {
+                    const prevShot = game.shots[j];
+                    if (prevShot.side === "side1" || prevShot.side === "team1") {
+                      side1Points++;
+                    } else {
+                      side2Points++;
+                    }
+                  }
+                  
+                  const currentGameScore = { side1Score: side1Points, side2Score: side2Points };
+
+                  // Always generate commentary (generateFullCommentary handles missing coordinates gracefully)
+                  if (participants) {
+                    // Use generateFullCommentary when participants are available (even without detailed tracking)
                     commentary = generateFullCommentary(
                       shot,
                       participants,
                       games,
-                      {
+                      (finalScore && finalScore.side1Sets != null && finalScore.side2Sets != null) ? {
                         side1Sets: finalScore.side1Sets,
                         side2Sets: finalScore.side2Sets,
-                      },
+                      } : undefined,
                       side1Name,
-                      side2Name
+                      side2Name,
+                      currentGameScore
                     );
+                  } else {
+                    // Fallback to short commentary if we don't have participants
+                    commentary = generateShortCommentary(shot);
                   }
 
                   return (
                     <li
                       key={originalIndex}
-                      className="flex gap-3 text-sm"
+                      className="flex gap-3 text-xs sm:text-sm py-3 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors rounded-lg px-2"
                     >
-                      <span className="w-5 text-right text-xs text-[#9aa0a6]">
-                        {game.shots.length - i}
+                      {/* Shot number */}
+                      <span className="text-gray-400 dark:text-gray-500 font-mono text-xs pt-0.5">
+                        {game.shots.length - i}.
                       </span>
 
-                      <div className="flex-1">
-                        {commentary ? (
-                          <div
-                            className="leading-relaxed text-[#353535]"
-                            dangerouslySetInnerHTML={{
-                              __html: commentary,
-                            }}
-                          />
-                        ) : (
-                          <span className="text-[#353535]">
-                            Shot by{" "}
-                            <strong>
-                              {shot.player.fullName ||
-                                shot.player.username}
-                            </strong>
-                          </span>
-                        )}
+                      {/* Shot commentary with color accent */}
+                      <div className="flex-1 flex gap-2.5">
+                        {/* Color accent bar - support both side1/side2 and team1/team2 */}
+                        <div
+                          className={`w-1 rounded-full flex-shrink-0 ${
+                            shot.side === "side1" || shot.side === "team1"
+                              ? "bg-gradient-to-b from-[#3c6e71] to-[#2a5056] dark:from-[#3c6e71] dark:to-[#2a5056]"
+                              : "bg-gradient-to-b from-[#284b63] to-[#1a3547] dark:from-[#284b63] dark:to-[#1a3547]"
+                          }`}
+                        />
+
+                        {/* Commentary content */}
+                        <div className="flex-1 space-y-1">
+                          {commentary ? (
+                            <div
+                              className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                              dangerouslySetInnerHTML={{
+                                __html: commentary.replace(
+                                  /<strong>(.*?)<\/strong>/g,
+                                  '<strong class="font-semibold text-gray-900 dark:text-gray-100">$1</strong>'
+                                ),
+                              }}
+                            />
+                          ) : (
+                            // Fallback if no commentary available
+                            <div className="text-gray-700 dark:text-gray-300">
+                              <strong className="font-semibold text-gray-900 dark:text-gray-100">
+                                {shot.player.fullName || shot.player.username}
+                              </strong>{" "}
+                              <span className="text-gray-500 dark:text-gray-400 text-xs">
+                                ({shot.side})
+                              </span>{" "}
+                              →{" "}
+                              <span
+                                className={`font-medium ${
+                                  shot.side === "side1" ||
+                                  shot.side === "team1"
+                                    ? "text-[#3c6e71] dark:text-[#3c6e71]"
+                                    : "text-[#284b63] dark:text-[#284b63]"
+                                }`}
+                              >
+                                {shot.stroke || "Unknown"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </li>
                   );

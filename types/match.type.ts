@@ -91,6 +91,7 @@ export interface IndividualMatch {
     status: string;
   } | null;
   shotTrackingMode?: "detailed" | "simple";
+  startedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -211,6 +212,7 @@ export interface TeamMatch {
   } | null;
   shotTrackingMode?: "detailed" | "simple";
   scheduledDate?: Date;
+  startedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }

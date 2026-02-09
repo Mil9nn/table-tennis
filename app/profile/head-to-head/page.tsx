@@ -119,7 +119,7 @@ const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
     <div className="min-h-screen bg-[#ffffff]">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
-        <div className="mb-8">
+        <div>
           <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
             Head to Head
           </h1>
@@ -138,57 +138,28 @@ const HeadToHeadPage = ({ userId }: HeadToHeadPageProps) => {
             description="Play matches to build your head-to-head records!"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-2">
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
-                  Total Opponents
-                </h3>
-                <p className="text-3xl font-bold text-[#353535]">
-                  {totalOpponents}
-                </p>
-                <p className="text-xs text-[#353535] mt-3">Unique players faced</p>
-              </div>
-
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
-                  Winning Records
-                </h3>
-                <p className="text-3xl font-bold text-[#353535]">
-                  {dominantRecord}
-                </p>
-                <p className="text-xs text-[#353535] mt-3">
-                  {totalOpponents > 0
-                    ? ((dominantRecord / totalOpponents) * 100).toFixed(0)
-                    : 0}
-                  % of opponents
-                </p>
-              </div>
-
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
-                  Even Records
-                </h3>
-                <p className="text-3xl font-bold text-[#353535]">
-                  {evenRecord}
-                </p>
-                <p className="text-xs text-[#353535] mt-3">Tied matchups</p>
-              </div>
-
-              <div className="bg-[#ffffff] border border-[#d9d9d9] p-6">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3c6e71] mb-3">
-                  Losing Records
-                </h3>
-                <p className="text-3xl font-bold text-[#353535]">
-                  {losingRecord}
-                </p>
-                <p className="text-xs text-[#353535] mt-3">
-                  {totalOpponents > 0
-                    ? ((losingRecord / totalOpponents) * 100).toFixed(0)
-                    : 0}
-                  % of opponents
-                </p>
+            <div className="px-4">
+              <div className="">
+                <div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Opponents</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{totalOpponents}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Winning Records</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{dominantRecord}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Even Records</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{evenRecord}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs font-medium text-[#353535]">Losing Records</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{losingRecord}</span>
+                  </div>
+                </div>
               </div>
             </div>
 

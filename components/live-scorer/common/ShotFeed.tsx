@@ -90,7 +90,7 @@ export default function ShotFeed({
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-sm dark:shadow-lg text-gray-900 dark:text-gray-100 space-y-0 transition-colors overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex items-center justify-between px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <h3 className="text-lg font-semibold tracking-tight">Shot Feed</h3>
       </div>
 

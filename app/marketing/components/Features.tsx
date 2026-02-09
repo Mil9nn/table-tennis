@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 const FEATURES = [
   {
@@ -10,14 +11,14 @@ const FEATURES = [
     title: "Live Match Scoring",
     description:
       "Fast, referee-friendly, real-time scoring built for competitive table tennis.",
-    image: "/features/live-scoring.png", // real screenshot later
+    image: "/screenshots/live-scoring.jpg",
   },
   {
     id: 2,
     title: "Tournament Management",
     description:
       "Create leagues, knockouts, and multi-stage tournaments effortlessly.",
-    image: "/features/tournaments.png",
+    image: "/screenshots/tournament-management.jpg",
   },
   {
     id: 3,
@@ -101,16 +102,19 @@ export default function FeaturesCarousel() {
                             border border-white/10 bg-white/5
                             "
               >
-                {/* Screenshot Placeholder */}
+                {/* Screenshot */}
                 <div
                   className="relative aspect-[16/10] overflow-hidden
                                 bg-gradient-to-br from-white/10 to-white/5
                                 flex items-center justify-center h-full"
                 >
-                  {/* Replace this with <Image /> later */}
-                  <span className="text-white/40 text-sm">
-                    Feature Screenshot
-                  </span>
+                  <Image
+                    src={feature.image}
+                    alt={feature.title}
+                    fill
+                    className="object-contain"
+                    priority={index === 0}
+                  />
                 </div>
 
                 {/* Content */}

@@ -120,13 +120,9 @@ export function HybridTournamentManager({
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="flex items-center justify-center p-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
           </div>
-        </CardContent>
-      </Card>
     );
   }
 
@@ -157,7 +153,7 @@ export function HybridTournamentManager({
   };
 
   return (
-    <Card className="rounded-none bg-linear-to-br from-blue-50 to-purple-50">
+    <Card className="rounded-none shadow-none">
       <CardContent className="space-y-4">
         {/* Phase Progress Indicator */}
         <div className="flex items-center gap-4">
@@ -167,7 +163,7 @@ export function HybridTournamentManager({
                 status.roundRobinComplete ? "bg-green-500" : "bg-blue-500 animate-pulse"
               }`}
             />
-            <span className="text-sm font-medium">Round-Robin</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Round-Robin</span>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-400" />
           <div className="flex items-center gap-2">
@@ -180,7 +176,7 @@ export function HybridTournamentManager({
                   : "bg-gray-300"
               }`}
             />
-            <span className="text-sm font-medium">Knockout</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Knockout</span>
           </div>
         </div>
 
@@ -188,7 +184,7 @@ export function HybridTournamentManager({
         {status.currentPhase === "round_robin" && status.roundRobinProgress && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm">Round-Robin Progress</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wide">Round-Robin Progress</h4>
               {status.roundRobinComplete && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -202,7 +198,7 @@ export function HybridTournamentManager({
                 {status.roundRobinProgress.groups.map((group) => (
                   <div key={group.groupId} className="p-2">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{group.groupName}</span>
+                      <span className="text-xs font-semibold">{group.groupName}</span>
                       <span className="text-xs text-gray-500">
                         {group.roundsCompleted}/{group.roundsTotal} rounds
                       </span>
@@ -217,7 +213,7 @@ export function HybridTournamentManager({
             ) : (
               <div className="bg-white rounded-lg p-3 border">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Overall Progress</span>
+                  <span className="text-xs font-semibold">Overall Progress</span>
                   <span className="text-xs text-gray-500">
                     {status.roundRobinProgress.roundsCompleted}/{status.roundRobinProgress.roundsTotal} rounds
                   </span>
@@ -238,23 +234,11 @@ export function HybridTournamentManager({
         {/* Qualification Info */}
         {status.hybridConfig && (
           <div className="bg-white rounded-lg p-4 border space-y-2">
-            <div className="flex items-center gap-2">
-              <h4 className="font-semibold text-sm">Qualification</h4>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-gray-500">Method</p>
-                <p className="font-medium">
-                  {getQualificationMethodLabel(status.hybridConfig.qualificationMethod)}
-                </p>
-              </div>
-            </div>
             {status.qualificationSummary && (
-              <div className="pt-2 border-t">
+              <div className="">
                 <p className="text-xs text-gray-600">
-                  {status.qualificationSummary.qualifiedCount} advance,{" "}
+                  {status.qualificationSummary.qualifiedCount} advance and {" "}
                   {status.qualificationSummary.eliminatedCount} eliminated
-                  {" "}({status.qualificationSummary.qualificationRate.toFixed(0)}% qualification rate)
                 </p>
               </div>
             )}
@@ -265,7 +249,7 @@ export function HybridTournamentManager({
         {status.currentPhase === "knockout" && status.knockoutProgress && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm">Knockout Progress</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wide">Knockout Progress</h4>
               {status.knockoutComplete && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -276,7 +260,7 @@ export function HybridTournamentManager({
 
             <div className="bg-white rounded-lg p-4 border space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
+                <span className="text-xs font-semibold">
                   Round {status.knockoutProgress.currentRound} of {status.knockoutProgress.totalRounds}
                 </span>
                 <span className="text-xs text-gray-500">
@@ -303,7 +287,7 @@ export function HybridTournamentManager({
           <div className="space-y-2">
             <Alert>
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
+              <AlertDescription className="text-xs font-medium">
                 {status.nextAction}
               </AlertDescription>
             </Alert>
@@ -316,28 +300,18 @@ export function HybridTournamentManager({
               >
                 {transitioning ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Transitioning to Knockout...
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                    <span className="text-xs font-medium">Transitioning to Knockout...</span>
                   </>
                 ) : (
                   <>
-                    <Trophy className="h-4 w-4 mr-2" />
-                    Start Knockout Phase
+                    <Trophy className="h-3 w-3 mr-2" />
+                    <span className="text-xs font-medium">Start Knockout Phase</span>
                   </>
                 )}
               </Button>
             )}
           </div>
-        )}
-
-        {/* Info Text for Participants */}
-        {!isOrganizer && (
-          <Alert className="bg-blue-50 border-blue-200">
-            <AlertDescription className="text-sm text-blue-800">
-              {status.currentPhase === "round_robin" && "Complete your round-robin matches to qualify for knockout!"}
-              {status.currentPhase === "knockout" && "Knockout phase in progress. Good luck!"}
-            </AlertDescription>
-          </Alert>
         )}
       </CardContent>
     </Card>

@@ -602,6 +602,7 @@ export class TeamMatchService {
           match.status = "completed";
           match.winnerTeam =
             match.finalScore.team1Matches >= matchesNeeded ? "team1" : "team2";
+          match.matchDuration = Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
 
           match.markModified("subMatches");
           await match.save();

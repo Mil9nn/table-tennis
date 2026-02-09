@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useInView } from "@/hooks/useInView";
+import { formatPlayerName } from "@/lib/player-name-utils";
 
 /* --------------------------------
    Muted Analytical Palette
@@ -31,6 +32,12 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
 
   if (!data || !Array.isArray(data) || data.length === 0) return null;
 
+  // Transform data to use formatted player names
+  const formattedData = data.map(item => ({
+    ...item,
+    player: formatPlayerName(item.player)
+  }));
+
   return (
     <section
       ref={ref}
@@ -51,7 +58,7 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
         {isInView && (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={formattedData}
               barGap={4}
               barCategoryGap="28%"
             >
@@ -61,6 +68,7 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
                 tick={{ fontSize: 11, fill: "#525252" }}
                 tickLine={false}
                 axisLine={false}
+                className="hidden md:flex"
               />
               <YAxis
                 width={28}
@@ -114,7 +122,7 @@ export function ServeReceiveChart({ data }: ServeReceiveChartProps) {
       </div>
 
       {/* Custom Legend */}
-      <div className="mt-3 flex items-center gap-4 text-xs text-neutral-600">
+      <div className="mt-2 flex items-center gap-4 text-xs text-neutral-600">
         <div className="flex items-center gap-2">
           <span
             className="h-2.5 w-2.5 rounded-sm"

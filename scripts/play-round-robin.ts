@@ -124,6 +124,7 @@ async function playMatch(matchId: string, scorerId: string): Promise<void> {
 
   // Set match to in_progress
   match.status = "in_progress";
+  match.startedAt = new Date();
   match.scorer = new mongoose.Types.ObjectId(scorerId);
 
   // Generate random score
@@ -145,7 +146,7 @@ async function playMatch(matchId: string, scorerId: string): Promise<void> {
   }
 
   match.status = "completed";
-  match.matchDuration = Date.now() - (match.createdAt?.getTime() || Date.now());
+  match.matchDuration = Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
 
   await match.save();
 }

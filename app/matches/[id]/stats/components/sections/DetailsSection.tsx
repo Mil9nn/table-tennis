@@ -21,7 +21,13 @@ export function DetailsSection({ stats }: Props) {
         finalScore={stats.match.finalScore}
       />
 
-      {Array.isArray(computed.playerStats) && computed.playerStats.length > 0 && (
+      {Array.isArray(computed.playerStats) && 
+        computed.playerStats.length > 0 && 
+        computed.playerStats.some((player: any) => 
+          Array.isArray(player.data) && 
+          player.data.length > 0 && 
+          player.data.some((shot: any) => shot.value > 0)
+        ) && (
         <PlayerShotAnalysis
           playerPieData={computed.playerStats}
         />

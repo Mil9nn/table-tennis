@@ -332,6 +332,7 @@ function extractTournamentOutcome(
   }
   // Case 2: No third place match - determine third place from semi-finals
   // Third place is the participant who lost to the champion in the semi-finals
+  // Note: We do NOT set thirdPlaceMatchScore here since there's no actual third place match
   else if (!bracket.thirdPlaceMatch && bracket.rounds.length >= 2 && championId) {
     // Get semifinal round (second-to-last round)
     const semifinalRound = bracket.rounds[bracket.rounds.length - 2];
@@ -349,15 +350,8 @@ function extractTournamentOutcome(
 
           if (thirdPlaceId) {
             thirdPlace = getParticipantMedalist(thirdPlaceId, participants);
-            // Try to get the semi-final match score for display
-            const semifinalMatchDoc = matches.find(
-              (m) => m._id.toString() === semifinalMatch.matchId
-            );
-            if (semifinalMatchDoc) {
-              // Get score from the perspective of the third place finisher (loser in this semi-final)
-              // This shows their score in the match where they lost to the eventual champion
-              thirdPlaceMatchScore = getMatchScore(semifinalMatchDoc, thirdPlaceId, category);
-            }
+            // Do NOT set thirdPlaceMatchScore here - there's no actual third place match
+            // thirdPlaceMatchScore should only be set when bracket.thirdPlaceMatch exists
           }
           break;
         }

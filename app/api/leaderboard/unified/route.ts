@@ -4,6 +4,7 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
+import { sortLeaderboardWithITTF, type HeadToHeadMap, type LeaderboardEntry } from "@/lib/leaderboard/ittfSorting";
 
 interface PlayerLeaderboardStats {
   player: {
@@ -20,6 +21,8 @@ interface PlayerLeaderboardStats {
     winRate: number;
     setsWon: number;
     setsLost: number;
+    pointsScored: number;
+    pointsConceded: number;
     currentStreak: number;
     bestStreak: number;
   };
@@ -87,8 +90,9 @@ export async function GET(request: NextRequest) {
       processTournamentStandings(tournament, playerStatsMap);
     }
 
-    // Build final leaderboard
+    // Build final leaderboard and head-to-head map
     const leaderboard: PlayerLeaderboardStats[] = [];
+    const headToHeadMap: HeadToHeadMap = new Map();
 
     for (const [playerId, data] of playerStatsMap.entries()) {
       if (data.stats.totalMatches === 0) continue;
@@ -107,21 +111,35 @@ export async function GET(request: NextRequest) {
         },
         sources: data.sources,
       });
+
+      // Add to head-to-head map
+      headToHeadMap.set(playerId, data.headToHead);
     }
 
-    // Sort by wins first, then win rate
-    leaderboard.sort((a, b) => {
-      if (b.stats.wins !== a.stats.wins) return b.stats.wins - a.stats.wins;
-      return b.stats.winRate - a.stats.winRate;
+    // Convert to format expected by ITTF sorting utility
+    const leaderboardEntries: LeaderboardEntry[] = leaderboard.map((entry) => ({
+      playerId: entry.player._id,
+      wins: entry.stats.wins,
+      losses: entry.stats.losses,
+      setsWon: entry.stats.setsWon,
+      setsLost: entry.stats.setsLost,
+      pointsScored: entry.stats.pointsScored,
+      pointsConceded: entry.stats.pointsConceded,
+      originalEntry: entry, // Keep reference to original entry
+    }));
+
+    // Sort using ITTF-compliant rules (skip head-to-head for leaderboards)
+    const sortedEntries = sortLeaderboardWithITTF(leaderboardEntries, headToHeadMap, true);
+
+    // Map sorted entries back to leaderboard format
+    const sortedLeaderboard = sortedEntries.map((entry) => {
+      const original = entry.originalEntry as PlayerLeaderboardStats;
+      original.rank = entry.rank || 0;
+      return original;
     });
 
-    // Assign ranks
-    leaderboard.forEach((entry, index) => {
-      entry.rank = index + 1;
-    });
-
-    const total = leaderboard.length;
-    const paginatedLeaderboard = leaderboard.slice(skip, skip + limit);
+    const total = sortedLeaderboard.length;
+    const paginatedLeaderboard = sortedLeaderboard.slice(skip, skip + limit);
     const hasMore = skip + paginatedLeaderboard.length < total;
 
     return NextResponse.json({
@@ -159,6 +177,8 @@ function initPlayerStats(player: any) {
       winRate: 0,
       setsWon: 0,
       setsLost: 0,
+      pointsScored: 0,
+      pointsConceded: 0,
       currentStreak: 0,
       bestStreak: 0,
     },
@@ -168,6 +188,7 @@ function initPlayerStats(player: any) {
       tournament: { matches: 0, wins: 0 },
     },
     matchDates: [] as Date[],
+    headToHead: new Map<string, number>(), // opponentId -> matchPoints (2 for win, 0 for loss)
   };
 }
 
@@ -179,6 +200,7 @@ function processIndividualMatch(
   const participants = match.participants;
   if (!participants || participants.length < 2) return;
 
+  // Process each participant
   for (let i = 0; i < participants.length; i++) {
     const participant = participants[i];
     if (!participant || !participant._id) continue;
@@ -199,9 +221,27 @@ function processIndividualMatch(
 
     const won = playerSets > opponentSets;
 
+    // Calculate points from games
+    let pointsScored = 0;
+    let pointsConceded = 0;
+    
+    if (match.games && Array.isArray(match.games)) {
+      match.games.forEach((game: any) => {
+        if (side === "side1") {
+          pointsScored += game.side1Score || 0;
+          pointsConceded += game.side2Score || 0;
+        } else {
+          pointsScored += game.side2Score || 0;
+          pointsConceded += game.side1Score || 0;
+        }
+      });
+    }
+
     playerData.stats.totalMatches++;
     playerData.stats.setsWon += playerSets;
     playerData.stats.setsLost += opponentSets;
+    playerData.stats.pointsScored += pointsScored;
+    playerData.stats.pointsConceded += pointsConceded;
 
     if (won) {
       playerData.stats.wins++;
@@ -212,6 +252,16 @@ function processIndividualMatch(
 
     playerData.sources[source].matches++;
     playerData.matchDates.push(new Date(match.createdAt));
+
+    // Track head-to-head: find opponent and record match points
+    const opponentIndex = i === 0 ? 1 : 0;
+    const opponent = participants[opponentIndex];
+    if (opponent && opponent._id) {
+      const opponentId = opponent._id.toString();
+      // ITTF: 2 points for win, 0 for loss (no draws in individual matches typically)
+      const matchPoints = won ? 2 : 0;
+      playerData.headToHead.set(opponentId, matchPoints);
+    }
 
     // Update streak
     updateStreak(playerData, won);
@@ -226,6 +276,21 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
   const team2Games = subMatch.finalScore?.team2Games || 0;
   const team1Won = team1Games > team2Games;
 
+  // Calculate points from games
+  let team1PointsScored = 0;
+  let team1PointsConceded = 0;
+  let team2PointsScored = 0;
+  let team2PointsConceded = 0;
+
+  if (subMatch.games && Array.isArray(subMatch.games)) {
+    subMatch.games.forEach((game: any) => {
+      team1PointsScored += game.team1Score || 0;
+      team1PointsConceded += game.team2Score || 0;
+      team2PointsScored += game.team2Score || 0;
+      team2PointsConceded += game.team1Score || 0;
+    });
+  }
+
   // Process team 1 players
   for (const player of team1Players) {
     if (!player || !player._id) continue;
@@ -239,12 +304,23 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
     playerData.stats.totalMatches++;
     playerData.stats.setsWon += team1Games;
     playerData.stats.setsLost += team2Games;
+    playerData.stats.pointsScored += team1PointsScored;
+    playerData.stats.pointsConceded += team1PointsConceded;
 
     if (team1Won) {
       playerData.stats.wins++;
       playerData.sources.team.wins++;
     } else {
       playerData.stats.losses++;
+    }
+
+    // Track head-to-head with all opponents in team 2
+    const matchPoints = team1Won ? 2 : 0;
+    for (const opponent of team2Players) {
+      if (opponent && opponent._id) {
+        const opponentId = opponent._id.toString();
+        playerData.headToHead.set(opponentId, matchPoints);
+      }
     }
 
     playerData.sources.team.matches++;
@@ -264,12 +340,23 @@ function processTeamSubMatch(subMatch: any, playerStatsMap: Map<string, any>) {
     playerData.stats.totalMatches++;
     playerData.stats.setsWon += team2Games;
     playerData.stats.setsLost += team1Games;
+    playerData.stats.pointsScored += team2PointsScored;
+    playerData.stats.pointsConceded += team2PointsConceded;
 
     if (!team1Won) {
       playerData.stats.wins++;
       playerData.sources.team.wins++;
     } else {
       playerData.stats.losses++;
+    }
+
+    // Track head-to-head with all opponents in team 1
+    const matchPoints = !team1Won ? 2 : 0;
+    for (const opponent of team1Players) {
+      if (opponent && opponent._id) {
+        const opponentId = opponent._id.toString();
+        playerData.headToHead.set(opponentId, matchPoints);
+      }
     }
 
     playerData.sources.team.matches++;

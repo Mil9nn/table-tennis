@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { cn, getAvatarFallbackStyle } from "@/lib/utils";
 import type { PlayerStats, FormatSpecificStats } from "../types";
 import {
@@ -127,7 +128,7 @@ const PlayerRow = ({
         </Link>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap">
             <div className="flex items-center gap-2">
               <p className="font-semibold text-sm text-[#353535]">
                 {getDisplayName(entry.player)}
@@ -218,7 +219,7 @@ const PlayerStatsModal = ({
   if (!player) return null;
 
   const stats = player.stats;
-  const totalGames = stats.wins + stats.losses;
+  const totalGames = detailedStats?.totalMatches ?? (stats.wins + stats.losses);
 
   // Use detailedStats if available, fallback to 0
   const pointsFor = detailedStats?.points.totalScored ?? 0;
@@ -240,466 +241,350 @@ const PlayerStatsModal = ({
 
   return (
     <Dialog open={!!player} onOpenChange={onClose}>
-      <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-y-auto leaderboard-modal-content"
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #d9d9d9",
-          borderRadius: "12px",
-          boxShadow: "0 20px 50px rgba(53, 53, 53, 0.15)",
-        }}
-      >
-        {/* Header Section */}
-        <DialogHeader
-          className="pb-6"
-          style={{
-            background:
-              "linear-gradient(to bottom, #ffffff, rgba(217, 217, 217, 0.03))",
-            borderBottom: "1px solid #d9d9d9",
-            marginBottom: "20px",
-          }}
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] md:w-full p-0 border-0 overflow-hidden" showCloseButton={false}>
+        {/* Custom Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 rounded-lg p-2 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200"
+          aria-label="Close dialog"
         >
-          <div className="flex items-center gap-6 justify-between">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar
-                  className="h-20 w-20 shadow-sm ring-2 ring-offset-2"
-                  style={{
-                    borderWidth: "2px",
-                    borderColor: "#3c6e71",
-                    backgroundColor: "#284b63",
-                  }}
+          <X className="h-4 w-4" />
+        </button>
+        {/* Modern Header */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-6">
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+            {/* Avatar with enhanced styling */}
+            <div className="relative">
+              <Avatar
+                className="h-20 w-20 md:h-24 md:w-24 ring-2 ring-white/20 ring-offset-4 ring-offset-transparent shadow-2xl"
+              >
+                <AvatarImage
+                  src={player.player.profileImage}
+                  alt={getDisplayName(player.player)}
+                />
+                <AvatarFallback
+                  className="text-2xl font-bold text-white bg-gradient-to-br from-slate-600 to-slate-700"
+                  style={getAvatarFallbackStyle(player.player._id)}
                 >
-                  <AvatarImage
-                    src={player.player.profileImage}
-                    alt={getDisplayName(player.player)}
-                  />
-                  <AvatarFallback
-                    className="text-xl font-bold text-white"
-                    style={getAvatarFallbackStyle(player.player._id)}
-                  >
-                    {getInitials(getDisplayName(player.player))}
-                  </AvatarFallback>
-                </Avatar>
-                <div
-                  className="absolute bottom-0 -right-1 flex items-center justify-center rounded-full px-2.5 py-1.5 shadow-md font-bold"
-                  style={{ backgroundColor: "#3c6e71", color: "#ffffff" }}
-                >
-                  <span className="text-xs">#{player.rank}</span>
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <DialogTitle
-                  className="text-2xl font-bold mb-1"
-                  style={{ color: "#353535" }}
-                >
-                  {getDisplayName(player.player)}
-                </DialogTitle>
-                <p className="text-sm" style={{ color: "#d9d9d9" }}>
-                  @{player.player.username}
-                </p>
+                  {getInitials(getDisplayName(player.player))}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Rank Badge */}
+              <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full px-2 py-1 md:px-3 md:py-1.5 shadow-lg border-2 border-white">
+                <span className="text-xs md:text-sm font-bold">{player.rank}</span>
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-1">
-              <div
-                className="text-xs uppercase tracking-wider font-semibold"
-                style={{ color: "#d9d9d9" }}
-              >
-                Win Rate
-              </div>
-              <div className="text-xl font-bold" style={{ color: "#3c6e71" }}>
-                {stats.winRate}%
+            {/* Player Info */}
+            <div className="flex-1 text-center md:text-left">
+              <DialogTitle className="text-lg md:text-xl font-bold text-white mb-1">
+                {getDisplayName(player.player)}
+              </DialogTitle>
+              <p className="text-slate-300 text-xs md:text-sm font-medium mb-2">
+                @{player.player.username}
+              </p>
+              
+              {/* Win Rate Display */}
+              <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 md:px-3 md:py-2 inline-flex">
+                <span className="text-slate-300 text-xs md:text-sm font-medium">Win Rate</span>
+                <span className="text-lg md:text-xl font-bold text-white">{stats.winRate}%</span>
               </div>
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div className="space-y-6 py-4">
-        {stats.currentStreak !== 0 && (
-                <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 font-medium">
-                      Current Streak
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "text-lg font-bold",
-                          stats.currentStreak > 0
-                            ? "text-emerald-600"
-                            : "text-rose-600"
-                        )}
-                      >
-                        {Math.abs(stats.currentStreak)}
-                      </span>
-                      <Badge
-                        className={cn(
-                          "text-[10px] p-2 rounded-full font-semibold",
-                          stats.currentStreak > 0
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                            : "bg-rose-100 text-rose-700 border-rose-200"
-                        )}
-                      >
-                        {stats.currentStreak > 0 ? "W" : "L"}
-                      </Badge>
-                    </div>
+        {/* Content Area */}
+        <div className="p-2 overflow-y-auto max-h-[calc(90vh-250px)] md:max-h-[calc(90vh-200px)] space-y-6">
+          {/* Current Streak */}
+          {stats.currentStreak !== 0 && (
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200/60 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs md:text-sm font-semibold text-slate-700 mb-1">Current Streak</h4>
+                  <p className="text-xs text-slate-500">Active performance trend</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg md:text-xl font-bold ${
+                    stats.currentStreak > 0 ? "text-emerald-600" : "text-rose-600"
+                  }`}>
+                    {Math.abs(stats.currentStreak)}
+                  </span>
+                  <div className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs font-bold ${
+                    stats.currentStreak > 0 
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-rose-100 text-rose-700 border border-rose-200"
+                  }`}>
+                    {stats.currentStreak > 0 ? "WINS" : "LOSSES"}
                   </div>
                 </div>
-              )}
-          {/* Performance Overview */}
-          <div>
-            <h3
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
-              style={{ color: "#d9d9d9" }}
-            >
-              Overview
-            </h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div
-                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #d9d9d9",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#3c6e71";
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(60, 110, 113, 0.02)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#d9d9d9";
-                  e.currentTarget.style.backgroundColor = "#ffffff";
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: "#3c6e71" }}
-                  >
-                    {stats.wins}
-                  </span>
-                  <span
-                    className="text-xs uppercase font-medium"
-                    style={{ color: "#d9d9d9" }}
-                  >
-                    wins
-                  </span>
-                </div>
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: "rgba(60, 110, 113, 0.1)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      backgroundColor: "#3c6e71",
-                      width:
-                        totalGames > 0
-                          ? `${(stats.wins / totalGames) * 100}%`
-                          : "0%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #d9d9d9",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#e74c3c";
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(231, 76, 60, 0.02)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#d9d9d9";
-                  e.currentTarget.style.backgroundColor = "#ffffff";
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: "#e74c3c" }}
-                  >
-                    {stats.losses}
-                  </span>
-                  <span
-                    className="text-xs uppercase font-medium"
-                    style={{ color: "#d9d9d9" }}
-                  >
-                    losses
-                  </span>
-                </div>
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: "rgba(231, 76, 60, 0.1)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      backgroundColor: "#e74c3c",
-                      width:
-                        totalGames > 0
-                          ? `${(stats.losses / totalGames) * 100}%`
-                          : "0%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="rounded-lg p-5 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
-                style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #d9d9d9",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#284b63";
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(40, 75, 99, 0.02)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#d9d9d9";
-                  e.currentTarget.style.backgroundColor = "#ffffff";
-                }}
-              >
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: "#284b63" }}
-                  >
-                    {totalGames}
-                  </span>
-                  <span
-                    className="text-xs uppercase font-medium"
-                    style={{ color: "#d9d9d9" }}
-                  >
-                    total
-                  </span>
-                </div>
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: "rgba(40, 75, 99, 0.1)" }}
-                >
-                  <div
-                    className="h-full rounded-full w-full"
-                    style={{ backgroundColor: "#284b63" }}
-                  />
-                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Set Statistics */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Set Statistics
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 font-medium mb-1">
-                    Sets Won
-                  </span>
-                  <span className="text-lg font-bold text-slate-900">
-                    {stats.setsWon}
-                  </span>
-                </div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Performance Overview */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-slate-200/60">
+                <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide">Performance</h3>
               </div>
-
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 font-medium mb-1">
-                    Sets Lost
-                  </span>
-                  <span className="text-lg font-bold text-slate-900">
-                    {stats.setsLost}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 font-medium mb-1">
-                    Set Differential
-                  </span>
-                  <span
-                    className={cn(
-                      "text-lg font-bold",
-                      setDiff > 0
-                        ? "text-emerald-600"
-                        : setDiff < 0
-                        ? "text-rose-600"
-                        : "text-slate-600"
-                    )}
-                  >
-                    {setDiff > 0 ? "+" : ""}
-                    {setDiff}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Point Statistics */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Point Statistics
-            </h3>
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              {showPointsLoading ? (
-                <div className="p-8 flex items-center justify-center">
-                  <Loader2 className="animate-spin text-slate-400" size={24} />
-                </div>
-              ) : (
-                <>
-                  {/* Points For/Against */}
-                  <div className="grid grid-cols-2 divide-x divide-slate-200">
-                    <div className="p-4 hover:bg-slate-50/50 transition-colors">
-                      <div className="text-xs text-slate-500 font-medium mb-1.5">
-                        Points Scored
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-bold text-slate-900">
-                          {pointsFor}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          ({avgPointsPerGame}/set)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 hover:bg-slate-50/50 transition-colors">
-                      <div className="text-xs text-slate-500 font-medium mb-1.5">
-                        Points Conceded
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-bold text-slate-900">
-                          {pointsAgainst}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          ({avgPointsAgainst}/set)
-                        </span>
-                      </div>
-                    </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-blue-600">{stats.wins}</div>
+                    <div className="text-xs text-slate-500 font-medium">WINS</div>
                   </div>
-
-                  {/* Points Differential */}
-                  <div className="border-t border-slate-200 p-4 bg-slate-50/50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600 font-medium">
-                        Point Differential
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={cn(
-                            "text-xl font-bold",
-                            pointsDiff > 0
-                              ? "text-emerald-600"
-                              : pointsDiff < 0
-                              ? "text-rose-600"
-                              : "text-slate-600"
-                          )}
-                        >
-                          {pointsDiff > 0 ? "+" : ""}
-                          {pointsDiff}
-                        </div>
-                        <div
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            pointsDiff > 0
-                              ? "bg-emerald-500"
-                              : pointsDiff < 0
-                              ? "bg-rose-500"
-                              : "bg-slate-400"
-                          )}
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-slate-900">{totalGames}</div>
+                    <div className="text-xs text-slate-500 font-medium">TOTAL</div>
+                  </div>
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-rose-600">{stats.losses}</div>
+                    <div className="text-xs text-slate-500 font-medium">LOSSES</div>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="relative">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                    {totalGames > 0 ? (
+                      <>
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-out"
+                          style={{ width: `${(stats.wins / totalGames) * 100}%` }}
                         />
-                      </div>
-                    </div>
+                        <div 
+                          className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                          style={{ width: `${(stats.losses / totalGames) * 100}%` }}
+                        />
+                      </>
+                    ) : (
+                      <div className="h-full w-full bg-slate-200" />
+                    )}
                   </div>
-
-                  {/* Serve Statistics Section */}
-                  {detailedStats && detailedStats.serve.totalServes > 0 && (
-                    <div className="border-t border-slate-200 p-4">
-                      <div className="text-xs text-slate-500 font-medium mb-3">
-                        Serve Performance
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div>
-                          <div className="text-lg font-bold text-slate-900">
-                            {detailedStats.serve.totalServes}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Total Serves
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-emerald-600">
-                            {detailedStats.serve.pointsWonOnServe}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Won on Serve
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-slate-900">
-                            {detailedStats.serve.serveWinPercentage.toFixed(1)}%
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Serve Win %
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Matches Section */}
-          {/* {detailedStats && detailedStats.recentMatches.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Recent {matchType === 'singles' ? 'Singles' : matchType === 'doubles' ? 'Doubles' : 'Individual'} Matches
-              </h3>
-              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <div className="divide-y divide-slate-200">
-                  {detailedStats.recentMatches.slice(0, 5).map((match) => (
-                    <div key={match.matchId} className="p-3 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge className={cn(
-                              "text-xs px-2 py-0.5",
-                              match.result === 'win'
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-rose-100 text-rose-700"
-                            )}>
-                              {match.result === 'win' ? 'W' : 'L'}
-                            </Badge>
-                            <span className="text-sm font-medium text-slate-900">
-                              vs {match.opponent}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                            <span>{match.score}</span>
-                            <span>•</span>
-                            <span>{match.pointsScored}-{match.pointsConceded} pts</span>
-                            <span>•</span>
-                            <span>{new Date(match.date).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
-          )} */}
+
+            {/* Match Distribution */}
+            {detailedStats?.distribution && (
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-slate-200/60">
+                  <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide">Match Types</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg md:text-2xl font-bold text-blue-600">{detailedStats.distribution.individual}</div>
+                      <div className="text-xs text-slate-500 font-medium">INDIVIDUAL</div>
+                    </div>
+                    <div>
+                      <div className="text-lg md:text-2xl font-bold text-slate-900">{detailedStats.distribution.team}</div>
+                      <div className="text-xs text-slate-500 font-medium">TEAM</div>
+                    </div>
+                    <div>
+                      <div className="text-lg md:text-2xl font-bold text-rose-600">{detailedStats.distribution.tournament}</div>
+                      <div className="text-xs text-slate-500 font-medium">TOURNAMENT</div>
+                    </div>
+                  </div>
+                  
+                  {/* Distribution Progress Bar */}
+                  <div className="relative">
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                      {totalGames > 0 ? (
+                        <>
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-out"
+                            style={{ width: `${(detailedStats.distribution.individual / totalGames) * 100}%` }}
+                          />
+                          <div 
+                            className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                            style={{ width: `${(detailedStats.distribution.team / totalGames) * 100}%` }}
+                          />
+                          <div 
+                            className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                            style={{ width: `${(detailedStats.distribution.tournament / totalGames) * 100}%` }}
+                          />
+                        </>
+                      ) : (
+                        <div className="h-full w-full bg-slate-200" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Stats Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Set Statistics */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-slate-200/60">
+                <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide">Set Performance</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-blue-600">{stats.setsWon}</div>
+                    <div className="text-xs text-slate-500 font-medium">WON</div>
+                  </div>
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-slate-900">{stats.setsWon + stats.setsLost}</div>
+                    <div className="text-xs text-slate-500 font-medium">TOTAL</div>
+                  </div>
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-rose-600">{stats.setsLost}</div>
+                    <div className="text-xs text-slate-500 font-medium">LOST</div>
+                  </div>
+                </div>
+                
+                {/* Set Progress Bar */}
+                <div className="relative">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                    {stats.setsWon + stats.setsLost > 0 ? (
+                      <>
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-out"
+                          style={{ width: `${(stats.setsWon / (stats.setsWon + stats.setsLost)) * 100}%` }}
+                        />
+                        <div 
+                          className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                          style={{ width: `${(stats.setsLost / (stats.setsWon + stats.setsLost)) * 100}%` }}
+                        />
+                      </>
+                    ) : (
+                      <div className="h-full w-full bg-slate-200" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Point Statistics */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-slate-200/60">
+                <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide">Points</h3>
+              </div>
+              <div className="p-6">
+                {showPointsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-slate-400" size={24} />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-lg md:text-2xl font-bold text-blue-600">{pointsFor}</div>
+                        <div className="text-xs text-slate-500 font-medium">SCORED</div>
+                      </div>
+                      <div>
+                        <div className="text-lg md:text-2xl font-bold text-slate-900">{pointsFor + pointsAgainst}</div>
+                        <div className="text-xs text-slate-500 font-medium">TOTAL</div>
+                      </div>
+                      <div>
+                        <div className="text-lg md:text-2xl font-bold text-rose-600">{pointsAgainst}</div>
+                        <div className="text-xs text-slate-500 font-medium">CONCEDED</div>
+                      </div>
+                    </div>
+                    
+                    {/* Points Progress Bar */}
+                    <div className="relative">
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                        {pointsFor + pointsAgainst > 0 ? (
+                          <>
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-out"
+                              style={{ width: `${(pointsFor / (pointsFor + pointsAgainst)) * 100}%` }}
+                            />
+                            <div 
+                              className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                              style={{ width: `${(pointsAgainst / (pointsFor + pointsAgainst)) * 100}%` }}
+                            />
+                          </>
+                        ) : (
+                          <div className="h-full w-full bg-slate-200" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Averages */}
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                      <div className="text-center">
+                        <div className="text-base md:text-lg font-bold text-blue-600">{avgPointsPerGame}</div>
+                        <div className="text-xs text-slate-500 font-medium">AVG PER SET</div>
+                      </div>
+                  <div className="text-center">
+                    <div className={`text-base md:text-lg font-bold px-2 py-1 rounded ${
+                      pointsDiff > 0 ? "text-blue-600" : pointsDiff < 0 ? "text-rose-600" : "text-slate-600"
+                    }`}>
+                      {pointsDiff > 0 ? "+" : ""}{pointsDiff}
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium">DIFFERENTIAL</div>
+                  </div>
+                </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Serve Statistics */}
+          {!showPointsLoading && detailedStats && detailedStats.serve.totalServes > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-slate-200/60">
+                <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide">Serve Performance</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-blue-600">{detailedStats.serve.pointsWonOnServe}</div>
+                    <div className="text-xs text-slate-500 font-medium">WON</div>
+                  </div>
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-slate-900">{detailedStats.serve.totalServes}</div>
+                    <div className="text-xs text-slate-500 font-medium">TOTAL</div>
+                  </div>
+                  <div>
+                    <div className="text-lg md:text-2xl font-bold text-rose-600">{detailedStats.serve.totalServes - detailedStats.serve.pointsWonOnServe}</div>
+                    <div className="text-xs text-slate-500 font-medium">LOST</div>
+                  </div>
+                </div>
+                
+                {/* Serve Progress Bar */}
+                <div className="relative">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700 ease-out"
+                      style={{ width: `${detailedStats.serve.serveWinPercentage}%` }}
+                    />
+                    <div 
+                      className="h-full bg-gradient-to-r from-slate-300 to-slate-400 transition-all duration-700 ease-out"
+                      style={{ width: `${100 - detailedStats.serve.serveWinPercentage}%` }}
+                    />
+                  </div>
+                </div>
+                
+                {/* Win Rate */}
+                <div className="text-center pt-2 border-t border-slate-200">
+                  <div className="text-lg md:text-2xl font-bold text-blue-600">{detailedStats.serve.serveWinPercentage.toFixed(1)}%</div>
+                  <div className="text-xs text-slate-500 font-medium">SERVE WIN RATE</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+                  </div>
+
+        {/* Footer */}
+        <div className="px-8 py-4 bg-slate-50 border-t border-slate-200/60">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500 font-medium">Statistics generated</span>
+            <span className="text-xs text-slate-600 font-semibold">
+              {detailedStats ? new Date().toLocaleString() : "Loading..."}
+            </span>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

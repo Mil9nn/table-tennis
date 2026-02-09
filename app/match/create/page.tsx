@@ -52,7 +52,7 @@ export default function CreateMatchPage() {
       </header>
 
       <main className="mx-auto py-8">
-        {/* CATEGORY SELECTOR: High Density Toggle */}
+        {/* CATEGORY SELECTOR: Consistent with Form Design */}
         <div className="mb-10 px-4">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-foreground">
@@ -61,7 +61,7 @@ export default function CreateMatchPage() {
             <div className="h-[1px] bg-[#d9d9d9] w-16"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-[1px]">
+          <div className="flex rounded-lg bg-muted p-1">
             {categories.map((category) => {
               const isActive = matchCategory === category.type;
               const Icon = category.icon;
@@ -71,39 +71,21 @@ export default function CreateMatchPage() {
                   key={category.type}
                   onClick={() => setMatchCategory(category.type)}
                   className={cn(
-                    "group hover:bg-500 transition-colors duration-200 text-left",
-                    isActive && "bg-zinc-600"
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-medium rounded-md transition-all",
+                    isActive
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Icon
-                          className={cn(
-                            "w-5 h-5 transition-colors",
-                            isActive
-                              ? "text-[#ffffff]"
-                              : "text-zinc-700 group-hover:text-[#ffffff]"
-                          )}
-                        />
-                        <h3
-                          className={cn(
-                            "text-sm font-semibold tracking-wide transition-colors",
-                            isActive
-                              ? "text-[#ffffff]"
-                              : "text-[#353535] group-hover:text-[#ffffff]"
-                          )}
-                        >
-                          {category.title}
-                        </h3>
-                      </div>
-                      {isActive && (
-                        <motion.div layoutId="arrow" className="text-[#ffffff]">
-                          <ArrowRight className="w-4 h-4" />
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
+                  <Icon
+                    className={cn(
+                      "w-4 h-4",
+                      isActive
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                  <span>{category.title}</span>
                 </button>
               );
             })}

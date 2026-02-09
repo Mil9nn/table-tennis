@@ -143,7 +143,13 @@ export default function MatchesList({
             </div>
 
             {/* Line 2: Meta info */}
-            <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+            <div className="flex flex-wrap items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+              {match.tournament?.name && (
+                <>
+                  <span className="font-semibold text-gray-600">{match.tournament.name}</span>
+                  <span>•</span>
+                </>
+              )}
               <span className="capitalize">
                 {match.matchType?.replace("_", " ")}
               </span>

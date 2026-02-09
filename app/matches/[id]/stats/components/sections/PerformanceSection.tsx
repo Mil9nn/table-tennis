@@ -23,7 +23,15 @@ export function PerformanceSection({ stats }: Props) {
           <ServeReceiveChart data={computed.serveStats} />
         )}
 
-        {Array.isArray(computed.serveTypeStats) && computed.serveTypeStats.length > 0 && (
+        {Array.isArray(computed.serveTypeStats) && 
+          computed.serveTypeStats.length > 0 && 
+          computed.serveTypeStats.some((stat: any) => 
+            stat.side_spin > 0 || 
+            stat.top_spin > 0 || 
+            stat.back_spin > 0 || 
+            stat.mix_spin > 0 || 
+            stat.no_spin > 0
+          ) && (
           <ServeTypeChart data={computed.serveTypeStats} />
         )}
 
@@ -37,8 +45,10 @@ export function PerformanceSection({ stats }: Props) {
 
         return (
           <GameProgressionChart
-            data={games.map((_ : any, i : number) => ({
+            data={games.map((game: any, i: number) => ({
               game: `G${i + 1}`,
+              [side1Name]: game.side1Score,
+              [side2Name]: game.side2Score,
             }))}
             side1Name={side1Name}
             side2Name={side2Name}

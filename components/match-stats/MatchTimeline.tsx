@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { formatPlayerName } from "@/lib/player-name-utils";
 
 interface Game {
   side1Score: number;
@@ -90,15 +91,13 @@ export function MatchTimeline({
                     {/* Winner */}
                     <div className="flex items-center justify-center gap-1 text-[11px]">
                       {side1Won && (
-                        <span className="flex items-center gap-1 font-medium text-[#3c6e71]">
-                          <Check className="h-3 w-3" />
-                          {side1Name}
+                        <span className="font-medium text-[#6366f1]">
+                          {formatPlayerName(side1Name)}
                         </span>
                       )}
                       {side2Won && (
-                        <span className="flex items-center gap-1 font-medium text-[#3c6e71]">
-                          <Check className="h-3 w-3" />
-                          {side2Name}
+                        <span className="font-medium text-[#6366f1]">
+                          {formatPlayerName(side2Name)}
                         </span>
                       )}
                       {isDraw && (
@@ -121,13 +120,12 @@ export function MatchTimeline({
 
       {/* Match Result */}
       {overallWinner && (
-        <div className="mt-5 rounded-md bg-[#3c6e71]/5 px-4 py-3">
-          <div className="flex items-center justify-center gap-2">
-            <Check className="h-4 w-4 text-[#3c6e71]" />
-            <span className="text-sm font-semibold text-[#3c6e71]">
+        <div className="mt-5 rounded-md bg-[#6366f1]/5 px-4 py-3">
+          <div className="flex items-center justify-center">
+            <span className="text-sm font-semibold text-[#6366f1]">
               {overallWinner === "side1"
-                ? side1Name
-                : side2Name}{" "}
+                ? formatPlayerName(side1Name)
+                : formatPlayerName(side2Name)}{" "}
               won the match
             </span>
           </div>

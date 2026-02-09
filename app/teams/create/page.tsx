@@ -134,7 +134,7 @@ export default function CreateTeamPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#3c6e71] hover:text-[#ffffff] hover:border-[#3c6e71] transition-colors"
+              className="p-1.5 rounded border border-[#d9d9d9] hover:bg-[#f5f5f5] hover:border-[#353535] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -164,10 +164,10 @@ export default function CreateTeamPage() {
               {!imagePreview ? (
                 <div
                   {...getRootProps()}
-                  className="flex flex-col items-center justify-center border border-dashed border-[#d9d9d9] rounded p-6 cursor-pointer bg-[#ffffff] hover:bg-[#3c6e71]/10 transition-colors"
+                  className="flex flex-col items-center justify-center border border-dashed border-[#d9d9d9] rounded p-6 cursor-pointer bg-[#ffffff] hover:bg-[#f5f5f5] transition-colors"
                 >
                   <input {...getInputProps()} />
-                  <Upload className="w-8 h-8 text-[#3c6e71] mb-2" />
+                  <Upload className="w-8 h-8 text-[#353535] mb-2" />
                   <p className="text-[#353535] text-sm">
                     {isDragActive
                       ? "Drop the image here"
@@ -218,7 +218,7 @@ export default function CreateTeamPage() {
                       <Input
                         placeholder="Enter team name"
                         {...field}
-                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
+                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#353535]"
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
@@ -239,7 +239,7 @@ export default function CreateTeamPage() {
                       <Input
                         placeholder="Enter city"
                         {...field}
-                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#3c6e71]"
+                        className="bg-[#ffffff] border-[#d9d9d9] rounded h-10 text-sm placeholder:text-[#353535]/40 focus:border-[#353535]"
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
@@ -282,10 +282,10 @@ export default function CreateTeamPage() {
                   {players.map((p, idx) => (
                     <div
                       key={p._id}
-                      className="flex items-center justify-between p-3 bg-[#ffffff] hover:bg-[#3c6e71]/10 transition group"
+                      className="flex items-center justify-between p-3 bg-[#ffffff] hover:bg-[#f5f5f5] transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#3c6e71] text-[#ffffff] flex items-center justify-center font-bold text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#353535] text-[#ffffff] flex items-center justify-center font-bold text-xs">
                           {idx + 1}
                         </div>
                         <div>
@@ -313,7 +313,7 @@ export default function CreateTeamPage() {
               )}
 
               <div className="flex items-start gap-2 text-xs text-[#353535]/60 bg-[#ffffff] p-3 rounded border border-[#d9d9d9]">
-                <Info className="w-4 h-4 text-[#3c6e71] mt-0.5" />
+                <Info className="w-4 h-4 text-[#353535] mt-0.5" />
                 <p>
                   You will be automatically assigned as the team captain.
                 </p>
@@ -329,7 +329,7 @@ export default function CreateTeamPage() {
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="w-full py-6 rounded bg-[#3c6e71] hover:bg-[#3c6e71]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
+                className="w-full py-6 rounded bg-[#353535] hover:bg-[#353535]/90 text-[#ffffff] font-semibold text-sm uppercase tracking-wider shadow-md transition-colors"
               >
                 {form.formState.isSubmitting ? (
                   <>

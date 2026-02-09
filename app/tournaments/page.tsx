@@ -31,6 +31,29 @@ interface Tournament {
   participants: any[];
   organizer?: any;
   maxParticipants?: number;
+  standings?: Array<{
+    participant: any;
+    rank: number;
+  }>;
+  bracket?: {
+    completed?: boolean;
+    rounds?: Array<{
+      roundNumber: number;
+      matches?: Array<{
+        participant1?: any;
+        participant2?: any;
+        winner?: string;
+      }>;
+    }>;
+  };
+  knockoutStatistics?: {
+    outcome?: {
+      champion?: {
+        participantId: string;
+        participantName: string;
+      };
+    };
+  };
 }
 
 export default function TournamentsPage() {

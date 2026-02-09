@@ -36,6 +36,7 @@ export interface IMatchBase extends Document {
   scorer?: mongoose.Types.ObjectId;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   matchDuration?: number;
+  startedAt?: Date;
 
   // Location
   city?: string;
@@ -93,6 +94,7 @@ export const matchBaseSchema = new Schema<IMatchBase>(
       default: 'scheduled'
     },
     matchDuration: { type: Number },
+    startedAt: { type: Date },
 
     // Location
     city: { type: String },

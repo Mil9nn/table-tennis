@@ -72,7 +72,7 @@ export default function PlayerCard({
       whileTap={disabled ? {} : { scale: 0.98 }}
       onClick={handleClick}
       className={`
-        relative h-full min-h-[320px] flex flex-col justify-between p-6 
+        relative h-full min-h-[280px] flex flex-col justify-between p-6 
         ${colors[color].gradient}
         shadow-2xl
         ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:shadow-3xl"}

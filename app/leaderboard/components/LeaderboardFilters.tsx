@@ -15,7 +15,7 @@ import type { LeaderboardFilters as FilterType } from "@/lib/leaderboard/filterU
 interface LeaderboardFiltersProps {
   filters: Partial<FilterType>;
   onFiltersChange: (filters: Partial<FilterType>) => void;
-  tabType: "individual" | "teams" | "tournaments";
+  tabType: "individual" | "teams";
 }
 
 export function LeaderboardFilters({
@@ -139,28 +139,6 @@ export function LeaderboardFilters({
               </Select>
             </div>
 
-            {/* Sort By */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
-                Sort By
-              </label>
-              <Select
-                value={filters.sortBy || "winRate"}
-                onValueChange={(v) => updateFilter("sortBy", v)}
-              >
-                <SelectTrigger className="bg-white border-[#d9d9d9] text-[#353535] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="winRate">Win Rate</SelectItem>
-                  <SelectItem value="wins">Total Wins</SelectItem>
-                  <SelectItem value="pointDifference">Point Difference</SelectItem>
-                  <SelectItem value="winStreak">Win Streak</SelectItem>
-                  <SelectItem value="matchesPlayed">Matches Played</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Handedness */}
             <div className="space-y-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-[#353535]">
@@ -195,9 +173,8 @@ export function LeaderboardFilters({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Formats</SelectItem>
-                  <SelectItem value="league">League</SelectItem>
-                  <SelectItem value="knockout">Knockout</SelectItem>
                   <SelectItem value="friendly">Friendly</SelectItem>
+                  <SelectItem value="tournament">Tournament</SelectItem>
                 </SelectContent>
               </Select>
             </div>

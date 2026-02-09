@@ -211,7 +211,7 @@ export async function POST(
         match.winnerSide =
           match.finalScore.side1Sets >= setsNeeded ? "side1" : "side2";
         match.matchDuration =
-          Date.now() - (match.createdAt?.getTime() || Date.now());
+          Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
 
         // Save match first before triggering dependent updates
         await match.save();

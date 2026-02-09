@@ -47,24 +47,17 @@ export function buildLeaderboardPipeline(options: AggregationOptions): mongoose.
     });
   }
 
-  // Stage 2: Filter by tournament format and season if needed
-  if ((filters.matchFormat && filters.matchFormat !== 'friendly') || filters.tournamentSeason) {
+  // Stage 2: Filter by tournament season if needed
+  // Note: We no longer filter by tournament format here since 'tournament' includes all formats
+  // Format-specific filtering was removed - 'tournament' means any tournament match
+  if (filters.tournamentSeason) {
     const tournamentFilter: any = {};
-    if (filters.matchFormat && filters.matchFormat !== 'friendly') {
-      if (filters.matchFormat === 'league') {
-        tournamentFilter['tournamentData.format'] = 'round_robin';
-      } else if (filters.matchFormat === 'knockout') {
-        tournamentFilter['tournamentData.format'] = { $in: ['knockout', 'hybrid'] };
-      }
-    }
-    if (filters.tournamentSeason) {
-      const yearStart = new Date(filters.tournamentSeason, 0, 1);
-      const yearEnd = new Date(filters.tournamentSeason, 11, 31, 23, 59, 59, 999);
-      tournamentFilter['tournamentData.startDate'] = {
-        $gte: yearStart,
-        $lte: yearEnd,
-      };
-    }
+    const yearStart = new Date(filters.tournamentSeason, 0, 1);
+    const yearEnd = new Date(filters.tournamentSeason, 11, 31, 23, 59, 59, 999);
+    tournamentFilter['tournamentData.startDate'] = {
+      $gte: yearStart,
+      $lte: yearEnd,
+    };
     if (Object.keys(tournamentFilter).length > 0) {
       pipeline.push({ $match: tournamentFilter });
     }
@@ -151,7 +144,7 @@ export function buildLeaderboardPipeline(options: AggregationOptions): mongoose.
   }
 
   // Stage 12: Sort by selected metric
-  pipeline.push(buildSortStage(filters));
+  pipeline.push(buildSortStage());
 
   // Stage 14: Pagination and total count using $facet
   pipeline.push(buildPaginationStage(filters));
@@ -186,12 +179,12 @@ function buildMatchFilterStage(
 
   // Handle competition format filter
   // If matchFormat is 'friendly', include only non-tournament matches
-  // If matchFormat is 'league' or 'knockout', we need tournament to exist (filtered in Stage 2)
+  // If matchFormat is 'tournament', include all tournament matches (any format)
   // If no matchFormat filter, include all matches (both tournament and friendly)
   if (filters.matchFormat === 'friendly') {
     matchFilter.tournament = null;
-  } else if (filters.matchFormat && (filters.matchFormat === 'league' || filters.matchFormat === 'knockout')) {
-    // For league/knockout, we need tournament to exist (filtered in Stage 2)
+  } else if (filters.matchFormat === 'tournament') {
+    // For tournament, include any match with a tournament reference (all tournament formats)
     matchFilter.tournament = { $ne: null };
   }
   // If matchFormat is not set or is 'all', don't filter by tournament (include both)
@@ -491,6 +484,22 @@ function buildComputedMetricsStage(): mongoose.PipelineStage.AddFields {
       pointDifference: {
         $subtract: ['$totalPointsScored', '$totalPointsConceded'],
       },
+      // Match points (ITTF: 2 for win, 0 for loss, 1 for draw if applicable)
+      // Note: Draws are rare in table tennis, but we calculate match points for ITTF compliance
+      matchPoints: {
+        $add: [
+          { $multiply: ['$wins', 2] },
+          { $multiply: [{ $ifNull: ['$draws', 0] }, 1] },
+        ],
+      },
+      // Match differential (wins - losses) for table tennis ranking
+      matchDifferential: {
+        $subtract: ['$wins', '$losses'],
+      },
+      // Set differential (setsWon - setsLost) for table tennis ranking
+      setDifferential: {
+        $subtract: ['$setsWon', '$setsLost'],
+      },
       // Average points per match
       avgPointsPerMatch: {
         $cond: [
@@ -654,36 +663,20 @@ function buildPlayerFilterStage(
 }
 
 /**
- * Stage 12: Sort by selected metric
+ * Stage 12: Sort by table tennis standard ranking
  */
-function buildSortStage(filters: LeaderboardFilters): mongoose.PipelineStage.Sort {
-  const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
-  let sortField = 'winRate'; // Default
-
-  if (filters.sortBy) {
-    switch (filters.sortBy) {
-      case 'winRate':
-        sortField = 'winRate';
-        break;
-      case 'wins':
-        sortField = 'wins';
-        break;
-      case 'pointDifference':
-        sortField = 'pointDifference';
-        break;
-      case 'winStreak':
-        sortField = 'currentStreak';
-        break;
-      case 'matchesPlayed':
-        sortField = 'matchesPlayed';
-        break;
-    }
-  }
-
+function buildSortStage(): mongoose.PipelineStage.Sort {
+  // Initial sort by match points (ITTF primary criterion)
+  // Full ITTF sorting with head-to-head will be applied in post-processing
+  // This initial sort helps with performance and ensures match points are primary
   return {
     $sort: {
-      [sortField]: sortOrder,
-      matchesPlayed: -1, // Tie-breaker: more matches = higher rank
+      matchPoints: -1,
+      wins: -1,
+      matchDifferential: -1,
+      setDifferential: -1,
+      winRate: -1,
+      matchesPlayed: -1,
     },
   };
 }

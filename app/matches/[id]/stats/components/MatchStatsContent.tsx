@@ -5,6 +5,13 @@ import { DetailsSection } from "./sections/DetailsSection";
 import { MapsSection } from "./sections/MapsSection";
 
 export function MatchStatsContent({ stats, sectionRefs }: any) {
+  const hasValidShotData = stats.shots && stats.shots.some((shot: any) =>
+    shot.originX != null &&
+    shot.originY != null &&
+    shot.landingX != null &&
+    shot.landingY != null
+  );
+
   return (
     <main className="pb-24">
       <StatsSectionContainer
@@ -37,15 +44,17 @@ export function MatchStatsContent({ stats, sectionRefs }: any) {
         <DetailsSection stats={stats} />
       </StatsSectionContainer>
 
-      <StatsSectionContainer
-        id="maps"
-        title="Maps"
-        ref={(el) => {
-          sectionRefs.current.maps = el;
-        }}
-      >
-        <MapsSection stats={stats} />
-      </StatsSectionContainer>
+      {hasValidShotData && (
+        <StatsSectionContainer
+          id="maps"
+          title="Maps"
+          ref={(el) => {
+            sectionRefs.current.maps = el;
+          }}
+        >
+          <MapsSection stats={stats} />
+        </StatsSectionContainer>
+      )}
     </main>
   );
 }
