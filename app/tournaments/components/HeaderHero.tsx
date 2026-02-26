@@ -48,17 +48,20 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
   };
 
   return (
-    <header className="bg-[#353535] text-[#ffffff] p-6 space-y-4">
-      <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Tournaments</h1>
+    <header className="bg-gray-50 text-gray-800 p-4 space-y-4 shadow-sm">
+      <div>
+        <h1 className="text-[11px] mb-1 font-bold uppercase tracking-[0.2em]">Tournaments</h1>
+        <div className="h-1 w-20 rounded-full bg-gradient-to-r from-indigo-400 to-teal-400" />
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
+          <Search className="absolute left-3 top-2.5 text-blue-400 size-4" />
           <Input
             value={filters.query}
             onChange={(e) => onFiltersChange({ ...filters, query: e.target.value })}
             placeholder="Search tournaments..."
-            className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
+            className="pl-9 rounded-full bg-white border border-gray-200 text-gray-800 text-sm focus:ring-1 focus:ring-blue-400 focus-visible:ring-blue-400 focus-visible:ring-2"
           />
         </div>
 
@@ -66,8 +69,8 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
           variant="outline"
           size="icon"
           onClick={() => setShowFilters(!showFilters)}
-          className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
-            hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+          className={`shrink-0 rounded-full border-gray-200 hover:bg-gray-100 text-gray-700 ${
+            hasActiveFilters ? "bg-gray-100" : "bg-white"
           }`}
         >
           <Filter className="size-4" />
@@ -76,28 +79,19 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
 
       {/* Filter Panel */}
       {showFilters && (
-        <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
+        <div className="bg-gray-50 p-4 space-y-3 border border-gray-200 rounded">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">Filters</h3>
             <div className="flex items-center gap-2">
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearAll}
-                  className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                  className="h-6 px-2 text-[10px] uppercase tracking-wider text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                 >
                   Clear All
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFilters(false)}
-                className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
-              >
-                <X className="size-4" />
-              </Button>
             </div>
           </div>
 
@@ -105,7 +99,7 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
             <div className="space-y-1">
               <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Format</label>
               <Select value={filters.format} onValueChange={(v) => onFiltersChange({ ...filters, format: v })}>
-                <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                   <SelectValue placeholder="Format" />
                 </SelectTrigger>
                 <SelectContent>
@@ -120,7 +114,7 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
             <div className="space-y-1">
               <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Status</label>
               <Select value={filters.status} onValueChange={(v) => onFiltersChange({ ...filters, status: v })}>
-                <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,7 +129,7 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+            <label className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold flex items-center gap-1">
               <CalendarDays className="size-3" /> Date Range
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -143,14 +137,14 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => onFiltersChange({ ...filters, dateFrom: e.target.value })}
-                className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                className="bg-white border border-gray-200 text-gray-800 text-sm"
                 placeholder="From"
               />
               <Input
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => onFiltersChange({ ...filters, dateTo: e.target.value })}
-                className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                className="bg-white border border-gray-200 text-gray-800 text-sm"
                 placeholder="To"
               />
             </div>
@@ -159,7 +153,7 @@ export function HeaderHero({ filters, onFiltersChange }: HeaderHeroProps) {
           <div className="space-y-1">
             <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">Sort By</label>
             <Select value={filters.sort} onValueChange={(v) => onFiltersChange({ ...filters, sort: v })}>
-              <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+              <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
               <SelectContent>

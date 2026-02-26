@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+    <div className="min-h-[calc(100vh-100px)] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
       <div className="w-full max-w-sm">
         <div className="rounded-2xl bg-white shadow-xl border border-slate-200/60 overflow-hidden">
           {/* Header */}
@@ -93,7 +93,7 @@ export default function LoginPage() {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="you@company.com"
+                          placeholder="Enter your email address"
                           type="email"
                           className="h-11"
                           {...field}

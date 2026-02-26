@@ -50,7 +50,7 @@ export default function MatchesList({
   }
 
   return (
-    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
         const side1Won = match.winnerSide === "side1";

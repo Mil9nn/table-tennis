@@ -199,49 +199,53 @@ export default function TournamentsPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="min-h-screen bg-lb-white">
-        <HeaderHero filters={filters} onFiltersChange={setFilters} />
+      <div className="h-[calc(100vh-115px)] flex flex-col bg-white">
+        <div className="flex-shrink-0">
+          <HeaderHero filters={filters} onFiltersChange={setFilters} />
+        </div>
 
-        {loading ? (
-          <div className="py-4 px-4">
-            <TournamentsSkeleton />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-4 px-4">
-            <EmptyState
-              title="No tournaments found"
-              description="Create a tournament to manage matches, rankings, and progression."
-              actionLabel="Create tournament"
-              actionHref="/tournaments/create"
-            />
-          </div>
-        ) : (
-          <>
-            <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
-              {filtered.map((t) => (
-                <TournamentCard key={t._id} tournament={t} />
-              ))}
-            </section>
-
-            {/* Intersection Observer Target */}
-            <div
-              ref={observerTarget}
-              className="h-20 flex items-center justify-center py-8"
-            >
-              {loadingMore && (
-                <div className="flex items-center gap-2 text-[#3c6e71]">
-                  <Loader2 className="animate-spin" size={20} />
-                  <span className="text-sm">Loading more tournaments...</span>
-                </div>
-              )}
-              {!hasMore && tournaments.length > 0 && (
-                <p className="text-sm text-[#353535]">
-                  No more tournaments to load
-                </p>
-              )}
+        <div className="flex-1 overflow-auto">
+          {loading ? (
+            <div className="py-4 px-4">
+              <TournamentsSkeleton />
             </div>
-          </>
-        )}
+          ) : filtered.length === 0 ? (
+            <div className="py-4 px-4">
+              <EmptyState
+                title="No tournaments found"
+                description="Create a tournament to manage matches, rankings, and progression."
+                actionLabel="Create tournament"
+                actionHref="/tournaments/create"
+              />
+            </div>
+          ) : (
+            <>
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
+                {filtered.map((t) => (
+                  <TournamentCard key={t._id} tournament={t} />
+                ))}
+              </section>
+
+              {/* Intersection Observer Target */}
+              <div
+                ref={observerTarget}
+                className="h-20 flex items-center justify-center py-2"
+              >
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[#3c6e71]">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more tournaments...</span>
+                  </div>
+                )}
+                {!hasMore && tournaments.length > 0 && (
+                  <p className="text-sm text-[#353535]">
+                    No more tournaments to load
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </TournamentErrorBoundary>
   );

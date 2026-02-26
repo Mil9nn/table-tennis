@@ -269,18 +269,18 @@ export default function TeamsPage() {
   };
 
   return (
-    <section style={{ backgroundColor: "#ffffff", minHeight: "100vh" }}>
-      <header className="bg-[#353535] text-[#ffffff] p-6 space-y-4">
+    <section className="h-[calc(100vh-115px)] flex flex-col">
+      <header className="bg-white text-gray-800 p-6 space-y-4 border-b border-gray-200">
         <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Teams</h1>
 
         <div className="flex items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
+            <Search className="absolute left-3 top-2.5 text-gray-400 size-4" />
             <Input
               placeholder="Search teams..."
               value={filters.search}
               onChange={(e) => setFilter("search", e.target.value)}
-              className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
+              className="pl-9 bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 text-sm focus:ring-1 focus:ring-indigo-200"
             />
           </div>
 
@@ -288,8 +288,8 @@ export default function TeamsPage() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
-              hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+            className={`shrink-0 border-gray-200 hover:bg-gray-100 text-gray-700 ${
+              hasActiveFilters ? "bg-gray-100" : "bg-white"
             }`}
           >
             <Filter className="size-4" />
@@ -297,9 +297,9 @@ export default function TeamsPage() {
         </div>
 
         {showFilters && (
-          <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
+          <div className="bg-gray-50 p-4 space-y-3 border border-gray-200 rounded">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-800">
                 Filters
               </h3>
               <div className="flex items-center gap-2">
@@ -308,7 +308,7 @@ export default function TeamsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearAll}
-                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Clear All
                   </Button>
@@ -317,7 +317,7 @@ export default function TeamsPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowFilters(false)}
-                  className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
+                  className="size-6 hover:bg-gray-100 text-gray-600"
                 >
                   <X className="size-4" />
                 </Button>
@@ -326,14 +326,14 @@ export default function TeamsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                <label className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
                   City
                 </label>
                 <Select
                   value={filters.city}
                   onValueChange={(val) => setFilter("city", val)}
                 >
-                  <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                  <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                     <SelectValue placeholder="Filter by city" />
                   </SelectTrigger>
                   <SelectContent>
@@ -348,14 +348,14 @@ export default function TeamsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold">
+                <label className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
                   Sort By
                 </label>
                 <Select
                   value={filters.sortBy}
                   onValueChange={(val) => setFilter("sortBy", val)}
                 >
-                  <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                  <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>

@@ -22,7 +22,10 @@ import TeamMatchesListSkeleton from "@/components/skeletons/TeamMatchesListSkele
 import Link from "next/link";
 import { EmptyState } from "../tournaments/components/EmptyState";
 import { Diversity3 } from "@mui/icons-material";
-import { useIndividualMatchFilters, useTeamMatchFilters } from "@/hooks/useFilters";
+import {
+  useIndividualMatchFilters,
+  useTeamMatchFilters,
+} from "@/hooks/useFilters";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -30,7 +33,9 @@ export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState("individual");
 
   // Individual matches state
-  const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>([]);
+  const [individualMatches, setIndividualMatches] = useState<IndividualMatch[]>(
+    [],
+  );
   const [individualLoading, setIndividualLoading] = useState(true);
   const [individualLoadingMore, setIndividualLoadingMore] = useState(false);
   const [individualHasMore, setIndividualHasMore] = useState(true);
@@ -65,9 +70,14 @@ export default function MatchesPage() {
         }
 
         const skip = page * ITEMS_PER_PAGE;
-        const params = individualFilters.buildQueryParams({ limit: ITEMS_PER_PAGE, skip });
-        
-        const { data } = await axiosInstance.get(`/matches/individual?${params.toString()}`);
+        const params = individualFilters.buildQueryParams({
+          limit: ITEMS_PER_PAGE,
+          skip,
+        });
+
+        const { data } = await axiosInstance.get(
+          `/matches/individual?${params.toString()}`,
+        );
 
         if (append) {
           setIndividualMatches((prev) => [...prev, ...(data.matches || [])]);
@@ -83,7 +93,7 @@ export default function MatchesPage() {
         setIndividualLoadingMore(false);
       }
     },
-    [individualFilters]
+    [individualFilters],
   );
 
   // Fetch team matches with server-side filtering
@@ -97,9 +107,14 @@ export default function MatchesPage() {
         }
 
         const skip = page * ITEMS_PER_PAGE;
-        const params = teamFilters.buildQueryParams({ limit: ITEMS_PER_PAGE, skip });
+        const params = teamFilters.buildQueryParams({
+          limit: ITEMS_PER_PAGE,
+          skip,
+        });
 
-        const { data } = await axiosInstance.get(`/matches/team?${params.toString()}`);
+        const { data } = await axiosInstance.get(
+          `/matches/team?${params.toString()}`,
+        );
 
         if (append) {
           setTeamMatches((prev) => [...prev, ...(data.matches || [])]);
@@ -115,7 +130,7 @@ export default function MatchesPage() {
         setTeamLoadingMore(false);
       }
     },
-    [teamFilters]
+    [teamFilters],
   );
 
   // Refetch individual matches when filters change (using debounced search)
@@ -166,7 +181,7 @@ export default function MatchesPage() {
           fetchIndividualMatches(nextPage, true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (individualObserverTarget.current) {
@@ -205,7 +220,7 @@ export default function MatchesPage() {
           fetchTeamMatches(nextPage, true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (teamObserverTarget.current) {
@@ -227,16 +242,22 @@ export default function MatchesPage() {
   ]);
 
   // Get current filters based on active tab
-  const currentFilters = activeTab === "individual" ? individualFilters : teamFilters;
+  const currentFilters =
+    activeTab === "individual" ? individualFilters : teamFilters;
 
   return (
-    <div style={{ backgroundColor: "#ffffff", minHeight: "100vh" }}>
-      <header className="bg-[#353535] text-lb-white p-6 space-y-4">
-        <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Matches</h1>
+    <div className="h-[calc(100vh-115px)] flex flex-col">
+      <header className="bg-gray-50 text-gray-800 p-4 space-y-4 shadow-sm flex-shrink-0">
+        <div>
+          <h1 className="text-[11px] mb-1 font-bold uppercase tracking-[0.2em]">
+            Matches
+          </h1>
+          <div className="h-1 w-20 rounded-full bg-gradient-to-r from-indigo-400 to-teal-400" />
+        </div>
 
         <div className="flex items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-[#d9d9d9] size-4" />
+            <Search className="absolute left-3 top-2.5 text-blue-400 size-4" />
             <Input
               placeholder={
                 activeTab === "individual"
@@ -253,7 +274,7 @@ export default function MatchesPage() {
                   ? individualFilters.setFilter("search", e.target.value)
                   : teamFilters.setFilter("search", e.target.value)
               }
-              className="pl-9 bg-[#284b63] border-[#284b63] text-[#ffffff] placeholder:text-[#d9d9d9] text-sm focus:ring-1 focus:ring-[#3c6e71]"
+              className="pl-9 rounded-full bg-white border border-gray-200 text-gray-800 text-sm focus:ring-1 focus:ring-blue-400 focus-visible:ring-blue-400 focus-visible:ring-2"
             />
           </div>
 
@@ -261,8 +282,8 @@ export default function MatchesPage() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`shrink-0 border-[#284b63] hover:bg-[#3c6e71] text-[#ffffff] ${
-              currentFilters.hasActiveFilters ? "bg-[#3c6e71]" : "bg-[#284b63]"
+            className={`shrink-0 rounded-full border-gray-200 hover:bg-gray-100 text-gray-700 ${
+              currentFilters.hasActiveFilters ? "bg-gray-100" : "bg-white"
             }`}
           >
             <Filter className="size-4" />
@@ -270,9 +291,8 @@ export default function MatchesPage() {
         </div>
 
         {showFilters && (
-          <div className="bg-[#284b63] p-4 space-y-3 border border-[#3c6e71]">
+          <div className="bg-gray-50 p-4 space-y-3 border border-gray-200 rounded">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffffff]">Filters</h3>
               <div className="flex items-center gap-2">
                 {currentFilters.hasActiveFilters && (
                   <Button
@@ -285,19 +305,11 @@ export default function MatchesPage() {
                         teamFilters.clearAll();
                       }
                     }}
-                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-[#d9d9d9] hover:bg-[#3c6e71] hover:text-white"
+                    className="h-6 px-2 text-[10px] uppercase tracking-wider text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Clear All
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowFilters(false)}
-                  className="size-6 hover:bg-[#3c6e71] text-[#d9d9d9]"
-                >
-                  <X className="size-4" />
-                </Button>
               </div>
             </div>
 
@@ -310,9 +322,11 @@ export default function MatchesPage() {
                     </label>
                     <Select
                       value={individualFilters.filters.type}
-                      onValueChange={(val) => individualFilters.setFilter("type", val)}
+                      onValueChange={(val) =>
+                        individualFilters.setFilter("type", val)
+                      }
                     >
-                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                      <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                         <SelectValue placeholder="Filter by match type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -329,9 +343,11 @@ export default function MatchesPage() {
                     </label>
                     <Select
                       value={individualFilters.filters.status}
-                      onValueChange={(val) => individualFilters.setFilter("status", val)}
+                      onValueChange={(val) =>
+                        individualFilters.setFilter("status", val)
+                      }
                     >
-                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                      <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -345,22 +361,26 @@ export default function MatchesPage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+                  <label className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold flex items-center gap-1">
                     <CalendarDays className="size-3" /> Date Range
                   </label>
                   <div className="grid grid-cols-2 gap-3 mt-1">
                     <Input
                       type="date"
                       value={individualFilters.filters.dateFrom}
-                      onChange={(e) => individualFilters.setFilter("dateFrom", e.target.value)}
-                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      onChange={(e) =>
+                        individualFilters.setFilter("dateFrom", e.target.value)
+                      }
+                      className="bg-white border border-gray-200 text-gray-800 text-sm"
                       placeholder="From"
                     />
                     <Input
                       type="date"
                       value={individualFilters.filters.dateTo}
-                      onChange={(e) => individualFilters.setFilter("dateTo", e.target.value)}
-                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      onChange={(e) =>
+                        individualFilters.setFilter("dateTo", e.target.value)
+                      }
+                      className="bg-white border border-gray-200 text-gray-800 text-sm"
                       placeholder="To"
                     />
                   </div>
@@ -375,15 +395,21 @@ export default function MatchesPage() {
                     </label>
                     <Select
                       value={teamFilters.filters.format}
-                      onValueChange={(val) => teamFilters.setFilter("format", val)}
+                      onValueChange={(val) =>
+                        teamFilters.setFilter("format", val)
+                      }
                     >
-                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                      <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                         <SelectValue placeholder="Filter by format" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Formats</SelectItem>
-                        <SelectItem value="five_singles">Swaythling (5 Singles)</SelectItem>
-                        <SelectItem value="single_double_single">Single-Double-Single</SelectItem>
+                        <SelectItem value="five_singles">
+                          Swaythling (5 Singles)
+                        </SelectItem>
+                        <SelectItem value="single_double_single">
+                          Single-Double-Single
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -394,9 +420,11 @@ export default function MatchesPage() {
                     </label>
                     <Select
                       value={teamFilters.filters.status}
-                      onValueChange={(val) => teamFilters.setFilter("status", val)}
+                      onValueChange={(val) =>
+                        teamFilters.setFilter("status", val)
+                      }
                     >
-                      <SelectTrigger className="bg-[#353535] border-[#3c6e71] text-[#ffffff]">
+                      <SelectTrigger className="bg-white border border-gray-200 text-gray-800">
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -410,22 +438,26 @@ export default function MatchesPage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#d9d9d9] uppercase tracking-wider font-semibold flex items-center gap-1">
+                  <label className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold flex items-center gap-1">
                     <CalendarDays className="size-3" /> Date Range
                   </label>
                   <div className="grid grid-cols-2 gap-3 mt-1">
                     <Input
                       type="date"
                       value={teamFilters.filters.dateFrom}
-                      onChange={(e) => teamFilters.setFilter("dateFrom", e.target.value)}
-                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      onChange={(e) =>
+                        teamFilters.setFilter("dateFrom", e.target.value)
+                      }
+                      className="bg-white border border-gray-200 text-gray-800 text-sm"
                       placeholder="From"
                     />
                     <Input
                       type="date"
                       value={teamFilters.filters.dateTo}
-                      onChange={(e) => teamFilters.setFilter("dateTo", e.target.value)}
-                      className="bg-[#353535] border-[#3c6e71] text-[#ffffff] text-sm"
+                      onChange={(e) =>
+                        teamFilters.setFilter("dateTo", e.target.value)
+                      }
+                      className="bg-white border border-gray-200 text-gray-800 text-sm"
                       placeholder="To"
                     />
                   </div>
@@ -439,7 +471,7 @@ export default function MatchesPage() {
       <Tabs
         defaultValue="individual"
         onValueChange={setActiveTab}
-        className="w-full"
+        className="w-full flex flex-col flex-1 overflow-hidden"
       >
         <TabsList
           style={{
@@ -451,6 +483,7 @@ export default function MatchesPage() {
             borderRadius: "0px",
             height: "auto",
           }}
+          className="flex-shrink-0"
         >
           <TabsTrigger
             value="individual"
@@ -480,7 +513,7 @@ export default function MatchesPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="individual" className="">
+        <TabsContent value="individual" className="flex-1 overflow-auto data-[state=active]:block data-[state=inactive]:hidden">
           {individualLoading ? (
             <MatchesListSkeleton />
           ) : (
@@ -517,7 +550,7 @@ export default function MatchesPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="team" style={{ margin: 0 }}>
+        <TabsContent value="team" style={{ margin: 0 }} className="flex-1 overflow-auto data-[state=active]:block data-[state=inactive]:hidden">
           {teamLoading ? (
             <TeamMatchesListSkeleton />
           ) : (

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X, LogIn, Plus, ChevronRight } from "lucide-react";
+import { X, LogIn, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HouseIcon from "@mui/icons-material/House";
 import JoinRightIcon from "@mui/icons-material/JoinRight";
@@ -29,7 +29,6 @@ export default function Navbar() {
 
   const user = useAuthStore((state) => state.user);
   const previewUrl = useProfileStore((state) => state.previewUrl);
-
   const fallbackInitial = user?.fullName?.charAt(0).toUpperCase() || "?";
 
   const navItems = [
@@ -41,7 +40,6 @@ export default function Navbar() {
     { label: "Scorer", href: "/scorer", icon: EditNoteIcon },
   ];
 
-  // Desktop nav (excludes Home since logo links to /)
   const desktopNavItems = navItems.slice(1);
 
   function isActive(href: string) {
@@ -49,97 +47,286 @@ export default function Navbar() {
     return pathname?.startsWith(href);
   }
 
-  // Quick Actions Panel: close on click outside or Escape
   useEffect(() => {
     if (!quickActionsOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (
         quickActionsRef.current &&
-        !quickActionsRef.current.contains(event.target as Node) &&
-        !quickActionsButtonRef.current?.contains(event.target as Node)
-      ) {
+        !quickActionsRef.current.contains(e.target as Node) &&
+        !quickActionsButtonRef.current?.contains(e.target as Node)
+      )
         setQuickActionsOpen(false);
-      }
     };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setQuickActionsOpen(false);
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setQuickActionsOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [quickActionsOpen]);
 
-  // Close panels on route change
   useEffect(() => setQuickActionsOpen(false), [pathname]);
 
-  // Sidebar nav cards (Profile-style)
-  const sidebarNav = navItems;
+  const quickActionLinks = [
+    { label: "Create Match", href: "/match/create", icon: AddCircleOutlineIcon },
+    { label: "Create Team", href: "/teams/create", icon: GroupAddIcon },
+    { label: "Create Tournament", href: "/tournaments/create", icon: SportsMmaIcon },
+  ];
 
   return (
-    <header className="w-full fixed top-0 left-0 z-50">
-      {/* Top Navbar */}
-      <nav className="h-14 flex items-center justify-between px-4 border-b bg-[#353535] shadow-sm gap-2 lg:gap-4">
-        {/* Left: Hamburger + Logo + Quick Actions */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          {/* Hamburger Menu (mobile) */}
-          <button
-            className="sm:hidden p-2 text-gray-700 hover:text-indigo-600"
-            onClick={() => setOpen(true)}
-          >
-            <Image
-              src="/svgs/menu.svg"
-              alt="menu-icon"
-              width={25}
-              height={25}
-              className="w-5 h-5 bg-white"
-            />
-          </button>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center shrink-0">
-            <Image src="/imgs/logo.png" alt="logo" width={50} height={50} />
-            <span
-              className="text-base font-bold bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent tracking-tight"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        .nav-font { font-family: 'Syne', sans-serif; }
+        .body-font { font-family: 'DM Sans', sans-serif; }
+
+        .nav-link-item {
+          position: relative;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          color: rgba(255,255,255,0.45);
+          padding: 6px 10px;
+          border-radius: 8px;
+          transition: color 0.2s ease, background 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .nav-link-item:hover {
+          color: rgba(255,255,255,0.9);
+          background: rgba(255,255,255,0.06);
+        }
+        .nav-link-item.active {
+          color: #fff;
+          background: rgba(96, 165, 250, 0.12);
+        }
+        .nav-link-item.active::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60%;
+          height: 2px;
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
+          border-radius: 2px 2px 0 0;
+        }
+
+        .qa-btn {
+          width: 32px; height: 32px;
+          border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.7);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .qa-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+        .qa-btn.active {
+          background: rgba(59, 130, 246, 0.3);
+          border-color: rgba(59, 130, 246, 0.5);
+          color: #60a5fa;
+        }
+
+        .qa-panel {
+          background: #1e1e1e;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .qa-pill {
+          display: flex; align-items: center; gap: 7px;
+          padding: 7px 14px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 999px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: rgba(255,255,255,0.65);
+          text-decoration: none;
+          transition: all 0.18s ease;
+        }
+        .qa-pill:hover {
+          background: rgba(59, 130, 246, 0.15);
+          border-color: rgba(59, 130, 246, 0.35);
+          color: #93c5fd;
+        }
+
+        .profile-ring {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          border: 1.5px solid rgba(255,255,255,0.15);
+          overflow: hidden;
+          cursor: pointer;
+          transition: border-color 0.2s ease, transform 0.2s ease;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.07);
+        }
+        .profile-ring:hover { border-color: #60a5fa; transform: scale(1.05); }
+
+        .login-btn {
+          display: flex; align-items: center; gap: 6px;
+          padding: 7px 16px;
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          border-radius: 999px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #fff;
+          letter-spacing: 0.02em;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          box-shadow: 0 0 0 0 rgba(59,130,246,0);
+        }
+        .login-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+        .login-btn:active { transform: scale(0.97); }
+
+        /* Sidebar */
+        .sidebar {
+          background: #141414;
+          border-right: 1px solid rgba(255,255,255,0.07);
+        }
+        .sidebar-section-label {
+          font-family: 'Syne', sans-serif;
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.25);
+          padding: 0 12px;
+          margin-bottom: 6px;
+        }
+        .sidebar-item {
+          width: 100%;
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.84rem;
+          font-weight: 500;
+          color: rgba(255,255,255,0.55);
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          text-align: left;
+        }
+        .sidebar-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); }
+        .sidebar-item.active { background: rgba(59,130,246,0.12); color: #93c5fd; }
+
+        .sidebar-qa-item {
+          width: 100%;
+          display: flex; align-items: center; gap: 10px;
+          padding: 9px 12px;
+          border-radius: 10px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: rgba(255,255,255,0.6);
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.07);
+          cursor: pointer;
+          transition: all 0.18s ease;
+          text-align: left;
+        }
+        .sidebar-qa-item:hover { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #93c5fd; }
+      `}</style>
+
+      <header className="w-full">
+        {/* Navbar */}
+        <nav
+          style={{
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 16px",
+            background: "#1a1a1a",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 1px 0 rgba(255,255,255,0.04)",
+            gap: "12px",
+          }}
+        >
+          {/* Left */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* Hamburger (mobile) */}
+            <button
+              className="sm:hidden"
+              onClick={() => setOpen(true)}
+              style={{
+                width: 32, height: 32,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
             >
-              TTPro
-            </span>
-          </Link>
+              <Image
+                src="/svgs/menu.svg"
+                alt="menu"
+                width={16}
+                height={16}
+                style={{ filter: "invert(1) opacity(0.7)" }}
+              />
+            </button>
 
-          {/* Quick Actions */}
-          <button
-            ref={quickActionsButtonRef}
-            onClick={() => setQuickActionsOpen(!quickActionsOpen)}
-            className={cn(
-              "hidden sm:flex ml-2 size-8 rounded-full items-center justify-center transition-all duration-200",
-              quickActionsOpen
-                ? "bg-indigo-600 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-            )}
-            aria-label="Quick Actions"
-            aria-expanded={quickActionsOpen}
-            aria-controls="quick-actions-panel"
-          >
-            <Plus
-              className={cn(
-                "size-4 transition-transform duration-200",
-                quickActionsOpen && "rotate-45"
-              )}
+            {/* Logo */}
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "6px", textDecoration: "none", flexShrink: 0 }}>
+              <Image src="/imgs/logo.png" alt="logo" width={34} height={34} />
+              <span
+                className="nav-font"
+                style={{
+                  fontSize: "1.05rem",
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #60a5fa, #93c5fd)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                TTPro
+              </span>
+            </Link>
+
+            {/* Divider */}
+            <div
+              className="hidden sm:block"
+              style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)", margin: "0 4px" }}
             />
-          </button>
-        </div>
 
-        {/* Right: Desktop Nav + Profile/Login */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-1 lg:gap-2 flex-wrap">
+            {/* Quick Actions Button */}
+            <button
+              ref={quickActionsButtonRef}
+              onClick={() => setQuickActionsOpen(!quickActionsOpen)}
+              className={cn("hidden sm:flex qa-btn", quickActionsOpen && "active")}
+              aria-label="Quick Actions"
+              aria-expanded={quickActionsOpen}
+            >
+              <Plus
+                style={{
+                  width: 15, height: 15,
+                  transform: quickActionsOpen ? "rotate(45deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              />
+            </button>
+          </div>
+
+          {/* Center: Desktop Nav */}
+          <div className="hidden md:flex" style={{ alignItems: "center", gap: "2px", flex: 1, justifyContent: "center" }}>
             {desktopNavItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -147,194 +334,216 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={cn(
-                    "flex items-center gap-1 px-2 lg:px-3 py-2 font-medium text-xs lg:text-sm transition-all duration-300 relative",
-                    active
-                      ? "text-blue-500"
-                      : "text-gray-400 hover:text-blue-400"
-                  )}
+                  className={cn("nav-link-item", active && "active")}
                 >
-                  <Icon sx={{ fontSize: 18 }} />
+                  <Icon sx={{ fontSize: 15 }} />
                   {item.label}
-                  {active && (
-                    <div className="absolute -bottom-3 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
-                  )}
                 </Link>
               );
             })}
           </div>
 
-          {/* Profile */}
-          {user ? (
-            <Link
-              href="/profile"
-              className="cursor-pointer size-9 rounded-full ring-1 ring-gray-300 flex items-center justify-center hover:ring-indigo-500 overflow-hidden"
-            >
-              {user?.profileImage ? (
-                <Image
-                  src={previewUrl || user.profileImage}
-                  alt="Profile"
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-sm font-bold text-gray-600">
-                  {fallbackInitial}
-                </span>
-              )}
-            </Link>
-          ) : (
-            <Link
-              href="/auth/login"
-              className="flex items-center gap-2 text-xs bg-purple-500 rounded-full px-4 py-2 text-white font-medium hover:bg-purple-600 hover:scale-105 active:scale-95 transition-all duration-200"
-            >
-              <LogIn className="size-4" />
-              Login
-            </Link>
-          )}
-        </div>
-      </nav>
-
-      {/* Quick Actions Panel - Secondary Utility Controls */}
-      {quickActionsOpen && (
-        <div
-          ref={quickActionsRef}
-          id="quick-actions-panel"
-          role="region"
-          aria-label="Quick Actions Menu"
-          className="hidden sm:block absolute top-full left-0 right-0 bg-[#353535] shadow-md z-40 animate-in fade-in slide-in-from-top-2 duration-200"
-        >
-          <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="flex gap-2 flex-wrap">
-              <Link
-                href="/match/create"
-                onClick={() => setQuickActionsOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded hover:border-gray-300 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <AddCircleOutlineIcon sx={{ fontSize: 16 }} />
-                <span>Create Match</span>
+          {/* Right: Profile / Login */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            {user ? (
+              <Link href="/profile" className="profile-ring">
+                {user?.profileImage ? (
+                  <Image
+                    src={previewUrl || user.profileImage}
+                    alt="Profile"
+                    width={36}
+                    height={36}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <span
+                    className="nav-font"
+                    style={{ fontSize: "0.8rem", fontWeight: 700, color: "#93c5fd" }}
+                  >
+                    {fallbackInitial}
+                  </span>
+                )}
               </Link>
-
-              <Link
-                href="/teams/create"
-                onClick={() => setQuickActionsOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded hover:border-gray-300 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <GroupAddIcon sx={{ fontSize: 16 }} />
-                <span>Create Team</span>
+            ) : (
+              <Link href="/auth/login" className="login-btn">
+                <LogIn style={{ width: 13, height: 13 }} />
+                Login
               </Link>
+            )}
+          </div>
+        </nav>
 
-              <Link
-                href="/tournaments/create"
-                onClick={() => setQuickActionsOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded hover:border-gray-300 hover:bg-gray-50 transition-colors duration-150"
+        {/* Quick Actions Panel */}
+        {quickActionsOpen && (
+          <div
+            ref={quickActionsRef}
+            id="quick-actions-panel"
+            className="hidden sm:block qa-panel"
+            style={{
+              padding: "10px 16px",
+              animation: "qaSlideIn 0.15s ease forwards",
+            }}
+          >
+            <style>{`
+              @keyframes qaSlideIn {
+                from { opacity: 0; transform: translateY(-6px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
+            <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", gap: "8px", alignItems: "center" }}>
+              <span
+                className="nav-font"
+                style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginRight: 4 }}
               >
-                <SportsMmaIcon sx={{ fontSize: 16 }} />
-                <span>Create Tournament</span>
-              </Link>
+                Quick
+              </span>
+              {quickActionLinks.map(({ label, href, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setQuickActionsOpen(false)}
+                  className="qa-pill"
+                >
+                  <Icon sx={{ fontSize: 13 }} />
+                  {label}
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Mobile Sidebar */}
-      {/* Mobile Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 w-72 sm:hidden z-40",
-          "bg-[#353535]/95 backdrop-blur-xl",
-          "border-r border-white/10",
-          "transform transition-transform duration-300 ease-out",
-          open ? "translate-x-0" : "-translate-x-full"
         )}
-      >
-        {/* Header */}
-        <div className="h-14 px-5 flex items-center justify-between border-b border-white/10">
-          <span className="text-sm font-semibold tracking-wide text-white">
-            Navigation
-          </span>
-          <button onClick={() => setOpen(false)}>
-            <X className="w-5 h-5 text-white/70 hover:text-white" />
-          </button>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="px-4 py-4 space-y-2">
-          <p className="text-[11px] uppercase tracking-widest text-white/40 px-2">
-            Quick Actions
-          </p>
-
-          {[
-            { label: "Create Match", href: "/match/create", icon: Plus },
-            { label: "Create Team", href: "/teams/create", icon: Plus },
-            {
-              label: "Create Tournament",
-              href: "/tournaments/create",
-              icon: Plus,
-            },
-          ].map(({ label, href, icon: Icon }) => (
-            <button
-              key={label}
-              onClick={() => {
-                router.push(href);
-                setOpen(false);
-              }}
-              className="
-          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-          text-sm font-medium text-white/80
-          bg-white/5 hover:bg-white/10
-          transition-all
-        "
-            >
-              <Icon className="w-4 h-4 text-indigo-400" />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Navigation */}
-        <div className="px-4 py-2">
-          <p className="text-[11px] uppercase tracking-widest text-white/40 px-2 mb-2">
-            Menu
-          </p>
-
-          <div className="space-y-1">
-            {sidebarNav.map((item) => {
-              const active = isActive(item.href);
-              const Icon = item.icon;
-
-              return (
-                <button
-                  key={item.href}
-                  onClick={() => {
-                    router.push(item.href);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                    "text-sm font-medium transition-all",
-                    active
-                      ? "bg-indigo-500/15 text-indigo-400"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay */}
-      {open && (
+        {/* Mobile Sidebar */}
         <div
-          onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm sm:hidden z-30"
-        />
-      )}
-    </header>
+          className="sm:hidden sidebar"
+          style={{
+            position: "fixed",
+            inset: "0 auto 0 0",
+            width: "280px",
+            zIndex: 40,
+            transform: open ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Sidebar Header */}
+          <div
+            style={{
+              height: 56,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 16px",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Image src="/imgs/logo.png" alt="logo" width={26} height={26} />
+              <span
+                className="nav-font"
+                style={{ fontSize: "0.95rem", fontWeight: 800, color: "#93c5fd", letterSpacing: "-0.02em" }}
+              >
+                TTPro
+              </span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              style={{
+                width: 30, height: 30,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              <X style={{ width: 15, height: 15, color: "rgba(255,255,255,0.5)" }} />
+            </button>
+          </div>
+
+          {/* Sidebar Body */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Quick Actions */}
+            <div>
+              <div className="sidebar-section-label">Quick Actions</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {quickActionLinks.map(({ label, href, icon: Icon }) => (
+                  <button
+                    key={label}
+                    onClick={() => { router.push(href); setOpen(false); }}
+                    className="sidebar-qa-item"
+                  >
+                    <Icon sx={{ fontSize: 16, color: "#60a5fa" }} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div>
+              <div className="sidebar-section-label">Menu</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {navItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => { router.push(item.href); setOpen(false); }}
+                      className={cn("sidebar-item", active && "active")}
+                    >
+                      <Icon sx={{ fontSize: 17 }} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Footer */}
+          {!user && (
+            <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              <button
+                onClick={() => { router.push("/auth/login"); setOpen(false); }}
+                style={{
+                  width: "100%",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "11px",
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderRadius: 12,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <LogIn style={{ width: 15, height: 15 }} />
+                Sign in to your account
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Overlay */}
+        {open && (
+          <div
+            onClick={() => setOpen(false)}
+            className="sm:hidden"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(4px)",
+              zIndex: 30,
+              animation: "fadeIn 0.2s ease",
+            }}
+          />
+        )}
+      </header>
+    </>
   );
 }

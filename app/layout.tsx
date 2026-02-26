@@ -60,13 +60,15 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
         <AuthProvider user={plainUser}>
-          <Navbar />
-          <div className="pt-14 w-full">
-            {children}
-            <Analytics />
-            <SpeedInsights />
-            <Toaster position="top-right" />
-          </div>
+            <div className="h-screen">
+              <Navbar />
+              <main>
+                {children}
+                <Analytics />
+                <SpeedInsights />
+                <Toaster position="top-right" />
+              </main>
+            </div>
         </AuthProvider>
       </body>
     </html>

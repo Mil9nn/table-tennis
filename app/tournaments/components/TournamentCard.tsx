@@ -68,6 +68,8 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         return "text-green-500";
       case "upcoming":
         return "text-orange-500";
+      case "cancelled":
+        return "text-red-500";
       case "draft":
         return "text-gray-500";
       default:
@@ -155,43 +157,40 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         </h3>
       </div>
 
-      {/* Line 2: Meta info - Status/Type/Format or Type/Format/Winner */}
+      {/* Line 2: Meta info - Status/Type/Format/Participants */}
       <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
-        {winnerName ? (
-          // For completed tournaments with winner: show Type, Format, Winner (no status)
-          <>
-            <span className="capitalize">{tournamentTypeLabel}</span>
-            <span>•</span>
-            <span className="capitalize">{formatLabel}</span>
-            <span>•</span>
-            <span className={`font-semibold text-green-500 group-hover:text-[#ffffff] transition-colors`}>Winner: {winnerName}</span>
-          </>
-        ) : (
-          // For non-completed tournaments: show Status, Type, Format
-          <>
-            <span className={`capitalize ${statusColor} group-hover:text-[#ffffff] transition-colors`}>{statusLabel}</span>
-            <span>•</span>
-            <span className="capitalize">{tournamentTypeLabel}</span>
-            <span>•</span>
-            <span className="capitalize">{formatLabel}</span>
-          </>
-        )}
+        <>
+          <span className={`capitalize ${statusColor} group-hover:text-[#ffffff] transition-colors`}>{statusLabel}</span>
+          <span>•</span>
+          <span className="capitalize">{tournamentTypeLabel}</span>
+          <span>•</span>
+          <span className="capitalize">{formatLabel}</span>
+          <span>•</span>
+          <span>
+            {tournament.participants.length}
+            {tournament.maxParticipants ? ` / ${tournament.maxParticipants}` : ""} players
+          </span>
+        </>
       </div>
 
-      {/* Line 3: Meta info - Date, City, Participants */}
-      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
+      {/* Line 3: Meta info - Date, City, Venue */}
+      <div className="flex flex-wrap items-center gap-1 mt-2 text-xs text-gray-400 transition-colors group-hover:text-[#ffffff]">
         <span>{formatDateShort(tournament.startDate)}</span>
-        {tournament.city && (
+        {(tournament.city || tournament.venue) && (
           <>
             <span>•</span>
-            <span>{tournament.city}</span>
+            <span>
+              {tournament.city && tournament.venue ? `${tournament.city}, ${tournament.venue}` : 
+               tournament.city || tournament.venue}
+            </span>
           </>
         )}
-        <span>•</span>
-        <span>
-          {tournament.participants.length}
-          {tournament.maxParticipants ? ` / ${tournament.maxParticipants}` : ""} players
-        </span>
+        {winnerName && (
+          <>
+            <span>•</span>
+            <span className={`font-semibold group-hover:text-[#ffffff] transition-colors`}>{winnerName}</span>
+          </>
+        )}
       </div>
     </Link>
   );
