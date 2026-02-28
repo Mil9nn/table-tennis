@@ -12,6 +12,7 @@ import {
 import type { LeaderboardType } from "./types";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import type { LeaderboardFilters as FilterType } from "@/lib/leaderboard/filterUtils";
+import LeaderboardSkeleton from "@/components/skeletons/LeaderboardSkeleton";
 
 
 export default function LeaderboardPage() {
@@ -186,7 +187,13 @@ function LeaderboardPanel({
   return (
     <div className="border border-[#d9d9d9]">
       {/* Content */}
-      <div className="bg-[#ffffff]">{children}</div>
+      <div className="bg-[#ffffff]">
+        {loading ? (
+          <LeaderboardSkeleton />
+        ) : (
+          children
+        )}
+      </div>
 
       {/* Infinite Scroll Zone */}
       {!loading && (

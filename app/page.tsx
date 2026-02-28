@@ -6,7 +6,7 @@ import FinalCTA from "./marketing/FinalCTA";
 
 export default function HomePage() {
   return (
-    <div className="marketing" style={{ backgroundColor: "#353535" }}>
+    <div className="marketing bg-white">
       <Hero />
       <CoreValueProps />
       <Features />

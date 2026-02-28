@@ -96,11 +96,11 @@ const ProfileHeader = ({
     <div>
       {/* Profile Card */}
       <div className="max-w-6xl mx-auto">
-        <div className="bg-[#353535] px-6 py-10">
+        <div className="bg-gradient-to-br from-gray-50 to-white px-6 py-10 shadow-sm">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Profile Image */}
             <div className="relative w-28 h-28 flex-shrink-0">
-              <div className="w-28 h-28 overflow-hidden bg-[#284b63]">
+              <div className="w-28 h-28 overflow-hidden rounded-2xl border-2 border-gray-200 shadow-lg">
                 {previewUrl || user?.profileImage ? (
                   <Image
                     src={previewUrl || user.profileImage}
@@ -110,7 +110,7 @@ const ProfileHeader = ({
                     className="object-cover w-full h-full"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#d9d9d9]">
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
                     <Camera size={32} />
                   </div>
                 )}
@@ -118,7 +118,7 @@ const ProfileHeader = ({
 
               {/* Camera Button - Only show for own profile */}
               {isOwnProfile && (
-                <label className="absolute bottom-0 right-0 bg-[#3c6e71] p-2 cursor-pointer hover:bg-[#284b63] transition-colors">
+                <label className="absolute bottom-0 right-0 bg-blue-500 p-2 cursor-pointer hover:bg-blue-600 transition-all duration-200 rounded-lg shadow-lg">
                   {isUploadingProfile ? (
                     <Loader2 className="animate-spin w-4 h-4 text-[#ffffff]" />
                   ) : (
@@ -138,17 +138,17 @@ const ProfileHeader = ({
             <div className="w-full space-y-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-[#ffffff] tracking-tight">
+                  <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
                     {user.fullName}
                   </h1>
-                  <p className="text-[#d9d9d9] text-sm mt-0.5">@{user.username}</p>
+                  <p className="text-gray-600 text-sm mt-0.5">@{user.username}</p>
                 </div>
 
                 {/* Edit Button - Only show for own profile */}
                 {isOwnProfile && (
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="px-4 py-2 text-xs font-semibold bg-[#3c6e71] text-[#ffffff] hover:bg-[#284b63] transition-colors flex items-center gap-2 uppercase tracking-wider"
+                    className="px-4 py-2 text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2 uppercase tracking-wider rounded-lg shadow-md"
                   >
                     <Edit size={14} />
                     Edit
@@ -158,15 +158,15 @@ const ProfileHeader = ({
 
               {/* Win Rate Display */}
               {stats && (
-                <div className="flex items-center gap-2 text-sm text-[#d9d9d9]">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
                   <span className="text-xs font-semibold">Overall Win Rate</span>
-                  <span className="text-lg font-bold text-[#ffffff]">{calculateWinRate()}%</span>
+                  <span className="text-lg font-bold text-gray-900">{calculateWinRate()}%</span>
                 </div>
               )}
 
               {/* Bio */}
               {user.bio && (
-                <p className="text-[#d9d9d9] text-sm leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   {user.bio}
                 </p>
               )}
@@ -174,12 +174,12 @@ const ProfileHeader = ({
               {/* Quick Tags */}
               <div className="flex flex-wrap gap-2">
                 {user.handedness && (
-                  <div className="px-3 py-1.5 text-xs bg-[#284b63] text-[#ffffff] font-medium">
+                  <div className="px-3 py-1.5 text-xs bg-blue-500 text-white font-medium rounded-lg">
                     {formatHand(user.handedness)} Handed
                   </div>
                 )}
                 {user.location && (
-                  <div className="px-3 py-1.5 text-xs bg-[#284b63] text-[#ffffff] flex items-center gap-1.5 font-medium">
+                  <div className="px-3 py-1.5 text-xs bg-blue-500 text-white flex items-center gap-1.5 font-medium rounded-lg">
                     <MapPin size={12} />
                     {user.location}
                   </div>
@@ -189,18 +189,18 @@ const ProfileHeader = ({
           </div>
         </div>
         {/* Personal Info Card */}
-        <div className="bg-[#ffffff] px-6 py-6 border-t border-[#d9d9d9]">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-4">
+        <div className="bg-white px-6 py-6 border-t border-gray-200 shadow-sm">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-900 mb-4">
             Personal Information
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             {user.dateOfBirth && (
               <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-[#3c6e71]" />
+                <Calendar className="w-4 h-4 text-blue-500" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#353535] font-semibold mb-0.5">Age</p>
-                  <p className="text-[#353535] font-medium">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-900 font-semibold mb-0.5">Age</p>
+                  <p className="text-gray-900 font-medium">
                     {calculateAge(user.dateOfBirth)} years
                   </p>
                 </div>
@@ -209,10 +209,10 @@ const ProfileHeader = ({
 
             {user.gender && (
               <div className="flex items-center gap-3">
-                <VenusAndMars className="w-4 h-4 text-[#3c6e71]" />
+                <VenusAndMars className="w-4 h-4 text-blue-500" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#353535] font-semibold mb-0.5">Gender</p>
-                  <p className="text-[#353535] font-medium">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-900 font-semibold mb-0.5">Gender</p>
+                  <p className="text-gray-900 font-medium">
                     {formatGender(user.gender)}
                   </p>
                 </div>
@@ -222,18 +222,18 @@ const ProfileHeader = ({
             {/* Email - Only show for own profile */}
             {isOwnProfile && user.email && (
               <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-[#3c6e71]" />
+                <Mail className="w-4 h-4 text-blue-500" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#353535] font-semibold mb-0.5">Email</p>
-                  <p className="text-[#353535] font-medium">{user.email}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-900 font-semibold mb-0.5">Email</p>
+                  <p className="text-gray-900 font-medium">{user.email}</p>
                 </div>
               </div>
             )}
 
             <div className="flex items-center gap-3">
-              <Info className="w-4 h-4 text-[#3c6e71]" />
+                <Info className="w-4 h-4 text-blue-500" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-[#353535] font-semibold mb-0.5">Member Since</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-900 font-semibold mb-0.5">Member Since</p>
                 <p className="text-[#353535] font-medium">
                   {formatDateLong(user.createdAt)}
                 </p>

@@ -123,7 +123,7 @@ export default function Navbar() {
         .qa-btn {
           width: 32px; height: 32px;
           border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
+          align-items: center; justify-content: center;
           background: rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.1);
           color: rgba(255,255,255,0.7);
@@ -263,28 +263,20 @@ export default function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {/* Hamburger (mobile) */}
             <button
-              className="sm:hidden"
+              className="sm:hidden w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 rounded-lg cursor-pointer hover:bg-white/15 transition-colors"
               onClick={() => setOpen(true)}
-              style={{
-                width: 32, height: 32,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.09)",
-                borderRadius: 8,
-                cursor: "pointer",
-              }}
             >
               <Image
                 src="/svgs/menu.svg"
                 alt="menu"
                 width={16}
                 height={16}
-                style={{ filter: "invert(1) opacity(0.7)" }}
+                className="invert opacity-70"
               />
             </button>
 
             {/* Logo */}
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "6px", textDecoration: "none", flexShrink: 0 }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
               <Image src="/imgs/logo.png" alt="logo" width={34} height={34} />
               <span
                 className="nav-font"
@@ -316,10 +308,9 @@ export default function Navbar() {
               aria-expanded={quickActionsOpen}
             >
               <Plus
+                className="w-[15px] h-[15px] transition-transform duration-200"
                 style={{
-                  width: 15, height: 15,
                   transform: quickActionsOpen ? "rotate(45deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s ease",
                 }}
               />
             </button>

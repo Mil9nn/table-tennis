@@ -57,10 +57,10 @@ export default function FeaturesCarousel() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-10 px-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 leading-tight">
             Built for Serious Table Tennis
           </h2>
-          <p className="text-sm sm:text-base text-white/70 mt-2 max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base text-gray-600 mt-2 max-w-xl mx-auto leading-relaxed">
             Everything you need to score matches, run tournaments, and track
             performance.
           </p>
@@ -73,8 +73,8 @@ export default function FeaturesCarousel() {
             onClick={prev}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex
                        h-10 w-10 items-center justify-center rounded-full
-                       border border-white/10 bg-white/5 text-white
-                       hover:bg-white/10 transition"
+                       border border-gray-200 bg-gray-50 text-gray-700
+                       hover:bg-gray-100 transition"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -83,8 +83,8 @@ export default function FeaturesCarousel() {
             onClick={next}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex
                        h-10 w-10 items-center justify-center rounded-full
-                       border border-white/10 bg-white/5 text-white
-                       hover:bg-white/10 transition"
+                       border border-gray-200 bg-gray-50 text-gray-700
+                       hover:bg-gray-100 transition"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -99,13 +99,13 @@ export default function FeaturesCarousel() {
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
                 className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center
-                            border border-white/10 bg-white/5
+                            border border-gray-200 bg-gray-50
                             "
               >
                 {/* Screenshot */}
                 <div
                   className="relative aspect-[16/10] overflow-hidden
-                                bg-gradient-to-br from-white/10 to-white/5
+                                bg-gray-100
                                 flex items-center justify-center h-full"
                 >
                   <Image
@@ -119,10 +119,10 @@ export default function FeaturesCarousel() {
 
                 {/* Content */}
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white mb-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-white/70 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed">
                     {feature.description}
                   </p>
 
@@ -134,8 +134,8 @@ export default function FeaturesCarousel() {
                         onClick={() => setIndex(i)}
                         className={`h-1.5 rounded-full transition-all cursor-pointer ${
                           i === index
-                            ? "w-8 bg-white"
-                            : "w-3 bg-white/30 hover:bg-white/50"
+                            ? "w-8 bg-gray-400"
+                            : "w-3 bg-gray-300 hover:bg-gray-400"
                         }`}
                       />
                     ))}

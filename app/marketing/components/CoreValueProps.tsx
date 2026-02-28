@@ -9,20 +9,20 @@ const VALUES = [
     title: "Real-Time Accuracy",
     description:
       "ITTF-compliant live scoring for friendly matches and competitive play.",
-    color: "#3c6e71",
+    color: "#2563eb",
   },
   {
     icon: Trophy,
     title: "Competition-Ready",
     description: "Built for leagues, tournaments and player rankings.",
-    color: "#284b63",
+    color: "#7c3aed",
   },
   {
     icon: BarChart3,
     title: "Meaningful Insights",
     description:
       "Detailed Stats & Performance analytics designed for serious improvement.",
-    color: "#3c6e71",
+    color: "#059669",
   },
 ];
 
@@ -31,10 +31,10 @@ export default function CoreValueProps() {
     <section className="marketing py-20 sm:py-32 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-white mb-2 leading-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 mb-2 leading-tight">
             Designed for leagues, tournaments and organized play.
           </h2>
-          <p className="text-sm sm:text-base text-white/70 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-gray-600 max-w-xl mx-auto">
             Match-ready table tennis workflows.
           </p>
         </div>
@@ -49,9 +49,9 @@ export default function CoreValueProps() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6"
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-6"
               >
-                <h3 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-white mb-3">
+                <h3 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900 mb-3">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center"
                     style={{ backgroundColor: v.color }}
@@ -60,7 +60,7 @@ export default function CoreValueProps() {
                   </div>
                   {v.title}
                 </h3>
-                <p className="text-sm text-white/70 leading-relaxed">{v.description}</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{v.description}</p>
               </motion.div>
             );
           })}

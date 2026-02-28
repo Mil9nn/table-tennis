@@ -220,7 +220,7 @@ export default function TournamentsPage() {
             </div>
           ) : (
             <>
-              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
                 {filtered.map((t) => (
                   <TournamentCard key={t._id} tournament={t} />
                 ))}

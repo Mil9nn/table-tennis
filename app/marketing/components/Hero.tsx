@@ -34,24 +34,24 @@ export default function Hero() {
         >
           {/* Badge */}
           <div className="inline-block mb-6">
-            <div className="px-4 py-2 rounded-full backdrop-blur-xl bg-white/5 border border-white/10">
-              <p className="text-xs sm:text-sm font-medium text-white/70">
+            <div className="px-4 py-2 rounded-full bg-gray-100 border border-gray-200">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">
                 Built for competitive table tennis
               </p>
             </div>
           </div>
 
           {/* Heading */}
-          <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
             <span className="bg-gradient-to-r from-[#2fa4d9] to-[#4ac7f6] bg-clip-text text-transparent">TTPro</span>
             <span> - </span>
-            <span className="text-white">
+            <span className="text-gray-900">
               score matches & run tournaments
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-left text-base sm:text-lg text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
+          <p className="text-left text-base sm:text-lg text-gray-600 max-w-2xl mx-auto mb-12 leading-relaxed">
             Build verified player history and track performance — all in one platform designed for serious competition.
           </p>
 
@@ -59,8 +59,8 @@ export default function Hero() {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/auth/register"
-              className="group px-8 py-4 text-sm rounded-lg text-white font-semibold flex items-center gap-2 hover:scale-105 transition"
-              style={{ backgroundColor: "#3c6e71" }}
+              className="group px-8 py-4 text-sm rounded-lg text-white font-semibold flex items-center gap-2 hover:scale-105 transition-all duration-300 hover:bg-blue-700"
+              style={{ backgroundColor: "#2563eb" }}
             >
               Start Scoring Matches
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />

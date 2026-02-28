@@ -9,6 +9,7 @@ import ScorerHeaderHero, {
   type ScorerFilterState,
 } from "./components/ScorerHeaderHero";
 import ScorerCard from "./components/ScorerCard";
+import TournamentsSkeleton from "@/components/skeletons/TournamentsSkeleton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -129,9 +130,12 @@ export default function ScorerDashboardPage() {
   if (loading && tournaments.length === 0) {
     return (
       <TournamentErrorBoundary>
-        <div className="min-h-screen bg-lb-white">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#3c6e71]" />
+        <div className="h-[calc(100vh-115px)] flex flex-col bg-white">
+          <div className="flex-shrink-0">
+            <ScorerHeaderHero filters={filters} onFiltersChange={setFilters} />
+          </div>
+          <div className="flex-1 overflow-auto">
+            <TournamentsSkeleton />
           </div>
         </div>
       </TournamentErrorBoundary>
@@ -140,43 +144,47 @@ export default function ScorerDashboardPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="min-h-screen bg-lb-white">
-        <ScorerHeaderHero filters={filters} onFiltersChange={setFilters} />
+      <div className="h-[calc(100vh-115px)] flex flex-col bg-white">
+        <div className="flex-shrink-0">
+          <ScorerHeaderHero filters={filters} onFiltersChange={setFilters} />
+        </div>
 
-        {tournaments.length === 0 ? (
-          <div className="py-4 px-4">
-            <EmptyState
-              title="No tournaments assigned"
-              description="You haven't been assigned as a scorer for any tournaments yet."
-            />
-          </div>
-        ) : (
-          <>
-            <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] p-1">
-              {tournaments.map((t) => (
-                <ScorerCard key={t._id} tournament={t} />
-              ))}
-            </section>
-
-            {/* Intersection Observer Target */}
-            <div
-              ref={observerTarget}
-              className="h-20 flex items-center justify-center py-8"
-            >
-              {loadingMore && (
-                <div className="flex items-center gap-2 text-[#3c6e71]">
-                  <Loader2 className="animate-spin" size={20} />
-                  <span className="text-sm">Loading more tournaments...</span>
-                </div>
-              )}
-              {!hasMore && tournaments.length > 0 && (
-                <p className="text-sm text-[#353535]">
-                  No more tournaments to load
-                </p>
-              )}
+        <div className="flex-1 overflow-auto">
+          {tournaments.length === 0 ? (
+            <div className="py-4 px-4">
+              <EmptyState
+                title="No tournaments assigned"
+                description="You haven't been assigned as a scorer for any tournaments yet."
+              />
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
+                {tournaments.map((t) => (
+                  <ScorerCard key={t._id} tournament={t} />
+                ))}
+              </section>
+
+              {/* Intersection Observer Target */}
+              <div
+                ref={observerTarget}
+                className="h-20 flex items-center justify-center py-2"
+              >
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[#3c6e71]">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="text-sm">Loading more tournaments...</span>
+                  </div>
+                )}
+                {!hasMore && tournaments.length > 0 && (
+                  <p className="text-sm text-[#353535]">
+                    No more tournaments to load
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </TournamentErrorBoundary>
   );
