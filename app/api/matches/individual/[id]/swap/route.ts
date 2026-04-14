@@ -48,10 +48,14 @@ export async function POST(
     );
 
     if (currentGameData) {
-      const side1Score = currentGameData.side1Score || 0;
-      const side2Score = currentGameData.side2Score || 0;
+      const scores = (currentGameData as any).scoresById;
+      const vals =
+        scores instanceof Map
+          ? [...scores.values()]
+          : Object.values(scores || {});
+      const totalPoints = vals.reduce((sum: number, v: any) => sum + Number(v || 0), 0);
 
-      if (side1Score !== 0 || side2Score !== 0) {
+      if (totalPoints !== 0) {
         return NextResponse.json(
           { error: "Cannot swap: current game score must be 0-0" },
           { status: 400 }
@@ -59,81 +63,8 @@ export async function POST(
       }
     }
 
-    // Determine if singles or doubles
-    const isDoubles = match.matchType === "doubles";
-
-    if (isDoubles) {
-      // Doubles: swap [p0, p1, p2, p3] → [p2, p3, p0, p1]
-      if (match.participants.length !== 4) {
-        return NextResponse.json(
-          { error: "Invalid doubles match: must have exactly 4 participants" },
-          { status: 400 }
-        );
-      }
-
-      const [p0, p1, p2, p3] = match.participants;
-      match.participants = [p2, p3, p0, p1];
-
-      // Update currentServer to follow the actual serving player
-      if (match.currentServer) {
-        if (match.currentServer === "side1_main") {
-          match.currentServer = "side2_main";
-        } else if (match.currentServer === "side2_main") {
-          match.currentServer = "side1_main";
-        } else if (match.currentServer === "side1_partner") {
-          match.currentServer = "side2_partner";
-        } else if (match.currentServer === "side2_partner") {
-          match.currentServer = "side1_partner";
-        }
-      }
-
-      // Update serverConfig.firstServer to follow the actual player
-      if (match.serverConfig?.firstServer) {
-        if (match.serverConfig.firstServer === "side1_main") {
-          match.serverConfig.firstServer = "side2_main";
-        } else if (match.serverConfig.firstServer === "side2_main") {
-          match.serverConfig.firstServer = "side1_main";
-        } else if (match.serverConfig.firstServer === "side1_partner") {
-          match.serverConfig.firstServer = "side2_partner";
-        } else if (match.serverConfig.firstServer === "side2_partner") {
-          match.serverConfig.firstServer = "side1_partner";
-        }
-      }
-
-      // Update serverConfig.serverOrder to follow actual players
-      if (match.serverConfig?.serverOrder && Array.isArray(match.serverConfig.serverOrder)) {
-        match.serverConfig.serverOrder = match.serverConfig.serverOrder.map((key: string) => {
-          if (key === "side1_main") return "side2_main";
-          if (key === "side2_main") return "side1_main";
-          if (key === "side1_partner") return "side2_partner";
-          if (key === "side2_partner") return "side1_partner";
-          return key;
-        });
-      }
-    } else {
-      // Singles: swap participants[0] ↔ participants[1]
-      if (match.participants.length !== 2) {
-        return NextResponse.json(
-          { error: "Invalid singles match: must have exactly 2 participants" },
-          { status: 400 }
-        );
-      }
-
-      const [p0, p1] = match.participants;
-      match.participants = [p1, p0];
-
-      // Update serverConfig.firstServer (flip side1 ↔ side2)
-      if (match.serverConfig?.firstServer) {
-        match.serverConfig.firstServer =
-          match.serverConfig.firstServer === "side1" ? "side2" : "side1";
-      }
-
-      // Update currentServer (flip side1 ↔ side2)
-      if (match.currentServer) {
-        match.currentServer =
-          match.currentServer === "side1" ? "side2" : "side1";
-      }
-    }
+    // ID-based model: "swap" means reverse display order of participants.
+    match.participants = [...match.participants].reverse();
 
     await match.save();
     await match.populate("participants", "username fullName");

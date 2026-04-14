@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Tournament from "@/models/Tournament";
+import TournamentStandings from "@/models/TournamentStandings";
+import TournamentGroups from "@/models/TournamentGroups";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
 import { withAuth } from "@/lib/api-utils";
@@ -9,6 +11,7 @@ import { connectDB } from "@/lib/mongodb";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { validateRequest, validateQueryParams, createTournamentSchema, getTournamentsQuerySchema } from "@/lib/validations";
 import { logError } from "@/lib/error-logger";
+import { applyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 // Plan/subscription checks removed for MVP - to be implemented in future
 
 export async function POST(request: NextRequest) {
@@ -187,16 +190,12 @@ export async function POST(request: NextRequest) {
             { path: "players.user", select: "username fullName profileImage" },
           ],
         },
-        { path: "standings.participant", model: Team, select: "name logo city captain" },
-        { path: "groups.standings.participant", model: Team, select: "name logo city captain" },
         { path: "seeding.participant", model: Team, select: "name logo city captain" },
       ]);
     } else {
       await tournament.populate([
         { path: "organizer", select: "username fullName profileImage" },
         { path: "participants", select: "username fullName profileImage" },
-        { path: "standings.participant", select: "username fullName profileImage" },
-        { path: "groups.standings.participant", select: "username fullName profileImage" },
         { path: "seeding.participant", select: "username fullName profileImage" },
       ]);
     }
@@ -295,193 +294,199 @@ export async function GET(req: NextRequest) {
     }
 
     const tournamentsRaw = await baseQuery.lean();
+    const tournamentIds = tournamentsRaw.map((t: any) => t._id);
 
-    // Now populate each tournament based on its category
-    const populatedTournaments = await Promise.all(
-      tournamentsRaw.map(async (t: any) => {
-        const isTeamTournament = t.category === "team";
+    const [projectedStandings, projectedGroups] = await Promise.all([
+      tournamentIds.length
+        ? TournamentStandings.find({ tournament: { $in: tournamentIds } }).lean()
+        : Promise.resolve([]),
+      tournamentIds.length
+        ? TournamentGroups.find({ tournament: { $in: tournamentIds } }).lean()
+        : Promise.resolve([]),
+    ]);
 
-        // Populate organizer (always User)
-        if (t.organizer) {
-          const organizer = await User.findById(t.organizer)
+    const standingsByTournament = new Map<string, any[]>();
+    projectedStandings.forEach((doc: any) => {
+      const key = doc.tournament?.toString();
+      if (!key) return;
+      if (!standingsByTournament.has(key)) standingsByTournament.set(key, []);
+      standingsByTournament.get(key)!.push(doc);
+    });
+
+    const groupsByTournament = new Map<string, any>();
+    projectedGroups.forEach((doc: any) => {
+      const key = doc.tournament?.toString();
+      if (key) groupsByTournament.set(key, doc);
+    });
+
+    const userIds = new Set<string>();
+    const teamIds = new Set<string>();
+
+    const pushId = (set: Set<string>, value: any) => {
+      if (!value) return;
+      set.add(value.toString());
+    };
+
+    // Collect all IDs first to avoid N+1 queries
+    for (const t of tournamentsRaw as any[]) {
+      const tournamentKey = t._id?.toString();
+      if (tournamentKey) {
+        applyProjectedTournamentData(
+          t,
+          standingsByTournament.get(tournamentKey) || [],
+          groupsByTournament.get(tournamentKey)
+        );
+      }
+
+      const isTeamTournament = t.category === "team";
+
+      pushId(userIds, t.organizer);
+
+      for (const participantId of t.participants || []) {
+        pushId(isTeamTournament ? teamIds : userIds, participantId);
+      }
+
+      for (const standing of t.standings || []) {
+        pushId(isTeamTournament ? teamIds : userIds, standing?.participant);
+      }
+
+      for (const seed of t.seeding || []) {
+        pushId(isTeamTournament ? teamIds : userIds, seed?.participant);
+      }
+
+      if (!isTeamTournament && t.matchType === "doubles") {
+        for (const pair of t.doublesPairs || []) {
+          pushId(userIds, pair?.player1?._id || pair?.player1);
+          pushId(userIds, pair?.player2?._id || pair?.player2);
+        }
+      }
+
+      for (const group of t.groups || []) {
+        for (const participantId of group.participants || []) {
+          if (!isTeamTournament && t.matchType === "doubles") continue;
+          pushId(isTeamTournament ? teamIds : userIds, participantId);
+        }
+        for (const standing of group.standings || []) {
+          pushId(isTeamTournament ? teamIds : userIds, standing?.participant);
+        }
+      }
+    }
+
+    const [users, teams] = await Promise.all([
+      userIds.size > 0
+        ? User.find({ _id: { $in: Array.from(userIds) } })
             .select("username fullName profileImage")
-            .lean();
-          t.organizer = organizer;
-        }
+            .lean()
+        : Promise.resolve([]),
+      teamIds.size > 0
+        ? Team.find({ _id: { $in: Array.from(teamIds) } })
+            .select("name logo city captain players")
+            .populate("captain", "username fullName profileImage")
+            .populate("players.user", "username fullName profileImage")
+            .lean()
+        : Promise.resolve([]),
+    ]);
 
-        // Populate participants based on category
-        if (t.participants && t.participants.length > 0) {
-          if (isTeamTournament) {
-            const teams = await Team.find({ _id: { $in: t.participants } })
-              .select("name logo city captain players")
-              .populate("captain", "username fullName profileImage")
-              .populate("players.user", "username fullName profileImage")
-              .lean();
-            
-            // Create a map for ordering
-            const teamMap = new Map();
-            teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
-            
-            t.participants = t.participants.map((pId: any) => 
-              teamMap.get(pId.toString()) || pId
-            );
-          } else {
-            const users = await User.find({ _id: { $in: t.participants } })
-              .select("username fullName profileImage")
-              .lean();
-            
-            // Create a map for ordering
-            const userMap = new Map();
-            users.forEach((user: any) => userMap.set(user._id.toString(), user));
-            
-            t.participants = t.participants.map((pId: any) => 
-              userMap.get(pId.toString()) || pId
-            );
-          }
-        }
+    const userMap = new Map<string, any>();
+    users.forEach((user: any) => userMap.set(user._id.toString(), user));
 
-        // Populate standings.participant
-        if (t.standings && t.standings.length > 0) {
-          const participantIds = t.standings.map((s: any) => s.participant).filter(Boolean);
-          if (participantIds.length > 0) {
+    const teamMap = new Map<string, any>();
+    teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
+
+    const resolveUser = (idOrUser: any) => {
+      const key = idOrUser?._id?.toString?.() || idOrUser?.toString?.();
+      return key ? userMap.get(key) || idOrUser : idOrUser;
+    };
+
+    // Populate each tournament from in-memory maps
+    const populatedTournaments = (tournamentsRaw as any[]).map((t: any) => {
+      const isTeamTournament = t.category === "team";
+      const isDoublesTournament = !isTeamTournament && t.matchType === "doubles";
+
+      if (t.organizer) {
+        t.organizer = userMap.get(t.organizer.toString()) || t.organizer;
+      }
+
+      if (t.participants?.length) {
+        t.participants = t.participants.map((pId: any) => {
+          const key = pId.toString();
+          return isTeamTournament ? teamMap.get(key) || pId : userMap.get(key) || pId;
+        });
+      }
+
+      if (t.standings?.length) {
+        t.standings = t.standings.map((s: any) => {
+          const key = s.participant?.toString?.();
+          return {
+            ...s,
+            participant: key
+              ? (isTeamTournament ? teamMap.get(key) || s.participant : userMap.get(key) || s.participant)
+              : s.participant,
+          };
+        });
+      }
+
+      if (t.seeding?.length) {
+        t.seeding = t.seeding.map((s: any) => {
+          const key = s.participant?.toString?.();
+          return {
+            ...s,
+            participant: key
+              ? (isTeamTournament ? teamMap.get(key) || s.participant : userMap.get(key) || s.participant)
+              : s.participant,
+          };
+        });
+      }
+
+      if (t.groups?.length) {
+        for (const group of t.groups) {
+          if (group.participants?.length) {
             if (isTeamTournament) {
-              const teams = await Team.find({ _id: { $in: participantIds } })
-                .select("name logo city captain")
-                .lean();
-              const teamMap = new Map();
-              teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
-              t.standings = t.standings.map((s: any) => ({
-                ...s,
-                participant: teamMap.get(s.participant?.toString()) || s.participant,
-              }));
-            } else {
-              const users = await User.find({ _id: { $in: participantIds } })
-                .select("username fullName profileImage")
-                .lean();
-              const userMap = new Map();
-              users.forEach((user: any) => userMap.set(user._id.toString(), user));
-              t.standings = t.standings.map((s: any) => ({
-                ...s,
-                participant: userMap.get(s.participant?.toString()) || s.participant,
-              }));
-            }
-          }
-        }
-
-        // Populate seeding.participant
-        if (t.seeding && t.seeding.length > 0) {
-          const participantIds = t.seeding.map((s: any) => s.participant).filter(Boolean);
-          if (participantIds.length > 0) {
-            if (isTeamTournament) {
-              const teams = await Team.find({ _id: { $in: participantIds } })
-                .select("name logo city captain")
-                .lean();
-              const teamMap = new Map();
-              teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
-              t.seeding = t.seeding.map((s: any) => ({
-                ...s,
-                participant: teamMap.get(s.participant?.toString()) || s.participant,
-              }));
-            } else {
-              const users = await User.find({ _id: { $in: participantIds } })
-                .select("username fullName profileImage")
-                .lean();
-              const userMap = new Map();
-              users.forEach((user: any) => userMap.set(user._id.toString(), user));
-              t.seeding = t.seeding.map((s: any) => ({
-                ...s,
-                participant: userMap.get(s.participant?.toString()) || s.participant,
-              }));
-            }
-          }
-        }
-
-        // Populate groups.standings.participant if groups exist
-        if (t.groups && t.groups.length > 0) {
-          const isDoublesTournament = !isTeamTournament && t.matchType === "doubles";
-          
-          for (const group of t.groups) {
-            // Populate group participants
-            if (group.participants && group.participants.length > 0) {
-              if (isTeamTournament) {
-                const teams = await Team.find({ _id: { $in: group.participants } })
-                  .select("name logo city captain")
-                  .lean();
-                const teamMap = new Map();
-                teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
-                group.participants = group.participants.map((pId: any) => 
-                  teamMap.get(pId.toString()) || pId
-                );
-              } else if (isDoublesTournament && t.doublesPairs && t.doublesPairs.length > 0) {
-                // For doubles tournaments, group.participants contains pair IDs, not player IDs
-                // Create a map of pair ID -> populated pair
-                const pairMap = new Map();
-                t.doublesPairs.forEach((pair: any) => {
-                  if (pair._id) {
-                    const pairId = pair._id.toString();
-                    // Create a pseudo-participant object for the pair
-                    const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
-                    const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
-                    pairMap.set(pairId, {
-                      _id: pairId,
-                      fullName: `${player1Name} / ${player2Name}`,
-                      username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
-                      profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
-                      isPair: true,
-                      player1: pair.player1,
-                      player2: pair.player2,
-                    });
-                  }
+              group.participants = group.participants.map((pId: any) => {
+                const key = pId.toString();
+                return teamMap.get(key) || pId;
+              });
+            } else if (isDoublesTournament && t.doublesPairs?.length) {
+              const pairMap = new Map<string, any>();
+              for (const pair of t.doublesPairs) {
+                if (!pair?._id) continue;
+                const player1 = resolveUser(pair.player1);
+                const player2 = resolveUser(pair.player2);
+                pairMap.set(pair._id.toString(), {
+                  _id: pair._id.toString(),
+                  fullName: `${player1?.fullName || player1?.username || "Player 1"} / ${player2?.fullName || player2?.username || "Player 2"}`,
+                  username: `${player1?.username || "p1"} & ${player2?.username || "p2"}`,
+                  profileImage: player1?.profileImage || player2?.profileImage,
+                  isPair: true,
+                  player1,
+                  player2,
                 });
-                group.participants = group.participants.map((pId: any) => {
-                  const pairId = pId.toString();
-                  return pairMap.get(pairId) || pId;
-                });
-              } else {
-                const users = await User.find({ _id: { $in: group.participants } })
-                  .select("username fullName profileImage")
-                  .lean();
-                const userMap = new Map();
-                users.forEach((user: any) => userMap.set(user._id.toString(), user));
-                group.participants = group.participants.map((pId: any) => 
-                  userMap.get(pId.toString()) || pId
-                );
               }
-            }
-
-            // Populate group standings
-            if (group.standings && group.standings.length > 0) {
-              const participantIds = group.standings.map((s: any) => s.participant).filter(Boolean);
-              if (participantIds.length > 0) {
-                if (isTeamTournament) {
-                  const teams = await Team.find({ _id: { $in: participantIds } })
-                    .select("name logo city captain")
-                    .lean();
-                  const teamMap = new Map();
-                  teams.forEach((team: any) => teamMap.set(team._id.toString(), team));
-                  group.standings = group.standings.map((s: any) => ({
-                    ...s,
-                    participant: teamMap.get(s.participant?.toString()) || s.participant,
-                  }));
-                } else {
-                  const users = await User.find({ _id: { $in: participantIds } })
-                    .select("username fullName profileImage")
-                    .lean();
-                  const userMap = new Map();
-                  users.forEach((user: any) => userMap.set(user._id.toString(), user));
-                  group.standings = group.standings.map((s: any) => ({
-                    ...s,
-                    participant: userMap.get(s.participant?.toString()) || s.participant,
-                  }));
-                }
-              }
+              group.participants = group.participants.map((pId: any) => pairMap.get(pId.toString()) || pId);
+            } else {
+              group.participants = group.participants.map((pId: any) => {
+                const key = pId.toString();
+                return userMap.get(key) || pId;
+              });
             }
           }
-        }
 
-        return t;
-      })
-    );
+          if (group.standings?.length) {
+            group.standings = group.standings.map((s: any) => {
+              const key = s.participant?.toString?.();
+              return {
+                ...s,
+                participant: key
+                  ? (isTeamTournament ? teamMap.get(key) || s.participant : userMap.get(key) || s.participant)
+                  : s.participant,
+              };
+            });
+          }
+        }
+      }
+
+      return t;
+    });
 
     // Get total count for pagination
     const totalCount = await Tournament.countDocuments(query);

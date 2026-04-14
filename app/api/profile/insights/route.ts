@@ -5,6 +5,10 @@ import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import { requireFeature } from "@/lib/middleware/subscription";
+import {
+  hydrateIndividualMatchesWithPoints,
+  hydrateTeamMatchesWithPoints,
+} from "@/services/match/matchPointService";
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,6 +58,9 @@ export async function GET(request: NextRequest) {
     })
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .lean();
+
+    await hydrateIndividualMatchesWithPoints(individualMatches as Record<string, unknown>[]);
+    await hydrateTeamMatchesWithPoints(teamMatches as Record<string, unknown>[]);
 
     // Calculate win rates
     let totalWins = 0;

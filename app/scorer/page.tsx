@@ -130,7 +130,7 @@ export default function ScorerDashboardPage() {
   if (loading && tournaments.length === 0) {
     return (
       <TournamentErrorBoundary>
-        <div className="h-[calc(100vh-115px)] flex flex-col bg-white">
+        <div className="h-[calc(100vh-70px)] flex flex-col bg-white">
           <div className="flex-shrink-0">
             <ScorerHeaderHero filters={filters} onFiltersChange={setFilters} />
           </div>
@@ -144,7 +144,7 @@ export default function ScorerDashboardPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="h-[calc(100vh-115px)] flex flex-col bg-white">
+      <div className="h-[calc(100vh-70px)] flex flex-col bg-white">
         <div className="flex-shrink-0">
           <ScorerHeaderHero filters={filters} onFiltersChange={setFilters} />
         </div>

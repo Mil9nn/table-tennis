@@ -11,8 +11,6 @@ export async function middleware(request: NextRequest) {
   // Routes that require authentication (fully protected)
   const protectedRoutes = [
     "/profile",
-    "/tournaments",
-    "/leaderboard",
     "/complete-profile",
   ];
 

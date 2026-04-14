@@ -53,6 +53,7 @@ export interface TeamParticipant {
  * Use helper functions to determine type
  */
 export type Participant = UserParticipant | TeamParticipant;
+export type ParticipantRef = Participant | string;
 
 /**
  * Type guard to check if participant is a team
@@ -258,7 +259,7 @@ export interface Round {
 }
 
 export interface Standing {
-  participant: Participant;
+  participant: ParticipantRef;
   played: number;
   won: number;
   lost: number;

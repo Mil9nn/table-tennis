@@ -33,6 +33,7 @@ import { isAxiosError } from "axios";
 import { useTeamsFilters } from "@/hooks/useFilters";
 import { EmptyState } from "../tournaments/components/EmptyState";
 import GroupsIcon from "@mui/icons-material/Groups";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Team = {
   _id: string;
@@ -225,51 +226,54 @@ export default function TeamsPage() {
     const isOwner = user && team.captain?._id === user._id;
 
     return (
-      <Link
-        href={`/teams/${team._id}`}
-        className="group block border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#3c6e71] w-full text-left"
-      >
+      <div className="group border border-[#d9d9d9] bg-[#ffffff] p-4 transition-colors hover:bg-[#f8f8f8] w-full">
           {/* Line 1: Logo + Team Name */}
-          <div className="flex items-center gap-2 mb-2">
-            <Avatar className="w-8 h-8 shrink-0">
-              <AvatarImage
-                src={team.logo}
-                alt={team.name}
-              />
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Avatar className="w-10 h-10 shrink-0">
+                <AvatarImage
+                  src={team.logo}
+                  alt={team.name}
+                />
               <AvatarFallback className="bg-[#d9d9d9] text-[#353535] text-xs font-semibold">
                 {team.name.charAt(0).toUpperCase()}
               </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <span className="font-semibold text-sm text-gray-800 group-hover:text-white transition-colors truncate">
-                {team.name}
-              </span>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-gray-800 transition-colors truncate block">
+                  {team.name}
+                </span>
+              </div>
             </div>
+
+            <Link href={`/teams/${team._id}`}>
+              <Button
+              variant={"ghost"}
+                className="h-10 px-4 rounded-full text-blue-500 hover:text-black/90 active:scale-95 transition-transform duration-150"
+              >
+                View
+              </Button>
+            </Link>
           </div>
 
           {/* Line 2: Meta info */}
-          <div className="flex items-center gap-1 text-xs text-gray-400 group-hover:text-white/70 transition-colors">
+          <div className="flex items-center gap-1 text-xs text-gray-400 transition-colors">
             <span>{team.players?.length || 0} players</span>
             {team.city && (
               <>
                 <span>•</span>
                 <span>{team.city}</span>
+                <span>•</span>
+                {team.captain && <span>Captain: <span className="font-semibold">{team.captain.fullName || team.captain.username}</span></span>}
               </>
             )}
           </div>
-
-          {/* Line 3: Captain */}
-          {team.captain && (
-            <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 group-hover:text-white/70 transition-colors">
-              <span>Captain: <span className="font-semibold">{team.captain.fullName || team.captain.username}</span></span>
-            </div>
-          )}
-        </Link>
+        </div>
     );
   };
 
   return (
-    <section className="h-[calc(100vh-115px)] flex flex-col">
+    <section className="h-[calc(100vh-70px)] flex flex-col">
       <header className="bg-white text-gray-800 p-6 space-y-4 border-b border-gray-200">
         <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Teams</h1>
 
@@ -288,7 +292,7 @@ export default function TeamsPage() {
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`shrink-0 border-gray-200 hover:bg-gray-100 text-gray-700 ${
+            className={`shrink-0 rounded-full border-gray-200 hover:bg-gray-100 text-gray-700 ${
               hasActiveFilters ? "bg-gray-100" : "bg-white"
             }`}
           >
@@ -388,11 +392,10 @@ export default function TeamsPage() {
               fontSize: "0.875rem",
               fontWeight: "500",
               padding: "0.5rem",
-              color: "#353535",
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
+            className="data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             My Teams
           </TabsTrigger>
@@ -402,117 +405,129 @@ export default function TeamsPage() {
               fontSize: "0.875rem",
               fontWeight: "500",
               padding: "0.5rem",
-              color: "#353535",
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
+            className="data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             All Teams
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="my-teams" style={{ margin: 0 }}>
-           {loading ? (
-             <TeamListSkeleton />
-           ) : myTeams.length ? (
-             <>
-               <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
-                 {myTeams.map((team) => (
-                   <TeamCard key={team._id} team={team} />
-                 ))}
-               </section>
-              <div
-                ref={myTeamsObserverTarget}
-                style={{
-                  height: "5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+        <div className="overflow-hidden">
+          <AnimatePresence mode="wait">
+            {activeTab === "my-teams" ? (
+              <motion.div
+                key="my-teams-content"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {loadingMore && (
-                  <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
-                  </div>
+                {loading ? (
+                  <TeamListSkeleton />
+                ) : myTeams.length ? (
+                  <>
+                    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+                      {myTeams.map((team) => (
+                        <TeamCard key={team._id} team={team} />
+                      ))}
+                    </section>
+                    <div
+                      ref={myTeamsObserverTarget}
+                      className="h-10 flex items-center justify-center"
+                    >
+                      {loadingMore && (
+                        <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
+                          <Loader2 className="animate-spin" size={20} />
+                          <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
+                        </div>
+                      )}
+                      {!hasMore && teams.length > 0 && (
+                        <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                          No more teams
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState
+                    icon={GroupsIcon}
+                    title={
+                      !user
+                        ? "Please log in"
+                        : hasActiveFilters
+                          ? "No teams found"
+                          : "No teams yet"
+                    }
+                    description={
+                      !user
+                        ? "Log in to see your teams."
+                        : hasActiveFilters
+                          ? "Try adjusting your filters."
+                          : "You are not part of any teams yet."
+                    }
+                    actionLabel={!user ? undefined : "Create a team"}
+                    actionHref={!user ? undefined : "/teams/create"}
+                  />
                 )}
-                {!hasMore && teams.length > 0 && (
-                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
-                    No more teams
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              icon={GroupsIcon}
-              title={
-                !user
-                  ? "Please log in"
-                  : hasActiveFilters
-                  ? "No teams found"
-                  : "No teams yet"
-              }
-              description={
-                !user
-                  ? "Log in to see your teams."
-                  : hasActiveFilters
-                  ? "Try adjusting your filters."
-                  : "You are not part of any teams yet."
-              }
-              actionLabel={!user ? undefined : "Create a team"}
-              actionHref={!user ? undefined : "/teams/create"}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="all-teams" style={{ margin: 0 }}>
-           {loading ? (
-             <TeamListSkeleton />
-           ) : teams.length ? (
-             <>
-               <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
-                 {teams.map((team) => (
-                   <TeamCard key={team._id} team={team} />
-                 ))}
-               </section>
-              <div
-                ref={allTeamsObserverTarget}
-                style={{
-                  height: "5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="all-teams-content"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {loadingMore && (
-                  <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
-                  </div>
+                {loading ? (
+                  <TeamListSkeleton />
+                ) : teams.length ? (
+                  <>
+                    <section className="grid grid-cols-1 gap-px bg-[#d9d9d9] px-1">
+                      {teams.map((team) => (
+                        <TeamCard key={team._id} team={team} />
+                      ))}
+                    </section>
+                    <div
+                      ref={allTeamsObserverTarget}
+                      style={{
+                        height: "5rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {loadingMore && (
+                        <div className="flex items-center gap-2" style={{ color: "#3c6e71" }}>
+                          <Loader2 className="animate-spin" size={20} />
+                          <span style={{ fontSize: "0.875rem" }}>Loading more...</span>
+                        </div>
+                      )}
+                      {!hasMore && teams.length > 0 && (
+                        <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                          No more teams
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState
+                    icon={GroupsIcon}
+                    title="No teams found"
+                    description={
+                      hasActiveFilters
+                        ? "Try adjusting your filters."
+                        : "Browse all teams to find one to join."
+                    }
+                    actionLabel="Explore teams"
+                    actionHref="/teams"
+                  />
                 )}
-                {!hasMore && teams.length > 0 && (
-                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
-                    No more teams
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              icon={GroupsIcon}
-              title="No teams found"
-              description={
-                hasActiveFilters
-                  ? "Try adjusting your filters."
-                  : "Browse all teams to find one to join."
-              }
-              actionLabel="Explore teams"
-              actionHref="/teams"
-            />
-          )}
-        </TabsContent>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </Tabs>
     </section>
   );

@@ -105,8 +105,9 @@ export function calculateStandings(
     p2Stats.played += 1;
 
     // Calculate sets and points
-    const p1Sets = match.finalScore.side1Sets;
-    const p2Sets = match.finalScore.side2Sets;
+    const setsById = match.finalScore.setsById || {};
+    const p1Sets = Number(setsById[p1Id] ?? match.finalScore.side1Sets ?? 0);
+    const p2Sets = Number(setsById[p2Id] ?? match.finalScore.side2Sets ?? 0);
 
     p1Stats.setsWon += p1Sets;
     p1Stats.setsLost += p2Sets;
@@ -118,8 +119,9 @@ export function calculateStandings(
     let p2Points = 0;
 
     match.games.forEach((game) => {
-      p1Points += game.side1Score;
-      p2Points += game.side2Score;
+      const scoresById = game.scoresById || {};
+      p1Points += Number(scoresById[p1Id] ?? game.side1Score ?? 0);
+      p2Points += Number(scoresById[p2Id] ?? game.side2Score ?? 0);
     });
 
     p1Stats.pointsScored += p1Points;
@@ -128,7 +130,15 @@ export function calculateStandings(
     p2Stats.pointsConceded += p1Points;
 
     // Update match result (win/loss/draw)
-    if (match.winnerSide === "side1") {
+    const winnerId =
+      match.winnerId ||
+      (match.winnerSide === "side1"
+        ? p1Id
+        : match.winnerSide === "side2"
+          ? p2Id
+          : null);
+
+    if (winnerId === p1Id) {
       p1Stats.won += 1;
       p2Stats.lost += 1;
       p1Stats.points += rules.pointsForWin;
@@ -139,7 +149,7 @@ export function calculateStandings(
       // Head-to-head
       p1Stats.headToHead.set(p2Id, rules.pointsForWin);
       p2Stats.headToHead.set(p1Id, rules.pointsForLoss);
-    } else if (match.winnerSide === "side2") {
+    } else if (winnerId === p2Id) {
       p2Stats.won += 1;
       p1Stats.lost += 1;
       p2Stats.points += rules.pointsForWin;

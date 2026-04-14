@@ -4,9 +4,15 @@ import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import Team from "@/models/Team";
+import { connectDB } from "@/lib/mongodb";
+import {
+  hydrateIndividualMatchesWithPoints,
+  hydrateTeamMatchesWithPoints,
+} from "@/services/match/matchPointService";
 
 export async function GET(request: NextRequest) {
   try {
+    await connectDB();
     const token = getTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
@@ -35,6 +41,9 @@ export async function GET(request: NextRequest) {
     })
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .lean();
+
+    await hydrateIndividualMatchesWithPoints(individualMatches as Record<string, unknown>[]);
+    await hydrateTeamMatchesWithPoints(teamMatches as Record<string, unknown>[]);
 
     const userTeams = await Team.find({
       "players.user": userId,

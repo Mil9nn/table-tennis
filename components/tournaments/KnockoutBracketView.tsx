@@ -34,7 +34,16 @@ interface MatchDetails {
   _id: string;
   participants: Participant[];
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
-  finalScore?: { side1Sets: number; side2Sets: number };
+  finalScore?: {
+    side1Sets?: number;
+    side2Sets?: number;
+    setsById?: Record<string, number>;
+    setsByPlayerId?: Record<string, number>;
+    sets?: Record<string, number>;
+  };
+  winnerId?: string;
+  winnerPlayerId?: string;
+  winner?: string;
   winnerSide?: "side1" | "side2";
   date?: string;
   time?: string;
@@ -261,6 +270,16 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
       return bracketMatch.winner === participant;
     }
 
+    const winnerId = String(
+      matchDoc?.winnerId ?? matchDoc?.winnerPlayerId ?? matchDoc?.winner ?? ""
+    );
+    if (matchDoc?.status === "completed" && winnerId) {
+      const p = participantIndex === 0
+        ? (matchDoc.participants?.[0]?._id as string | undefined)
+        : (matchDoc.participants?.[1]?._id as string | undefined);
+      return String(p || "") === winnerId;
+    }
+
     if (matchDoc?.status === "completed" && matchDoc.winnerSide) {
       return (
         (matchDoc.winnerSide === "side1" && participantIndex === 0) ||
@@ -394,7 +413,18 @@ const KnockoutBracketView: FC<KnockoutBracketViewProps> = ({
     );
 
     const score = showScore && matchDoc?.finalScore
-      ? `${matchDoc.finalScore.side1Sets}-${matchDoc.finalScore.side2Sets}`
+      ? (() => {
+          const byId =
+            matchDoc.finalScore?.setsById ||
+            matchDoc.finalScore?.setsByPlayerId ||
+            matchDoc.finalScore?.sets ||
+            {};
+          const p1Id = matchDoc.participants?.[0]?._id;
+          const p2Id = matchDoc.participants?.[1]?._id;
+          const s1 = Number(byId[String(p1Id || "")] ?? matchDoc.finalScore?.side1Sets ?? 0);
+          const s2 = Number(byId[String(p2Id || "")] ?? matchDoc.finalScore?.side2Sets ?? 0);
+          return `${s1}-${s2}`;
+        })()
       : null;
 
     // Precompute some boolean flags

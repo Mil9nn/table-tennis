@@ -2,8 +2,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
+import {
+  mergeShotsIntoIndividualGames,
+  mergeShotsIntoTeamMatch,
+} from "@/services/match/matchPointService";
 import { analyzeWeaknesses } from "@/lib/weaknesses-analysis-utils";
 import { requireFeature } from "@/lib/middleware/subscription";
 import { isUserParticipantInMatch } from "@/lib/matchHelpers";
@@ -13,6 +18,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    await connectDB();
     // Authentication
     const token = getTokenFromRequest(request);
     if (!token) {
@@ -66,6 +72,12 @@ export async function GET(
         { success: false, message: "Match not found" },
         { status: 404 }
       );
+    }
+
+    if (category === "individual") {
+      await mergeShotsIntoIndividualGames(match as Record<string, unknown>);
+    } else {
+      await mergeShotsIntoTeamMatch(match as Record<string, unknown>);
     }
 
     if (match.status !== "completed") {

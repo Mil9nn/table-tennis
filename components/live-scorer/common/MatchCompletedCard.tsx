@@ -6,6 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatTimeDuration } from "@/lib/utils";
 import { IndividualMatch } from "@/types/match.type";
+import {
+  getSinglesParticipantIds,
+  participantNameById,
+  singlesMatchWinnerPlayerId,
+} from "@/lib/match/singlesClient";
 import { ArrowBigLeft, ArrowLeft, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axiosInstance";
@@ -81,6 +86,31 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
   }
 
   const renderWinnerName = () => {
+    if (match.matchType === "singles") {
+      const ids = getSinglesParticipantIds(match.participants);
+      if (ids) {
+        const wid = singlesMatchWinnerPlayerId(match, ids[0], ids[1]);
+        const byId = participantNameById(match.participants, wid);
+        if (byId) return byId;
+      }
+    }
+
+    const winnerId = match.winnerId || match.winnerPlayerId || match.winner;
+    if (winnerId) {
+      if (match.matchType === "singles") {
+        return participantNameById(match.participants, String(winnerId)) || "Winner";
+      }
+      const side1Ids = new Set([
+        match.participants?.[0]?._id?.toString(),
+        match.participants?.[1]?._id?.toString(),
+      ]);
+      const isSide1Winner = side1Ids.has(String(winnerId));
+      const pair = isSide1Winner
+        ? [match.participants?.[0], match.participants?.[1]]
+        : [match.participants?.[2], match.participants?.[3]];
+      return `${pair[0]?.fullName || pair[0]?.username || "Player 1"} & ${pair[1]?.fullName || pair[1]?.username || "Player 2"}`;
+    }
+
     if (!match.winnerSide) return "Draw";
 
     if (match.matchType === "singles") {
@@ -101,7 +131,22 @@ export default function MatchCompletedCard({ match }: MatchCompletedCardProps) {
   };
 
   const finalScore = match.finalScore;
-  const matchScore = `${finalScore?.side1Sets ?? 0} - ${finalScore?.side2Sets ?? 0}`;
+  const ids = getSinglesParticipantIds(match.participants);
+  const side1Sets = ids
+    ? Number(
+        ((finalScore?.setsByPlayerId || finalScore?.sets) as Record<string, number> | undefined)?.[
+          ids[0]
+        ] ?? finalScore?.side1Sets ?? 0
+      )
+    : Number(finalScore?.side1Sets ?? 0);
+  const side2Sets = ids
+    ? Number(
+        ((finalScore?.setsByPlayerId || finalScore?.sets) as Record<string, number> | undefined)?.[
+          ids[1]
+        ] ?? finalScore?.side2Sets ?? 0
+      )
+    : Number(finalScore?.side2Sets ?? 0);
+  const matchScore = `${side1Sets} - ${side2Sets}`;
 
   // Tournament match: Use enhanced styling with tournament badge
   if (isTournamentMatch) {

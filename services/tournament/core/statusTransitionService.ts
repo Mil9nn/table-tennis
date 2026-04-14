@@ -118,14 +118,20 @@ export async function areAllKnockoutMatchesCompleted(tournamentId: string): Prom
 
       // Update bracket state if out of sync
       if (isActuallyCompleted && !match.completed) {
+        const winnerId =
+          (actualMatch as any).winnerId?.toString?.() ||
+          (actualMatch as any).winner?.toString?.() ||
+          ((actualMatch as any).winnerSide === "side1"
+            ? match.participant1
+            : (actualMatch as any).winnerSide === "side2"
+              ? match.participant2
+              : (actualMatch as any).winnerTeam === "team1"
+                ? match.participant1
+                : (actualMatch as any).winnerTeam === "team2"
+                  ? match.participant2
+                  : null);
         match.completed = true;
-        match.winner = actualMatch.winnerSide === "side1"
-          ? match.participant1
-          : actualMatch.winnerSide === "side2"
-            ? match.participant2
-            : actualMatch.winnerTeam === "team1"
-              ? match.participant1
-              : match.participant2;
+        match.winner = winnerId;
         bracketStateUpdated = true;
       }
 
@@ -154,14 +160,20 @@ export async function areAllKnockoutMatchesCompleted(tournamentId: string): Prom
 
       // Update bracket state if out of sync
       if (isActuallyCompleted && !bracket.thirdPlaceMatch.completed) {
+        const winnerId =
+          (actualMatch as any).winnerId?.toString?.() ||
+          (actualMatch as any).winner?.toString?.() ||
+          ((actualMatch as any).winnerSide === "side1"
+            ? bracket.thirdPlaceMatch.participant1
+            : (actualMatch as any).winnerSide === "side2"
+              ? bracket.thirdPlaceMatch.participant2
+              : (actualMatch as any).winnerTeam === "team1"
+                ? bracket.thirdPlaceMatch.participant1
+                : (actualMatch as any).winnerTeam === "team2"
+                  ? bracket.thirdPlaceMatch.participant2
+                  : null);
         bracket.thirdPlaceMatch.completed = true;
-        bracket.thirdPlaceMatch.winner = actualMatch.winnerSide === "side1"
-          ? bracket.thirdPlaceMatch.participant1
-          : actualMatch.winnerSide === "side2"
-            ? bracket.thirdPlaceMatch.participant2
-            : actualMatch.winnerTeam === "team1"
-              ? bracket.thirdPlaceMatch.participant1
-              : bracket.thirdPlaceMatch.participant2;
+        bracket.thirdPlaceMatch.winner = winnerId;
         bracketStateUpdated = true;
       }
 

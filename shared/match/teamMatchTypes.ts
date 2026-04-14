@@ -62,7 +62,8 @@ export interface TeamGame {
   team2Score: number;
   winnerSide?: TeamWinnerSide;
   completed: boolean;
-  shots: Shot[];
+  /** Filled when merging from `matchpoints` on API responses; not stored on match documents. */
+  shots?: Shot[];
   duration?: number;
   startTime?: Date | string;
   endTime?: Date | string;

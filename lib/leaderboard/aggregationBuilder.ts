@@ -67,11 +67,8 @@ export function buildLeaderboardPipeline(options: AggregationOptions): mongoose.
   // Safety: Filter out matches with null/undefined/empty participants array
   pipeline.push({
     $match: {
-      participants: {
-        $exists: true,
-        $ne: null,
-        $type: 'array',
-        $not: { $size: 0 },
+      $expr: {
+        $gt: [{ $size: { $ifNull: ['$participants', []] } }, 0],
       },
     },
   });

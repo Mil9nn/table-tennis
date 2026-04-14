@@ -14,6 +14,9 @@ import {
   createBracketTeamMatch,
 } from "./core/matchGenerationService";
 import { onTournamentCompleted } from "./core/statusTransitionService";
+import { syncTournamentProjections } from "@/models/utils/tournamentProjectionSync";
+import { tournamentProjectionRepository } from "./repositories/TournamentProjectionRepository";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 
 /**
  * Fetch matches by IDs (handles both IndividualMatch and TeamMatch)
@@ -254,6 +257,10 @@ export async function updateTournamentAfterMatch(match: any) {
     );
     return;
   }
+  await loadAndApplyProjectedTournamentData(
+    tournament._id.toString(),
+    tournament as any
+  );
 
   const isTeamMatch = match.matchCategory === "team";
 
@@ -379,15 +386,6 @@ async function updateKnockoutBracket(tournament: any, match: any) {
   let winnerId: string;
 
   if (isTeamMatch) {
-    // For team matches, winner is determined by winnerTeam field
-    if (!match.winnerTeam) {
-      console.error("[updateKnockoutBracket] Team match missing winnerTeam", {
-        matchId: match._id,
-        winnerTeam: match.winnerTeam,
-      });
-      return;
-    }
-
     // Find the bracket match to get participant IDs (team IDs)
     let bracketMatch: any = null;
     for (const round of tournament.bracket.rounds || []) {
@@ -414,15 +412,25 @@ async function updateKnockoutBracket(tournament: any, match: any) {
       return;
     }
 
-    // Use the participant ID (team ID) from the bracket based on winnerTeam
-    winnerId =
-      match.winnerTeam === "team1"
-        ? bracketMatch.participant1.toString()
-        : bracketMatch.participant2.toString();
+    // Use winnerTeamId when available, otherwise fallback to legacy winnerTeam
+    const winnerTeamId =
+      (match as any).winnerTeamId?.toString?.() ||
+      ((match as any).winnerTeam === "team1"
+        ? bracketMatch.participant1?.toString?.()
+        : (match as any).winnerTeam === "team2"
+          ? bracketMatch.participant2?.toString?.()
+          : null);
+    if (!winnerTeamId) {
+      console.error("[updateKnockoutBracket] Team match missing winnerTeamId", {
+        matchId: match._id,
+      });
+      return;
+    }
+    winnerId = winnerTeamId;
   } else {
-    // For individual matches, use winnerSide
+    // For individual matches, use winnerId
     if (
-      !match.winnerSide ||
+      !(match as any).winnerId &&
       !match.participants ||
       match.participants.length < 2
     ) {
@@ -430,7 +438,7 @@ async function updateKnockoutBracket(tournament: any, match: any) {
         "[updateKnockoutBracket] Match missing winner or participants",
         {
           matchId: match._id,
-          winnerSide: match.winnerSide,
+          winnerId: (match as any).winnerId,
           participantCount: match.participants?.length,
         }
       );
@@ -469,23 +477,16 @@ async function updateKnockoutBracket(tournament: any, match: any) {
         return;
       }
 
-      // Use the pair ID from the bracket match based on winnerSide
+      // Use winnerId mapped to bracket participant side when needed
+      const winnerPlayerId = String((match as any).winnerId || "");
+      const p0 = String((match.participants[0] as any)?._id || match.participants[0]);
       winnerId =
-        match.winnerSide === "side1"
+        winnerPlayerId === p0
           ? bracketMatch.participant1.toString()
           : bracketMatch.participant2.toString();
     } else {
       // Singles match - use player ID directly
-      const getParticipantId = (participant: any): string => {
-        if (typeof participant === "string") return participant;
-        if (participant?._id) return participant._id.toString();
-        return participant.toString();
-      };
-
-      winnerId =
-        match.winnerSide === "side1"
-          ? getParticipantId(match.participants[0])
-          : getParticipantId(match.participants[1]);
+      winnerId = String((match as any).winnerId);
     }
   }
 
@@ -503,6 +504,10 @@ async function updateKnockoutBracket(tournament: any, match: any) {
         );
         return;
       }
+      await loadAndApplyProjectedTournamentData(
+        freshTournament._id.toString(),
+        freshTournament as any
+      );
 
       // Ensure bracket exists - load from BracketState if missing from tournament document
       if (!isBracketValid(freshTournament.bracket)) {
@@ -1076,6 +1081,30 @@ export async function updateRoundRobinStandings(tournament: any) {
   }
 
   await tournament.save();
+  try {
+    const category = (tournament as any).category === "team" ? "team" : "individual";
+    const phase = (tournament as any).currentPhase;
+    const groups = Array.isArray((tournament as any).groups) ? (tournament as any).groups : [];
+    await tournamentProjectionRepository.upsertGroups(
+      String((tournament as any)._id),
+      category,
+      groups
+    );
+    await tournamentProjectionRepository.upsertStandings(
+      String((tournament as any)._id),
+      category,
+      phase,
+      (tournament as any).standings || [],
+      groups
+    );
+  } catch (projectionSyncError) {
+    console.error("[updateRoundRobinStandings] Projection repository sync failed:", projectionSyncError);
+    try {
+      await syncTournamentProjections(tournament.toObject ? tournament.toObject() : tournament);
+    } catch (fallbackSyncError) {
+      console.error("[updateRoundRobinStandings] Projection fallback sync failed:", fallbackSyncError);
+    }
+  }
 }
 
 /**
@@ -1105,12 +1134,21 @@ async function convertMatchesToStandingsFormat(
         return {
           _id: match._id.toString(),
           participants,
-          winnerSide: match.winnerSide,
+          winnerId: (match as any).winnerId?.toString?.() || null,
           finalScore: {
-            side1Sets: match.finalScore?.side1Sets || 0,
-            side2Sets: match.finalScore?.side2Sets || 0,
+            setsById:
+              (match.finalScore?.setsById instanceof Map
+                ? Object.fromEntries(match.finalScore.setsById)
+                : match.finalScore?.setsById) || {},
           },
-          games: match.games || [],
+          games: (match.games || []).map((g: any) => ({
+            scoresById:
+              (g.scoresById instanceof Map
+                ? Object.fromEntries(g.scoresById)
+                : g.scoresById) || {},
+            side1Score: g.side1Score ?? 0,
+            side2Score: g.side2Score ?? 0,
+          })),
           status: match.status,
         };
       }
@@ -1196,38 +1234,42 @@ async function convertMatchesToStandingsFormat(
         // Convert team match result to individual match format
         // team1Matches/team2Matches represent matches won (rubbers won)
         // Converted to side1Sets/side2Sets for individual match format compatibility
-        const team1Sets = match.finalScore?.team1Matches || 0;
-        const team2Sets = match.finalScore?.team2Matches || 0;
+        const teamScoresById =
+          (match.finalScore?.matchesByTeamId instanceof Map
+            ? Object.fromEntries(match.finalScore.matchesByTeamId)
+            : match.finalScore?.matchesByTeamId) || {};
+        const team1Sets = Number(teamScoresById[team1Id] ?? match.finalScore?.team1Matches ?? 0);
+        const team2Sets = Number(teamScoresById[team2Id] ?? match.finalScore?.team2Matches ?? 0);
 
         // Calculate points from all submatches
-        const games: Array<{ side1Score: number; side2Score: number }> = [];
+        const games: Array<{ side1Score: number; side2Score: number; scoresById?: Record<string, number> }> = [];
         if (match.subMatches && Array.isArray(match.subMatches)) {
           match.subMatches.forEach((subMatch: any) => {
             if (subMatch.games && Array.isArray(subMatch.games)) {
               subMatch.games.forEach((game: any) => {
                 // Team matches use team1Score/team2Score, convert to side1Score/side2Score
                 games.push({
-                  side1Score: game.team1Score || 0,
-                  side2Score: game.team2Score || 0,
+                  scoresById: {
+                    [team1Id]: Number(game.team1Score ?? 0),
+                    [team2Id]: Number(game.team2Score ?? 0),
+                  },
+                  side1Score: Number(game.team1Score ?? 0),
+                  side2Score: Number(game.team2Score ?? 0),
                 });
               });
             }
           });
         }
 
-        // Determine winnerSide from winnerTeam
-        let winnerSide: "side1" | "side2" | null = null;
-        if (match.winnerTeam === "team1") {
-          winnerSide = "side1";
-        } else if (match.winnerTeam === "team2") {
-          winnerSide = "side2";
-        }
-
         return {
           _id: match._id.toString(),
           participants: [team1Id, team2Id],
-          winnerSide,
+          winnerId: (match as any).winnerTeamId?.toString?.() || null,
           finalScore: {
+            setsById: {
+              [team1Id]: team1Sets,
+              [team2Id]: team2Sets,
+            },
             side1Sets: team1Sets,
             side2Sets: team2Sets,
           },

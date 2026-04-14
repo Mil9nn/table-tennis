@@ -12,6 +12,8 @@ import {
   getMatchModel,
 } from "@/lib/api";
 import { connectDB } from "@/lib/mongodb";
+import TournamentGroups from "@/models/TournamentGroups";
+import TournamentStandings from "@/models/TournamentStandings";
 
 /**
  * Reset a tournament to draft status (organizer only)
@@ -34,13 +36,26 @@ export async function POST(
 
     // Check if tournament has any completed matches
     if (tournament.drawGenerated) {
-      const allMatchIds = getAllMatchIds(tournament);
+      const allMatchIds = new Set<string>(getAllMatchIds(tournament));
 
-      if (allMatchIds.length > 0) {
+      // Projection-backed group rounds may contain historical match ids even when
+      // legacy embedded fields are absent or stale.
+      const projectedGroups = await TournamentGroups.findOne({ tournament: id }).lean();
+      (projectedGroups?.groups || []).forEach((group: any) => {
+        (group?.rounds || []).forEach((round: any) => {
+          (round?.matches || []).forEach((matchId: any) => {
+            const value = matchId?.toString?.() || "";
+            if (value) allMatchIds.add(value);
+          });
+        });
+      });
+      const allMatchIdsList = Array.from(allMatchIds);
+
+      if (allMatchIdsList.length > 0) {
         const MatchModel = getMatchModel(
           isTeamTournament ? "team" : "individual"
         ) as any;
-        const matches = await MatchModel.find({ _id: { $in: allMatchIds } });
+        const matches = await MatchModel.find({ _id: { $in: allMatchIdsList } });
         const hasCompletedMatches = matches.some(
           (m: any) => m.status === "completed"
         );
@@ -53,7 +68,7 @@ export async function POST(
         }
 
         // Delete all associated match documents
-        await MatchModel.deleteMany({ _id: { $in: allMatchIds } });
+        await MatchModel.deleteMany({ _id: { $in: allMatchIdsList } });
       }
     }
 
@@ -86,6 +101,16 @@ export async function POST(
 
     // Clear standings
     tournament.standings = [];
+
+    // Clear projection docs so subsequent reads rely on clean state.
+    await Promise.all([
+      TournamentGroups.findOneAndUpdate(
+        { tournament: id },
+        { $set: { groups: [] } },
+        { upsert: true }
+      ),
+      TournamentStandings.deleteMany({ tournament: id }),
+    ]);
 
     // Reset hybrid phase if applicable
     if (tournament.format === "hybrid") {

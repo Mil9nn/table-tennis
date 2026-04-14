@@ -200,7 +200,7 @@ export default function LiveScorer({
   // Once match is loaded, keep the UI visible even during updates
   if (!hasInitiallyLoaded && (fetchingMatch || authLoading || checkingTournamentScorer))
     return (
-      <div className="flex items-center justify-center w-full h-[calc(100vh-65px)]">
+      <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
         <Loader2 className="animate-spin" />
       </div>
     );

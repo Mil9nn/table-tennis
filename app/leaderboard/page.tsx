@@ -66,7 +66,7 @@ export default function LeaderboardPage() {
   }, [loadingMore, loading, hasMore, activeTab, fetchMore]);
 
   return (
-     <div className="h-[calc(100vh-115px)] flex flex-col">
+     <div className="h-[calc(100vh-70px)] flex flex-col">
        <header className="bg-white border-b border-gray-200">
          <div className="max-w-6xl mx-auto px-6 py-4">
            <div className="flex items-center gap-2 mb-2">

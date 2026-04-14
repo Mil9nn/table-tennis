@@ -3,6 +3,7 @@ import IndividualMatch from "@/models/IndividualMatch";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
+import { applyShotsToLoadedMatch } from "@/services/match/matchPointService";
 
 export async function POST(
   req: NextRequest,
@@ -39,21 +40,20 @@ export async function POST(
 
     // ✅ Update server configuration
     match.serverConfig ??= {};
-    match.serverConfig.firstServer = serverConfig.firstServer;
-    match.serverConfig.firstReceiver = serverConfig.firstReceiver;
-    match.serverConfig.serverOrder = serverConfig.serverOrder ?? [];
+    match.serverConfig.firstServerPlayerId = serverConfig.firstServerPlayerId ?? null;
+    match.serverConfig.firstReceiverPlayerId = serverConfig.firstReceiverPlayerId ?? null;
+    match.serverConfig.serverOrderPlayerIds = serverConfig.serverOrderPlayerIds ?? [];
 
-    // ✅ Persist currentServer as well
-    match.currentServer = serverConfig.firstServer;
+    // Persist current server player as well
+    match.currentServerPlayerId = serverConfig.firstServerPlayerId ?? null;
 
     await match.save();
-    await match.populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "games.shots.player", select: "username fullName profileImage" },
-    ]);
+    await match.populate("participants", "username fullName profileImage");
+
+    const matchJson = await applyShotsToLoadedMatch(match, "individual", true);
 
     return NextResponse.json({
-      match,
+      match: matchJson,
       message: "Server configuration saved",
     });
   } catch (err) {

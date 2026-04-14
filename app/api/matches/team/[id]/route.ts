@@ -3,6 +3,7 @@ import TeamMatch from "@/models/TeamMatch";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { populateTeamMatch, populateTeamMatchBasic } from "@/services/match/populationService";
+import { applyShotsToLoadedMatch, deleteAllPointsForMatch } from "@/services/match/matchPointService";
 import { statsService } from "@/services/statsService";
 import { TeamMatch as TeamMatchType } from "@/types/match.type";
 import { validateRequest, updateTeamMatchSchema } from "@/lib/validations";
@@ -11,13 +12,15 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   try {
     await connectDB();
     const { id } = await context.params;
+    const includeShots = req.nextUrl.searchParams.get("includeShots") !== "0";
 
-    const match = await populateTeamMatch(TeamMatch.findById(id), {
-      includeTournament: true
+    const matchDoc = await populateTeamMatch(TeamMatch.findById(id), {
+      includeTournament: true,
     }).exec();
 
-    if (!match) return NextResponse.json({ error: "Team match not found" }, { status: 404 });
+    if (!matchDoc) return NextResponse.json({ error: "Team match not found" }, { status: 404 });
 
+    const match = await applyShotsToLoadedMatch(matchDoc, "team", includeShots);
     return NextResponse.json({ match });
   } catch (error) {
     console.error("Error fetching team match:", error);
@@ -57,9 +60,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     const updateData = validation.data;
 
-    const match = await populateTeamMatch(
+    const matchDoc = await populateTeamMatch(
       TeamMatch.findByIdAndUpdate(id, { $set: updateData }, { new: true })
     ).exec();
+
+    const match = matchDoc
+      ? await applyShotsToLoadedMatch(matchDoc, "team", true)
+      : matchDoc;
 
     // Trigger stats update if match was just completed
     if (oldMatch?.status !== "completed" && updateData.status === "completed") {
@@ -99,6 +106,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       );
     }
 
+    await connectDB();
+    await deleteAllPointsForMatch(id);
     await TeamMatch.findByIdAndDelete(id);
 
     return NextResponse.json({ message: "Team match deleted successfully" });

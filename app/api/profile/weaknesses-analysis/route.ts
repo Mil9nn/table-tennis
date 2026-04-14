@@ -2,13 +2,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 import { analyzeWeaknesses } from "@/lib/weaknesses-analysis-utils";
 import { requireFeature } from "@/lib/middleware/subscription";
+import {
+  hydrateIndividualMatchesWithPoints,
+  hydrateTeamMatchesWithPoints,
+} from "@/services/match/matchPointService";
 
 export async function GET(request: NextRequest) {
   try {
+    await connectDB();
     // Authentication
     const token = getTokenFromRequest(request);
     if (!token) {
@@ -68,6 +74,9 @@ export async function GET(request: NextRequest) {
       .limit(matchLimit)
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
       .lean();
+
+    await hydrateIndividualMatchesWithPoints(individualMatches as Record<string, unknown>[]);
+    await hydrateTeamMatchesWithPoints(teamMatches as Record<string, unknown>[]);
 
     // Extract all games from matches
     const allGames: any[] = [];

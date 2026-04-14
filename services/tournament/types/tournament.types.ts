@@ -39,20 +39,26 @@ export interface GroupAllocation {
 export interface MatchResult {
   _id: string;
   participants: string[];
-  winnerSide: "side1" | "side2" | null;
+  winnerId?: string | null;
+  winnerSide?: "side1" | "side2" | null;
   finalScore: {
-    side1Sets: number;
-    side2Sets: number;
+    setsById?: Record<string, number>;
+    side1Sets?: number;
+    side2Sets?: number;
   };
   games: Array<{
-    side1Score: number;
-    side2Score: number;
+    scoresById?: Record<string, number>;
+    side1Score?: number;
+    side2Score?: number;
   }>;
   status: string;
 }
 
 export interface StandingData {
+  // Transitional support: some layers still use `participant`,
+  // new projection layers may use `participantId`.
   participant: string;
+  participantId?: string;
   played: number;
   won: number;
   lost: number;

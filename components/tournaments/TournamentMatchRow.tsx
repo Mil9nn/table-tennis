@@ -4,6 +4,7 @@ import { IndividualMatch } from "@/types/match.type";
 import { Calendar, Clock, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getSinglesParticipantIds } from "@/lib/match/singlesClient";
 
 interface TournamentMatchRowProps {
   match: IndividualMatch;
@@ -26,8 +27,40 @@ export default function TournamentMatchRow({
 
   const isCompleted = match.status === "completed";
   const isLive = match.status === "in_progress";
-  const side1Won = match.winnerSide === "side1";
-  const side2Won = match.winnerSide === "side2";
+  const winnerId = String((match as any).winnerId ?? match.winnerPlayerId ?? match.winner ?? "");
+  const side1Ids = match.matchType === "singles"
+    ? [side1Player1?._id]
+    : [side1Player1?._id, side1Player2?._id];
+  const side2Ids = match.matchType === "singles"
+    ? [side2Player1?._id]
+    : [side2Player1?._id, side2Player2?._id];
+  const side1Won = winnerId
+    ? side1Ids.filter(Boolean).map(String).includes(winnerId)
+    : match.winnerSide === "side1";
+  const side2Won = winnerId
+    ? side2Ids.filter(Boolean).map(String).includes(winnerId)
+    : match.winnerSide === "side2";
+  const ids = getSinglesParticipantIds(match.participants || []);
+  const side1Sets = ids
+    ? Number(
+        (((match as any).finalScore?.setsByPlayerId ||
+          (match as any).finalScore?.setsById ||
+          (match as any).finalScore?.sets ||
+          {}) as Record<string, number>)[ids[0]] ??
+          match.finalScore?.side1Sets ??
+          0
+      )
+    : Number(match.finalScore?.side1Sets ?? 0);
+  const side2Sets = ids
+    ? Number(
+        (((match as any).finalScore?.setsByPlayerId ||
+          (match as any).finalScore?.setsById ||
+          (match as any).finalScore?.sets ||
+          {}) as Record<string, number>)[ids[1]] ??
+          match.finalScore?.side2Sets ??
+          0
+      )
+    : Number(match.finalScore?.side2Sets ?? 0);
 
   const getStatusBadge = () => {
     switch (match.status) {
@@ -83,11 +116,11 @@ export default function TournamentMatchRow({
         {isCompleted ? (
           <div className="flex items-center gap-2 font-mono">
             <span className={`text-lg font-bold ${side1Won ? "text-blue-600" : "text-gray-600"}`}>
-              {match.finalScore?.side1Sets || 0}
+              {side1Sets}
             </span>
             <span className="text-gray-400">-</span>
             <span className={`text-lg font-bold ${side2Won ? "text-blue-600" : "text-gray-600"}`}>
-              {match.finalScore?.side2Sets || 0}
+              {side2Sets}
             </span>
           </div>
         ) : (

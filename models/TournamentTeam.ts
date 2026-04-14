@@ -3,11 +3,10 @@ import mongoose, { Schema, Document } from "mongoose";
 import {
   baseTournamentFields,
   baseTournamentIndexes,
-  standingSchema,
   roundSchema,
-  groupSchema
 } from "./TournamentBase";
 import type { KnockoutStatistics } from "@/types/knockoutStatistics.type";
+import { attachTournamentProjectionHooks } from "./utils/tournamentProjectionSync";
 
 /**
  * Team Tournament Model
@@ -158,18 +157,6 @@ export interface ITournamentTeam extends Document {
   updatedAt: Date;
 }
 
-// Customize schemas for Team tournaments
-const teamStandingSchema = new Schema({
-  ...standingSchema.obj,
-  participant: { type: Schema.Types.ObjectId, ref: "Team", required: true }
-}, { _id: false });
-
-const teamGroupSchema = new Schema({
-  ...groupSchema.obj,
-  participants: [{ type: Schema.Types.ObjectId, ref: "Team" }],
-  standings: [teamStandingSchema]
-}, { _id: false });
-
 const tournamentTeamSchema = new Schema(
   {
     // Fixed category
@@ -213,8 +200,7 @@ const tournamentTeamSchema = new Schema(
       seedingPoints: { type: Number },
     }],
 
-    // Groups (with Team participants)
-    groups: [teamGroupSchema],
+    // groups removed from persisted schema; loaded from TournamentGroups projection
 
     // Qualified participants for hybrid (Teams)
     qualifiedParticipants: [{ type: Schema.Types.ObjectId, ref: "Team" }],
@@ -222,8 +208,7 @@ const tournamentTeamSchema = new Schema(
     // Rounds (round-robin matches)
     rounds: [roundSchema],
 
-    // Standings (Teams)
-    standings: [teamStandingSchema],
+    // standings removed from persisted schema; loaded from TournamentStandings projection
 
     // All base fields
     ...baseTournamentFields,
@@ -272,6 +257,8 @@ tournamentTeamSchema.virtual('bracket', {
   foreignField: 'tournament',
   justOne: true
 });
+
+attachTournamentProjectionHooks(tournamentTeamSchema);
 
 // Cascade delete hook - Delete all related data when tournament is deleted
 tournamentTeamSchema.pre('deleteOne', { document: true, query: false }, async function() {

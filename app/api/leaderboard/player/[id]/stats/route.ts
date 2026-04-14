@@ -5,6 +5,12 @@ import TeamMatch from "@/models/TeamMatch";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
 import mongoose from "mongoose";
+import {
+  applyFlatPointsToIndividualMatchGames,
+  applyFlatPointsToTeamMatchGames,
+  fetchIndividualPointsByMatchIds,
+  fetchTeamPointsByMatchIds,
+} from "@/services/match/matchPointService";
 
 export async function GET(
   request: NextRequest,
@@ -308,6 +314,15 @@ export async function GET(
       .select("participants games")
       .lean();
 
+    const indIds = individualMatchesForServes.map((m) => m._id as mongoose.Types.ObjectId);
+    const indPointsByMatch = await fetchIndividualPointsByMatchIds(indIds);
+    for (const m of individualMatchesForServes) {
+      applyFlatPointsToIndividualMatchGames(
+        m as Record<string, unknown>,
+        indPointsByMatch.get(String(m._id)) ?? []
+      );
+    }
+
     individualMatchesForServes.forEach((match: any) => {
       if (match.games && Array.isArray(match.games)) {
         match.games.forEach((game: any) => {
@@ -573,6 +588,15 @@ export async function GET(
     })
       .select("subMatches")
       .lean();
+
+    const teamIds = teamMatchesForServes.map((m) => m._id as mongoose.Types.ObjectId);
+    const teamPointsByMatch = await fetchTeamPointsByMatchIds(teamIds);
+    for (const tm of teamMatchesForServes) {
+      applyFlatPointsToTeamMatchGames(
+        tm as Record<string, unknown>,
+        teamPointsByMatch.get(String(tm._id)) ?? []
+      );
+    }
 
     teamMatchesForServes.forEach((teamMatch: any) => {
       teamMatch.subMatches?.forEach((sub: any) => {

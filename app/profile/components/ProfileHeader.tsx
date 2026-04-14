@@ -100,7 +100,7 @@ const ProfileHeader = ({
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Profile Image */}
             <div className="relative w-28 h-28 flex-shrink-0">
-              <div className="w-28 h-28 overflow-hidden rounded-2xl border-2 border-gray-200 shadow-lg">
+              <div className="w-28 h-28 overflow-hidden rounded-full border-2 border-gray-200 shadow-lg">
                 {previewUrl || user?.profileImage ? (
                   <Image
                     src={previewUrl || user.profileImage}
@@ -118,7 +118,7 @@ const ProfileHeader = ({
 
               {/* Camera Button - Only show for own profile */}
               {isOwnProfile && (
-                <label className="absolute bottom-0 right-0 bg-blue-500 p-2 cursor-pointer hover:bg-blue-600 transition-all duration-200 rounded-lg shadow-lg">
+                <label className="absolute -bottom-1 -right-1 bg-blue-500 p-2 cursor-pointer hover:bg-blue-600 transition-all duration-200 rounded-full shadow-lg border-2 border-white">
                   {isUploadingProfile ? (
                     <Loader2 className="animate-spin w-4 h-4 text-[#ffffff]" />
                   ) : (

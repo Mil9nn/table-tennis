@@ -1,8 +1,5 @@
 import { Shot } from "./shot.type";
 
-// Server key type for tracking current server
-export type ServerKey = "side1" | "side2" | string;
-
 // Socket event names (string literals for type safety)
 export type SocketEventName =
   | "score:update"
@@ -46,23 +43,16 @@ export interface ScoreUpdateEvent {
   matchId: string;
   matchCategory: "individual" | "team";
   gameNumber: number;
-  // Individual match scores
-  side1Score?: number;
-  side2Score?: number;
-  // Team match scores
-  team1Score?: number;
-  team2Score?: number;
+  /** Match scores keyed by scoring id (player/team id) */
+  scoresById?: Record<string, number>;
+  /** Match sets keyed by scoring id (player/team id) */
+  setsById?: Record<string, number>;
+  /** Completed game winner id */
+  gameWinnerId?: string;
+  /** Current server as player id */
+  currentServerPlayerId?: string;
   subMatchId?: string;
-  // Common fields
-  currentServer: ServerKey | null;
-  finalScore: {
-    side1Sets?: number;
-    side2Sets?: number;
-    team1Games?: number;
-    team2Games?: number;
-  };
   gameCompleted?: boolean;
-  gameWinner?: "side1" | "side2" | "team1" | "team2" | null;
   timestamp: string;
 }
 
@@ -79,7 +69,7 @@ export interface ServerChangeEvent {
   matchId: string;
   matchCategory: "individual" | "team";
   subMatchId?: string;
-  currentServer: ServerKey | null;
+  currentServerPlayerId: string | null;
   reason: "score_update" | "manual_change" | "game_start";
   timestamp: string;
 }
@@ -96,32 +86,17 @@ export interface GameCompletedEvent {
   matchCategory: "individual" | "team";
   gameNumber: number;
   subMatchId?: string;
-  winnerSide: "side1" | "side2" | "team1" | "team2" | null;
-  finalScore: {
-    side1Score?: number;
-    side2Score?: number;
-    team1Score?: number;
-    team2Score?: number;
-  };
-  newSetScore: {
-    side1Sets?: number;
-    side2Sets?: number;
-    team1Games?: number;
-    team2Games?: number;
-  };
+  winnerId: string | null;
+  scoresById?: Record<string, number>;
+  setsById?: Record<string, number>;
   timestamp: string;
 }
 
 export interface MatchCompletedEvent {
   matchId: string;
   matchCategory: "individual" | "team";
-  winnerSide: "side1" | "side2" | "team1" | "team2" | null;
-  finalScore: {
-    side1Sets?: number;
-    side2Sets?: number;
-    team1Matches?: number;
-    team2Matches?: number;
-  };
+  winnerId: string | null;
+  setsById?: Record<string, number>;
   timestamp: string;
 }
 

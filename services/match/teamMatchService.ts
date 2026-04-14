@@ -5,6 +5,7 @@
  * Extracts logic from API routes for better testability and reuse.
  */
 
+import mongoose, { ClientSession } from "mongoose";
 import TeamMatch, { ITeamMatch } from "@/models/TeamMatch";
 import Team from "@/models/Team";
 import { User } from "@/models/User";
@@ -19,6 +20,11 @@ import {
   createDoublesSubMatch,
 } from "./subMatchFactory";
 import { populateTeamMatch } from "./populationService";
+import {
+  applyShotsToLoadedMatch,
+  deleteLastTeamPointForSide,
+  insertTeamPoint,
+} from "./matchPointService";
 import { isGameWon, isMatchWon, isTeamMatchWon } from "@/shared/match/scoringRules";
 import { getNextServerForTeamMatch } from "./serverCalculationService";
 import { matchRepository } from "@/services/tournament/repositories/MatchRepository";
@@ -421,7 +427,11 @@ export class TeamMatchService {
       TeamMatch.findById(teamMatch._id)
     ).exec();
 
-    return { success: true, match: populatedMatch };
+    const withShots = populatedMatch
+      ? await applyShotsToLoadedMatch(populatedMatch, "team", true)
+      : populatedMatch;
+
+    return { success: true, match: withShots };
   }
 
   /**
@@ -432,9 +442,12 @@ export class TeamMatchService {
     subMatchId: string,
     input: UpdateScoreInput,
     onMatchComplete?: (match: ITeamMatch) => Promise<void>,
-    userId?: string
+    userId?: string,
+    session?: ClientSession | null
   ): Promise<TeamMatchResult> {
-    const match = await TeamMatch.findById(matchId);
+    let mq = TeamMatch.findById(matchId);
+    if (session) mq = mq.session(session);
+    const match = await mq;
     if (!match) {
       return { success: false, error: "Match not found", status: 404 };
     }
@@ -459,7 +472,6 @@ export class TeamMatchService {
         gameNumber,
         team1Score: 0,
         team2Score: 0,
-        shots: [],
         winnerSide: null,
         completed: false,
       });
@@ -469,6 +481,9 @@ export class TeamMatchService {
     const isDoubles = (subMatch as any).matchType === "doubles";
     const serverConfig = (subMatch as any).serverConfig || {};
 
+    const subMatchDocId = subMatch._id as mongoose.Types.ObjectId;
+    let didCompleteEntireTeamMatch = false;
+
     if (input.action === "subtract" && input.side) {
       if (input.side === "team1" && currentGame.team1Score > 0) {
         currentGame.team1Score -= 1;
@@ -477,13 +492,13 @@ export class TeamMatchService {
         currentGame.team2Score -= 1;
       }
 
-      const lastIndex = [...(currentGame.shots || [])]
-        .reverse()
-        .findIndex((s: any) => s.side === input.side);
-
-      if (lastIndex !== -1) {
-        currentGame.shots.splice(currentGame.shots.length - 1 - lastIndex, 1);
-      }
+      await deleteLastTeamPointForSide(
+        match._id,
+        subMatchDocId,
+        gameNumber,
+        input.side,
+        session ?? null
+      );
 
       const serverResult = getNextServerForTeamMatch(
         currentGame.team1Score,
@@ -537,21 +552,24 @@ export class TeamMatchService {
 
     // Add shot data if provided (before checking game completion)
     if (input.shotData?.player) {
-      const shot = {
-        shotNumber: (currentGame.shots?.length || 0) + 1,
-        side: input.shotData.side,
-        player: input.shotData.player,
-        stroke: input.shotData.stroke || null,
-        serveType: input.shotData.serveType || null,
-        server: input.shotData.server || null,
-        originX: input.shotData.originX,
-        originY: input.shotData.originY,
-        landingX: input.shotData.landingX,
-        landingY: input.shotData.landingY,
-        timestamp: new Date(),
-      };
-      currentGame.shots = currentGame.shots || [];
-      currentGame.shots.push(shot);
+      await insertTeamPoint({
+        matchId: match._id,
+        teamSubMatchId: subMatchDocId,
+        gameNumber,
+        shot: {
+          side: input.shotData.side,
+          player: input.shotData.player,
+          stroke: input.shotData.stroke || null,
+          serveType: input.shotData.serveType || null,
+          server: input.shotData.server || null,
+          originX: input.shotData.originX,
+          originY: input.shotData.originY,
+          landingX: input.shotData.landingX,
+          landingY: input.shotData.landingY,
+          timestamp: new Date(),
+        },
+        session: session ?? null,
+      });
     }
 
     const gameWon = isGameWon(currentGame.team1Score, currentGame.team2Score);
@@ -585,15 +603,15 @@ export class TeamMatchService {
         subMatch.completed = true;
 
         if (subMatch.winnerSide === "team1") {
-          match.finalScore.team1Matches += 1;
+          match.finalScore.team1Matches = Number(match.finalScore.team1Matches || 0) + 1;
         } else {
-          match.finalScore.team2Matches += 1;
+          match.finalScore.team2Matches = Number(match.finalScore.team2Matches || 0) + 1;
         }
 
         const totalSubMatches = match.numberOfSubMatches || match.subMatches.length;
         const teamMatchWon = isTeamMatchWon(
-          match.finalScore.team1Matches,
-          match.finalScore.team2Matches,
+          Number(match.finalScore.team1Matches || 0),
+          Number(match.finalScore.team2Matches || 0),
           totalSubMatches
         );
 
@@ -601,24 +619,9 @@ export class TeamMatchService {
           const matchesNeeded = Math.ceil(totalSubMatches / 2);
           match.status = "completed";
           match.winnerTeam =
-            match.finalScore.team1Matches >= matchesNeeded ? "team1" : "team2";
+            Number(match.finalScore.team1Matches || 0) >= matchesNeeded ? "team1" : "team2";
           match.matchDuration = Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
-
-          match.markModified("subMatches");
-          await match.save();
-
-          if (onMatchComplete) {
-            await onMatchComplete(match);
-          }
-
-          const updatedMatch = await populateTeamMatch(
-            TeamMatch.findById(match._id)
-          ).exec();
-
-          return {
-            success: true,
-            match: updatedMatch,
-          };
+          didCompleteEntireTeamMatch = true;
         } else {
           const nextSubIndex = match.subMatches.findIndex(
             (sm: any) => !sm.completed
@@ -639,11 +642,19 @@ export class TeamMatchService {
     }
 
     match.markModified("subMatches");
-    await match.save();
+    await match.save(session ? { session } : {});
 
-    const updatedMatch = await populateTeamMatch(
+    const updatedDoc = await populateTeamMatch(
       TeamMatch.findById(match._id)
     ).exec();
+
+    const updatedMatch = updatedDoc
+      ? await applyShotsToLoadedMatch(updatedDoc, "team", true)
+      : updatedDoc;
+
+    if (onMatchComplete && didCompleteEntireTeamMatch) {
+      await onMatchComplete(match);
+    }
 
     return { success: true, match: updatedMatch };
   }

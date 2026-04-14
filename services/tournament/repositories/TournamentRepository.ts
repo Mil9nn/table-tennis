@@ -3,6 +3,8 @@ import mongoose, { ClientSession } from "mongoose";
 import TournamentIndividual, { ITournamentIndividual } from "@/models/TournamentIndividual";
 import TournamentTeam, { ITournamentTeam } from "@/models/TournamentTeam";
 import BracketState from "@/models/BracketState";
+import { tournamentProjectionRepository } from "./TournamentProjectionRepository";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 
 /**
  * Tournament Repository
@@ -64,6 +66,16 @@ export interface CreateTournamentTeamDTO {
 export type Tournament = ITournamentIndividual | ITournamentTeam;
 
 export class TournamentRepository {
+  private async hydrateProjectionData<T>(tournament: T): Promise<T> {
+    if (!tournament || !(tournament as any)._id) return tournament;
+    const tournamentData = (tournament as any).toObject ? (tournament as any).toObject() : tournament;
+    await loadAndApplyProjectedTournamentData((tournament as any)._id.toString(), tournamentData);
+    Object.assign(tournament as any, {
+      groups: tournamentData.groups || [],
+      standings: tournamentData.standings || [],
+    });
+    return tournament;
+  }
   /**
    * Create an individual tournament
    */
@@ -109,24 +121,28 @@ export class TournamentRepository {
     
     // Use the correct model based on category
     if (doc.category === 'team') {
-      return TournamentTeam.findById(id);
+      const tournament = await TournamentTeam.findById(id);
+      return tournament ? this.hydrateProjectionData(tournament) : null;
     }
     
-    return TournamentIndividual.findById(id);
+    const tournament = await TournamentIndividual.findById(id);
+    return tournament ? this.hydrateProjectionData(tournament) : null;
   }
 
   /**
    * Find individual tournament by ID
    */
   async findIndividualById(id: string): Promise<ITournamentIndividual | null> {
-    return TournamentIndividual.findById(id);
+    const tournament = await TournamentIndividual.findById(id);
+    return tournament ? this.hydrateProjectionData(tournament) : null;
   }
 
   /**
    * Find team tournament by ID
    */
   async findTeamById(id: string): Promise<ITournamentTeam | null> {
-    return TournamentTeam.findById(id);
+    const tournament = await TournamentTeam.findById(id);
+    return tournament ? this.hydrateProjectionData(tournament) : null;
   }
 
   /**
@@ -151,7 +167,7 @@ export class TournamentRepository {
     
     // Use the correct model based on category
     if (doc.category === 'team') {
-      return TournamentTeam.findById(id)
+      const tournament = await TournamentTeam.findById(id)
         .populate({
           path: 'participants',
           select: 'name logo captain players',
@@ -162,13 +178,15 @@ export class TournamentRepository {
         })
         .populate('organizer', 'username fullName profileImage')
         .populate('bracket');
+      return tournament ? this.hydrateProjectionData(tournament) : null;
     }
     
-    return TournamentIndividual.findById(id)
+    const tournament = await TournamentIndividual.findById(id)
       .populate('participants', 'username fullName profileImage rank')
       .populate('organizer', 'username fullName profileImage')
       .populate('seeding.participant', 'username fullName profileImage')
       .populate('bracket');
+    return tournament ? this.hydrateProjectionData(tournament) : null;
   }
 
   /**
@@ -354,6 +372,16 @@ export class TournamentRepository {
     groups: any[],
     session?: ClientSession
   ): Promise<Tournament | null> {
+    const tournament = await this.findById(tournamentId);
+    if (!tournament) return null;
+    const category = (tournament as any).category === "team" ? "team" : "individual";
+    await tournamentProjectionRepository.upsertGroups(
+      tournamentId,
+      category,
+      groups,
+      session
+    );
+    // Keep legacy mirror write for safety until final schema removal.
     return this.updateById(tournamentId, { groups } as any, session);
   }
 
@@ -365,6 +393,19 @@ export class TournamentRepository {
     standings: any[],
     session?: ClientSession
   ): Promise<Tournament | null> {
+    const tournament = await this.findById(tournamentId);
+    if (!tournament) return null;
+    const category = (tournament as any).category === "team" ? "team" : "individual";
+    const phase = (tournament as any).currentPhase;
+    await tournamentProjectionRepository.upsertStandings(
+      tournamentId,
+      category,
+      phase,
+      standings,
+      (tournament as any).groups,
+      session
+    );
+    // Keep legacy mirror write for safety until final schema removal.
     return this.updateById(tournamentId, { standings } as any, session);
   }
 

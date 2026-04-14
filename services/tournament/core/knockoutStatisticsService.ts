@@ -31,19 +31,59 @@ interface MatchData {
   // Individual match fields
   participants?: mongoose.Types.ObjectId[];
   finalScore?: {
-    side1Sets: number;
-    side2Sets: number;
+    setsById?: Record<string, number>;
+    side1Sets?: number;
+    side2Sets?: number;
   };
+  winnerId?: string | null;
   winnerSide?: "side1" | "side2" | null;
   games?: Array<{
-    side1Score: number;
-    side2Score: number;
+    scoresById?: Record<string, number>;
+    side1Score?: number;
+    side2Score?: number;
     winnerSide?: "side1" | "side2" | null;
   }>;
   // Team match fields
   team1?: { teamId: mongoose.Types.ObjectId };
   team2?: { teamId: mongoose.Types.ObjectId };
   winnerTeam?: "team1" | "team2" | null;
+}
+
+interface MatchGameData {
+  scoresById?: Record<string, number>;
+  side1Score?: number;
+  side2Score?: number;
+  winnerSide?: "side1" | "side2" | null;
+}
+
+function getSetsForParticipant(match: MatchData, participantId: string): number {
+  const byId = match.finalScore?.setsById || {};
+  if (byId && Object.keys(byId).length > 0) {
+    return Number(byId[participantId] ?? 0);
+  }
+  const side = getParticipantSideInMatch(match, participantId, "individual");
+  return side === "side1"
+    ? Number(match.finalScore?.side1Sets ?? 0)
+    : side === "side2"
+      ? Number(match.finalScore?.side2Sets ?? 0)
+      : 0;
+}
+
+function getPointScoresForParticipant(
+  game: MatchGameData,
+  participantId: string,
+  opponentId: string
+): { mine: number; opp: number } {
+  const byId = game.scoresById || {};
+  if (byId && Object.keys(byId).length > 0) {
+    return {
+      mine: Number(byId[participantId] ?? 0),
+      opp: Number(byId[opponentId] ?? 0),
+    };
+  }
+  const mine = Number(game.side1Score ?? 0);
+  const opp = Number(game.side2Score ?? 0);
+  return { mine, opp };
 }
 
 interface ParticipantInfo {
@@ -479,21 +519,18 @@ function calculateParticipantStats(
 
       // Count sets and points
       if (category === "individual" && match.finalScore && match.games) {
-        const mySets = participantSide === "side1" ? match.finalScore.side1Sets : match.finalScore.side2Sets;
-        const opponentSets = participantSide === "side1" ? match.finalScore.side2Sets : match.finalScore.side1Sets;
+        const opponentId = getOpponentId(match, participant.id, category);
+        const mySets = getSetsForParticipant(match, participant.id);
+        const opponentSets = getSetsForParticipant(match, opponentId);
 
         setsWon += mySets;
         setsLost += opponentSets;
 
         // Sum points from all games
         for (const game of match.games) {
-          if (participantSide === "side1") {
-            pointsScored += game.side1Score;
-            pointsConceded += game.side2Score;
-          } else {
-            pointsScored += game.side2Score;
-            pointsConceded += game.side1Score;
-          }
+          const { mine, opp } = getPointScoresForParticipant(game, participant.id, opponentId);
+          pointsScored += mine;
+          pointsConceded += opp;
         }
       }
     }
@@ -548,13 +585,9 @@ function calculatePerformanceMetrics(
         let myPoints = 0;
         let oppPoints = 0;
         for (const game of match.games) {
-          if (participantSide === "side1") {
-            myPoints += game.side1Score;
-            oppPoints += game.side2Score;
-          } else {
-            myPoints += game.side2Score;
-            oppPoints += game.side1Score;
-          }
+          const { mine, opp } = getPointScoresForParticipant(game, participant.id, opponentId);
+          myPoints += mine;
+          oppPoints += opp;
         }
 
         totalPoints += myPoints;
@@ -567,8 +600,8 @@ function calculatePerformanceMetrics(
         // Track biggest win
         if (isWinner && margin > biggestMargin) {
           biggestMargin = margin;
-          const mySets = participantSide === "side1" ? match.finalScore.side1Sets : match.finalScore.side2Sets;
-          const oppSets = participantSide === "side1" ? match.finalScore.side2Sets : match.finalScore.side1Sets;
+          const mySets = getSetsForParticipant(match, participant.id);
+          const oppSets = getSetsForParticipant(match, opponentId);
           biggestWin = {
             opponentName,
             setScore: `${mySets}-${oppSets}`,
@@ -581,12 +614,12 @@ function calculatePerformanceMetrics(
         if (match.games.length >= 3) {
           const lastGame = match.games[match.games.length - 1];
           const lastGameMargin = Math.abs(
-            lastGame.side1Score - lastGame.side2Score
+            Number(lastGame.side1Score ?? 0) - Number(lastGame.side2Score ?? 0)
           );
           if (lastGameMargin < closestMargin) {
             closestMargin = lastGameMargin;
-            const mySets = participantSide === "side1" ? match.finalScore.side1Sets : match.finalScore.side2Sets;
-            const oppSets = participantSide === "side1" ? match.finalScore.side2Sets : match.finalScore.side1Sets;
+            const mySets = getSetsForParticipant(match, participant.id);
+            const oppSets = getSetsForParticipant(match, opponentId);
             closestMatch = {
               opponentName,
               setScore: `${mySets}-${oppSets}`,
@@ -659,14 +692,17 @@ function getMatchScore(
 ): MatchScore {
   if (category === "individual" && match.finalScore && match.games) {
     const winnerSide = getParticipantSideInMatch(match, winnerId, category);
-    const side1Sets = match.finalScore.side1Sets;
-    const side2Sets = match.finalScore.side2Sets;
-
-    const setsBreakdown = match.games.map((game) => [game.side1Score, game.side2Score]);
+    const opponentId = getOpponentId(match, winnerId, category);
+    const winnerSets = getSetsForParticipant(match, winnerId);
+    const loserSets = getSetsForParticipant(match, opponentId);
+    const setsBreakdown = match.games.map((game) => {
+      const { mine, opp } = getPointScoresForParticipant(game, winnerId, opponentId);
+      return [mine, opp];
+    });
 
     return {
-      side1Sets: winnerSide === "side1" ? side1Sets : side2Sets,
-      side2Sets: winnerSide === "side1" ? side2Sets : side1Sets,
+      side1Sets: winnerSide ? winnerSets : 0,
+      side2Sets: winnerSide ? loserSets : 0,
       setsBreakdown,
     };
   }
@@ -705,6 +741,12 @@ function isParticipantWinner(
   category: "individual" | "team"
 ): boolean {
   if (category === "individual") {
+    const pid = participantSide === "side1"
+      ? match.participants?.[0]?.toString()
+      : match.participants?.[1]?.toString();
+    if (match.winnerId && pid) {
+      return String(match.winnerId) === String(pid);
+    }
     return match.winnerSide === participantSide;
   } else {
     const teamSide = participantSide === "side1" ? "team1" : "team2";

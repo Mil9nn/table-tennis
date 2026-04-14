@@ -79,6 +79,27 @@ export async function GET(request: NextRequest) {
     const leaderboardData = Array.isArray(facetResult.data) ? facetResult.data : [];
     const totalCount = facetResult.total?.[0]?.count || 0;
 
+    // Fallback for migrated score model: if aggregation returns empty but matches exist,
+    // compute leaderboard directly from match docs using winnerId/setsById/scoresById.
+    if (totalCount === 0) {
+      const fallback = await buildFallbackLeaderboard(filters, dateRange, limit, skip);
+      if (fallback.totalCount > 0) {
+        return NextResponse.json({
+          leaderboard: fallback.leaderboard,
+          pagination: {
+            total: fallback.totalCount,
+            skip,
+            limit,
+            hasMore: skip + fallback.leaderboard.length < fallback.totalCount,
+          },
+          filters: {
+            applied: filters,
+          },
+          generatedAt: new Date(),
+        });
+      }
+    }
+
     // Build head-to-head records for ITTF sorting
     // We need to query matches to build head-to-head records
     const headToHeadMap = await buildHeadToHeadMap(filters, dateRange);
@@ -167,6 +188,178 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+type FallbackStats = {
+  player: {
+    _id: string;
+    username?: string;
+    fullName?: string;
+    profileImage?: string;
+  };
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  setsWon: number;
+  setsLost: number;
+  totalPointsScored: number;
+  totalPointsConceded: number;
+};
+
+async function buildFallbackLeaderboard(
+  filters: any,
+  dateRange: ReturnType<typeof getDateRange>,
+  limit: number,
+  skip: number,
+): Promise<{ leaderboard: PlayerStats[]; totalCount: number }> {
+  const matchFilter: any = {
+    matchCategory: "individual",
+    status: "completed",
+  };
+
+  if (filters.type && filters.type !== "all") {
+    matchFilter.matchType = filters.type;
+  } else {
+    matchFilter.matchType = { $in: ["singles", "doubles"] };
+  }
+
+  if (dateRange) {
+    matchFilter.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
+  }
+  if (filters.tournamentId) {
+    matchFilter.tournament = filters.tournamentId;
+  } else if (filters.matchFormat === "friendly") {
+    matchFilter.tournament = null;
+  } else if (filters.matchFormat === "tournament") {
+    matchFilter.tournament = { $ne: null };
+  }
+
+  const matches = await IndividualMatch.find(matchFilter)
+    .select("participants matchType finalScore games winnerId winnerPlayerId winner winnerSide")
+    .populate("participants", "_id username fullName profileImage")
+    .lean();
+
+  const statsMap = new Map<string, FallbackStats>();
+
+  for (const match of matches as any[]) {
+    const participants = Array.isArray(match.participants) ? match.participants : [];
+    if (participants.length < 2) continue;
+
+    const isDoubles = match.matchType === "doubles";
+    const side1Players = isDoubles ? [participants[0], participants[1]] : [participants[0]];
+    const side2Players = isDoubles ? [participants[2], participants[3]] : [participants[1]];
+    const side1Ids = side1Players.filter(Boolean).map((p: any) => String(p?._id || ""));
+    const side2Ids = side2Players.filter(Boolean).map((p: any) => String(p?._id || ""));
+
+    const winnerId = String(match.winnerId || match.winnerPlayerId || match.winner || "");
+    const setsById =
+      match.finalScore?.setsById ||
+      match.finalScore?.setsByPlayerId ||
+      match.finalScore?.sets ||
+      {};
+
+    const getSetsForPlayer = (playerId: string, fallback: number) =>
+      Number(setsById[playerId] ?? fallback);
+
+    for (const player of [...side1Players, ...side2Players]) {
+      if (!player?._id) continue;
+      const playerId = String(player._id);
+      const onSide1 = side1Ids.includes(playerId);
+
+      const isWinner = winnerId
+        ? winnerId === playerId || (onSide1 ? side1Ids.includes(winnerId) : side2Ids.includes(winnerId))
+        : match.winnerSide
+          ? (onSide1 ? match.winnerSide === "side1" : match.winnerSide === "side2")
+          : false;
+
+      const setsWon = getSetsForPlayer(
+        playerId,
+        Number(onSide1 ? match.finalScore?.side1Sets ?? 0 : match.finalScore?.side2Sets ?? 0),
+      );
+      const setsLost = Number(onSide1 ? match.finalScore?.side2Sets ?? 0 : match.finalScore?.side1Sets ?? 0);
+
+      let pointsScored = 0;
+      let pointsConceded = 0;
+      for (const game of match.games || []) {
+        const gameScores = game.scoresById || game.scoresByPlayerId || game.scores || {};
+        if (gameScores[playerId] !== undefined) {
+          pointsScored += Number(gameScores[playerId] || 0);
+        } else {
+          pointsScored += Number(onSide1 ? game.side1Score ?? 0 : game.side2Score ?? 0);
+        }
+        pointsConceded += Number(onSide1 ? game.side2Score ?? 0 : game.side1Score ?? 0);
+      }
+
+      const existing = statsMap.get(playerId) || {
+        player: {
+          _id: playerId,
+          username: player.username,
+          fullName: player.fullName,
+          profileImage: player.profileImage,
+        },
+        totalMatches: 0,
+        wins: 0,
+        losses: 0,
+        setsWon: 0,
+        setsLost: 0,
+        totalPointsScored: 0,
+        totalPointsConceded: 0,
+      };
+
+      existing.totalMatches += 1;
+      existing.wins += isWinner ? 1 : 0;
+      existing.losses += isWinner ? 0 : 1;
+      existing.setsWon += setsWon;
+      existing.setsLost += setsLost;
+      existing.totalPointsScored += pointsScored;
+      existing.totalPointsConceded += pointsConceded;
+      statsMap.set(playerId, existing);
+    }
+  }
+
+  const entries = Array.from(statsMap.values())
+    .map((entry) => {
+      const winRate = entry.totalMatches > 0 ? (entry.wins / entry.totalMatches) * 100 : 0;
+      return {
+        rank: 0,
+        player: {
+          _id: entry.player._id,
+          username: entry.player.username || "",
+          fullName: entry.player.fullName,
+          profileImage: entry.player.profileImage,
+        },
+        stats: {
+          totalMatches: entry.totalMatches,
+          wins: entry.wins,
+          losses: entry.losses,
+          winRate: Number(winRate.toFixed(1)),
+          setsWon: entry.setsWon,
+          setsLost: entry.setsLost,
+          totalPointsScored: entry.totalPointsScored,
+          totalPointsConceded: entry.totalPointsConceded,
+          currentStreak: 0,
+          bestStreak: 0,
+        },
+      } satisfies PlayerStats;
+    })
+    .sort((a, b) => {
+      const diffA = (a.stats.wins || 0) - (a.stats.losses || 0);
+      const diffB = (b.stats.wins || 0) - (b.stats.losses || 0);
+      if (diffB !== diffA) return diffB - diffA;
+      if ((b.stats.winRate || 0) !== (a.stats.winRate || 0)) return (b.stats.winRate || 0) - (a.stats.winRate || 0);
+      const pointsDiffA = (a.stats.totalPointsScored || 0) - (a.stats.totalPointsConceded || 0);
+      const pointsDiffB = (b.stats.totalPointsScored || 0) - (b.stats.totalPointsConceded || 0);
+      return pointsDiffB - pointsDiffA;
+    })
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+
+  return {
+    leaderboard: entries.slice(skip, skip + limit),
+    totalCount: entries.length,
+  };
 }
 
 /**

@@ -46,8 +46,11 @@ export function createShotSchema(sideEnum: string[]) {
   });
 }
 
-// Base game schema factory - configurable for different side enums
-export function createGameSchema(shotSchema: mongoose.Schema, sideEnum: string[]) {
+/**
+ * Per-game schema (scores + metadata only).
+ * Point-by-point data lives in the `matchpoints` collection, not embedded here.
+ */
+export function createGameSchema(sideEnum: string[]) {
   return new mongoose.Schema({
     gameNumber: Number,
 
@@ -58,16 +61,14 @@ export function createGameSchema(shotSchema: mongoose.Schema, sideEnum: string[]
 
     completed: { type: Boolean, default: false },
 
-    shots: [shotSchema],
-
     duration: Number,
     startTime: Date,
     endTime: Date,
   });
 }
 
-// Alternative team-based game schema factory for team matches
-export function createTeamGameSchema(shotSchema: mongoose.Schema, sideEnum: string[]) {
+/** Team rubber game schema (scores + metadata only; shots in `matchpoints`). */
+export function createTeamGameSchema(sideEnum: string[]) {
   return new mongoose.Schema({
     gameNumber: Number,
 
@@ -77,8 +78,6 @@ export function createTeamGameSchema(shotSchema: mongoose.Schema, sideEnum: stri
     winnerSide: { type: String, enum: sideEnum, default: null },
 
     completed: { type: Boolean, default: false },
-
-    shots: [shotSchema],
 
     duration: Number,
     startTime: Date,
@@ -103,6 +102,45 @@ export function createServerConfigSchema(sideEnum: string[], extendedEnums: stri
       {
         type: String,
         enum: extendedEnums,
+      },
+    ],
+  });
+}
+
+// ID-based game schema (no side/team keys)
+export function createIdBasedGameSchema() {
+  return new mongoose.Schema({
+    gameNumber: { type: Number, required: true },
+    scoresById: { type: Map, of: Number, default: {} },
+    winnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    status: {
+      type: String,
+      enum: ["scheduled", "in_progress", "completed"],
+      default: "in_progress",
+    },
+    duration: Number,
+    startTime: Date,
+    endTime: Date,
+  });
+}
+
+// ID-based server configuration (player/team ids only)
+export function createIdServerConfigSchema() {
+  return new mongoose.Schema({
+    firstServerPlayerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    firstReceiverPlayerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    serverOrderPlayerIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
   });

@@ -1,5 +1,6 @@
 import { IndividualMatch } from "@/types/match.type";
 import { Trophy } from "lucide-react";
+import { getSinglesParticipantIds, singlesGamePointScores, singlesGameWinnerPlayerId } from "@/lib/match/singlesClient";
 
 interface Props {
   match: IndividualMatch;
@@ -15,8 +16,17 @@ export default function GamesHistory({ match }: Props) {
       </h3>
       <div className="space-y-2 p-2">
         {match.games.map((g: any) => {
-          const side1Won = g.winnerSide === "side1";
-          const side2Won = g.winnerSide === "side2";
+          const ids = getSinglesParticipantIds(match.participants || []);
+          const pts = ids
+            ? singlesGamePointScores(g, ids[0], ids[1])
+            : { side1Score: g.side1Score ?? 0, side2Score: g.side2Score ?? 0 };
+          const gameWinnerId = ids ? singlesGameWinnerPlayerId(g, ids[0], ids[1]) : null;
+          const side1Won = gameWinnerId
+            ? String(gameWinnerId) === String(match.participants?.[0]?._id)
+            : g.winnerSide === "side1";
+          const side2Won = gameWinnerId
+            ? String(gameWinnerId) === String(match.participants?.[1]?._id)
+            : g.winnerSide === "side2";
 
           return (
             <div
@@ -32,7 +42,7 @@ export default function GamesHistory({ match }: Props) {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-zinc-700 dark:text-zinc-300"
                 }`}>
-                  {g.side1Score}
+                  {pts.side1Score}
                 </span>
                 <span className="text-zinc-400 dark:text-zinc-500">-</span>
                 <span className={`text-sm font-semibold tabular-nums ${
@@ -40,7 +50,7 @@ export default function GamesHistory({ match }: Props) {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-zinc-700 dark:text-zinc-300"
                 }`}>
-                  {g.side2Score}
+                  {pts.side2Score}
                 </span>
               </div>
             </div>

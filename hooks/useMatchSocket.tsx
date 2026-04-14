@@ -117,29 +117,35 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
         if (!currentGame) {
           currentGame = {
             gameNumber: data.gameNumber,
-            side1Score: 0,
-            side2Score: 0,
+            scoresById: {},
             shots: [],
-            winnerSide: null,
-            completed: false,
+            winnerId: null,
+            status: "in_progress",
           };
           updatedMatch.games.push(currentGame);
         }
 
         // Update scores
-        currentGame.side1Score = data.side1Score ?? 0;
-        currentGame.side2Score = data.side2Score ?? 0;
-        currentGame.completed = data.gameCompleted ?? false;
-        currentGame.winnerSide = data.gameWinner;
+        if (data.scoresById) {
+          currentGame.scoresById = { ...data.scoresById };
+          currentGame.scores = { ...data.scoresById };
+        }
+        currentGame.status = data.gameCompleted ? "completed" : (currentGame.status ?? "in_progress");
+        if (data.gameWinnerId) {
+          currentGame.winnerId = data.gameWinnerId;
+          currentGame.winnerPlayerId = data.gameWinnerId;
+          currentGame.winner = data.gameWinnerId;
+        }
 
         // Update server
-        updatedMatch.currentServer = data.currentServer;
+        updatedMatch.currentServerPlayerId = data.currentServerPlayerId ?? null;
 
         // Update sets
-        if (data.finalScore) {
+        if (data.setsById) {
           updatedMatch.finalScore = {
-            side1Sets: data.finalScore.side1Sets ?? 0,
-            side2Sets: data.finalScore.side2Sets ?? 0,
+            ...updatedMatch.finalScore,
+            setsById: { ...data.setsById },
+            setsByPlayerId: { ...data.setsById },
           };
         }
       }
@@ -209,7 +215,7 @@ export function useMatchSocket(options: UseMatchSocketOptions): UseMatchSocketRe
 
       // Update match state with new server
       const updatedMatch: any = { ...match };
-      updatedMatch.currentServer = data.currentServer;
+      updatedMatch.currentServerPlayerId = data.currentServerPlayerId;
 
       setMatch(updatedMatch);
     },

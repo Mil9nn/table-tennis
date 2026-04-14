@@ -54,11 +54,19 @@ export interface IndividualGame {
   gameNumber: number;
   side1Score: number;
   side2Score: number;
+  /** Singles API: point totals keyed by player id (canonical). */
+  scores?: Record<string, number>;
+  /** Singles API alias of `scores` for clarity. */
+  scoresByPlayerId?: Record<string, number>;
+  /** Singles canonical game winner (player id string). */
+  winner?: string;
+  winnerPlayerId?: string;
   team1Score?: number;
   team2Score?: number;
   winnerSide?: WinnerSide;
   completed: boolean;
-  shots: Shot[];
+  /** Filled when merging from `matchpoints` on API responses; not stored on match documents. */
+  shots?: Shot[];
   duration?: number;
   startTime?: string;
   endTime?: string;
@@ -79,7 +87,15 @@ export interface IndividualMatch {
   finalScore: {
     side1Sets: number;
     side2Sets: number;
+    /** Singles: sets won per player id */
+    sets?: Record<string, number>;
+    setsByPlayerId?: Record<string, number>;
   };
+  /** Singles canonical match winner (player id string on API). */
+  winnerId?: string;
+  winnerPlayerId?: string;
+  winner?: string;
+  currentServerPlayerId?: string;
   winnerSide?: "side1" | "side2" | null;
   matchDuration?: number;
   currentServer?: ServerKey | null;

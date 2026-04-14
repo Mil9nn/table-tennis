@@ -17,24 +17,7 @@ import TournamentTeam from "@/models/TournamentTeam";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
 import BracketState from "@/models/BracketState";
-
-// Helper to get population config based on tournament category
-function getParticipantPopulateConfig(category: "individual" | "team") {
-  if (category === "team") {
-    return {
-      model: Team,
-      select: "name logo city captain players",
-      populate: [
-        { path: "captain", select: "username fullName profileImage" },
-        { path: "players.user", select: "username fullName profileImage" },
-      ],
-    };
-  }
-  return {
-    model: User,
-    select: "username fullName profileImage",
-  };
-}
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 
 // Helper to get match model based on tournament category
 /**
@@ -115,10 +98,6 @@ async function ensureDoublesPairsPopulated(doublesPairs: any[]): Promise<any[]> 
   return populatedPairs;
 }
 
-function getMatchModel(category: "individual" | "team") {
-  return category === "team" ? TeamMatch : IndividualMatch;
-}
-
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -149,10 +128,9 @@ export async function GET(
     }
 
     const isTeamTournament = tournamentRaw.category === "team";
-    const participantConfig = getParticipantPopulateConfig(tournamentRaw.category);
     // Use the actual model instead of string name to ensure it's registered
     const MatchModel = isTeamTournament ? TeamMatch : IndividualMatch;
-    
+
     // Use category-specific model for proper population (like loadTournament does)
     const TournamentModel = isTeamTournament ? TournamentTeam : TournamentIndividual;
 
@@ -178,33 +156,16 @@ export async function GET(
           ],
         })
         .populate({
-          path: "standings.participant",
-          model: Team,
-          select: "name logo city captain",
-        })
-        .populate({
-          path: "groups.standings.participant",
-          model: Team,
-          select: "name logo city captain",
-        })
-        .populate({
-          path: "groups.participants",
-          model: Team,
-          select: "name logo city captain players",
-          populate: [
-            { path: "captain", select: "username fullName profileImage" },
-            { path: "players.user", select: "username fullName profileImage" },
-          ],
-        })
-        .populate({
           path: "seeding.participant",
           model: Team,
           select: "name logo city captain",
+          options: { strictPopulate: false },
         })
         .populate({
           path: "qualifiedParticipants",
           model: Team,
           select: "name logo city captain",
+          options: { strictPopulate: false },
         });
     } else {
       // For individual tournaments, populate participants from User model
@@ -218,24 +179,20 @@ export async function GET(
           select: "username fullName profileImage",
           options: { strictPopulate: false } // Don't fail if some users don't exist
         });
-      
-      // For doubles tournaments, don't populate standings.participant or groups.standings.participant as User
-      // because they're actually pair IDs, not user IDs. We'll handle it manually later.
-      if (!isDoublesTournament) {
-        query = query
-          .populate("standings.participant", "username fullName profileImage")
-          .populate("groups.standings.participant", "username fullName profileImage")
-          .populate("groups.participants", "username fullName profileImage");
-      } else {
-        // CRITICAL: For doubles tournaments, groups.participants and groups.standings.participant contain pair IDs, not user IDs
-        // DO NOT populate them as Users - this would cause incorrect data
-        // We'll manually populate them as pair objects later
-        // No populate needed here for doubles tournaments
-      }
+
+      // Projection-backed groups/standings are loaded separately; no legacy nested populate here.
       
       query = query
-        .populate("seeding.participant", "username fullName profileImage")
-        .populate("qualifiedParticipants", "username fullName profileImage");
+        .populate({
+          path: "seeding.participant",
+          select: "username fullName profileImage",
+          options: { strictPopulate: false },
+        })
+        .populate({
+          path: "qualifiedParticipants",
+          select: "username fullName profileImage",
+          options: { strictPopulate: false },
+        });
     }
 
     // Populate matches based on category
@@ -243,6 +200,7 @@ export async function GET(
       .populate({
         path: "rounds.matches",
         model: MatchModel,
+        options: { strictPopulate: false },
         populate: isTeamTournament
           ? [
               { path: "team1.captain", select: "username fullName profileImage" },
@@ -258,6 +216,7 @@ export async function GET(
       .populate({
         path: "groups.rounds.matches",
         model: MatchModel,
+        options: { strictPopulate: false },
         populate: isTeamTournament
           ? [
               { path: "team1.captain", select: "username fullName profileImage" },
@@ -453,6 +412,8 @@ export async function GET(
 
     // Convert Mongoose document to plain object to ensure proper serialization
     const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+
+    await loadAndApplyProjectedTournamentData(id, tournamentData);
     
     // Filter out null/invalid scorers (deleted users) and ensure they're populated objects
     if (tournamentData.scorers && Array.isArray(tournamentData.scorers)) {
@@ -501,6 +462,52 @@ export async function GET(
         }
       );
     }
+
+    // Resolve unpopulated participant refs in standings/groups to avoid
+    // "Unknown / data integrity issue" rendering in frontend tables.
+    const participantById = new Map<string, any>(
+      (tournamentData.participants || [])
+        .filter((participant: any) => participant && typeof participant === "object" && participant._id)
+        .map((participant: any) => [participant._id.toString(), participant])
+    );
+
+    const resolveStandingParticipant = (standing: any) => {
+      if (!standing) return standing;
+      const participant = standing.participant;
+      if (participant && typeof participant === "object" && participant._id) {
+        return standing;
+      }
+      const participantId = participant?.toString?.() || "";
+      const resolved = participantById.get(participantId);
+      if (!resolved) return standing;
+      return { ...standing, participant: resolved };
+    };
+
+    if (Array.isArray(tournamentData.standings)) {
+      tournamentData.standings = tournamentData.standings.map(resolveStandingParticipant);
+    }
+    if (Array.isArray(tournamentData.groups)) {
+      tournamentData.groups = tournamentData.groups.map((group: any) => {
+        const resolvedParticipants = Array.isArray(group?.participants)
+          ? group.participants.map((participant: any) => {
+              if (participant && typeof participant === "object" && participant._id) return participant;
+              const participantId = participant?.toString?.() || "";
+              return participantById.get(participantId) || participant;
+            })
+          : group?.participants;
+
+        const resolvedStandings = Array.isArray(group?.standings)
+          ? group.standings.map(resolveStandingParticipant)
+          : group?.standings;
+
+        return {
+          ...group,
+          participants: resolvedParticipants,
+          standings: resolvedStandings,
+        };
+      });
+    }
+
 
     // Manually populate doublesPairs for individual doubles tournaments
     const isDoublesTournament = !isTeamTournament &&
@@ -769,7 +776,7 @@ export async function GET(
         // The UI will show error indicators for invalid participants
       }
     }
-    
+
     return NextResponse.json({ tournament: tournamentData }, { status: 200 });
   } catch (error) {
     console.error("Error fetching tournament:", error);
@@ -854,16 +861,6 @@ export async function PUT(
           ],
         })
         .populate({
-          path: "standings.participant",
-          model: Team,
-          select: "name logo city captain",
-        })
-        .populate({
-          path: "groups.standings.participant",
-          model: Team,
-          select: "name logo city captain",
-        })
-        .populate({
           path: "seeding.participant",
           model: Team,
           select: "name logo city captain",
@@ -871,15 +868,22 @@ export async function PUT(
     } else {
       query = query
         .populate("participants", "username fullName profileImage")
-        .populate("standings.participant", "username fullName profileImage")
-        .populate("groups.standings.participant", "username fullName profileImage")
         .populate("seeding.participant", "username fullName profileImage");
     }
 
     const tournament = await query;
+    if (!tournament) {
+      return NextResponse.json(
+        { error: "Tournament not found" },
+        { status: 404 }
+      );
+    }
+
+    const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+    await loadAndApplyProjectedTournamentData(id, tournamentData);
 
     return NextResponse.json({
-      tournament,
+      tournament: tournamentData,
       message: "Tournament updated successfully",
     });
   } catch (error) {

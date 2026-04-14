@@ -7,6 +7,10 @@ import TeamMatch from "@/models/TeamMatch";
 import { analyzeShotPlacement } from "@/lib/shot-commentary-utils";
 import type { Side } from "@/types/shot.type";
 import { requireFeature } from "@/lib/middleware/subscription";
+import {
+  hydrateIndividualMatchesWithPoints,
+  hydrateTeamMatchesWithPoints,
+} from "@/services/match/matchPointService";
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,6 +75,9 @@ export async function GET(request: NextRequest) {
       .populate("team1.players.user", "username fullName profileImage")
       .populate("team2.players.user", "username fullName profileImage")
       .lean();
+
+    await hydrateIndividualMatchesWithPoints(individualMatches as Record<string, unknown>[]);
+    await hydrateTeamMatchesWithPoints(teamMatches as Record<string, unknown>[]);
 
     // Initialize shot type distribution
     const shotTypeDistribution: Record<string, number> = {

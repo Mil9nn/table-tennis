@@ -60,6 +60,7 @@ export default function TournamentDetailPage() {
   const [manageDoublesPairsOpen, setManageDoublesPairsOpen] = useState(false);
   const [managementExpanded, setManagementExpanded] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [groupRoundMatches, setGroupRoundMatches] = useState<any[]>([]);
 
   const fetchTournament = useCallback(
     async (skipLoadingState = false) => {
@@ -88,6 +89,20 @@ export default function TournamentDetailPage() {
   useEffect(() => {
     fetchTournament();
   }, [fetchTournament]);
+
+  useEffect(() => {
+    const fetchRoundRobinMatches = async () => {
+      try {
+        const { data } = await axiosInstance.get(
+          `/tournaments/${tournamentId}/round-robin-matches`
+        );
+        setGroupRoundMatches(Array.isArray(data?.matches) ? data.matches : []);
+      } catch (error) {
+        setGroupRoundMatches([]);
+      }
+    };
+    fetchRoundRobinMatches();
+  }, [tournamentId, tournament?.updatedAt]);
 
   const generateMatches = async () => {
     setGenerating(true);
@@ -293,11 +308,23 @@ export default function TournamentDetailPage() {
    * For hybrid tournaments in knockout phase, this returns the historical round-robin matches
    */
   const getRoundRobinMatches = () => {
+    const hydratedMatchById = new Map<string, any>(
+      (groupRoundMatches || [])
+        .filter((match: any) => match && match._id)
+        .map((match: any) => [String(match._id), match])
+    );
+
     // For round-robin with groups (both round-robin and hybrid formats)
     if (hasGroups() && tournament.groups && Array.isArray(tournament.groups)) {
       return tournament.groups.flatMap((g: any) =>
         (g.rounds && Array.isArray(g.rounds) ? g.rounds : []).flatMap(
-          (r: any) => (r.matches && Array.isArray(r.matches) ? r.matches : [])
+          (r: any) =>
+            (r.matches && Array.isArray(r.matches)
+              ? r.matches.map((m: any) => {
+                  if (m && typeof m === "object" && m._id) return m;
+                  return hydratedMatchById.get(String(m)) || m;
+                })
+              : [])
         )
       );
     }
@@ -513,7 +540,7 @@ export default function TournamentDetailPage() {
 
   return (
     <TournamentErrorBoundary>
-      <div className="min-h-screen bg-[#ffffff]">
+      <div className="h-[calc(100vh-70px)] bg-[#ffffff] flex flex-col overflow-hidden">
         {/* Clean Header */}
         <header className="sticky top-0 z-10 border-b border-[#d9d9d9] bg-[#ffffff]">
           <div className="mx-auto px-4 py-3">
@@ -810,7 +837,7 @@ export default function TournamentDetailPage() {
         )}
 
         {/* Content Area */}
-        <div className="mx-auto">
+        <div className="mx-auto flex-1 min-h-0 w-full overflow-y-auto">
           {/* Main Tabs */}
           <Tabs defaultValue="progress" className="w-full">
             <TabsList className="flex flex-wrap w-full p-0 h-auto justify-start gap-1">
@@ -818,7 +845,7 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="progress"
                 className="
-                  text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                  text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                   data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                   data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                   transition-all
@@ -832,7 +859,7 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="schedule"
                   className="
-                    text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                    text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                     data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                     data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                     transition-all
@@ -847,7 +874,7 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="groups"
                   className="
-                    text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                    text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                     data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                     data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                     transition-all
@@ -862,7 +889,7 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="bracket"
                   className="
-                    text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                    text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                     data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                     data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                     transition-all
@@ -875,7 +902,7 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="participants"
                 className="
-                  text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                  text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                   data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                   data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                   transition-all
@@ -889,7 +916,7 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="statistics"
                   className="
-                      text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                      text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                       data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                       data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                       transition-all
@@ -904,7 +931,7 @@ export default function TournamentDetailPage() {
                 <TabsTrigger
                   value="standings"
                   className="
-                    text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                    text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                     data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                     data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                     transition-all
@@ -918,7 +945,7 @@ export default function TournamentDetailPage() {
               <TabsTrigger
                 value="info"
                 className="
-                  text-[10px] font-bold px-3 py-1.5 uppercase tracking-[0.2em]
+                  text-[10px] font-bold px-3 py-2 uppercase tracking-[0.2em]
                   data-[state=active]:bg-[#3c6e71] data-[state=active]:text-[#ffffff]
                   data-[state=inactive]:text-[#353535] data-[state=inactive]:hover:bg-[#3c6e71] data-[state=inactive]:hover:text-[#ffffff]
                   transition-all
@@ -929,7 +956,10 @@ export default function TournamentDetailPage() {
             </TabsList>
 
             {/* Progress Tab */}
-            <TabsContent value="progress" className="">
+            <TabsContent
+              value="progress"
+              className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+            >
               <div className="w-full bg-white border border-slate-200/60 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -991,7 +1021,10 @@ export default function TournamentDetailPage() {
 
             {/* Groups Tab */}
             {hasGroups() && (
-              <TabsContent value="groups" className="">
+              <TabsContent
+                value="groups"
+                className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+              >
                 <div className="w-full bg-white border border-slate-200/60 overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1015,6 +1048,7 @@ export default function TournamentDetailPage() {
                     {tournament.groups && tournament.groups.length > 0 ? (
                       <GroupsView
                         groups={tournament.groups}
+                        participants={tournament.participants}
                         advancePerGroup={tournament.advancePerGroup}
                         showDetailedStats={true}
                         category={tournament.category}
@@ -1031,7 +1065,10 @@ export default function TournamentDetailPage() {
             )}
 
             {/* Standings Tab */}
-            <TabsContent value="standings" className="">
+            <TabsContent
+              value="standings"
+              className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+            >
               <div className="w-full bg-white border border-slate-200/60 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1077,7 +1114,10 @@ export default function TournamentDetailPage() {
             {/* Bracket Tab - For knockout tournaments and hybrid tournaments in knockout phase */}
             {/* IMPORTANT: Bracket tab ONLY shows knockout matches from bracket structure, never round-robin matches */}
             {isInKnockoutPhase && tournament.bracket && (
-              <TabsContent value="bracket" className="">
+              <TabsContent
+                value="bracket"
+                className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+              >
                 <div className="w-full bg-white  border border-slate-200/60 overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1130,7 +1170,10 @@ export default function TournamentDetailPage() {
             {/* Schedule Tab - Shows match schedules only, NOT bracket visualization */}
             {/* Show only for round-robin and hybrid formats */}
             {tournament.format !== "knockout" && (
-              <TabsContent value="schedule" className="">
+              <TabsContent
+                value="schedule"
+                className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+              >
                 <div className="w-full bg-white border border-slate-200/60 overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1195,7 +1238,10 @@ export default function TournamentDetailPage() {
             )}
 
             {/* Participants Tab */}
-            <TabsContent value="participants" className="">
+            <TabsContent
+              value="participants"
+              className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+            >
               <div className="w-full bg-white  border border-slate-200/60 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1298,7 +1344,10 @@ export default function TournamentDetailPage() {
             </TabsContent>
 
             {/* Info Tab */}
-            <TabsContent value="info" className="">
+            <TabsContent
+              value="info"
+              className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+            >
               <div className="w-full bg-white border border-slate-200/60 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
@@ -1496,7 +1545,10 @@ export default function TournamentDetailPage() {
             {/* Statistics Tab */}
             {isInKnockoutPhase &&
               tournament.knockoutStatistics && (
-                <TabsContent value="statistics" className="">
+                <TabsContent
+                  value="statistics"
+                  className="data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 duration-200"
+                >
                   <div className="border border-[#d9d9d9] bg-[#ffffff] overflow-hidden">
                     <KnockoutStatisticsComponent
                       statistics={tournament.knockoutStatistics}

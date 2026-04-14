@@ -15,6 +15,9 @@ import IndividualMatch from "@/models/IndividualMatch";
 import TeamMatch from "@/models/TeamMatch";
 // 3. Import Tournament model
 import Tournament from "@/models/Tournament";
+import { syncTournamentProjections } from "@/models/utils/tournamentProjectionSync";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
+import { tournamentProjectionRepository } from "@/services/tournament/repositories/TournamentProjectionRepository";
 // 4. Import User model for populating doubles pairs
 import { User } from "@/models/User";
 
@@ -536,232 +539,103 @@ export async function PUT(
     tournament.drawGenerated = true;
 
     await tournament.save();
+    try {
+      const category = (tournament as any).category === "team" ? "team" : "individual";
+      const phase = (tournament as any).currentPhase;
+      const groups = Array.isArray((tournament as any).groups) ? (tournament as any).groups : [];
+      await tournamentProjectionRepository.upsertGroups(id, category, groups);
+      await tournamentProjectionRepository.upsertGroupStandings(
+        id,
+        category,
+        phase,
+        groups
+      );
+    } catch (projectionSyncError) {
+      console.error("[groups PUT] Projection repository sync failed:", projectionSyncError);
+      try {
+        await syncTournamentProjections(tournament.toObject ? tournament.toObject() : tournament);
+      } catch (fallbackSyncError) {
+        console.error("[groups PUT] Projection fallback sync failed:", fallbackSyncError);
+      }
+    }
 
-    // Populate and return updated tournament
-    const populatePaths: any[] = [
+    await tournament.populate([
       { path: "organizer", select: "username fullName profileImage" },
       { path: "participants", select: "username fullName profileImage" },
       { path: "seeding.participant", select: "username fullName profileImage" },
-    ];
-    
-    // For doubles tournaments, don't populate groups.participants or groups.standings.participant as User
-    // because they're pair IDs, not user IDs. We'll handle it manually.
-    const isDoublesForPopulate = tournament.matchType === "doubles";
-    if (!isDoublesForPopulate) {
-      populatePaths.push(
-        { path: "groups.participants", select: "username fullName profileImage" },
-        { path: "groups.standings.participant", select: "username fullName profileImage" }
-      );
+    ]);
+
+    const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+    await loadAndApplyProjectedTournamentData(id, tournamentData);
+
+    // Resolve participant refs in projection groups/standings for response parity.
+    const participantById = new Map<string, any>(
+      (tournamentData.participants || [])
+        .filter((participant: any) => participant && typeof participant === "object" && participant._id)
+        .map((participant: any) => [participant._id.toString(), participant])
+    );
+
+    if (Array.isArray(tournamentData.groups)) {
+      tournamentData.groups = tournamentData.groups.map((group: any) => ({
+        ...group,
+        participants: Array.isArray(group?.participants)
+          ? group.participants.map((participant: any) => {
+              if (participant && typeof participant === "object" && participant._id) return participant;
+              return participantById.get(participant?.toString?.() || "") || participant;
+            })
+          : group?.participants,
+        standings: Array.isArray(group?.standings)
+          ? group.standings.map((standing: any) => {
+              const participant = standing?.participant;
+              if (participant && typeof participant === "object" && participant._id) return standing;
+              const resolved = participantById.get(participant?.toString?.() || "");
+              return resolved ? { ...standing, participant: resolved } : standing;
+            })
+          : group?.standings,
+      }));
     }
-    // For doubles, we don't populate standings.participant - they're pair IDs, not user IDs
-    
-    populatePaths.push({
-      path: "groups.rounds.matches",
-      populate: {
-        path: "participants",
-        select: "username fullName profileImage",
-      },
-    });
-    
-    await tournament.populate(populatePaths);
-    
-    // For doubles tournaments, manually populate group participants and standings as pairs
-    if (isDoublesForPopulate && doublesPairs.length > 0) {
-      // Ensure doublesPairs are populated with player information
+
+    if (tournament.matchType === "doubles" && Array.isArray(doublesPairs) && doublesPairs.length > 0) {
       const populatedPairs = await ensureDoublesPairsPopulated(doublesPairs);
-      
-      // Create pairMap with normalized IDs (ensure consistent string format)
       const pairMap = new Map<string, any>();
       populatedPairs.forEach((pair: any) => {
         const pairId = normalizePairId(pair._id);
-        if (pairId) {
-          pairMap.set(pairId, pair);
-        }
-      });
-      
-      
-      
-      // Create reverse map: player ID -> pair (for cases where participant was populated as User)
-      const playerToPairMap = new Map<string, any>();
-      populatedPairs.forEach((pair: any) => {
-        if (pair.player1?._id) {
-          playerToPairMap.set(pair.player1._id.toString(), pair);
-        }
-        if (pair.player2?._id) {
-          playerToPairMap.set(pair.player2._id.toString(), pair);
-        }
-      });
-      
-      if (tournament.groups && Array.isArray(tournament.groups)) {
-        tournament.groups = tournament.groups.map((group: any) => {
-          // Populate group participants as pairs
-          if (group.participants && Array.isArray(group.participants)) {
-            group.participants = group.participants.map((participant: any) => {
-              // participant could be an ID string or a populated User (from failed populate)
-              let pair: any = null;
-              let pairId: string | null = null;
-              
-              if (participant && typeof participant === 'object' && participant._id) {
-                // Check if it's a User object (from failed populate) or a pair object
-                const participantId = normalizePairId(participant._id);
-                pair = playerToPairMap.get(participantId);
-                if (pair) {
-                  pairId = normalizePairId(pair._id);
-                } else {
-                  // If not found by user ID, try as pair ID
-                  pair = pairMap.get(participantId);
-                  if (pair) {
-                    pairId = participantId;
-                  }
-                }
-              } else {
-                // Participant is an ID string (pair ID)
-                pairId = normalizePairId(participant);
-                pair = pairMap.get(pairId || '');
-              }
-              
-              if (pair && pairId) {
-                // Create a pseudo-participant object for the pair
-                const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
-                const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
-                return {
-                  _id: normalizePairId(pairId),
-                  fullName: `${player1Name} / ${player2Name}`,
-                  username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
-                  profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
-                  isPair: true,
-                  player1: pair.player1,
-                  player2: pair.player2,
-                };
-              }
-              
-              // If pair not found, this is a data integrity issue
-              const participantId = normalizePairId(participant) || 'unknown';
-              console.error(`[groups PUT] DATA INTEGRITY ERROR: Pair not found for group participant: ${participantId}`);
-              return {
-                _id: participantId,
-                fullName: `[ERROR: Pair not found]`,
-                username: `error_${participantId}`,
-                isPair: true,
-                _error: true,
-              };
-            });
-          }
-          
-          // Populate group standings as pairs
-          if (group.standings && Array.isArray(group.standings)) {
-            
-            const standingParticipantIds = group.standings.map((s: any) => s.participant?.toString() || s.participant);
-            
-            
-            group.standings = group.standings.map((standing: any) => {
-              let pair: any = null;
-              let pairId: string | null = null;
-              
-              // Check if participant is already a populated User object (from mongoose populate)
-              if (standing.participant && typeof standing.participant === 'object' && standing.participant._id) {
-                const participantId = standing.participant._id.toString();
-                // Try to find pair by participant ID (could be a user ID)
-                pair = playerToPairMap.get(participantId);
-                if (pair) {
-                  pairId = pair._id?.toString();
-                } else {
-                  // If not found by user ID, try as pair ID
-                  pair = pairMap.get(participantId);
-                  if (pair) {
-                    pairId = participantId;
-                  }
-                }
-              } else {
-                // Participant is still an ID string (pair ID)
-                // Normalize the ID to ensure consistent format
-                pairId = normalizePairId(standing.participant);
-                if (pairId) {
-                  pair = pairMap.get(pairId);
-                  if (!pair) {
-                    // Try with ObjectId conversion in case format differs
-                    try {
-                      const normalizedId = new mongoose.Types.ObjectId(pairId).toString();
-                      pair = pairMap.get(normalizedId);
-                      if (pair) {
-                        pairId = normalizedId;
-                      }
-                    } catch (e) {
-                      // Not a valid ObjectId format
-                    }
-                  }
-                }
-              }
-              
-              if (pair && pairId) {
-                // Create a pseudo-participant object for the pair
-                const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
-                const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
-                return {
-                  ...standing,
-                  participant: {
-                    _id: normalizePairId(pairId),
-                    fullName: `${player1Name} / ${player2Name}`,
-                    username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
-                    profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
-                    // Store original pair info for reference
-                    isPair: true,
-                    player1: pair.player1,
-                    player2: pair.player2,
-                  },
-                };
-              }
-              
-              // If pair not found, this is a data integrity issue - log error
-              const participantId = normalizePairId(standing.participant) || 'unknown';
-              console.error(`[groups PUT] DATA INTEGRITY ERROR: Pair not found for standing participant: ${participantId}. Available pair IDs:`, Array.from(pairMap.keys()));
-              // Return standing with error indicator instead of creating fake data
-              return {
-                ...standing,
-                participant: {
-                  _id: participantId,
-                  fullName: `[ERROR: Pair not found]`,
-                  username: `error_${participantId}`,
-                  isPair: true,
-                  _error: true,
-                },
-              };
-            });
-          }
-          
-          return group;
+        if (!pairId) return;
+        const player1Name = pair.player1?.fullName || pair.player1?.username || "Player 1";
+        const player2Name = pair.player2?.fullName || pair.player2?.username || "Player 2";
+        pairMap.set(pairId, {
+          _id: pairId,
+          fullName: `${player1Name} / ${player2Name}`,
+          username: `${pair.player1?.username || "p1"} & ${pair.player2?.username || "p2"}`,
+          profileImage: pair.player1?.profileImage || pair.player2?.profileImage,
+          isPair: true,
+          player1: pair.player1,
+          player2: pair.player2,
         });
-      }
-      
-      // Validation: Check for data integrity issues
-      const errors: string[] = [];
-      tournament.groups.forEach((group: any) => {
-        if (group.standings) {
-          group.standings.forEach((standing: any, idx: number) => {
-            if ((standing.participant as any)?._error) {
-              errors.push(`Group ${group.groupId || 'unknown'}, standing ${idx + 1}: Pair not found for participant ${standing.participant._id}`);
-            }
-          });
-        }
-        if (group.participants) {
-          group.participants.forEach((participant: any, idx: number) => {
-            if ((participant as any)?._error) {
-              errors.push(`Group ${group.groupId || 'unknown'}, participant ${idx + 1}: Pair not found for participant ${participant._id}`);
-            }
-          });
-        }
       });
-      
-      if (errors.length > 0) {
-        console.error(`[groups PUT] DATA INTEGRITY ERRORS found:`, errors);
-        // Still return the response, but log errors for debugging
-        // The UI will show error indicators for invalid participants
+
+      if (Array.isArray(tournamentData.groups)) {
+        tournamentData.groups = tournamentData.groups.map((group: any) => ({
+          ...group,
+          participants: Array.isArray(group?.participants)
+            ? group.participants.map((participant: any) => {
+                const pair = pairMap.get(normalizePairId(participant?._id || participant));
+                return pair || participant;
+              })
+            : group?.participants,
+          standings: Array.isArray(group?.standings)
+            ? group.standings.map((standing: any) => {
+                const pair = pairMap.get(normalizePairId(standing?.participant?._id || standing?.participant));
+                return pair ? { ...standing, participant: pair } : standing;
+              })
+            : group?.standings,
+        }));
       }
     }
 
     return NextResponse.json({
       message: "Groups updated successfully",
-      tournament,
+      tournament: tournamentData,
     });
   } catch (err: any) {
     console.error("Error updating groups:", err);

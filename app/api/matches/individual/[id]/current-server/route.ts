@@ -15,7 +15,7 @@ export async function POST(
 
   try {
     await connectDB();
-    const { currentServer } = await req.json();
+    const { currentServerPlayerId } = await req.json();
 
     const token = getTokenFromRequest(req);
     if (!token) {
@@ -38,10 +38,10 @@ export async function POST(
     }
 
     // ✅ Update only the current server
-    match.currentServer = currentServer;
+    match.currentServerPlayerId = currentServerPlayerId;
     await match.save();
 
-    return NextResponse.json({ success: true, currentServer });
+    return NextResponse.json({ success: true, currentServerPlayerId });
   } catch (err: any) {
     console.error("[matches/individual/[id]/current-server] Error:", err);
     return NextResponse.json(

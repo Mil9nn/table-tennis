@@ -52,9 +52,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-100px)] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+    <div className="min-h-[calc(100vh-70px)] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
       <div className="w-full max-w-sm">
-        <div className="rounded-2xl bg-white shadow-xl border border-slate-200/60 overflow-hidden">
+        <div className="">
           {/* Header */}
           <div className="px-6 pt-8 pb-6 text-center">
             <Image
@@ -62,13 +62,13 @@ export default function LoginPage() {
               alt="logo"
               width={56}
               height={56}
-              className="mx-auto mb-4"
+              className="mx-auto"
             />
             <h1 className="text-xl font-semibold text-slate-900">
               Welcome back
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Sign in to your account
+              Login to your account
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="Enter your email address"
                           type="email"
-                          className="h-11"
+                          className="h-11 bg-white border-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500/40"
                           {...field}
                         />
                       </FormControl>
@@ -115,7 +115,7 @@ export default function LoginPage() {
                           <Input
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
-                            className="h-11 pr-10"
+                            className="h-11 pr-10 bg-white border-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500/40"
                             {...field}
                           />
                           <button
@@ -154,10 +154,10 @@ export default function LoginPage() {
                   {authLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in…
+                       Logging in…
                     </>
                   ) : (
-                    "Sign in"
+                    "Login"
                   )}
                 </Button>
               </form>

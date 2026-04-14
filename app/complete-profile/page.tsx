@@ -72,7 +72,7 @@ export default function CompleteProfilePage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#fafafa]">
+    <div className="min-h-[calc(100vh-70px)] bg-[#fafafa]">
       <div className="mx-auto max-w-[520px] px-4 py-10">
         {/* Header */}
         <div className="mb-8">

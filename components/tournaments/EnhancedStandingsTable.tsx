@@ -96,6 +96,7 @@ interface DetailedPlayerStats {
 
 interface Props {
   standings: Standing[];
+  participants?: Array<any>;
   showDetailedStats?: boolean;
   highlightTop?: number;
   groupName?: string;
@@ -107,6 +108,7 @@ interface Props {
 
 export function EnhancedStandingsTable({
   standings,
+  participants = [],
   showDetailedStats = true,
   highlightTop = 3,
   groupName,
@@ -123,6 +125,15 @@ export function EnhancedStandingsTable({
 
   const isTeamTournament = category === "team";
   const isDoubles = matchType === "doubles";
+  const participantById = React.useMemo(() => {
+    const map = new Map<string, any>();
+    participants.forEach((participant: any) => {
+      if (participant && typeof participant === "object" && participant._id) {
+        map.set(participant._id.toString(), participant);
+      }
+    });
+    return map;
+  }, [participants]);
 
   // Use standings directly - no filtering workarounds
   // If there are data integrity issues, they should be fixed at the source
@@ -133,17 +144,18 @@ export function EnhancedStandingsTable({
     const result: Standing[] = [];
     
     standings.forEach((s) => {
-      if (!s.participant || !s.participant._id) {
+      const participantValue = s.participant as any;
+      const participantId =
+        typeof participantValue === "string"
+          ? participantValue
+          : participantValue?._id?.toString?.() || "";
+
+      if (!participantId) {
         // Include invalid standings but mark them
         result.push(s);
         return;
       }
-      
-      // Normalize participant ID to string for consistent comparison
-      const participantId = typeof s.participant._id === 'string' 
-        ? s.participant._id 
-        : String(s.participant._id);
-      
+
       // Keep only the first occurrence of each participant
       if (!seen.has(participantId)) {
         seen.set(participantId, s);
@@ -216,9 +228,11 @@ export function EnhancedStandingsTable({
       // Find the participant from standings first to get full participant data
       const standingParticipant = deduplicatedStandings.find(
         (s) => {
-          const id = typeof s.participant._id === 'string' 
-            ? s.participant._id 
-            : String(s.participant._id);
+          const participantValue = s.participant as any;
+          const id =
+            typeof participantValue === "string"
+              ? participantValue
+              : participantValue?._id?.toString?.() || "";
           return id === participantId;
         }
       )?.participant;
@@ -433,9 +447,13 @@ export function EnhancedStandingsTable({
 
           <TableBody>
             {deduplicatedStandings.map((s, index) => {
+              const resolvedParticipant =
+                s.participant && typeof s.participant === "object"
+                  ? s.participant
+                  : participantById.get(s.participant?.toString?.() || "");
               const highlight = s.rank <= highlightTop;
-              const hasError = (s.participant as any)?._error || !s.participant || !s.participant._id;
-              const participantId = s.participant?._id;
+              const hasError = (resolvedParticipant as any)?._error || !resolvedParticipant || !resolvedParticipant._id;
+              const participantId = resolvedParticipant?._id;
               const participantLink = hasError 
                 ? "#" 
                 : (isTeamTournament
@@ -474,7 +492,7 @@ export function EnhancedStandingsTable({
                           </Avatar>
                           <div className="flex flex-col leading-tight">
                             <span className="text-[13px] font-medium text-red-700">
-                              {getDisplayName(s.participant) || "[ERROR: Invalid participant]"}
+                              {getDisplayName(resolvedParticipant) || "[ERROR: Invalid participant]"}
                             </span>
                             <span className="text-[11px] text-red-600">
                               Data integrity issue
@@ -488,19 +506,19 @@ export function EnhancedStandingsTable({
                         >
                           <Avatar className="h-7 w-7">
                             <AvatarImage
-                              src={getImage(s.participant)}
-                              alt={getDisplayName(s.participant)}
+                              src={getImage(resolvedParticipant)}
+                              alt={getDisplayName(resolvedParticipant)}
                             />
                             <AvatarFallback className="text-xs">
-                              {getInitial(s.participant)}
+                              {getInitial(resolvedParticipant)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col leading-tight">
                             <span className="text-[13px] font-medium text-slate-700">
-                              {getDisplayName(s.participant)}
+                              {getDisplayName(resolvedParticipant)}
                             </span>
                             <span className="text-[11px] text-slate-500">
-                              {getSubtext(s.participant)}
+                              {getSubtext(resolvedParticipant)}
                             </span>
                           </div>
                         </Link>

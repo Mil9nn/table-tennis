@@ -30,6 +30,8 @@ async function ensureModelsRegistered() {
 
         // 3. Import other models
         await import('@/models/Tournament');
+        await import('@/models/TournamentStandings');
+        await import('@/models/TournamentGroups');
         await import('@/models/User');
         await import('@/models/Team');
         await import('@/models/BracketState');

@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings2, Users2, MapPin } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axiosInstance";
 import UserSearchInput from "./UserSearchInput";
 import { cn } from "@/lib/utils";
-
-import WorkspacesIcon from '@mui/icons-material/Workspaces';
+import CityPicker from "./CityPicker";
+import VenuePicker from "./VenuePicker";
 
 // ---------------------- SCHEMA ----------------------
 const userSchema = z.object({
@@ -67,6 +67,7 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
   });
 
   const matchType = form.watch("matchType");
+  const selectedCity = form.watch("city");
 
   const handleSubmit = async (data: z.infer<typeof schema>) => {
     setIsSubmitting(true);
@@ -235,24 +236,49 @@ export default function IndividualMatchForm({ endpoint }: { endpoint: string }) 
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {["city", "venue"].map((f) => (
-            <FormField
-              key={f}
-              control={form.control}
-              name={f as any}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground">
-                    {f === "city" ? "City" : "Venue"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder={f === "city" ? "City" : "Club / Arena"} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ))}
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel className="text-xs text-muted-foreground">City</FormLabel>
+                <FormControl>
+                  <CityPicker
+                    value={field.value}
+                    onChange={(nextCity) => {
+                      field.onChange(nextCity);
+                      form.setValue("venue", "");
+                    }}
+                    onBlur={field.onBlur}
+                    error={fieldState.error?.message}
+                    placeholder="Search city"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="venue"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel className="text-xs text-muted-foreground">Venue</FormLabel>
+                <FormControl>
+                  <VenuePicker
+                    city={selectedCity}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    error={fieldState.error?.message}
+                    placeholder="Search venue"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
       </section>
 

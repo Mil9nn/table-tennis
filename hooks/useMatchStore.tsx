@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import { IndividualMatch, Participant, TeamMatch } from "@/types/match.type";
+import { getSinglesParticipantIds } from "@/lib/match/singlesClient";
 
 interface MatchStore {
   match: IndividualMatch | TeamMatch | null;
@@ -61,6 +62,15 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     return undefined;
   }
 
+  function strId(v: unknown): string | undefined {
+    if (v == null) return undefined;
+    if (typeof v === "string") return v;
+    if (typeof v === "object" && v && "_id" in (v as object)) {
+      return String((v as { _id: unknown })._id);
+    }
+    return String(v);
+  }
+
   const normalizeMatch = (raw: any): IndividualMatch | TeamMatch => {
     if (raw.matchCategory === "team") {
 
@@ -103,6 +113,19 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
     // otherwise individual
     const participants = normalizeParticipants(raw.participants);
+    const pair = getSinglesParticipantIds(participants);
+    const setsByIdRaw =
+      (raw.finalScore?.setsById && typeof raw.finalScore.setsById === "object"
+        ? raw.finalScore.setsById
+        : raw.finalScore?.setsByPlayerId) || {};
+    const side1Sets =
+      pair && setsByIdRaw
+        ? Number((setsByIdRaw as Record<string, number>)[pair[0]] ?? 0)
+        : Number(raw.finalScore?.side1Sets ?? 0);
+    const side2Sets =
+      pair && setsByIdRaw
+        ? Number((setsByIdRaw as Record<string, number>)[pair[1]] ?? 0)
+        : Number(raw.finalScore?.side2Sets ?? 0);
     return {
       _id: String(raw._id || raw.id),
       matchCategory: "individual",
@@ -120,8 +143,13 @@ export const useMatchStore = create<MatchStore>((set, get) => {
           gameNumber: g.gameNumber ?? idx + 1,
           side1Score: g.side1Score ?? 0,
           side2Score: g.side2Score ?? 0,
+          scores: g.scores,
+          scoresByPlayerId: g.scoresByPlayerId,
+          winner: strId(g.winner) ?? strId(g.winnerPlayerId),
+          winnerPlayerId: strId(g.winnerPlayerId) ?? strId(g.winner),
           winnerSide: g.winnerSide ?? null,
-          completed: g.completed ?? false,
+          completed: (g.status ? g.status === "completed" : g.completed) ?? false,
+          status: g.status ?? ((g.completed ?? false) ? "completed" : "in_progress"),
           shots: g.shots ?? [],
           duration: g.duration,
           startTime: g.startTime,
@@ -129,14 +157,19 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         })
       ),
       finalScore: {
-        side1Sets: raw.finalScore?.side1Sets ?? 0,
-        side2Sets: raw.finalScore?.side2Sets ?? 0,
+        side1Sets,
+        side2Sets,
+        sets: raw.finalScore?.setsById ?? raw.finalScore?.sets ?? raw.finalScore?.setsByPlayerId,
+        setsByPlayerId: raw.finalScore?.setsById ?? raw.finalScore?.setsByPlayerId,
       },
       winnerSide: raw.winnerSide ?? null,
+      winner: strId(raw.winner) ?? strId(raw.winnerPlayerId),
+      winnerPlayerId: strId(raw.winnerPlayerId) ?? strId(raw.winner),
+      currentServerPlayerId: strId(raw.currentServerPlayerId),
       matchDuration: raw.matchDuration,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
-      currentServer: raw.currentServer ?? null,
+      currentServer: raw.currentServerPlayerId ?? raw.currentServer ?? null,
       serverConfig: raw.serverConfig ?? null,
       shotTrackingMode: raw.shotTrackingMode ?? null,
     };

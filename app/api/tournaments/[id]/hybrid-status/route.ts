@@ -22,6 +22,7 @@ import {
   jsonError,
 } from "@/lib/api";
 import { connectDB } from "@/lib/mongodb";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 
 export async function GET(
   req: NextRequest,
@@ -71,16 +72,20 @@ export async function GET(
       }
     }
 
+    // Ensure hybrid status is projection-backed and not dependent on legacy embedded fields.
+    const tournamentData = tournament.toObject ? tournament.toObject() : tournament;
+    await loadAndApplyProjectedTournamentData(id, tournamentData);
+
     // Get comprehensive hybrid status
-    const status = getHybridTournamentStatus(tournament as any);
-    const qualificationSummary = getQualificationSummary(tournament as any);
+    const status = getHybridTournamentStatus(tournamentData as any);
+    const qualificationSummary = getQualificationSummary(tournamentData as any);
 
     // Build response
     const response: Record<string, any> = {
       isHybrid: true,
-      format: tournament.format,
+      format: tournamentData.format,
       currentPhase: status.currentPhase,
-      phaseTransitionDate: tournament.phaseTransitionDate,
+      phaseTransitionDate: tournamentData.phaseTransitionDate,
 
       // Phase completion status
       roundRobinComplete: status.roundRobinComplete,
@@ -91,7 +96,7 @@ export async function GET(
       totalParticipants: status.totalParticipants,
 
       // Configuration
-      hybridConfig: tournament.hybridConfig,
+      hybridConfig: tournamentData.hybridConfig,
 
       // Actions
       canTransition: status.canTransition,
@@ -105,20 +110,20 @@ export async function GET(
 
     // Add qualified participants if available
     if (
-      tournament.qualifiedParticipants &&
-      tournament.qualifiedParticipants.length > 0
+      tournamentData.qualifiedParticipants &&
+      tournamentData.qualifiedParticipants.length > 0
     ) {
-      response.qualifiedParticipants = tournament.qualifiedParticipants;
+      response.qualifiedParticipants = tournamentData.qualifiedParticipants;
     }
 
     // Add round-robin progress
     if (status.currentPhase === "round_robin") {
       const usesGroups =
-        tournament.hybridConfig?.roundRobinUseGroups || tournament.useGroups;
+        tournamentData.hybridConfig?.roundRobinUseGroups || tournamentData.useGroups;
 
-      if (usesGroups && tournament.groups && tournament.groups.length > 0) {
+      if (usesGroups && tournamentData.groups && tournamentData.groups.length > 0) {
         // Group-based progress
-        const groupProgress = tournament.groups.map((group: any) => ({
+        const groupProgress = tournamentData.groups.map((group: any) => ({
           groupId: group.groupId,
           groupName: group.groupName,
           participantCount: group.participants?.length || 0,
@@ -137,9 +142,9 @@ export async function GET(
         };
       } else {
         // Single group progress (no groups, flat round-robin)
-        const roundsTotal = tournament.rounds?.length || 0;
+        const roundsTotal = tournamentData.rounds?.length || 0;
         const roundsCompleted =
-          tournament.rounds?.filter((r: any) => r.completed).length || 0;
+          tournamentData.rounds?.filter((r: any) => r.completed).length || 0;
 
         response.roundRobinProgress = {
           useGroups: false,
@@ -151,8 +156,8 @@ export async function GET(
     }
 
     // Add knockout progress
-    if (status.currentPhase === "knockout" && tournament.bracket) {
-      const bracket = tournament.bracket;
+    if (status.currentPhase === "knockout" && tournamentData.bracket) {
+      const bracket = tournamentData.bracket;
       response.knockoutProgress = {
         currentRound: bracket.currentRound,
         totalRounds: bracket.rounds.length,

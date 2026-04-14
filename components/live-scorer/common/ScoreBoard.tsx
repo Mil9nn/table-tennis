@@ -110,7 +110,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
             {
               name: match.participants?.[0]?.fullName || "Player 1",
               playerId: match.participants?.[0]?._id,
-              serverKey: "side1",
+              serverKey: match.participants?.[0]?._id,
               profileImage: match.participants?.[0]?.profileImage,
             },
           ],
@@ -118,7 +118,7 @@ export default function ScoreBoard(props: ScoreBoardProps) {
             {
               name: match.participants?.[1]?.fullName || "Player 2",
               playerId: match.participants?.[1]?._id,
-              serverKey: "side2",
+              serverKey: match.participants?.[1]?._id,
               profileImage: match.participants?.[1]?.profileImage,
             },
           ],
@@ -131,13 +131,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           {
             name: match.participants?.[0]?.fullName || "Player 1",
             playerId: match.participants?.[0]?._id,
-            serverKey: "side1_main",
+            serverKey: match.participants?.[0]?._id,
             profileImage: match.participants?.[0]?.profileImage,
           },
           {
             name: match.participants?.[1]?.fullName || "Partner 1",
             playerId: match.participants?.[1]?._id,
-            serverKey: "side1_partner",
+            serverKey: match.participants?.[1]?._id,
             profileImage: match.participants?.[1]?.profileImage,
           },
         ],
@@ -145,13 +145,13 @@ export default function ScoreBoard(props: ScoreBoardProps) {
           {
             name: match.participants?.[2]?.fullName || "Player 2",
             playerId: match.participants?.[2]?._id,
-            serverKey: "side2_main",
+            serverKey: match.participants?.[2]?._id,
             profileImage: match.participants?.[2]?.profileImage,
           },
           {
             name: match.participants?.[3]?.fullName || "Partner 2",
             playerId: match.participants?.[3]?._id,
-            serverKey: "side2_partner",
+            serverKey: match.participants?.[3]?._id,
             profileImage: match.participants?.[3]?.profileImage,
           },
         ],

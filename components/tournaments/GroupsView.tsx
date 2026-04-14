@@ -5,13 +5,12 @@ import React, { useState } from "react";
 import { Group } from "@/types/tournament.type";
 import { EnhancedStandingsTable } from "./EnhancedStandingsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Users, Trophy } from "lucide-react";
 
 import GroupsIcon from '@mui/icons-material/Groups';
 
 interface GroupsViewProps {
   groups: Group[];
+  participants?: any[];
   advancePerGroup?: number;
   showDetailedStats?: boolean;
   category?: "individual" | "team";
@@ -20,6 +19,7 @@ interface GroupsViewProps {
 
 export function GroupsView({
   groups,
+  participants = [],
   advancePerGroup = 2,
   showDetailedStats = false,
   category = "individual",
@@ -87,6 +87,11 @@ export function GroupsView({
               {/* Standings */}
               <EnhancedStandingsTable
                 standings={group.standings}
+                participants={
+                  Array.isArray(group.participants) && group.participants.length > 0
+                    ? [...participants, ...group.participants]
+                    : participants
+                }
                 showDetailedStats={showDetailedStats}
                 highlightTop={advancePerGroup}
                 category={category}

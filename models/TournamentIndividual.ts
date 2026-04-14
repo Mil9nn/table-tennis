@@ -3,11 +3,10 @@ import mongoose, { Schema, Document } from "mongoose";
 import {
   baseTournamentFields,
   baseTournamentIndexes,
-  standingSchema,
   roundSchema,
-  groupSchema
 } from "./TournamentBase";
 import type { KnockoutStatistics } from "@/types/knockoutStatistics.type";
+import { attachTournamentProjectionHooks } from "./utils/tournamentProjectionSync";
 
 /**
  * Individual Tournament Model
@@ -159,18 +158,6 @@ export interface ITournamentIndividual extends Document {
   updatedAt: Date;
 }
 
-// Customize schemas for Individual tournaments
-const individualStandingSchema = new Schema({
-  ...standingSchema.obj,
-  participant: { type: Schema.Types.ObjectId, ref: "User", required: true }
-}, { _id: false });
-
-const individualGroupSchema = new Schema({
-  ...groupSchema.obj,
-  participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
-  standings: [individualStandingSchema]
-}, { _id: false });
-
 const tournamentIndividualSchema = new Schema(
   {
     // Fixed category
@@ -210,8 +197,7 @@ const tournamentIndividualSchema = new Schema(
       seedingPoints: { type: Number },
     }],
 
-    // Groups (with User participants)
-    groups: [individualGroupSchema],
+    // groups removed from persisted schema; loaded from TournamentGroups projection
 
     // Qualified participants for hybrid (Users)
     qualifiedParticipants: [{ type: Schema.Types.ObjectId, ref: "User" }],
@@ -219,8 +205,7 @@ const tournamentIndividualSchema = new Schema(
     // Rounds (round-robin matches)
     rounds: [roundSchema],
 
-    // Standings (Users)
-    standings: [individualStandingSchema],
+    // standings removed from persisted schema; loaded from TournamentStandings projection
 
     // All base fields
     ...baseTournamentFields,
@@ -260,6 +245,8 @@ tournamentIndividualSchema.virtual('bracket', {
   foreignField: 'tournament',
   justOne: true
 });
+
+attachTournamentProjectionHooks(tournamentIndividualSchema);
 
 // Cascade delete hook - Delete all related data when tournament is deleted
 tournamentIndividualSchema.pre('deleteOne', { document: true, query: false }, async function() {

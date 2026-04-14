@@ -1,9 +1,8 @@
-import mongoose, { Document } from "mongoose";
+import mongoose from "mongoose";
 import Match, { IMatchBase } from "./MatchBase";
 import {
-  createShotSchema,
-  createGameSchema,
-  createServerConfigSchema,
+  createIdBasedGameSchema,
+  createIdServerConfigSchema,
   playerStatsSchema,
 } from "./shared/matchSchemas";
 
@@ -22,26 +21,28 @@ export interface IIndividualMatch extends IMatchBase {
   numberOfSets: number;
   participants: mongoose.Types.ObjectId[];
   currentGame: number;
-  currentServer: string | null;
+  currentServerPlayerId?: mongoose.Types.ObjectId | null;
+  /** @deprecated transitional compatibility */
+  currentServer?: string | null;
   games: any[];
   finalScore: {
-    side1Sets: number;
-    side2Sets: number;
+    setsById?: Map<string, number>;
+    /** @deprecated transitional compatibility */
+    side1Sets?: number;
+    /** @deprecated transitional compatibility */
+    side2Sets?: number;
   };
-  winnerSide: 'side1' | 'side2' | null;
+  winnerId?: mongoose.Types.ObjectId | null;
+  /** @deprecated transitional compatibility */
+  winnerSide?: "side1" | "side2" | null;
   serverConfig: any;
   statistics?: {
     playerStats: Map<string, any>;
   };
 }
 
-// Create schemas with individual match enums (side1/side2)
-const shotSchema = createShotSchema(["side1", "side2"]);
-const gameSchema = createGameSchema(shotSchema, ["side1", "side2"]);
-const serverConfigSchema = createServerConfigSchema(
-  ["side1", "side2"],
-  ["side1_main", "side1_partner", "side2_main", "side2_partner"]
-);
+const individualGameSchema = createIdBasedGameSchema();
+const serverConfigSchema = createIdServerConfigSchema();
 
 // Individual Match Schema - extends base Match
 const IndividualMatchSchema = new mongoose.Schema(
@@ -62,26 +63,18 @@ const IndividualMatchSchema = new mongoose.Schema(
 
     currentGame: { type: Number, default: 1 },
 
-    currentServer: {
-      type: String,
-      enum: [
-        "side1",
-        "side2",
-        "side1_main",
-        "side1_partner",
-        "side2_main",
-        "side2_partner",
-      ],
+    currentServerPlayerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       default: null,
     },
 
-    games: [gameSchema],
+    games: [individualGameSchema],
 
     finalScore: {
-      side1Sets: { type: Number, default: 0 },
-      side2Sets: { type: Number, default: 0 },
+      setsById: { type: Map, of: Number, default: {} },
     },
-    winnerSide: { type: String, enum: ["side1", "side2"], default: null },
+    winnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 
     serverConfig: {
       type: serverConfigSchema,
@@ -114,14 +107,14 @@ IndividualMatchSchema.virtual("playerStatsWithRatio").get(function () {
 });
 
 // Validation: Doubles requires even number of participants (2 or 4)
-IndividualMatchSchema.pre('save', function(next) {
-  if (this.matchType === 'doubles') {
+IndividualMatchSchema.pre("save", function (next) {
+  if (this.matchType === "doubles") {
     if (this.participants.length !== 4) {
-      return next(new Error('Doubles matches require exactly 4 participants'));
+      return next(new Error("Doubles matches require exactly 4 participants"));
     }
   } else {
     if (this.participants.length !== 2) {
-      return next(new Error('Singles matches require exactly 2 participants'));
+      return next(new Error("Singles matches require exactly 2 participants"));
     }
   }
   next();

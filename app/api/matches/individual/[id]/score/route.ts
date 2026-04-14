@@ -1,52 +1,91 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import IndividualMatch from "@/models/IndividualMatch";
 import { User } from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
-import {
-  flipDoublesRotationForNextGame,
-  getNextServer,
-} from "@/components/live-scorer/individual/helpers";
 import { statsService } from "@/services/statsService";
 import { updateTournamentAfterMatch } from "@/services/tournament/tournamentUpdateService";
 import { emitToMatchRoom } from "@/lib/socketEmitter";
 import { rateLimit } from "@/lib/rate-limit/middleware";
 import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
+import {
+  applyShotsToLoadedMatch,
+  deleteLastIndividualPointForScoringId,
+  insertIndividualPoint,
+} from "@/services/match/matchPointService";
+
+type ScoreMap = Map<string, number>;
+
+function getParticipantIds(match: any): string[] {
+  return (match.participants || []).map((p: any) => String(p?._id ?? p));
+}
+
+function getScoresMap(game: any): ScoreMap {
+  if (game.scoresById instanceof Map) return game.scoresById as ScoreMap;
+  return new Map<string, number>(Object.entries(game.scoresById || {}));
+}
+
+function setScoresMap(game: any, map: ScoreMap): void {
+  game.scoresById = map;
+}
+
+function toObject(map: ScoreMap): Record<string, number> {
+  return Object.fromEntries(map);
+}
+
+function gameWinnerIdFromScores(scores: ScoreMap): string | null {
+  const rows = [...scores.entries()].sort((a, b) => b[1] - a[1]);
+  if (rows.length < 2) return null;
+  const [topId, topScore] = rows[0];
+  const secondScore = rows[1][1];
+  if (topScore >= 11 && topScore - secondScore >= 2) return topId;
+  return null;
+}
+
+function getNextSinglesServerId(params: {
+  participantIds: string[];
+  firstServerId?: string | null;
+  currentGame: number;
+  totalPoints: number;
+}): string | null {
+  const { participantIds, firstServerId, currentGame, totalPoints } = params;
+  if (participantIds.length < 2) return null;
+  const p0 = participantIds[0];
+  const p1 = participantIds[1];
+  const first = firstServerId && participantIds.includes(firstServerId) ? firstServerId : p0;
+  const gameFirst = currentGame % 2 === 0 ? (first === p0 ? p1 : p0) : first;
+  const other = gameFirst === p0 ? p1 : p0;
+  const deuce = totalPoints >= 20;
+  if (deuce) {
+    return totalPoints % 2 === 0 ? gameFirst : other;
+  }
+  return Math.floor(totalPoints / 2) % 2 === 0 ? gameFirst : other;
+}
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  // Rate limiting
   const { id } = await context.params;
   const rateLimitResponse = await rateLimit(request, "POST", `/api/matches/individual/${id}/score`);
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    await connectDB();
     const auth = await withAuth(request);
     if (!auth.success) return auth.response;
     const body = await request.json();
 
-    // Fetch match fresh from database (no caching) to ensure we have latest status
-    const match = await IndividualMatch.findById(id);
-    if (!match) {
+    const matchPreview = await IndividualMatch.findById(id);
+    if (!matchPreview) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Check scoring permission
-    // For tournament matches: organizer or any assigned scorer can score
-    // For standalone matches: only the assigned scorer can score
-    // 
-    // Match-tournament validation: canScoreTournamentMatch() verifies that:
-    // 1. The user is a scorer for the tournament (organizer or in scorers array)
-    // 2. The match belongs to that tournament (implicit via match.tournament)
-    // This prevents scoring matches from wrong tournaments
-    let canScore = match.scorer?.toString() === auth.userId;
-    
-    if (!canScore && match.tournament) {
-      canScore = await canScoreTournamentMatch(auth.userId, match.tournament.toString());
+    let canScore = matchPreview.scorer?.toString() === auth.userId;
+    if (!canScore && matchPreview.tournament) {
+      canScore = await canScoreTournamentMatch(auth.userId, matchPreview.tournament.toString());
     }
-    
     if (!canScore) {
       return NextResponse.json(
         { error: "Forbidden: you don't have permission to score this match" },
@@ -54,338 +93,287 @@ export async function POST(
       );
     }
 
-    // Critical: Block any scoring attempts on completed matches
-    // This check must happen before any game logic to prevent state corruption
-    if (match.status === "completed") {
-      return NextResponse.json(
-        { error: "Match is already completed" },
-        { status: 400 }
-      );
+    if (matchPreview.status === "completed") {
+      return NextResponse.json({ error: "Match is already completed" }, { status: 400 });
     }
 
-    const gameNumber = Number(body.gameNumber ?? match.currentGame ?? 1);
-
-    // Find or create current game
-    let currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
-    if (!currentGame) {
-      match.games.push({
-        gameNumber,
-        side1Score: 0,
-        side2Score: 0,
-        shots: [],
-        winnerSide: null,
-        completed: false,
-      });
-      currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
+    let shotTrackingMode: "detailed" | "simple" = "detailed";
+    if (matchPreview.shotTrackingMode) {
+      shotTrackingMode = matchPreview.shotTrackingMode;
+    } else {
+      const user = await User.findById(auth.userId).select("shotTrackingMode");
+      if (user?.shotTrackingMode) {
+        shotTrackingMode = user.shotTrackingMode;
+      }
     }
 
-    // Handle subtract action
-    if (body.action === "subtract" && body.side) {
-      if (body.side === "side1" && currentGame.side1Score > 0) {
-        currentGame.side1Score -= 1;
-      }
-      if (body.side === "side2" && currentGame.side2Score > 0) {
-        currentGame.side2Score -= 1;
-      }
+    let emitShot: Record<string, unknown> | null = null;
+    let didApplyScore = false;
+    let didJustCompleteGame = false;
+    let didJustCompleteMatch = false;
+    let completedGameWinnerId: string | null = null;
 
-      // Remove last shot for that side
-      const lastIndex = [...(currentGame.shots || [])]
-        .reverse()
-        .findIndex((s: any) => s.side === body.side);
-
-      if (lastIndex !== -1) {
-        currentGame.shots.splice(
-          (currentGame.shots?.length || 0) - 1 - lastIndex,
-          1
-        );
-      }
-
-      // ✅ Compute server after subtraction
-      const serverResult = getNextServer(
-        currentGame.side1Score,
-        currentGame.side2Score,
-        match.matchType !== "singles",
-        match.serverConfig || {},
-        gameNumber
-      );
-      match.currentServer = serverResult.server as any;
-    }
-
-    // Handle normal score update
-    if (
-      typeof body.side1Score === "number" &&
-      typeof body.side2Score === "number"
-    ) {
-      // Determine shot tracking mode: match override > user preference > default "detailed"
-      let shotTrackingMode: "detailed" | "simple" = "detailed";
-      if (match.shotTrackingMode) {
-        shotTrackingMode = match.shotTrackingMode;
-      } else {
-        // Fetch user preference if match doesn't have override
-        const user = await User.findById(auth.userId).select("shotTrackingMode");
-        if (user?.shotTrackingMode) {
-          shotTrackingMode = user.shotTrackingMode;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async (s) => {
+        const match = await IndividualMatch.findById(id).session(s);
+        if (!match) {
+          throw new Error("MATCH_NOT_FOUND");
         }
-      }
+        if (match.status === "completed") {
+          throw new Error("MATCH_COMPLETED");
+        }
 
-      // Validate: If score is increasing and in detailed mode, shotData must be provided
-      const scoreIncreased = 
-        body.side1Score > currentGame.side1Score || 
-        body.side2Score > currentGame.side2Score;
-      
-      if (scoreIncreased && shotTrackingMode === "detailed" && (!body.shotData || !body.shotData.stroke)) {
+        const gameNumber = Number(body.gameNumber ?? match.currentGame ?? 1);
+        const participantIds = getParticipantIds(match);
+        const setsMap: ScoreMap =
+          match.finalScore?.setsById instanceof Map
+            ? (match.finalScore.setsById as ScoreMap)
+            : new Map(Object.entries(match.finalScore?.setsById || {}));
+
+        let currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
+        if (!currentGame) {
+          match.games.push({
+            gameNumber,
+            scoresById: new Map(participantIds.map((pid) => [pid, 0])),
+            winnerId: null,
+            status: "in_progress",
+            completed: false,
+          });
+          currentGame = match.games.find((g: any) => g.gameNumber === gameNumber);
+        }
+        const scores = getScoresMap(currentGame);
+        if (scores.size === 0) {
+          for (const pid of participantIds) scores.set(pid, 0);
+        }
+
+        const scoringId = body.scoringId ? String(body.scoringId) : undefined;
+        if (body.action === "subtract" && scoringId) {
+          const now = Number(scores.get(scoringId) || 0);
+          scores.set(scoringId, Math.max(0, now - 1));
+          await deleteLastIndividualPointForScoringId(match._id, gameNumber, scoringId, s);
+          didApplyScore = true;
+        }
+
+        if (body.scoresById && typeof body.scoresById === "object") {
+          for (const [pid, value] of Object.entries(body.scoresById as Record<string, number>)) {
+            scores.set(String(pid), Number(value || 0));
+          }
+          didApplyScore = true;
+        } else if (body.action !== "subtract" && scoringId) {
+          const before = Number(scores.get(scoringId) || 0);
+          const after = before + 1;
+          if (shotTrackingMode === "detailed" && (!body.shotData || !body.shotData.stroke)) {
+            throw new Error("SHOT_REQUIRED");
+          }
+          scores.set(scoringId, after);
+          didApplyScore = true;
+        }
+        setScoresMap(currentGame, scores);
+
+        const gameWinnerId = gameWinnerIdFromScores(scores);
+        const totalPoints = [...scores.values()].reduce((a, b) => a + b, 0);
+
+        if (gameWinnerId && !currentGame.winnerId) {
+          didJustCompleteGame = true;
+          completedGameWinnerId = gameWinnerId;
+          currentGame.winnerId = new mongoose.Types.ObjectId(gameWinnerId);
+          currentGame.status = "completed";
+
+          setsMap.set(gameWinnerId, Number(setsMap.get(gameWinnerId) || 0) + 1);
+          match.finalScore.setsById = setsMap;
+
+          const setsNeeded = Math.ceil(match.numberOfSets / 2);
+          const wonSets = Number(setsMap.get(gameWinnerId) || 0);
+          const isMatchWon = wonSets >= setsNeeded;
+
+          if (isMatchWon) {
+            didJustCompleteMatch = true;
+            match.status = "completed";
+            match.winnerId = new mongoose.Types.ObjectId(gameWinnerId);
+            match.matchDuration =
+              Date.now() -
+              (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
+          } else {
+            match.currentGame = gameNumber + 1;
+          }
+        }
+
+        if (didApplyScore && match.matchType === "singles") {
+          const firstServer = match.serverConfig?.firstServerPlayerId
+            ? String(match.serverConfig.firstServerPlayerId)
+            : participantIds[0];
+          const serverId = getNextSinglesServerId({
+            participantIds,
+            firstServerId: firstServer,
+            currentGame: gameNumber,
+            totalPoints,
+          });
+          match.currentServerPlayerId = serverId
+            ? new mongoose.Types.ObjectId(serverId)
+            : null;
+        }
+
+        if (body.shotData?.player && scoringId) {
+          const stored = await insertIndividualPoint({
+            matchId: match._id,
+            gameNumber,
+            shot: {
+              side: scoringId,
+              player: body.shotData.player,
+              stroke: body.shotData.stroke || null,
+              serveType: body.shotData.serveType || null,
+              server: body.shotData.server || match.currentServerPlayerId || null,
+              originX: body.shotData.originX,
+              originY: body.shotData.originY,
+              landingX: body.shotData.landingX,
+              landingY: body.shotData.landingY,
+              timestamp: new Date(),
+            },
+            session: s,
+          });
+
+          emitShot = { ...stored, timestamp: stored.timestamp };
+
+          const stats = match.statistics || { playerStats: new Map() };
+          const playerId = body.shotData.player.toString();
+          if (!stats.playerStats) stats.playerStats = new Map();
+          if (!stats.playerStats.get(playerId)) {
+            stats.playerStats.set(playerId, { detailedShots: {} });
+          }
+          match.statistics = stats;
+          match.markModified("games");
+          match.markModified("statistics");
+        }
+
+        await match.save({ session: s });
+      });
+    } catch (e: any) {
+      if (e?.message === "MATCH_NOT_FOUND") {
+        return NextResponse.json({ error: "Match not found" }, { status: 404 });
+      }
+      if (e?.message === "MATCH_COMPLETED") {
+        return NextResponse.json({ error: "Match is already completed" }, { status: 400 });
+      }
+      if (e?.message === "SHOT_REQUIRED") {
         return NextResponse.json(
-          { 
+          {
             error: "Shot data is required when incrementing score. Every point must have a recorded shot.",
-            details: "Score increased but no shot was provided"
+            details: "Score increased but no shot was provided",
           },
           { status: 400 }
         );
       }
+      throw e;
+    } finally {
+      await session.endSession();
+    }
 
-      currentGame.side1Score = body.side1Score;
-      currentGame.side2Score = body.side2Score;
+    const matchAfter = await IndividualMatch.findById(id);
+    const gameNumber = Number(body.gameNumber ?? matchAfter?.currentGame ?? 1);
+    const currentGame = matchAfter?.games.find((g: any) => g.gameNumber === gameNumber);
+    const scoresById = currentGame?.scoresById instanceof Map
+      ? Object.fromEntries(currentGame.scoresById)
+      : (currentGame?.scoresById || {});
+    const setsById = matchAfter?.finalScore?.setsById instanceof Map
+      ? Object.fromEntries(matchAfter.finalScore.setsById)
+      : (matchAfter?.finalScore?.setsById || {});
 
-      // ✅ Compute server after score update
-      const serverResult = getNextServer(
-        body.side1Score,
-        body.side2Score,
-        match.matchType !== "singles",
-        match.serverConfig || {},
-        gameNumber
-      );
-      match.currentServer = serverResult.server as any;
-
-      // Emit server change event
+    if (didApplyScore) {
       emitToMatchRoom(id, "server:change", {
         matchId: id,
         matchCategory: "individual",
-        currentServer: match.currentServer,
+        currentServerPlayerId:
+          (matchAfter?.currentServerPlayerId as any)?.toString?.() || null,
         reason: "score_update",
         timestamp: new Date().toISOString(),
       });
     }
 
-    // Check if game is won
-    const isGameWon =
-      (currentGame.side1Score >= 11 || currentGame.side2Score >= 11) &&
-      Math.abs(currentGame.side1Score - currentGame.side2Score) >= 2;
-
-    if (isGameWon && !currentGame.winnerSide) {
-      currentGame.winnerSide =
-        currentGame.side1Score > currentGame.side2Score ? "side1" : "side2";
-      currentGame.completed = true;
-
-      // Update set counts
-      if (currentGame.winnerSide === "side1") {
-        match.finalScore.side1Sets += 1;
-      } else {
-        match.finalScore.side2Sets += 1;
-      }
-
-      // Emit game completed event
+    if (didJustCompleteGame && completedGameWinnerId) {
       emitToMatchRoom(id, "game:completed", {
         matchId: id,
         matchCategory: "individual",
         gameNumber,
-        winnerSide: currentGame.winnerSide,
-        finalScore: {
-          side1Score: currentGame.side1Score,
-          side2Score: currentGame.side2Score,
-        },
-        newSetScore: {
-          side1Sets: match.finalScore.side1Sets,
-          side2Sets: match.finalScore.side2Sets,
-        },
+        winnerId: completedGameWinnerId,
+        scoresById,
+        setsById,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (didJustCompleteMatch && matchAfter?.status === "completed") {
+      emitToMatchRoom(id, "match:completed", {
+        matchId: id,
+        matchCategory: "individual",
+        winnerId: (matchAfter.winnerId as any)?.toString?.() || null,
+        setsById,
         timestamp: new Date().toISOString(),
       });
 
-      // Check if match is won
-      const setsNeeded = Math.ceil(match.numberOfSets / 2);
-      const isMatchWon =
-        match.finalScore.side1Sets >= setsNeeded ||
-        match.finalScore.side2Sets >= setsNeeded;
+      try {
+        await statsService.updateIndividualMatchStats(id);
+      } catch (statsError) {
+        console.error("Error updating stats:", statsError);
+      }
 
-      if (isMatchWon) {
-        match.status = "completed";
-        match.winnerSide =
-          match.finalScore.side1Sets >= setsNeeded ? "side1" : "side2";
-        match.matchDuration =
-          Date.now() - (match.startedAt?.getTime() || match.createdAt?.getTime() || Date.now());
-
-        // Save match first before triggering dependent updates
-        await match.save();
-
-        // Emit match completed event
-        emitToMatchRoom(id, "match:completed", {
-          matchId: id,
-          matchCategory: "individual",
-          winnerSide: match.winnerSide,
-          finalScore: {
-            side1Sets: match.finalScore.side1Sets,
-            side2Sets: match.finalScore.side2Sets,
-          },
-          timestamp: new Date().toISOString(),
-        });
-
-        // Trigger stats update when match completes
+      if (matchAfter.tournament) {
         try {
-          await statsService.updateIndividualMatchStats(id);
-        } catch (statsError) {
-          console.error("Error updating stats:", statsError);
-          // Don't fail the request if stats update fails
-        }
-
-        if (match.tournament) {
-          try {
-            // Reload match to ensure we have the latest data with participants
-            const updatedMatch = await IndividualMatch.findById(match._id);
-            if (updatedMatch) {
-              await updateTournamentAfterMatch(updatedMatch);
-            }
-          } catch (tournamentError) {
-            console.error("[SCORE] ❌ Error updating tournament:", tournamentError);
-            // Don't fail the request if tournament update fails
+          const updatedMatch = await IndividualMatch.findById(matchAfter._id);
+          if (updatedMatch) {
+            await updateTournamentAfterMatch(updatedMatch);
           }
-        }
-      } else {
-        // Prepare next game
-        match.currentGame = gameNumber + 1;
-
-        if (match.matchType !== "singles") {
-          // Ensure serverConfig object exists
-          match.serverConfig = match.serverConfig || {};
-
-          // Determine current server order
-          let currentOrder = match.serverConfig.serverOrder;
-          if (!Array.isArray(currentOrder) || currentOrder.length !== 4) {
-            currentOrder = match.serverConfig.serverOrder || [];
-          }
-
-          // Flip rotation for next game
-          if (Array.isArray(currentOrder) && currentOrder.length === 4) {
-            const newOrder = flipDoublesRotationForNextGame(currentOrder);
-            match.serverConfig.serverOrder = newOrder;
-            match.currentServer = newOrder[0] || null;
-          } else {
-            match.currentServer = null;
-          }
-        } else {
-          // ✅ Singles: compute server for next game (0-0)
-          const serverResult = getNextServer(
-            0,
-            0,
-            false,
-            match.serverConfig || {},
-            gameNumber + 1
-          );
-          match.currentServer = serverResult.server as any;
+        } catch (tournamentError) {
+          console.error("[SCORE] ❌ Error updating tournament:", tournamentError);
         }
       }
     }
 
-    // Add shot data if provided (player is required, stroke is optional for simple mode)
-    if (body.shotData?.player) {
-      const shot = {
-        shotNumber: (currentGame.shots?.length || 0) + 1,
-        side: body.shotData.side,
-        player: body.shotData.player,
-        stroke: body.shotData.stroke || null, // null in simple mode
-        serveType: body.shotData.serveType || null,
-        server: body.shotData.server || null,
-        originX: body.shotData.originX,
-        originY: body.shotData.originY,
-        landingX: body.shotData.landingX,
-        landingY: body.shotData.landingY,
-        timestamp: new Date(),
-      };
-
-      currentGame.shots = currentGame.shots || [];
-      currentGame.shots.push(shot);
-
-      // Emit shot recorded event
+    if (emitShot) {
       emitToMatchRoom(id, "shot:recorded", {
         matchId: id,
         matchCategory: "individual",
         gameNumber,
-        shot,
+        shot: emitShot,
         timestamp: new Date().toISOString(),
       });
-
-      // Update statistics
-      const stats = match.statistics || { playerStats: new Map() };
-      const playerId = body.shotData.player.toString();
-
-      if (!stats.playerStats) stats.playerStats = new Map();
-      if (!stats.playerStats.get(playerId)) {
-        stats.playerStats.set(playerId, {
-          detailedShots: {},
-        });
-      }
-
-      const playerStats = stats.playerStats.get(playerId);
-
-      match.statistics = stats;
-      match.markModified("games");
-      match.markModified("statistics");
     }
 
-    // Save match to persist shot data and score updates
-    // Note: Even if match was completed and saved earlier (line 196),
-    // we need to save again to persist the shot data that was added after
-    await match.save();
-
-    // Emit score update event (for both completed and in-progress matches)
-    emitToMatchRoom(id, "score:update", {
+    const scoreUpdatePayload: Record<string, unknown> = {
       matchId: id,
       matchCategory: "individual",
       gameNumber,
-      side1Score: currentGame.side1Score,
-      side2Score: currentGame.side2Score,
-      currentServer: match.currentServer,
-      finalScore: {
-        side1Sets: match.finalScore.side1Sets,
-        side2Sets: match.finalScore.side2Sets,
-      },
-      gameCompleted: currentGame.completed || false,
-      gameWinner: currentGame.winnerSide || null,
+      scoresById,
+      setsById,
+      currentServerPlayerId:
+        (matchAfter?.currentServerPlayerId as any)?.toString?.() || null,
+      gameCompleted: currentGame?.status === "completed",
+      gameWinnerId: (currentGame?.winnerId as any)?.toString?.() || null,
       timestamp: new Date().toISOString(),
-    });
+    };
 
-    const updatedMatchDoc = await IndividualMatch.findById(match._id).populate([
-      { path: "participants", select: "username fullName profileImage" },
-      { path: "games.shots.player", select: "username fullName profileImage" },
-    ]);
+    emitToMatchRoom(id, "score:update", scoreUpdatePayload);
+
+    const updatedMatchDoc = await IndividualMatch.findById(matchAfter?._id)
+      .populate("participants", "username fullName profileImage")
+      .populate("scorer", "username fullName profileImage");
 
     if (!updatedMatchDoc) {
       return NextResponse.json({ error: "Match not found after update" }, { status: 404 });
     }
 
-    // ✅ Convert to plain object safely and include all schema-defined fields
-    const updatedMatch = updatedMatchDoc.toObject({
-      virtuals: true,
-      getters: true,
-    });
-
-    // ✅ Guarantee these keys exist even if null
-    if (updatedMatch.currentServer === undefined) {
-      updatedMatch.currentServer = updatedMatchDoc.currentServer ?? null;
-    }
-    if (updatedMatch.serverConfig === undefined) {
-      updatedMatch.serverConfig = updatedMatchDoc.serverConfig ?? null;
-    }
+    const updatedMatch = await applyShotsToLoadedMatch(updatedMatchDoc, "individual", true);
 
     return NextResponse.json({
       match: updatedMatch,
-      message:
-        match.status === "completed" ? "Match completed!" : "Score updated",
+      message: matchAfter?.status === "completed" ? "Match completed!" : "Score updated",
     });
   } catch (err: any) {
     console.error("[matches/individual/[id]/score] Error:", err);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to update score",
-        ...(process.env.NODE_ENV === "development" && { details: err.message })
+        ...(process.env.NODE_ENV === "development" && { details: err.message }),
       },
       { status: 500 }
     );

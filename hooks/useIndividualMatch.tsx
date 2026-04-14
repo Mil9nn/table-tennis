@@ -2,12 +2,7 @@ import { create } from "zustand";
 import { toast } from "sonner";
 import { useMatchStore } from "@/hooks/useMatchStore";
 import { axiosInstance } from "@/lib/axiosInstance";
-import {
-  checkGameWon,
-  checkMatchWonBySets,
-  flipDoublesRotationForNextGame,
-  getNextServer,
-} from "@/components/live-scorer/individual/helpers";
+import { checkGameWon, getNextServer } from "@/components/live-scorer/individual/helpers";
 import {
   IndividualMatch,
   MatchStatus,
@@ -15,6 +10,10 @@ import {
   InitialServerConfig,
   PlayerKey,
 } from "@/types/match.type";
+import {
+  getSinglesParticipantIds,
+  singlesGamePointScores,
+} from "@/lib/match/singlesClient";
 
 type ServerKey =
   | "side1"
@@ -91,41 +90,6 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
     return serverResult.server as ServerKey;
   };
 
-  const checkAndCompleteMatch = async (
-    newSide1Sets: number,
-    newSide2Sets: number,
-    match: IndividualMatch
-  ) => {
-    const matchWinner = checkMatchWonBySets(
-      newSide1Sets,
-      newSide2Sets,
-      match.numberOfSets
-    );
-
-    if (matchWinner) {
-      try {
-        // Update match status to completed on server
-        await axiosInstance.post(`/matches/individual/${match._id}/status`, {
-          status: "completed",
-          winnerSide: matchWinner,
-        });
-
-        set({
-          status: "completed",
-          isMatchActive: false,
-          side1Sets: newSide1Sets,
-          side2Sets: newSide2Sets,
-        });
-
-        return true;
-      } catch (err) {
-        console.error("Failed to complete match:", err);
-        toast.error("Failed to complete match");
-      }
-    }
-    return false;
-  };
-
   return {
     // initial UI state
     side1Score: 0,
@@ -174,16 +138,26 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       const currentGameNum = match.currentGame ?? 1;
 
       const currentGameObj = match.games?.find(
-        (g: IndividualGame) => g.gameNumber === currentGameNum && !g.winnerSide
+        (g: IndividualGame) =>
+          g.gameNumber === currentGameNum &&
+          (((g as any).status && (g as any).status !== "completed") || !(g as any).status)
       );
 
-      const p1 = currentGameObj?.side1Score ?? 0;
-      const p2 = currentGameObj?.side2Score ?? 0;
+      let p1 = currentGameObj?.side1Score ?? 0;
+      let p2 = currentGameObj?.side2Score ?? 0;
+      if (match.matchType === "singles" && currentGameObj) {
+        const ids = getSinglesParticipantIds(match.participants);
+        if (ids) {
+          const pt = singlesGamePointScores(currentGameObj, ids[0], ids[1]);
+          p1 = pt.side1Score;
+          p2 = pt.side2Score;
+        }
+      }
 
       // ✅ Prefer persisted currentServer from DB if it exists — even if it's null
       let nextServer: ServerKey | null = null;
-      if (match.currentServer) {
-        nextServer = match.currentServer as ServerKey;
+      if (match.currentServerPlayerId || match.currentServer) {
+        nextServer = (match.currentServerPlayerId || match.currentServer) as ServerKey;
       } else if (match.serverConfig?.firstServer) {
         // Fall back to computed server using serverOrder + currentGame (handles doubles flip)
         nextServer = computeNextServer(match, p1, p2);
@@ -294,11 +268,22 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
       // Detect if game is won
       const gameWinnerSide = checkGameWon(newP1, newP2);
 
+      const leftPlayerId = match.participants?.[0]?._id?.toString();
+      const rightPlayerId =
+        match.matchType === "singles"
+          ? match.participants?.[1]?._id?.toString()
+          : match.participants?.[2]?._id?.toString();
+      const scoringId =
+        player === "side1" ? leftPlayerId : rightPlayerId;
+
+      const scoresById: Record<string, number> = {};
+      if (leftPlayerId) scoresById[leftPlayerId] = newP1;
+      if (rightPlayerId) scoresById[rightPlayerId] = newP2;
+
       const requestBody: any = {
         gameNumber: currentGame,
-        side1Score: newP1,
-        side2Score: newP2,
-        gameWinner: gameWinnerSide,
+        scoringId,
+        scoresById,
       };
 
       // Shot Data - Create shot data for both detailed and simple mode
@@ -332,8 +317,8 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
             // For singles, there's only one player per side
             shotPlayerId =
               player === "side1"
-                ? match.participants?.[0]?._id?.toString()
-                : match.participants?.[1]?._id?.toString();
+                ? leftPlayerId
+                : rightPlayerId;
           }
         }
 
@@ -342,38 +327,10 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           shotPlayerId = typeof shotPlayerId === 'string' ? shotPlayerId : String(shotPlayerId);
           let serverId: string | null = null;
 
-          const currentServer = get().currentServer;
-
-          if (currentServer) {
-            const isDoubles = (match.matchType as string) === "doubles" || (match.matchType as string) === "mixed_doubles";
-            
-            if (isDoubles) {
-              // For doubles, map rotation key to participant index correctly
-              // "side1_main" -> participants[0]
-              // "side1_partner" -> participants[1]
-              // "side2_main" -> participants[2]
-              // "side2_partner" -> participants[3]
-              if (currentServer === "side1_main") {
-                serverId = match.participants?.[0]?._id?.toString();
-              } else if (currentServer === "side1_partner") {
-                serverId = match.participants?.[1]?._id?.toString();
-              } else if (currentServer === "side2_main") {
-                serverId = match.participants?.[2]?._id?.toString();
-              } else if (currentServer === "side2_partner") {
-                serverId = match.participants?.[3]?._id?.toString();
-              }
-            } else {
-              // For singles, map side to participant index
-              if (currentServer === "side1") {
-                serverId = match.participants?.[0]?._id?.toString();
-              } else if (currentServer === "side2") {
-                serverId = match.participants?.[1]?._id?.toString();
-              }
-            }
-          }
+          serverId = (match as any).currentServerPlayerId || null;
 
           requestBody.shotData = {
-            side: player,
+            side: scoringId,
             player: shotPlayerId,
             stroke: shotType || null, // null in simple mode
             serveType: shotLocationData?.serveType || null,
@@ -400,30 +357,20 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
           if (gameWinnerSide) {
             const newSide1Sets = data.match.finalScore?.side1Sets ?? 0;
             const newSide2Sets = data.match.finalScore?.side2Sets ?? 0;
-
-            if (match.matchType !== "singles") {
-              const newRotation = flipDoublesRotationForNextGame(
-                match.serverConfig?.serverOrder || []
-              );
-              if (match.serverConfig) {
-                match.serverConfig.serverOrder = newRotation;
-              }
-            }
-
-            const matchCompleted = await checkAndCompleteMatch(
-              newSide1Sets,
-              newSide2Sets,
-              match
-            );
+            const matchCompleted = data.match.status === "completed";
 
             if (!matchCompleted) {
               const nextGameNum = currentGame + 1;
+              const nextScores =
+                (data.match.games || []).find((g: any) => g.gameNumber === nextGameNum)?.scoresById || {};
+              const nextLeft = leftPlayerId ? Number(nextScores[leftPlayerId] || 0) : 0;
+              const nextRight = rightPlayerId ? Number(nextScores[rightPlayerId] || 0) : 0;
 
               set({
                 currentGame: nextGameNum,
-                side1Score: 0,
-                side2Score: 0,
-                currentServer: data.match.currentServer as ServerKey,
+                side1Score: nextLeft,
+                side2Score: nextRight,
+                currentServer: null,
                 side1Sets: newSide1Sets,
                 side2Sets: newSide2Sets,
               });
@@ -431,12 +378,19 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
               toast.success(
                 `Game ${currentGame} won! Starting Game ${nextGameNum}`
               );
+            } else {
+              set({
+                status: "completed",
+                isMatchActive: false,
+                side1Sets: newSide1Sets,
+                side2Sets: newSide2Sets,
+              });
             }
           } else {
             set({
               side1Score: newP1,
               side2Score: newP2,
-              currentServer: data.match.currentServer as ServerKey,
+              currentServer: (data.match.currentServerPlayerId ?? null) as ServerKey,
             });
           }
         }
@@ -479,11 +433,17 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
 
       set({ isUndoing: true });
       try {
+        const scoringId =
+          player === "side1"
+            ? match.participants?.[0]?._id?.toString()
+            : match.matchType === "singles"
+              ? match.participants?.[1]?._id?.toString()
+              : match.participants?.[2]?._id?.toString();
         const { data } = await axiosInstance.post(
           `/matches/individual/${match._id}/score`,
           {
             action: "subtract",
-            side: player,
+            scoringId,
             gameNumber: currentGame,
           }
         );
@@ -496,10 +456,13 @@ export const useIndividualMatch = create<IndividualMatchState>((set, get) => {
             (g: any) => g.gameNumber === currentGame
           );
           if (game) {
+            const ids = getSinglesParticipantIds(match.participants);
+            const p1 = ids ? Number((game.scoresById || {})[ids[0]] ?? 0) : 0;
+            const p2 = ids ? Number((game.scoresById || {})[ids[1]] ?? 0) : 0;
             set({
-              side1Score: game.side1Score,
-              side2Score: game.side2Score,
-              currentServer: data.match.currentServer as ServerKey,
+              side1Score: p1,
+              side2Score: p2,
+              currentServer: data.match.currentServerPlayerId as ServerKey,
             });
           }
         }

@@ -1,14 +1,22 @@
 // app/api/matches/team/[id]/submatch/[subMatchId]/reset/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import TeamMatch from "@/models/TeamMatch";
+import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
+import {
+  applyShotsToLoadedMatch,
+  deleteAllPointsForTeamSubMatch,
+  deletePointsForTeamGame,
+} from "@/services/match/matchPointService";
+import mongoose from "mongoose";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string; subMatchId: string }> }
 ) {
   try {
+    await connectDB();
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
 
@@ -48,9 +56,12 @@ export async function POST(
       return NextResponse.json({ error: "SubMatch not found" }, { status: 404 });
     }
 
+    const subOid = subMatch._id as mongoose.Types.ObjectId;
+
     if (resetType === "game") {
       // Reset current game only
       const currentGameNum = subMatch.games?.length || 1;
+      await deletePointsForTeamGame(match._id, subOid, currentGameNum);
       const gameIndex = subMatch.games.findIndex(
         (g: any) => g.gameNumber === currentGameNum
       );
@@ -59,7 +70,6 @@ export async function POST(
         subMatch.games[gameIndex].team1Score = 0;
         subMatch.games[gameIndex].team2Score = 0;
         subMatch.games[gameIndex].winnerSide = undefined;
-        subMatch.games[gameIndex].shots = [];
       }
 
       // ✅ Clear server config so server dialog will show again
@@ -88,13 +98,13 @@ export async function POST(
         }
       }
     } else {
+      await deleteAllPointsForTeamSubMatch(match._id, subOid);
       // Full submatch reset
       subMatch.games = [
         {
           gameNumber: 1,
           team1Score: 0,
           team2Score: 0,
-          shots: [],
           winnerSide: undefined,
           completed: false,
         },
@@ -108,12 +118,15 @@ export async function POST(
     match.markModified("subMatches");
     await match.save();
 
-    const updatedMatch = await TeamMatch.findById(match._id)
+    const updatedDoc = await TeamMatch.findById(match._id)
       .populate("scorer", "username fullName")
       .populate("team1.captain team2.captain", "username fullName")
       .populate("team1.players.user team2.players.user", "username fullName profileImage")
-      .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage")
-      .populate("subMatches.games.shots.player", "username fullName profileImage");
+      .populate("subMatches.playerTeam1 subMatches.playerTeam2", "username fullName profileImage");
+
+    const updatedMatch = updatedDoc
+      ? await applyShotsToLoadedMatch(updatedDoc, "team", true)
+      : updatedDoc;
 
     return NextResponse.json({ match: updatedMatch });
   } catch (err) {

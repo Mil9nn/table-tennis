@@ -10,9 +10,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Tournament from "@/models/Tournament";
+import { syncTournamentProjections } from "@/models/utils/tournamentProjectionSync";
 import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
 import { transitionToKnockoutPhase, getPhaseInfo } from "@/services/tournament";
 import { loadTournament } from "@/lib/api/tournamentLoader";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 import mongoose from "mongoose";
 
 export async function POST(
@@ -103,6 +105,11 @@ export async function POST(
 
     // Save tournament
     await tournament.save();
+    try {
+      await syncTournamentProjections(tournament.toObject ? tournament.toObject() : tournament);
+    } catch (projectionSyncError) {
+      console.error("[transition-to-knockout POST] Projection sync failed:", projectionSyncError);
+    }
 
     // Fetch updated tournament with populated data using the correct model
     // Also load bracket from BracketState if not in tournament document
@@ -145,11 +152,16 @@ export async function POST(
       }
     }
 
+    const tournamentData = updatedTournament?.toObject
+      ? updatedTournament.toObject()
+      : updatedTournament;
+    await loadAndApplyProjectedTournamentData(tournamentId, tournamentData);
+
     return NextResponse.json(
       {
         message: result.message,
         warnings: result.warnings,
-        tournament: updatedTournament,
+        tournament: tournamentData,
         result: {
           phase: result.phase,
           matchesCreated: result.matchesCreated,

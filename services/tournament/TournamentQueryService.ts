@@ -2,6 +2,8 @@
 import mongoose from "mongoose";
 import TournamentIndividual from "@/models/TournamentIndividual";
 import TournamentTeam from "@/models/TournamentTeam";
+import TournamentGroups from "@/models/TournamentGroups";
+import TournamentStandings from "@/models/TournamentStandings";
 
 /**
  * Tournament Query Service
@@ -33,6 +35,67 @@ export interface TournamentDTO {
 }
 
 export class TournamentQueryService {
+  private async applyProjectionData(tournament: TournamentDTO | null): Promise<TournamentDTO | null> {
+    if (!tournament?._id) return tournament;
+    const [groupsDoc, standingsDocs] = await Promise.all([
+      TournamentGroups.findOne({ tournament: tournament._id }).lean(),
+      TournamentStandings.find({ tournament: tournament._id }).lean(),
+    ]);
+
+    if (groupsDoc?.groups) {
+      const standingsByGroup = new Map<string, any>(
+        standingsDocs
+          .filter((doc: any) => doc.groupId && doc.groupId !== "__overall__")
+          .map((doc: any) => [doc.groupId, doc])
+      );
+
+      tournament.groups = groupsDoc.groups.map((group: any) => ({
+        groupId: group.groupId,
+        groupName: group.groupName,
+        participants: group.participantIds || [],
+        rounds: group.rounds || [],
+        standings: (standingsByGroup.get(group.groupId)?.rows || []).map((row: any) => ({
+          participant: row.participantId,
+          played: row.played ?? 0,
+          won: row.won ?? 0,
+          lost: row.lost ?? 0,
+          drawn: row.drawn ?? 0,
+          setsWon: row.setsWon ?? 0,
+          setsLost: row.setsLost ?? 0,
+          setsDiff: row.setsDiff ?? 0,
+          pointsScored: row.pointsScored ?? 0,
+          pointsConceded: row.pointsConceded ?? 0,
+          pointsDiff: row.pointsDiff ?? 0,
+          points: row.points ?? 0,
+          rank: row.rank ?? 0,
+          form: row.form ?? [],
+          headToHead: row.headToHead ?? {},
+        })),
+      }));
+    }
+
+    const overall = standingsDocs.find((doc: any) => doc.groupId === "__overall__");
+    tournament.standings = (overall?.rows || []).map((row: any) => ({
+      participant: row.participantId,
+      played: row.played ?? 0,
+      won: row.won ?? 0,
+      lost: row.lost ?? 0,
+      drawn: row.drawn ?? 0,
+      setsWon: row.setsWon ?? 0,
+      setsLost: row.setsLost ?? 0,
+      setsDiff: row.setsDiff ?? 0,
+      pointsScored: row.pointsScored ?? 0,
+      pointsConceded: row.pointsConceded ?? 0,
+      pointsDiff: row.pointsDiff ?? 0,
+      points: row.points ?? 0,
+      rank: row.rank ?? 0,
+      form: row.form ?? [],
+      headToHead: row.headToHead ?? {},
+    }));
+
+    return tournament;
+  }
+
   /**
    * Get tournament with all details in a single query
    * Uses aggregation to avoid N+1 problems
@@ -40,10 +103,11 @@ export class TournamentQueryService {
   async getTournamentWithDetails(id: string): Promise<TournamentDTO | null> {
     // Try individual tournament first
     let result = await this.getIndividualTournamentWithDetails(id);
-    if (result) return result;
+    if (result) return this.applyProjectionData(result);
 
     // Try team tournament
-    return this.getTeamTournamentWithDetails(id);
+    const teamResult = await this.getTeamTournamentWithDetails(id);
+    return this.applyProjectionData(teamResult);
   }
 
   /**
@@ -173,7 +237,7 @@ export class TournamentQueryService {
       }
     ]);
 
-    return results[0] || null;
+    return this.applyProjectionData(results[0] || null);
   }
 
   /**

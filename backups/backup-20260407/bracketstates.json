@@ -1,0 +1,1406 @@
+[
+  {
+    "_id": "695cd5b98b134b3fa1bfd415",
+    "tournament": "695cd4088b134b3fa1bfd34c",
+    "size": 8,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "matchId": "695d1a5bc20ce16243fbb2f5",
+            "participant1": "695cd5788b134b3fa1bfd3b2",
+            "participant2": "695cd5788b134b3fa1bfd3b3",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695d28394a694ce27e8cb96e",
+            "participant1": "695cd5788b134b3fa1bfd3b3",
+            "participant2": "695cd5788b134b3fa1bfd3af",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695d28394a694ce27e8cb970",
+            "participant1": "695cd5788b134b3fa1bfd3b0",
+            "participant2": "695cd5788b134b3fa1bfd3b1",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-06T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "createdAt": "2026-01-06T09:28:25.714Z",
+    "updatedAt": "2026-01-06T15:20:26.042Z",
+    "__v": 5
+  },
+  {
+    "_id": "695d285b4a694ce27e8cbb18",
+    "tournament": "695d1fd0c20ce16243fbba89",
+    "size": 8,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "matchId": "695d28734a694ce27e8cbba7",
+            "participant1": "695d285b4a694ce27e8cbae2",
+            "participant2": "695d285b4a694ce27e8cbae5",
+            "winner": "695d285b4a694ce27e8cbae2",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695d458e965ac11d11f31185",
+            "participant1": "695d285b4a694ce27e8cbae1",
+            "participant2": "695d285b4a694ce27e8cbae4",
+            "winner": "695d285b4a694ce27e8cbae1",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695d458e965ac11d11f31187",
+            "participant1": "695d285b4a694ce27e8cbae2",
+            "participant2": "695d285b4a694ce27e8cbae3",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-06T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": "695d285b4a694ce27e8cbae1",
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 2,
+    "completed": false,
+    "createdAt": "2026-01-06T15:20:59.247Z",
+    "updatedAt": "2026-01-06T17:38:49.083Z",
+    "__v": 4
+  },
+  {
+    "_id": "695d517a965ac11d11f31b0a",
+    "tournament": "695d5164965ac11d11f31a8b",
+    "size": 4,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695d56d1965ac11d11f31eba",
+            "participant1": "6953e2696f582bbaedde9dc2",
+            "participant2": "6953e2696f582bbaedde9db4",
+            "winner": "6953e2696f582bbaedde9dc2",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695d56d1965ac11d11f31ecd",
+            "participant1": "6953e2696f582bbaedde9dbb",
+            "participant2": "6953e2696f582bbaedde9dad",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-06T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": "6953e2696f582bbaedde9dc2",
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-06T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-06T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "createdAt": "2026-01-06T18:16:26.900Z",
+    "updatedAt": "2026-01-06T18:52:47.933Z",
+    "__v": 3
+  },
+  {
+    "_id": "695e9d568fa94edfb811bd22",
+    "tournament": "695e9ca48fa94edfb811b8d5",
+    "size": 2,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Final",
+        "matches": [
+          {
+            "matchId": "695e9d6e8fa94edfb811bd85",
+            "participant1": "6953e2636f582bbaedde9d69",
+            "participant2": "6953e2656f582bbaedde9d78",
+            "winner": "6953e2636f582bbaedde9d69",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-07T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": true,
+    "createdAt": "2026-01-07T17:52:22.350Z",
+    "updatedAt": "2026-01-07T17:53:35.047Z",
+    "__v": 2
+  },
+  {
+    "_id": "695e9e548fa94edfb811c089",
+    "tournament": "695e9e498fa94edfb811c04f",
+    "size": 4,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695e9e548fa94edfb811c08c",
+            "participant1": "6953e2636f582bbaedde9d69",
+            "participant2": "6953e2676f582bbaedde9d90",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695e9e548fa94edfb811c08e",
+            "participant1": "6953e2646f582bbaedde9d6f",
+            "participant2": "6953e2686f582bbaedde9da2",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-07T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-07T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "createdAt": "2026-01-07T17:56:36.118Z",
+    "updatedAt": "2026-01-07T17:56:36.355Z",
+    "__v": 1
+  },
+  {
+    "_id": "695ea9d3befd4e5a2f8dd4a1",
+    "tournament": "695ea18bbefd4e5a2f8cea8e",
+    "size": 8,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "matchId": "695eaa4abefd4e5a2f8dd730",
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": "6953ce4ebbc60fae2d3f7c93",
+            "winner": "6953d1ddd72b4aa8d155ab0c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695eaa4abefd4e5a2f8dd732",
+            "participant1": "6953e2666f582bbaedde9d81",
+            "participant2": "6953e2646f582bbaedde9d6c",
+            "winner": "6953e2646f582bbaedde9d6c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-07T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695eaa4abefd4e5a2f8dd734",
+            "participant1": "6953d12e9576cb34865a15ab",
+            "participant2": "6953e2696f582bbaedde9da5",
+            "winner": "6953d12e9576cb34865a15ab",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 3,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-07T20:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695eaa4abefd4e5a2f8dd736",
+            "participant1": "6953d94fd72b4aa8d155acaa",
+            "participant2": "6956a233d92e074770ed90a2",
+            "winner": "6953d94fd72b4aa8d155acaa",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 4,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-07T21:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-07T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695eaa72befd4e5a2f8de02d",
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": "6953e2646f582bbaedde9d6c",
+            "winner": "6953d1ddd72b4aa8d155ab0c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695eaaa2befd4e5a2f8dfbe8",
+            "participant1": "6953d12e9576cb34865a15ab",
+            "participant2": "6953d94fd72b4aa8d155acaa",
+            "winner": "6953d12e9576cb34865a15ab",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-07T20:00:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Final",
+        "matches": [
+          {
+            "matchId": "695eab25befd4e5a2f8e1293",
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": "6953d12e9576cb34865a15ab",
+            "winner": "6953d12e9576cb34865a15ab",
+            "completed": true,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-07T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-07T20:30:00.000Z"
+      }
+    ],
+    "currentRound": 3,
+    "completed": true,
+    "createdAt": "2026-01-07T18:45:39.254Z",
+    "updatedAt": "2026-01-07T18:51:46.055Z",
+    "__v": 8
+  },
+  {
+    "_id": "695eadf8befd4e5a2f8e356c",
+    "tournament": "695eacabbefd4e5a2f8e2281",
+    "size": 4,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695eadf8befd4e5a2f8e3566",
+            "participant1": "695ead1fbefd4e5a2f8e2398",
+            "participant2": "695ead1fbefd4e5a2f8e239e",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-08T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695eadf8befd4e5a2f8e3568",
+            "participant1": "695ead1fbefd4e5a2f8e2399",
+            "participant2": "695ead1fbefd4e5a2f8e239b",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-08T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-08T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-08T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-08T21:00:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "createdAt": "2026-01-07T19:03:20.442Z",
+    "updatedAt": "2026-01-07T19:03:20.442Z",
+    "__v": 0
+  },
+  {
+    "_id": "695fb5632bd9a805888b459d",
+    "tournament": "695fb439f6b95c366bf4d089",
+    "size": 8,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": null,
+            "winner": "6953d1ddd72b4aa8d155ab0c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-08T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "participant1": "6953ff8dca40b4f1c6542afe",
+            "participant2": null,
+            "winner": "6953ff8dca40b4f1c6542afe",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-08T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "participant1": "6953ff8dca40b4f1c6542aff",
+            "participant2": null,
+            "winner": "6953ff8dca40b4f1c6542aff",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 3,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-08T20:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695fb5622bd9a805888b4597",
+            "participant1": "6953e2666f582bbaedde9d81",
+            "participant2": "6953ff8dca40b4f1c6542b00",
+            "winner": "6953e2666f582bbaedde9d81",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 4,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-08T21:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-08T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "695fb5622bd9a805888b4599",
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": "6953ff8dca40b4f1c6542afe",
+            "winner": "6953d1ddd72b4aa8d155ab0c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-08T23:00:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "695fb597264f019eb38c667e",
+            "participant1": "6953ff8dca40b4f1c6542aff",
+            "participant2": "6953e2666f582bbaedde9d81",
+            "winner": "6953ff8dca40b4f1c6542aff",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-09T00:00:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-08T23:00:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Final",
+        "matches": [
+          {
+            "matchId": "695fb5c2d2d8001a3763444e",
+            "participant1": "6953d1ddd72b4aa8d155ab0c",
+            "participant2": "6953ff8dca40b4f1c6542aff",
+            "winner": "6953d1ddd72b4aa8d155ab0c",
+            "completed": true,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-08T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-09T01:30:00.000Z"
+      }
+    ],
+    "currentRound": 3,
+    "completed": true,
+    "createdAt": "2026-01-08T13:47:15.318Z",
+    "updatedAt": "2026-01-08T13:58:20.974Z",
+    "__v": 4
+  },
+  {
+    "_id": "696268e34f01477ec3b3099a",
+    "tournament": "6961139936c9295c56d7a694",
+    "size": 8,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "matchId": "696268e24f01477ec3b30990",
+            "participant1": "695f55c6f59b23c7fa422cd5",
+            "participant2": "695f55c7f59b23c7fa422d05",
+            "winner": "695f55c6f59b23c7fa422cd5",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-09T18:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "696268e24f01477ec3b30992",
+            "participant1": "695f55c7f59b23c7fa422d0b",
+            "participant2": "695f55c7f59b23c7fa422d08",
+            "winner": "695f55c7f59b23c7fa422d0b",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-09T19:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "696268e24f01477ec3b30994",
+            "participant1": "695f55c9f59b23c7fa422d41",
+            "participant2": "695f55c9f59b23c7fa422d38",
+            "winner": "695f55c9f59b23c7fa422d38",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 3,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-09T20:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "696268e34f01477ec3b30996",
+            "participant1": "695f55c5f59b23c7fa422cc0",
+            "participant2": "695f55c9f59b23c7fa422d3b",
+            "winner": "695f55c9f59b23c7fa422d3b",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 4,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-09T21:30:00.000Z",
+            "courtNumber": 1,
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-09T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "69638d8536f822122f60fefb",
+            "participant1": "695f55c6f59b23c7fa422cd5",
+            "participant2": "695f55c7f59b23c7fa422d0b",
+            "winner": "695f55c7f59b23c7fa422d0b",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-09T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "6963a1c9ab3e1786c73ed43b",
+            "participant1": "695f55c9f59b23c7fa422d38",
+            "participant2": "695f55c9f59b23c7fa422d3b",
+            "winner": "695f55c9f59b23c7fa422d3b",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-09T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-09T23:00:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Final",
+        "matches": [
+          {
+            "matchId": "6963a4a88d29b829a536136c",
+            "participant1": "695f55c7f59b23c7fa422d0b",
+            "participant2": "695f55c9f59b23c7fa422d3b",
+            "winner": "695f55c9f59b23c7fa422d3b",
+            "completed": true,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-09T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-09T23:30:00.000Z"
+      }
+    ],
+    "currentRound": 3,
+    "completed": true,
+    "createdAt": "2026-01-10T14:57:39.803Z",
+    "updatedAt": "2026-01-11T13:34:03.418Z",
+    "__v": 7
+  },
+  {
+    "_id": "69627ce9cc7f9aadc8666f06",
+    "tournament": "69627cd9cc7f9aadc8666e74",
+    "size": 16,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Round of 16",
+        "matches": [
+          {
+            "participant1": "695f55c7f59b23c7fa422cf0",
+            "participant2": null,
+            "winner": "695f55c7f59b23c7fa422cf0",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ce9cc7f9aadc8666f09",
+            "participant1": "695f5bb9de13e9ad5cb9d0b4",
+            "participant2": "695f55c8f59b23c7fa422d32",
+            "winner": "695f5bb9de13e9ad5cb9d0b4",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ce9cc7f9aadc8666f0b",
+            "participant1": "695f5bb9de13e9ad5cb9d0c3",
+            "participant2": "695f582954b88ae318124596",
+            "winner": "695f582954b88ae318124596",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 3,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ceacc7f9aadc8666f0d",
+            "participant1": "695f55c5f59b23c7fa422cb1",
+            "participant2": "695f55c8f59b23c7fa422d23",
+            "winner": "695f55c8f59b23c7fa422d23",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 4,
+              "nextMatchNumber": 2
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ceacc7f9aadc8666f0f",
+            "participant1": "695f55c5f59b23c7fa422ca8",
+            "participant2": "695f5bb8de13e9ad5cb9d0ad",
+            "winner": "695f5bb8de13e9ad5cb9d0ad",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 5,
+              "nextMatchNumber": 3
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ceacc7f9aadc8666f11",
+            "participant1": "695f55c4f59b23c7fa422c8d",
+            "participant2": "695f55c4f59b23c7fa422c84",
+            "winner": "695f55c4f59b23c7fa422c8d",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 6,
+              "nextMatchNumber": 3
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ceacc7f9aadc8666f13",
+            "participant1": "695f55c6f59b23c7fa422cde",
+            "participant2": "695f55c4f59b23c7fa422c96",
+            "winner": "695f55c4f59b23c7fa422c96",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 7,
+              "nextMatchNumber": 4
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69627ceacc7f9aadc8666f15",
+            "participant1": "695f55c7f59b23c7fa422cf9",
+            "participant2": "695f55c4f59b23c7fa422c7e",
+            "winner": "695f55c7f59b23c7fa422cf9",
+            "completed": true,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 8,
+              "nextMatchNumber": 4
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Round of 16",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": true,
+        "scheduledDate": "2026-01-10T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Quarter-Finals",
+        "matches": [
+          {
+            "matchId": "69635ba94d4670eacb825176",
+            "participant1": "695f55c7f59b23c7fa422cf0",
+            "participant2": "695f5bb9de13e9ad5cb9d0b4",
+            "winner": "695f5bb9de13e9ad5cb9d0b4",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69638286f51cf78f1c1b8c6c",
+            "participant1": "695f582954b88ae318124596",
+            "participant2": "695f55c8f59b23c7fa422d23",
+            "winner": "695f582954b88ae318124596",
+            "completed": true,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M3",
+              "match2": "R1M4"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "696359ac8fb23d1863afa7aa",
+            "participant1": "695f5bb8de13e9ad5cb9d0ad",
+            "participant2": "695f55c4f59b23c7fa422c8d",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 3,
+              "nextMatchNumber": 2
+            },
+            "sourceMatches": {
+              "match1": "R1M5",
+              "match2": "R1M6"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "69638087f51cf78f1c1af78c",
+            "participant1": "695f55c4f59b23c7fa422c96",
+            "participant2": "695f55c7f59b23c7fa422cf9",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 4,
+              "nextMatchNumber": 2
+            },
+            "sourceMatches": {
+              "match1": "R1M7",
+              "match2": "R1M8"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Quarter-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-10T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 3,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "696a6629b29eaca8e2767021",
+            "participant1": "695f5bb9de13e9ad5cb9d0b4",
+            "participant2": "695f582954b88ae318124596",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M1",
+              "match2": "R2M2"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 3,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R2M3",
+              "match2": "R2M4"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-10T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 4,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 4,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R3M1",
+              "match2": "R3M2"
+            },
+            "scheduledDate": "2026-01-10T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-10T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 2,
+    "completed": false,
+    "createdAt": "2026-01-10T16:23:05.301Z",
+    "updatedAt": "2026-01-16T16:24:10.750Z",
+    "__v": 10
+  },
+  {
+    "_id": "6963d406596eab8ea478fe6a",
+    "tournament": "6962c54930cebfb23093a662",
+    "size": 4,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-11T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-11T20:00:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "createdAt": "2026-01-11T16:47:02.658Z",
+    "updatedAt": "2026-01-11T16:47:02.658Z",
+    "__v": 0
+  },
+  {
+    "_id": "6963e276ac544cb4c3929756",
+    "tournament": "6963e267ac544cb4c3929716",
+    "size": 4,
+    "rounds": [
+      {
+        "roundNumber": 1,
+        "roundName": "Semi-Finals",
+        "matches": [
+          {
+            "matchId": "6963e277ac544cb4c3929759",
+            "participant1": "695f55c6f59b23c7fa422ccf",
+            "participant2": "695f55c7f59b23c7fa422d0e",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 1,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          },
+          {
+            "matchId": "6963e277ac544cb4c392975b",
+            "participant1": "695f55c9f59b23c7fa422d35",
+            "participant2": "695f55c9f59b23c7fa422d4a",
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 1,
+              "matchNumber": 2,
+              "nextMatchNumber": 1
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Semi-Finals",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-11T18:30:00.000Z"
+      },
+      {
+        "roundNumber": 2,
+        "roundName": "Final",
+        "matches": [
+          {
+            "participant1": null,
+            "participant2": null,
+            "winner": null,
+            "completed": false,
+            "bracketPosition": {
+              "round": 2,
+              "matchNumber": 1
+            },
+            "sourceMatches": {
+              "match1": "R1M1",
+              "match2": "R1M2"
+            },
+            "scheduledDate": "2026-01-11T18:30:00.000Z",
+            "roundName": "Final",
+            "isThirdPlaceMatch": false
+          }
+        ],
+        "completed": false,
+        "scheduledDate": "2026-01-11T18:30:00.000Z"
+      }
+    ],
+    "currentRound": 1,
+    "completed": false,
+    "thirdPlaceMatch": {
+      "participant1": null,
+      "participant2": null,
+      "winner": null,
+      "completed": false,
+      "bracketPosition": {
+        "round": 2,
+        "matchNumber": 999
+      },
+      "scheduledDate": "2026-01-11T18:30:00.000Z",
+      "roundName": "3rd Place Match",
+      "isThirdPlaceMatch": true
+    },
+    "createdAt": "2026-01-11T17:48:38.968Z",
+    "updatedAt": "2026-01-11T17:48:39.923Z",
+    "__v": 1
+  }
+]

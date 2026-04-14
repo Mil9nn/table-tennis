@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
 import { populateIndividualMatch, populateIndividualMatchBasic } from "@/services/match/populationService";
+import { applyShotsToLoadedMatch, deleteAllPointsForMatch } from "@/services/match/matchPointService";
 import { validateRequest, updateIndividualMatchSchema } from "@/lib/validations";
 
 // CRITICAL: Import models in correct order to ensure discriminators are registered
@@ -12,19 +13,21 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   try {
     await connectDB();
     const { id } = await context.params;
+    const includeShots = req.nextUrl.searchParams.get("includeShots") !== "0";
 
-    const match = await populateIndividualMatch(
+    const matchDoc = await populateIndividualMatch(
       IndividualMatch.findById(id),
       { includeTournament: true }
     ).exec();
 
-    if (!match) {
+    if (!matchDoc) {
       return NextResponse.json(
         { error: "Individual match not found" },
         { status: 404 }
       );
     }
 
+    const match = await applyShotsToLoadedMatch(matchDoc, "individual", includeShots);
     return NextResponse.json({ match });
   } catch (error) {
     console.error("Error fetching individual match:", error);
@@ -98,6 +101,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    await connectDB();
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
 
@@ -121,6 +125,7 @@ export async function DELETE(
       );
     }
 
+    await deleteAllPointsForMatch(id);
     await IndividualMatch.findByIdAndDelete(id);
 
     return NextResponse.json({

@@ -9,6 +9,7 @@ import {
   handleValidationResult,
 } from "@/services/tournament/validators/tournamentValidators";
 import { rateLimit } from "@/lib/rate-limit/middleware";
+import { loadAndApplyProjectedTournamentData } from "@/lib/api/tournamentProjections";
 
 /**
  * Generate tournament matches with ITTF-compliant scheduling
@@ -196,9 +197,16 @@ export async function POST(
       }
     );
 
+    const tournamentData = result.tournament?.toObject
+      ? result.tournament.toObject()
+      : result.tournament;
+    if (tournamentData?._id) {
+      await loadAndApplyProjectedTournamentData(String(tournamentData._id), tournamentData);
+    }
+
     return NextResponse.json({
       message: "Tournament draw generated successfully",
-      tournament: result.tournament,
+      tournament: tournamentData,
       stats: result.stats,
     });
   } catch (err: any) {

@@ -19,7 +19,7 @@ export async function POST(
   try {
     const auth = await withAuth(req);
     if (!auth.success) return auth.response;
-    const { status, winnerSide } = await req.json();
+    const { status, winnerId } = await req.json();
 
     if (
       !["scheduled", "in_progress", "completed", "cancelled"].includes(status)
@@ -61,21 +61,21 @@ export async function POST(
 
     if (
       status === "in_progress" &&
-      !match.currentServer &&
-      match.serverConfig?.firstServer
+      !match.currentServerPlayerId &&
+      match.serverConfig?.firstServerPlayerId
     ) {
-      match.currentServer = match.serverConfig.firstServer;
+      match.currentServerPlayerId = match.serverConfig.firstServerPlayerId;
     }
 
-    if (status === "completed" && winnerSide) {
-      match.winnerSide = winnerSide;
+    if (status === "completed" && winnerId) {
+      match.winnerId = winnerId;
     }
 
     await match.save();
     await match.populate("participants", "username fullName");
 
     // Trigger stats update when match completes
-    if (status === "completed" && winnerSide) {
+    if (status === "completed" && winnerId) {
       try {
         await statsService.updateIndividualMatchStats(id);
       } catch (statsError) {

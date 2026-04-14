@@ -1,8 +1,13 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { IndividualGame, Participant } from "@/types/match.type";
 import clsx from "clsx";
+import {
+  getSinglesParticipantIds,
+  participantNameById,
+  singlesGamePointScores,
+  singlesGameWinnerPlayerId,
+} from "@/lib/match/singlesClient";
 
 interface GamesHistoryProps {
   games: IndividualGame[];
@@ -33,7 +38,9 @@ export default function GamesHistory({
           <GameHistoryItem
             key={game.gameNumber}
             game={game}
-            isCurrent={game.gameNumber === currentGame && !game.winnerSide}
+            isCurrent={
+              game.gameNumber === currentGame && !game.completed
+            }
             participants={participants}
           />
         ))}
@@ -52,12 +59,32 @@ function GameHistoryItem({
   isCurrent: boolean;
   participants?: Participant[];
 }) {
-  const winnerName =
-    game.winnerSide === "side1"
+  const isSingles = participants?.length === 2;
+  const ids = isSingles && participants ? getSinglesParticipantIds(participants) : null;
+  const pts =
+    ids != null
+      ? singlesGamePointScores(game, ids[0], ids[1])
+      : {
+          side1Score: game.side1Score ?? 0,
+          side2Score: game.side2Score ?? 0,
+        };
+  const winnerPid =
+    ids != null ? singlesGameWinnerPlayerId(game, ids[0], ids[1]) : null;
+  const winnerName = isSingles
+    ? participantNameById(participants, winnerPid) ??
+      (game.winnerSide === "side1"
+        ? participants?.[0]?.fullName ?? participants?.[0]?.username
+        : game.winnerSide === "side2"
+          ? participants?.[1]?.fullName ?? participants?.[1]?.username
+          : null)
+    : game.winnerSide === "side1"
       ? participants?.[0]?.fullName ?? participants?.[0]?.username
       : game.winnerSide === "side2"
-      ? participants?.[1]?.fullName ?? participants?.[1]?.username
-      : null;
+        ? participants?.[2]?.fullName ??
+          participants?.[2]?.username ??
+          participants?.[1]?.fullName ??
+          participants?.[1]?.username
+        : null;
 
   return (
     <div
@@ -77,9 +104,9 @@ function GameHistoryItem({
         </span>
 
         <span className="font-semibold tabular-nums tracking-tight">
-          {game.side1Score ?? 0}
+          {pts.side1Score}
           <span className="mx-1 text-zinc-400">–</span>
-          {game.side2Score ?? 0}
+          {pts.side2Score}
         </span>
       </div>
 

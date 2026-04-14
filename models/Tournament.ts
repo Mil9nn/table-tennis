@@ -1,24 +1,6 @@
 // models/Tournament.ts
 import mongoose, { Schema, Document } from "mongoose";
-
-// Reusable sub-schemas to avoid duplication
-const standingSchema = new Schema({
-  participant: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  played: { type: Number, default: 0 },
-  won: { type: Number, default: 0 },
-  lost: { type: Number, default: 0 },
-  drawn: { type: Number, default: 0 },
-  setsWon: { type: Number, default: 0 },
-  setsLost: { type: Number, default: 0 },
-  setsDiff: { type: Number, default: 0 },
-  pointsScored: { type: Number, default: 0 },
-  pointsConceded: { type: Number, default: 0 },
-  pointsDiff: { type: Number, default: 0 },
-  points: { type: Number, default: 0 },
-  rank: { type: Number, default: 0 },
-  form: [{ type: String }],
-  headToHead: { type: Map, of: Number },
-}, { _id: false });
+import { attachTournamentProjectionHooks } from "./utils/tournamentProjectionSync";
 
 const roundSchema = new Schema({
   roundNumber: { type: Number, required: true },
@@ -27,15 +9,6 @@ const roundSchema = new Schema({
   scheduledDate: { type: Date },
   scheduledTime: { type: String },
 }, { _id: false });
-
-const groupSchema = new Schema({
-  groupId: { type: String, required: true },
-  groupName: { type: String, required: true },
-  participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
-  rounds: [roundSchema],
-  standings: [standingSchema],
-}, { _id: false });
-
 
 // Interfaces (needed for TypeScript typing in other files)
 export interface ISeeding {
@@ -105,7 +78,7 @@ export interface ITournament extends Document {
   // Groups/Pools (for larger tournaments)
   useGroups: boolean;
   numberOfGroups?: number;
-  groups?: IGroup[];
+  groups?: IGroup[]; // Projection-hydrated (tournament_groups)
   advancePerGroup?: number; // How many from each group advance
 
   // Knockout specific
@@ -157,7 +130,7 @@ export interface ITournament extends Document {
     scheduledTime?: string;
   }>;
 
-  standings: IStanding[];
+  standings: IStanding[]; // Projection-hydrated (tournament_standings)
 
   // Tournament rules (ITTF-compliant)
   rules: {
@@ -231,13 +204,6 @@ const tournamentSchema = new Schema<ITournament>(
     // Organizer is implicitly a scorer and doesn't need to be in this array
     scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
-    // Subscription tracking
-    createdWithTier: {
-      type: String,
-      enum: ["free", "pro"],
-      required: true,
-      default: "free",
-    },
     customBranding: {
       logo: { type: String },
       primaryColor: { type: String },
@@ -267,7 +233,7 @@ const tournamentSchema = new Schema<ITournament>(
     // Groups/Pools
     useGroups: { type: Boolean, default: false },
     numberOfGroups: { type: Number },
-    groups: [groupSchema],
+    // groups removed from persisted schema; loaded from TournamentGroups projection
     advancePerGroup: { type: Number },
 
     // Knockout specific
@@ -332,7 +298,7 @@ const tournamentSchema = new Schema<ITournament>(
     rounds: [roundSchema],
 
     // Standings
-    standings: [standingSchema],
+    // standings removed from persisted schema; loaded from TournamentStandings projection
 
     // Rules (ITTF-compliant defaults)
     rules: {
@@ -379,6 +345,15 @@ const tournamentSchema = new Schema<ITournament>(
   },
   { timestamps: true }
 );
+
+// Core filter/sort paths used by tournament list and dashboard queries
+tournamentSchema.index({ status: 1, startDate: -1 });
+tournamentSchema.index({ category: 1, format: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ organizer: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ participants: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ city: 1, startDate: -1 });
+
+attachTournamentProjectionHooks(tournamentSchema);
 
 const Tournament = mongoose.models.Tournament ||
   mongoose.model<ITournament>("Tournament", tournamentSchema);

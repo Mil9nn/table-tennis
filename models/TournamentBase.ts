@@ -2,26 +2,9 @@
 import { Schema } from "mongoose";
 
 /**
- * Shared sub-schemas used across all tournament types
+ * Shared sub-schemas used across all tournament types.
+ * Groups and overall standings live in projection collections (TournamentGroups / TournamentStandings).
  */
-
-export const standingSchema = new Schema({
-  participant: { type: Schema.Types.ObjectId, required: true }, // No ref - will be set in specific models
-  played: { type: Number, default: 0 },
-  won: { type: Number, default: 0 },
-  lost: { type: Number, default: 0 },
-  drawn: { type: Number, default: 0 },
-  setsWon: { type: Number, default: 0 },
-  setsLost: { type: Number, default: 0 },
-  setsDiff: { type: Number, default: 0 },
-  pointsScored: { type: Number, default: 0 },
-  pointsConceded: { type: Number, default: 0 },
-  pointsDiff: { type: Number, default: 0 },
-  points: { type: Number, default: 0 },
-  rank: { type: Number, default: 0 },
-  form: [{ type: String }],
-  headToHead: { type: Map, of: Number },
-}, { _id: false });
 
 export const roundSchema = new Schema({
   roundNumber: { type: Number, required: true },
@@ -29,14 +12,6 @@ export const roundSchema = new Schema({
   completed: { type: Boolean, default: false },
   scheduledDate: { type: Date },
   scheduledTime: { type: String },
-}, { _id: false });
-
-export const groupSchema = new Schema({
-  groupId: { type: String, required: true },
-  groupName: { type: String, required: true },
-  participants: [{ type: Schema.Types.ObjectId }], // No ref - will be set in specific models
-  rounds: [roundSchema],
-  standings: [standingSchema],
 }, { _id: false });
 
 /**
@@ -170,4 +145,9 @@ export const baseTournamentIndexes = [
   { city: 1 },
   { organizer: 1 },
   { drawGenerated: 1 },
+  // Compound indexes for common list/filter patterns
+  { status: 1, startDate: -1 },
+  { category: 1, format: 1, status: 1, startDate: -1 },
+  { organizer: 1, status: 1, startDate: -1 },
+  { participants: 1, status: 1, startDate: -1 },
 ];

@@ -132,7 +132,7 @@ export default function MatchDetailsPage() {
 
   if (fetchingMatch) {
     return (
-      <div className="w-full h-[calc(100vh-110px)] flex flex-col items-center justify-center gap-3">
+      <div className="w-full h-[calc(100vh-70px)] flex flex-col items-center justify-center gap-3">
         <Loader2 className="animate-spin size-6 text-zinc-500" />
         <span className="text-sm font-medium text-zinc-600">
           Retrieving Match Data...

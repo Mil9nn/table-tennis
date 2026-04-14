@@ -26,6 +26,7 @@ import {
   useIndividualMatchFilters,
   useTeamMatchFilters,
 } from "@/hooks/useFilters";
+import { AnimatePresence, motion } from "framer-motion";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -246,7 +247,7 @@ export default function MatchesPage() {
     activeTab === "individual" ? individualFilters : teamFilters;
 
   return (
-    <div className="h-[calc(100vh-115px)] flex flex-col">
+    <div className="h-[calc(100vh-70px)] flex flex-col">
       <header className="bg-gray-50 text-gray-800 p-4 space-y-4 shadow-sm flex-shrink-0">
         <div>
           <h1 className="text-[11px] mb-1 font-bold uppercase tracking-[0.2em]">
@@ -494,7 +495,7 @@ export default function MatchesPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
+            className="data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             Individual
           </TabsTrigger>
@@ -507,97 +508,112 @@ export default function MatchesPage() {
               letterSpacing: "-0.01em",
               borderRadius: "0px",
             }}
-            className="data-[state=active]:bg-white data-[state=active]:text-[#353535] data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
+            className="data-[state=active]:bg-black data-[state=active]:text-white data-[state=inactive]:text-[#353535] hover:bg-[#f5f5f5]"
           >
             Team
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="individual" className="flex-1 overflow-auto data-[state=active]:block data-[state=inactive]:hidden">
-          {individualLoading ? (
-            <MatchesListSkeleton />
-          ) : (
-            <>
-              <MatchesList matches={individualMatches} />
-
-              <div
-                ref={individualObserverTarget}
-                style={{
-                  height: "5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+        <div className="flex-1 overflow-hidden">
+          <AnimatePresence mode="wait">
+            {activeTab === "individual" ? (
+              <motion.div
+                key="individual-content"
+                className="h-full overflow-auto"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {individualLoadingMore && (
-                  <div
-                    className="flex items-center gap-2"
-                    style={{ color: "#3c6e71" }}
-                  >
-                    <Loader2 className="animate-spin" size={20} />
-                    <span style={{ fontSize: "0.875rem" }}>
-                      Loading more...
-                    </span>
-                  </div>
-                )}
-                {!individualHasMore && individualMatches.length > 0 && (
-                  <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
-                    No more matches
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </TabsContent>
+                {individualLoading ? (
+                  <MatchesListSkeleton />
+                ) : (
+                  <>
+                    <MatchesList matches={individualMatches} />
 
-        <TabsContent value="team" style={{ margin: 0 }} className="flex-1 overflow-auto data-[state=active]:block data-[state=inactive]:hidden">
-          {teamLoading ? (
-            <TeamMatchesListSkeleton />
-          ) : (
-            <>
-              {teamMatches.length === 0 ? (
-                <EmptyState
-                  icon={Diversity3}
-                  title="No team matches yet"
-                  description="Create a team match to schedule games and track results."
-                  actionLabel="Create team match"
-                  actionHref="/match/create"
-                />
-              ) : (
-                <>
-                  <TeamMatchesList matches={teamMatches} />
+                    <div
+                      className="h-10 flex items-center justify-center py-2"
+                      ref={individualObserverTarget}
+                    >
+                      {individualLoadingMore && (
+                        <div
+                          className="flex items-center gap-2"
+                          style={{ color: "#3c6e71" }}
+                        >
+                          <Loader2 className="animate-spin" size={20} />
+                          <span style={{ fontSize: "0.875rem" }}>
+                            Loading more...
+                          </span>
+                        </div>
+                      )}
+                      {!individualHasMore && individualMatches.length > 0 && (
+                        <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                          No more matches to load
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="team-content"
+                className="h-full overflow-auto"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                {teamLoading ? (
+                  <TeamMatchesListSkeleton />
+                ) : (
+                  <>
+                    {teamMatches.length === 0 ? (
+                      <EmptyState
+                        icon={Diversity3}
+                        title="No team matches yet"
+                        description="Create a team match to schedule games and track results."
+                        actionLabel="Create team match"
+                        actionHref="/match/create"
+                      />
+                    ) : (
+                      <>
+                        <TeamMatchesList matches={teamMatches} />
 
-                  <div
-                    ref={teamObserverTarget}
-                    style={{
-                      height: "5rem",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {teamLoadingMore && (
-                      <div
-                        className="flex items-center gap-2"
-                        style={{ color: "#3c6e71" }}
-                      >
-                        <Loader2 className="animate-spin" size={20} />
-                        <span style={{ fontSize: "0.875rem" }}>
-                          Loading more...
-                        </span>
-                      </div>
+                        <div
+                          ref={teamObserverTarget}
+                          style={{
+                            height: "5rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {teamLoadingMore && (
+                            <div
+                              className="flex items-center gap-2"
+                              style={{ color: "#3c6e71" }}
+                            >
+                              <Loader2 className="animate-spin" size={20} />
+                              <span style={{ fontSize: "0.875rem" }}>
+                                Loading more...
+                              </span>
+                            </div>
+                          )}
+                          {!teamHasMore && teamMatches.length > 0 && (
+                            <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
+                              No more matches
+                            </p>
+                          )}
+                        </div>
+                      </>
                     )}
-                    {!teamHasMore && teamMatches.length > 0 && (
-                      <p style={{ fontSize: "0.875rem", color: "#d9d9d9" }}>
-                        No more matches
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </TabsContent>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </Tabs>
     </div>
   );

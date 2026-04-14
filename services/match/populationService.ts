@@ -10,7 +10,6 @@ import { Query } from "mongoose";
 export interface PopulationOptions {
   includeScorer?: boolean;      // default: true
   includeTournament?: boolean;  // default: false
-  includeShots?: boolean;       // default: true
   userFields?: string;          // default: "username fullName profileImage"
 }
 
@@ -33,7 +32,6 @@ export function populateIndividualMatch<T>(
   const {
     includeScorer = true,
     includeTournament = false,
-    includeShots = true,
     userFields = DEFAULT_USER_FIELDS,
   } = options;
 
@@ -55,11 +53,6 @@ export function populateIndividualMatch<T>(
         { path: "scorers", select: "username fullName profileImage" }
       ]
     });
-  }
-
-  // Optionally populate shot players
-  if (includeShots) {
-    query = query.populate("games.shots.player", userFields);
   }
 
   return query;
@@ -102,7 +95,6 @@ export function populateTeamMatch<T>(
   const {
     includeScorer = true,
     includeTournament = false,
-    includeShots = true,
     userFields = DEFAULT_USER_FIELDS,
   } = options;
 
@@ -131,14 +123,6 @@ export function populateTeamMatch<T>(
         { path: "organizer", select: "username fullName profileImage" },
         { path: "scorers", select: "username fullName profileImage" }
       ]
-    });
-  }
-
-  // Optionally populate shot players
-  if (includeShots) {
-    query = query.populate({
-      path: "subMatches.games.shots.player",
-      select: userFields,
     });
   }
 

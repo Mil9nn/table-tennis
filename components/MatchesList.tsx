@@ -5,6 +5,7 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { IndividualMatch } from "@/types/match.type";
 import { getAvatarFallbackStyle } from "@/lib/utils";
+import { getSinglesParticipantIds } from "@/lib/match/singlesClient";
 
 function PlayerAvatar({
   name,
@@ -53,9 +54,43 @@ export default function MatchesList({
     <section className="grid grid-cols-1 gap-px bg-[#d9d9d9]">
       {matches.map((match) => {
         const isCompleted = match.status === "completed";
-        const side1Won = match.winnerSide === "side1";
-        const side2Won = match.winnerSide === "side2";
         const isDoubles = match.matchType !== "singles";
+        const winnerId = String(
+          (match as any).winnerId ?? match.winnerPlayerId ?? match.winner ?? ""
+        );
+        const side1Ids = isDoubles
+          ? [match.participants?.[0]?._id, match.participants?.[1]?._id]
+          : [match.participants?.[0]?._id];
+        const side2Ids = isDoubles
+          ? [match.participants?.[2]?._id, match.participants?.[3]?._id]
+          : [match.participants?.[1]?._id];
+        const side1Won = winnerId
+          ? side1Ids.filter(Boolean).map(String).includes(winnerId)
+          : match.winnerSide === "side1";
+        const side2Won = winnerId
+          ? side2Ids.filter(Boolean).map(String).includes(winnerId)
+          : match.winnerSide === "side2";
+        const ids = getSinglesParticipantIds(match.participants || []);
+        const side1Sets = ids
+          ? Number(
+              (((match as any).finalScore?.setsByPlayerId ||
+                (match as any).finalScore?.setsById ||
+                (match as any).finalScore?.sets ||
+                {}) as Record<string, number>)[ids[0]] ??
+                match.finalScore?.side1Sets ??
+                0
+            )
+          : Number(match.finalScore?.side1Sets ?? 0);
+        const side2Sets = ids
+          ? Number(
+              (((match as any).finalScore?.setsByPlayerId ||
+                (match as any).finalScore?.setsById ||
+                (match as any).finalScore?.sets ||
+                {}) as Record<string, number>)[ids[1]] ??
+                match.finalScore?.side2Sets ??
+                0
+            )
+          : Number(match.finalScore?.side2Sets ?? 0);
 
         // Get player names for each side
         const side1Name = isDoubles
@@ -102,7 +137,7 @@ export default function MatchesList({
               {/* Score */}
               {isCompleted && match.finalScore ? (
                 <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff] shrink-0">
-                  {match.finalScore.side1Sets} - {match.finalScore.side2Sets}
+                  {side1Sets} - {side2Sets}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400 transition-colors group-hover:text-[#ffffff] shrink-0">vs</span>

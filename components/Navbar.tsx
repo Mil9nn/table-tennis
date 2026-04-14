@@ -14,8 +14,8 @@ import EditNoteIcon from "@mui/icons-material/EditNote";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import SportsMmaIcon from "@mui/icons-material/SportsMma";
+import PersonIcon from "@mui/icons-material/Person";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { useProfileStore } from "@/hooks/useProfileStore";
 import Image from "next/image";
 
 export default function Navbar() {
@@ -28,8 +28,6 @@ export default function Navbar() {
   const quickActionsButtonRef = useRef<HTMLButtonElement>(null);
 
   const user = useAuthStore((state) => state.user);
-  const previewUrl = useProfileStore((state) => state.previewUrl);
-  const fallbackInitial = user?.fullName?.charAt(0).toUpperCase() || "?";
 
   const navItems = [
     { label: "Home", href: "/", icon: HouseIcon },
@@ -40,7 +38,9 @@ export default function Navbar() {
     { label: "Scorer", href: "/scorer", icon: EditNoteIcon },
   ];
 
+  const profileNavItem = { label: "Profile", href: "/profile", icon: PersonIcon };
   const desktopNavItems = navItems.slice(1);
+  const mobileNavItems = user ? [...navItems, profileNavItem] : navItems;
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -71,6 +71,7 @@ export default function Navbar() {
   useEffect(() => setQuickActionsOpen(false), [pathname]);
 
   const quickActionLinks = [
+    ...(user ? [profileNavItem] : []),
     { label: "Create Match", href: "/match/create", icon: AddCircleOutlineIcon },
     { label: "Create Team", href: "/teams/create", icon: GroupAddIcon },
     { label: "Create Tournament", href: "/tournaments/create", icon: SportsMmaIcon },
@@ -160,18 +161,6 @@ export default function Navbar() {
           border-color: rgba(59, 130, 246, 0.35);
           color: #93c5fd;
         }
-
-        .profile-ring {
-          width: 36px; height: 36px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(255,255,255,0.15);
-          overflow: hidden;
-          cursor: pointer;
-          transition: border-color 0.2s ease, transform 0.2s ease;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(255,255,255,0.07);
-        }
-        .profile-ring:hover { border-color: #60a5fa; transform: scale(1.05); }
 
         .login-btn {
           display: flex; align-items: center; gap: 6px;
@@ -263,31 +252,23 @@ export default function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {/* Hamburger (mobile) */}
             <button
-              className="sm:hidden w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 rounded-lg cursor-pointer hover:bg-white/15 transition-colors"
+              className="sm:hidden"
               onClick={() => setOpen(true)}
             >
               <Image
                 src="/svgs/menu.svg"
                 alt="menu"
-                width={16}
-                height={16}
-                className="invert opacity-70"
+                width={20}
+                height={20}
+                className="invert"
               />
             </button>
 
             {/* Logo */}
-            <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-              <Image src="/imgs/logo.png" alt="logo" width={34} height={34} />
+            <Link href="/" className="flex items-center text-decoration-none flex-shrink-0">
+              <Image src="/imgs/logo.png" alt="logo" width={40} height={40} />
               <span
-                className="nav-font"
-                style={{
-                  fontSize: "1.05rem",
-                  fontWeight: 800,
-                  background: "linear-gradient(135deg, #60a5fa, #93c5fd)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  letterSpacing: "-0.02em",
-                }}
+                className="nav-font text-white text-md italic font-bold"
               >
                 TTPro
               </span>
@@ -334,28 +315,9 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Right: Profile / Login */}
+          {/* Right: Login only — profile is in mobile drawer + Quick Actions (logged in) */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-            {user ? (
-              <Link href="/profile" className="profile-ring">
-                {user?.profileImage ? (
-                  <Image
-                    src={previewUrl || user.profileImage}
-                    alt="Profile"
-                    width={36}
-                    height={36}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <span
-                    className="nav-font"
-                    style={{ fontSize: "0.8rem", fontWeight: 700, color: "#93c5fd" }}
-                  >
-                    {fallbackInitial}
-                  </span>
-                )}
-              </Link>
-            ) : (
+            {!user && (
               <Link href="/auth/login" className="login-btn">
                 <LogIn style={{ width: 13, height: 13 }} />
                 Login
@@ -475,7 +437,7 @@ export default function Navbar() {
             <div>
               <div className="sidebar-section-label">Menu</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {navItems.map((item) => {
+                {mobileNavItems.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
                   return (

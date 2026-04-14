@@ -1,0 +1,2861 @@
+[
+  {
+    "_id": "695fa5f9d4b2ef6b04d489c9",
+    "name": "Wing Smashers",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "doubles",
+    "startDate": "2026-01-09T18:30:00.000Z",
+    "status": "upcoming",
+    "participants": [
+      "695f55c6f59b23c7fa422ccf",
+      "695f55c6f59b23c7fa422cdb",
+      "695f55c7f59b23c7fa422d0e",
+      "695f55c8f59b23c7fa422d11",
+      "695e40d7221f767c4219bea6",
+      "695f55c7f59b23c7fa422cf0"
+    ],
+    "organizer": "695e3a7a1686be7fcec7fd26",
+    "scorers": [],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f55c6f59b23c7fa422ccf",
+        "seedNumber": 1,
+        "_id": "695fa5f9d4b2ef6b04d489ca"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cdb",
+        "seedNumber": 2,
+        "_id": "695fa5f9d4b2ef6b04d489cb"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0e",
+        "seedNumber": 3,
+        "_id": "695fa5f9d4b2ef6b04d489cc"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d11",
+        "seedNumber": 4,
+        "_id": "695fa5f9d4b2ef6b04d489cd"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": false,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": false,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": true,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "695fa5f9d4b2ef6b04d489ce"
+    },
+    "currentPhase": "round_robin",
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": true,
+    "allowJoinByCode": true,
+    "venue": "table tennis club iit jammu",
+    "city": "jammu",
+    "minParticipants": 2,
+    "doublesPairs": [
+      {
+        "_id": "695fa5f9d4b2ef6b04d489c8",
+        "player1": "695f55c6f59b23c7fa422ccf",
+        "player2": "695f55c6f59b23c7fa422cdb"
+      },
+      {
+        "_id": "695fa6d1cf30e963d082c151",
+        "player1": "695f55c7f59b23c7fa422d0e",
+        "player2": "695f55c8f59b23c7fa422d11"
+      },
+      {
+        "_id": "695fa84732177398acfd8a55",
+        "player1": "695e40d7221f767c4219bea6",
+        "player2": "695f55c7f59b23c7fa422cf0"
+      }
+    ],
+    "groups": [],
+    "rounds": [],
+    "standings": [
+      {
+        "participant": "695fa5f9d4b2ef6b04d489c8",
+        "played": 0,
+        "won": 0,
+        "lost": 0,
+        "drawn": 0,
+        "setsWon": 0,
+        "setsLost": 0,
+        "setsDiff": 0,
+        "pointsScored": 0,
+        "pointsConceded": 0,
+        "pointsDiff": 0,
+        "points": 0,
+        "rank": 1,
+        "form": [],
+        "headToHead": {}
+      },
+      {
+        "participant": "695fa6d1cf30e963d082c151",
+        "played": 0,
+        "won": 0,
+        "lost": 0,
+        "drawn": 0,
+        "setsWon": 0,
+        "setsLost": 0,
+        "setsDiff": 0,
+        "pointsScored": 0,
+        "pointsConceded": 0,
+        "pointsDiff": 0,
+        "points": 0,
+        "rank": 1,
+        "form": [],
+        "headToHead": {}
+      },
+      {
+        "participant": "695fa84732177398acfd8a55",
+        "played": 0,
+        "won": 0,
+        "lost": 0,
+        "drawn": 0,
+        "setsWon": 0,
+        "setsLost": 0,
+        "setsDiff": 0,
+        "pointsScored": 0,
+        "pointsConceded": 0,
+        "pointsDiff": 0,
+        "points": 0,
+        "rank": 1,
+        "form": [],
+        "headToHead": {}
+      }
+    ],
+    "createdAt": "2026-01-08T12:41:29.529Z",
+    "updatedAt": "2026-01-10T15:08:11.439Z",
+    "__v": 151,
+    "joinCode": "UKVKZW",
+    "drawGeneratedAt": "2026-01-08T12:51:41.025Z",
+    "drawGeneratedBy": "695e3a7a1686be7fcec7fd26"
+  },
+  {
+    "_id": "695fae77b1999b707234e3a3",
+    "name": "Wing Smashers",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-01-09T18:30:00.000Z",
+    "status": "upcoming",
+    "participants": [
+      "695f55c9f59b23c7fa422d35",
+      "695f55c8f59b23c7fa422d11",
+      "695f55c9f59b23c7fa422d44",
+      "695f55c4f59b23c7fa422c93",
+      "695f55c6f59b23c7fa422ccf",
+      "695f55c9f59b23c7fa422d4a",
+      "695f55c6f59b23c7fa422cd2",
+      "695f55c7f59b23c7fa422d0e",
+      "695f55c6f59b23c7fa422cdb",
+      "695f55c8f59b23c7fa422d1d",
+      "695f55c8f59b23c7fa422d29",
+      "695f55c5f59b23c7fa422cb4",
+      "695f55c9f59b23c7fa422d4d",
+      "695f55c9f59b23c7fa422d47",
+      "695f55c8f59b23c7fa422d2c"
+    ],
+    "organizer": "695e3a7a1686be7fcec7fd26",
+    "scorers": [
+      "695e40d7221f767c4219bea6"
+    ],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f55c9f59b23c7fa422d35",
+        "seedNumber": 1,
+        "_id": "695fae77b1999b707234e3a4"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d11",
+        "seedNumber": 2,
+        "_id": "695fae77b1999b707234e3a5"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d44",
+        "seedNumber": 3,
+        "_id": "695fae77b1999b707234e3a6"
+      },
+      {
+        "participant": "695f55c4f59b23c7fa422c93",
+        "seedNumber": 4,
+        "_id": "695fae77b1999b707234e3a7"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422ccf",
+        "seedNumber": 5,
+        "_id": "695fae77b1999b707234e3a8"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d4a",
+        "seedNumber": 6,
+        "_id": "695fae77b1999b707234e3a9"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cd2",
+        "seedNumber": 7,
+        "_id": "695fae77b1999b707234e3aa"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0e",
+        "seedNumber": 8,
+        "_id": "695fae77b1999b707234e3ab"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cdb",
+        "seedNumber": 9,
+        "_id": "695fae77b1999b707234e3ac"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d1d",
+        "seedNumber": 10,
+        "_id": "695fae77b1999b707234e3ad"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d29",
+        "seedNumber": 11,
+        "_id": "695fae77b1999b707234e3ae"
+      },
+      {
+        "participant": "695f55c5f59b23c7fa422cb4",
+        "seedNumber": 12,
+        "_id": "695fae77b1999b707234e3af"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d4d",
+        "seedNumber": 13,
+        "_id": "695fae77b1999b707234e3b0"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d47",
+        "seedNumber": 14,
+        "_id": "695fae77b1999b707234e3b1"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d2c",
+        "seedNumber": 15,
+        "_id": "695fae77b1999b707234e3b2"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": true,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": true,
+      "roundRobinNumberOfGroups": 5,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": true,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "695fae77b1999b707234e3b3"
+    },
+    "currentPhase": "round_robin",
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": false,
+    "allowJoinByCode": false,
+    "venue": "IIt",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [
+      {
+        "groupId": "A",
+        "groupName": "Group A",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "B",
+        "groupName": "Group B",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "C",
+        "groupName": "Group C",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "D",
+        "groupName": "Group D",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "E",
+        "groupName": "Group E",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      }
+    ],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-08T13:17:43.040Z",
+    "updatedAt": "2026-02-08T12:03:12.034Z",
+    "__v": 75,
+    "doublesPairs": [],
+    "numberOfGroups": 5
+  },
+  {
+    "_id": "6961139936c9295c56d7a694",
+    "name": "Wing Smashers - Fulgar",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-01-09T18:30:00.000Z",
+    "status": "completed",
+    "participants": [
+      "695f55c7f59b23c7fa422d02",
+      "695f55c7f59b23c7fa422d0b",
+      "695f55c5f59b23c7fa422cc0",
+      "695f55c5f59b23c7fa422cba",
+      "695f55c3f59b23c7fa422c75",
+      "695f55c9f59b23c7fa422d41",
+      "695f55c9f59b23c7fa422d3b",
+      "695f55c9f59b23c7fa422d38",
+      "695f55c8f59b23c7fa422d32",
+      "695f55c8f59b23c7fa422d20",
+      "695f55c8f59b23c7fa422d1a",
+      "695f55c7f59b23c7fa422d08",
+      "695f55c7f59b23c7fa422d05",
+      "695f55c6f59b23c7fa422cd5",
+      "695f55c7f59b23c7fa422cfc"
+    ],
+    "organizer": "695f55c8f59b23c7fa422d2f",
+    "scorers": [
+      "695e6be0cd878bd8be4fced5",
+      "69611257e8b39aa9d6a0fd70"
+    ],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f55c7f59b23c7fa422d02",
+        "seedNumber": 1,
+        "_id": "6961139936c9295c56d7a695"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0b",
+        "seedNumber": 2,
+        "_id": "6961139936c9295c56d7a696"
+      },
+      {
+        "participant": "695f55c5f59b23c7fa422cc0",
+        "seedNumber": 3,
+        "_id": "6961139936c9295c56d7a697"
+      },
+      {
+        "participant": "695f55c5f59b23c7fa422cba",
+        "seedNumber": 4,
+        "_id": "6961139936c9295c56d7a698"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": true,
+    "knockoutConfig": {
+      "allowCustomMatching": false,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": true,
+      "roundRobinNumberOfGroups": 4,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": false,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "6961139936c9295c56d7a699"
+    },
+    "currentPhase": "knockout",
+    "qualifiedParticipants": [
+      "695f55c6f59b23c7fa422cd5",
+      "695f55c7f59b23c7fa422d0b",
+      "695f55c9f59b23c7fa422d41",
+      "695f55c5f59b23c7fa422cc0",
+      "695f55c9f59b23c7fa422d3b",
+      "695f55c9f59b23c7fa422d38",
+      "695f55c7f59b23c7fa422d08",
+      "695f55c7f59b23c7fa422d05"
+    ],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": true,
+    "allowJoinByCode": false,
+    "venue": "IIT Jammu",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [
+      {
+        "groupId": "A",
+        "groupName": "Group A",
+        "participants": [
+          "695f55c7f59b23c7fa422d02",
+          "695f55c7f59b23c7fa422d0b",
+          "695f55c6f59b23c7fa422cd5"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6961161a36c9295c56d7a95c"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6961161a36c9295c56d7a95e"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T19:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6961161a36c9295c56d7a960"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T20:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "695f55c6f59b23c7fa422cd5",
+            "played": 2,
+            "won": 2,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 4,
+            "setsLost": 1,
+            "setsDiff": 3,
+            "pointsScored": 54,
+            "pointsConceded": 38,
+            "pointsDiff": 16,
+            "points": 4,
+            "rank": 1,
+            "form": [
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c7f59b23c7fa422d0b": 2,
+              "695f55c7f59b23c7fa422d02": 2
+            }
+          },
+          {
+            "participant": "695f55c7f59b23c7fa422d0b",
+            "played": 2,
+            "won": 1,
+            "lost": 1,
+            "drawn": 0,
+            "setsWon": 2,
+            "setsLost": 3,
+            "setsDiff": -1,
+            "pointsScored": 46,
+            "pointsConceded": 50,
+            "pointsDiff": -4,
+            "points": 2,
+            "rank": 2,
+            "form": [
+              "L",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c6f59b23c7fa422cd5": 0,
+              "695f55c7f59b23c7fa422d02": 2
+            }
+          },
+          {
+            "participant": "695f55c7f59b23c7fa422d02",
+            "played": 2,
+            "won": 0,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 2,
+            "setsLost": 4,
+            "setsDiff": -2,
+            "pointsScored": 49,
+            "pointsConceded": 61,
+            "pointsDiff": -12,
+            "points": 0,
+            "rank": 3,
+            "form": [
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c6f59b23c7fa422cd5": 0,
+              "695f55c7f59b23c7fa422d0b": 0
+            }
+          }
+        ]
+      },
+      {
+        "groupId": "B",
+        "groupName": "Group B",
+        "participants": [
+          "695f55c5f59b23c7fa422cc0",
+          "695f55c5f59b23c7fa422cba",
+          "695f55c3f59b23c7fa422c75",
+          "695f55c9f59b23c7fa422d41"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6961161a36c9295c56d7a962",
+              "6961161a36c9295c56d7a964"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6961161b36c9295c56d7a966",
+              "6961161b36c9295c56d7a968"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T20:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6961161b36c9295c56d7a96a",
+              "6961161b36c9295c56d7a96c"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T22:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "695f55c9f59b23c7fa422d41",
+            "played": 3,
+            "won": 3,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 6,
+            "setsLost": 1,
+            "setsDiff": 5,
+            "pointsScored": 75,
+            "pointsConceded": 23,
+            "pointsDiff": 52,
+            "points": 6,
+            "rank": 1,
+            "form": [
+              "W",
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c5f59b23c7fa422cc0": 2,
+              "695f55c5f59b23c7fa422cba": 2,
+              "695f55c3f59b23c7fa422c75": 2
+            }
+          },
+          {
+            "participant": "695f55c5f59b23c7fa422cc0",
+            "played": 3,
+            "won": 2,
+            "lost": 1,
+            "drawn": 0,
+            "setsWon": 5,
+            "setsLost": 2,
+            "setsDiff": 3,
+            "pointsScored": 68,
+            "pointsConceded": 31,
+            "pointsDiff": 37,
+            "points": 4,
+            "rank": 2,
+            "form": [
+              "L",
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c9f59b23c7fa422d41": 0,
+              "695f55c3f59b23c7fa422c75": 2,
+              "695f55c5f59b23c7fa422cba": 2
+            }
+          },
+          {
+            "participant": "695f55c5f59b23c7fa422cba",
+            "played": 3,
+            "won": 1,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 2,
+            "setsLost": 4,
+            "setsDiff": -2,
+            "pointsScored": 24,
+            "pointsConceded": 44,
+            "pointsDiff": -20,
+            "points": 2,
+            "rank": 3,
+            "form": [
+              "W",
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c3f59b23c7fa422c75": 2,
+              "695f55c9f59b23c7fa422d41": 0,
+              "695f55c5f59b23c7fa422cc0": 0
+            }
+          },
+          {
+            "participant": "695f55c3f59b23c7fa422c75",
+            "played": 3,
+            "won": 0,
+            "lost": 3,
+            "drawn": 0,
+            "setsWon": 0,
+            "setsLost": 6,
+            "setsDiff": -6,
+            "pointsScored": 0,
+            "pointsConceded": 69,
+            "pointsDiff": -69,
+            "points": 0,
+            "rank": 4,
+            "form": [
+              "L",
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c5f59b23c7fa422cba": 0,
+              "695f55c5f59b23c7fa422cc0": 0,
+              "695f55c9f59b23c7fa422d41": 0
+            }
+          }
+        ]
+      },
+      {
+        "groupId": "C",
+        "groupName": "Group C",
+        "participants": [
+          "695f55c9f59b23c7fa422d3b",
+          "695f55c9f59b23c7fa422d38",
+          "695f55c8f59b23c7fa422d32",
+          "695f55c8f59b23c7fa422d20"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6961161b36c9295c56d7a96e",
+              "6961161c36c9295c56d7a970"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6961161c36c9295c56d7a972",
+              "6961161c36c9295c56d7a974"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T20:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6961161c36c9295c56d7a976",
+              "6961161c36c9295c56d7a978"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T22:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "695f55c9f59b23c7fa422d3b",
+            "played": 3,
+            "won": 3,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 6,
+            "setsLost": 0,
+            "setsDiff": 6,
+            "pointsScored": 67,
+            "pointsConceded": 31,
+            "pointsDiff": 36,
+            "points": 6,
+            "rank": 1,
+            "form": [
+              "W",
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c8f59b23c7fa422d20": 2,
+              "695f55c8f59b23c7fa422d32": 2,
+              "695f55c9f59b23c7fa422d38": 2
+            }
+          },
+          {
+            "participant": "695f55c9f59b23c7fa422d38",
+            "played": 3,
+            "won": 1,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 3,
+            "setsLost": 4,
+            "setsDiff": -1,
+            "pointsScored": 53,
+            "pointsConceded": 69,
+            "pointsDiff": -16,
+            "points": 2,
+            "rank": 2,
+            "form": [
+              "L",
+              "W",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c8f59b23c7fa422d32": 0,
+              "695f55c8f59b23c7fa422d20": 2,
+              "695f55c9f59b23c7fa422d3b": 0
+            }
+          },
+          {
+            "participant": "695f55c8f59b23c7fa422d32",
+            "played": 3,
+            "won": 1,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 3,
+            "setsLost": 5,
+            "setsDiff": -2,
+            "pointsScored": 63,
+            "pointsConceded": 76,
+            "pointsDiff": -13,
+            "points": 2,
+            "rank": 3,
+            "form": [
+              "W",
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c9f59b23c7fa422d38": 2,
+              "695f55c9f59b23c7fa422d3b": 0,
+              "695f55c8f59b23c7fa422d20": 0
+            }
+          },
+          {
+            "participant": "695f55c8f59b23c7fa422d20",
+            "played": 3,
+            "won": 1,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 2,
+            "setsLost": 5,
+            "setsDiff": -3,
+            "pointsScored": 61,
+            "pointsConceded": 68,
+            "pointsDiff": -7,
+            "points": 2,
+            "rank": 4,
+            "form": [
+              "L",
+              "L",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c9f59b23c7fa422d3b": 0,
+              "695f55c9f59b23c7fa422d38": 0,
+              "695f55c8f59b23c7fa422d32": 2
+            }
+          }
+        ]
+      },
+      {
+        "groupId": "D",
+        "groupName": "Group D",
+        "participants": [
+          "695f55c7f59b23c7fa422d08",
+          "695f55c8f59b23c7fa422d1a",
+          "695f55c7f59b23c7fa422d05",
+          "695f55c7f59b23c7fa422cfc"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6961161d36c9295c56d7a97a",
+              "6961161d36c9295c56d7a97c"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6961161d36c9295c56d7a97e",
+              "6961161d36c9295c56d7a980"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T20:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6961161d36c9295c56d7a982",
+              "6961161e36c9295c56d7a984"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-09T22:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "695f55c7f59b23c7fa422d08",
+            "played": 3,
+            "won": 3,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 6,
+            "setsLost": 1,
+            "setsDiff": 5,
+            "pointsScored": 70,
+            "pointsConceded": 20,
+            "pointsDiff": 50,
+            "points": 6,
+            "rank": 1,
+            "form": [
+              "W",
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c7f59b23c7fa422cfc": 2,
+              "695f55c7f59b23c7fa422d05": 2,
+              "695f55c8f59b23c7fa422d1a": 2
+            }
+          },
+          {
+            "participant": "695f55c7f59b23c7fa422d05",
+            "played": 3,
+            "won": 2,
+            "lost": 1,
+            "drawn": 0,
+            "setsWon": 5,
+            "setsLost": 3,
+            "setsDiff": 2,
+            "pointsScored": 63,
+            "pointsConceded": 50,
+            "pointsDiff": 13,
+            "points": 4,
+            "rank": 2,
+            "form": [
+              "W",
+              "L",
+              "W"
+            ],
+            "headToHead": {
+              "695f55c8f59b23c7fa422d1a": 2,
+              "695f55c7f59b23c7fa422d08": 0,
+              "695f55c7f59b23c7fa422cfc": 2
+            }
+          },
+          {
+            "participant": "695f55c8f59b23c7fa422d1a",
+            "played": 3,
+            "won": 1,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 3,
+            "setsLost": 4,
+            "setsDiff": -1,
+            "pointsScored": 51,
+            "pointsConceded": 47,
+            "pointsDiff": 4,
+            "points": 2,
+            "rank": 3,
+            "form": [
+              "L",
+              "W",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c7f59b23c7fa422d05": 0,
+              "695f55c7f59b23c7fa422cfc": 2,
+              "695f55c7f59b23c7fa422d08": 0
+            }
+          },
+          {
+            "participant": "695f55c7f59b23c7fa422cfc",
+            "played": 3,
+            "won": 0,
+            "lost": 3,
+            "drawn": 0,
+            "setsWon": 0,
+            "setsLost": 6,
+            "setsDiff": -6,
+            "pointsScored": 0,
+            "pointsConceded": 67,
+            "pointsDiff": -67,
+            "points": 0,
+            "rank": 4,
+            "form": [
+              "L",
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "695f55c7f59b23c7fa422d08": 0,
+              "695f55c8f59b23c7fa422d1a": 0,
+              "695f55c7f59b23c7fa422d05": 0
+            }
+          }
+        ]
+      }
+    ],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-09T14:41:29.297Z",
+    "updatedAt": "2026-01-11T13:34:06.257Z",
+    "__v": 215,
+    "doublesPairs": [],
+    "numberOfGroups": 4,
+    "endDate": "2026-01-10T14:51:55.802Z",
+    "phaseTransitionDate": "2026-01-10T14:57:38.356Z",
+    "bracket": {
+      "size": 8,
+      "rounds": [
+        {
+          "roundNumber": 1,
+          "roundName": "Quarter-Finals",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 1,
+                "nextMatchNumber": 1
+              },
+              "matchId": "696268e24f01477ec3b30990",
+              "participant1": "695f55c6f59b23c7fa422cd5",
+              "participant2": "695f55c7f59b23c7fa422d05",
+              "winner": "695f55c6f59b23c7fa422cd5",
+              "completed": true,
+              "scheduledDate": "2026-01-09T18:30:00.000Z",
+              "courtNumber": 1,
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 2,
+                "nextMatchNumber": 1
+              },
+              "matchId": "696268e24f01477ec3b30992",
+              "participant1": "695f55c7f59b23c7fa422d0b",
+              "participant2": "695f55c7f59b23c7fa422d08",
+              "winner": "695f55c7f59b23c7fa422d0b",
+              "completed": true,
+              "scheduledDate": "2026-01-09T19:30:00.000Z",
+              "courtNumber": 1,
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 3,
+                "nextMatchNumber": 2
+              },
+              "matchId": "696268e24f01477ec3b30994",
+              "participant1": "695f55c9f59b23c7fa422d41",
+              "participant2": "695f55c9f59b23c7fa422d38",
+              "winner": "695f55c9f59b23c7fa422d38",
+              "completed": true,
+              "scheduledDate": "2026-01-09T20:30:00.000Z",
+              "courtNumber": 1,
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 4,
+                "nextMatchNumber": 2
+              },
+              "matchId": "696268e34f01477ec3b30996",
+              "participant1": "695f55c5f59b23c7fa422cc0",
+              "participant2": "695f55c9f59b23c7fa422d3b",
+              "winner": "695f55c9f59b23c7fa422d3b",
+              "completed": true,
+              "scheduledDate": "2026-01-09T21:30:00.000Z",
+              "courtNumber": 1,
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false
+            }
+          ],
+          "completed": true,
+          "scheduledDate": "2026-01-09T18:30:00.000Z"
+        },
+        {
+          "roundNumber": 2,
+          "roundName": "Semi-Finals",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 1,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R1M1",
+                "match2": "R1M2"
+              },
+              "participant1": "695f55c6f59b23c7fa422cd5",
+              "participant2": "695f55c7f59b23c7fa422d0b",
+              "winner": "695f55c7f59b23c7fa422d0b",
+              "completed": true,
+              "scheduledDate": "2026-01-09T18:30:00.000Z",
+              "roundName": "Semi-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "69638d8536f822122f60fefb"
+            },
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 2,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R1M3",
+                "match2": "R1M4"
+              },
+              "participant1": "695f55c9f59b23c7fa422d38",
+              "participant2": "695f55c9f59b23c7fa422d3b",
+              "winner": "695f55c9f59b23c7fa422d3b",
+              "completed": true,
+              "scheduledDate": "2026-01-09T18:30:00.000Z",
+              "roundName": "Semi-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "6963a1c9ab3e1786c73ed43b"
+            }
+          ],
+          "completed": true,
+          "scheduledDate": "2026-01-09T23:00:00.000Z"
+        },
+        {
+          "roundNumber": 3,
+          "roundName": "Final",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 3,
+                "matchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R2M1",
+                "match2": "R2M2"
+              },
+              "participant1": "695f55c7f59b23c7fa422d0b",
+              "participant2": "695f55c9f59b23c7fa422d3b",
+              "winner": "695f55c9f59b23c7fa422d3b",
+              "completed": true,
+              "scheduledDate": "2026-01-09T18:30:00.000Z",
+              "roundName": "Final",
+              "isThirdPlaceMatch": false,
+              "matchId": "6963a4a88d29b829a536136c"
+            }
+          ],
+          "completed": false,
+          "scheduledDate": "2026-01-09T23:30:00.000Z"
+        }
+      ],
+      "currentRound": 3,
+      "completed": true
+    },
+    "knockoutStatistics": {
+      "generatedAt": "2026-01-11T13:34:06.251Z",
+      "outcome": {
+        "champion": {
+          "participantId": "695f55c9f59b23c7fa422d3b",
+          "participantName": "Mohammad Sadiq Radu"
+        },
+        "runnerUp": {
+          "participantId": "695f55c7f59b23c7fa422d0b",
+          "participantName": "Nand Naman",
+          "seedNumber": 2
+        },
+        "thirdPlace": {
+          "participantId": "695f55c9f59b23c7fa422d38",
+          "participantName": "Amitesh Keshari"
+        },
+        "finalMatchScore": {
+          "side1Sets": 2,
+          "side2Sets": 0,
+          "setsBreakdown": [
+            [
+              9,
+              11
+            ],
+            [
+              5,
+              11
+            ]
+          ]
+        },
+        "thirdPlaceMatchScore": {
+          "side1Sets": 0,
+          "side2Sets": 2,
+          "setsBreakdown": [
+            [
+              5,
+              11
+            ],
+            [
+              7,
+              11
+            ]
+          ]
+        }
+      },
+      "participantProgression": [
+        {
+          "participantId": "695f55c6f59b23c7fa422cd5",
+          "participantName": "Rishabh Sharma",
+          "matchesPlayed": 2,
+          "roundReached": "Semi-finalist",
+          "eliminationRound": "Semi-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c7f59b23c7fa422d0b",
+            "participantName": "Nand Naman"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d05",
+          "participantName": "Ashvanee Kumar",
+          "matchesPlayed": 1,
+          "roundReached": "Quarter-finalist",
+          "eliminationRound": "Quarter-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c6f59b23c7fa422cd5",
+            "participantName": "Rishabh Sharma"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d0b",
+          "participantName": "Nand Naman",
+          "seedNumber": 2,
+          "matchesPlayed": 3,
+          "roundReached": "Runner-up",
+          "eliminationRound": "Final",
+          "eliminatedBy": {
+            "participantId": "695f55c9f59b23c7fa422d3b",
+            "participantName": "Mohammad Sadiq Radu"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d08",
+          "participantName": "Saksham vijay",
+          "matchesPlayed": 1,
+          "roundReached": "Quarter-finalist",
+          "eliminationRound": "Quarter-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c7f59b23c7fa422d0b",
+            "participantName": "Nand Naman"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d41",
+          "participantName": "Dhanush Karthik Chunduru",
+          "matchesPlayed": 1,
+          "roundReached": "Quarter-finalist",
+          "eliminationRound": "Quarter-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c9f59b23c7fa422d38",
+            "participantName": "Amitesh Keshari"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d38",
+          "participantName": "Amitesh Keshari",
+          "matchesPlayed": 2,
+          "roundReached": "Third Place",
+          "eliminationRound": "Semi-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c9f59b23c7fa422d3b",
+            "participantName": "Mohammad Sadiq Radu"
+          }
+        },
+        {
+          "participantId": "695f55c5f59b23c7fa422cc0",
+          "participantName": "Abhay Punia",
+          "seedNumber": 3,
+          "matchesPlayed": 1,
+          "roundReached": "Quarter-finalist",
+          "eliminationRound": "Quarter-Finals",
+          "eliminatedBy": {
+            "participantId": "695f55c9f59b23c7fa422d3b",
+            "participantName": "Mohammad Sadiq Radu"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d3b",
+          "participantName": "Mohammad Sadiq Radu",
+          "matchesPlayed": 3,
+          "roundReached": "Champion"
+        }
+      ],
+      "participantStats": [
+        {
+          "participantId": "695f55c6f59b23c7fa422cd5",
+          "participantName": "Rishabh Sharma",
+          "matchesWon": 1,
+          "matchesLost": 1,
+          "setsWon": 2,
+          "setsLost": 2,
+          "setsDiff": 0,
+          "pointsScored": 37,
+          "pointsConceded": 22,
+          "pointsDiff": 15
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d05",
+          "participantName": "Ashvanee Kumar",
+          "matchesWon": 0,
+          "matchesLost": 1,
+          "setsWon": 0,
+          "setsLost": 2,
+          "setsDiff": -2,
+          "pointsScored": 0,
+          "pointsConceded": 22,
+          "pointsDiff": -22
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d0b",
+          "participantName": "Nand Naman",
+          "matchesWon": 2,
+          "matchesLost": 1,
+          "setsWon": 4,
+          "setsLost": 2,
+          "setsDiff": 2,
+          "pointsScored": 58,
+          "pointsConceded": 52,
+          "pointsDiff": 6
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d08",
+          "participantName": "Saksham vijay",
+          "matchesWon": 0,
+          "matchesLost": 1,
+          "setsWon": 0,
+          "setsLost": 2,
+          "setsDiff": -2,
+          "pointsScored": 15,
+          "pointsConceded": 22,
+          "pointsDiff": -7
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d41",
+          "participantName": "Dhanush Karthik Chunduru",
+          "matchesWon": 0,
+          "matchesLost": 1,
+          "setsWon": 0,
+          "setsLost": 2,
+          "setsDiff": -2,
+          "pointsScored": 13,
+          "pointsConceded": 22,
+          "pointsDiff": -9
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d38",
+          "participantName": "Amitesh Keshari",
+          "matchesWon": 1,
+          "matchesLost": 1,
+          "setsWon": 2,
+          "setsLost": 2,
+          "setsDiff": 0,
+          "pointsScored": 34,
+          "pointsConceded": 35,
+          "pointsDiff": -1
+        },
+        {
+          "participantId": "695f55c5f59b23c7fa422cc0",
+          "participantName": "Abhay Punia",
+          "matchesWon": 0,
+          "matchesLost": 1,
+          "setsWon": 0,
+          "setsLost": 2,
+          "setsDiff": -2,
+          "pointsScored": 15,
+          "pointsConceded": 23,
+          "pointsDiff": -8
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d3b",
+          "participantName": "Mohammad Sadiq Radu",
+          "matchesWon": 3,
+          "matchesLost": 0,
+          "setsWon": 6,
+          "setsLost": 0,
+          "setsDiff": 6,
+          "pointsScored": 67,
+          "pointsConceded": 41,
+          "pointsDiff": 26
+        }
+      ],
+      "performanceMetrics": [
+        {
+          "participantId": "695f55c6f59b23c7fa422cd5",
+          "participantName": "Rishabh Sharma",
+          "avgPointsPerSet": 9.3,
+          "avgPointsConcededPerSet": 5.5,
+          "biggestWin": {
+            "opponentName": "Ashvanee Kumar",
+            "setScore": "2-0",
+            "pointMargin": 22,
+            "roundName": "Quarter-Finals"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d05",
+          "participantName": "Ashvanee Kumar",
+          "avgPointsPerSet": 0,
+          "avgPointsConcededPerSet": 11,
+          "biggestWin": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "pointMargin": 0,
+            "roundName": "N/A"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d0b",
+          "participantName": "Nand Naman",
+          "avgPointsPerSet": 8.3,
+          "avgPointsConcededPerSet": 7.4,
+          "biggestWin": {
+            "opponentName": "Saksham vijay",
+            "setScore": "2-0",
+            "pointMargin": 7,
+            "roundName": "Quarter-Finals"
+          },
+          "closestMatch": {
+            "opponentName": "Saksham vijay",
+            "setScore": "2-0",
+            "deciderScore": "11-7",
+            "roundName": "Quarter-Finals"
+          }
+        },
+        {
+          "participantId": "695f55c7f59b23c7fa422d08",
+          "participantName": "Saksham vijay",
+          "avgPointsPerSet": 5,
+          "avgPointsConcededPerSet": 7.3,
+          "biggestWin": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "pointMargin": 0,
+            "roundName": "N/A"
+          },
+          "closestMatch": {
+            "opponentName": "Nand Naman",
+            "setScore": "0-2",
+            "deciderScore": "11-7",
+            "roundName": "Quarter-Finals"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d41",
+          "participantName": "Dhanush Karthik Chunduru",
+          "avgPointsPerSet": 6.5,
+          "avgPointsConcededPerSet": 11,
+          "biggestWin": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "pointMargin": 0,
+            "roundName": "N/A"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d38",
+          "participantName": "Amitesh Keshari",
+          "avgPointsPerSet": 8.5,
+          "avgPointsConcededPerSet": 8.8,
+          "biggestWin": {
+            "opponentName": "Dhanush Karthik Chunduru",
+            "setScore": "2-0",
+            "pointMargin": 9,
+            "roundName": "Quarter-Finals"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        },
+        {
+          "participantId": "695f55c5f59b23c7fa422cc0",
+          "participantName": "Abhay Punia",
+          "avgPointsPerSet": 7.5,
+          "avgPointsConcededPerSet": 11.5,
+          "biggestWin": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "pointMargin": 0,
+            "roundName": "N/A"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        },
+        {
+          "participantId": "695f55c9f59b23c7fa422d3b",
+          "participantName": "Mohammad Sadiq Radu",
+          "avgPointsPerSet": 11.2,
+          "avgPointsConcededPerSet": 6.8,
+          "biggestWin": {
+            "opponentName": "Amitesh Keshari",
+            "setScore": "2-0",
+            "pointMargin": 10,
+            "roundName": "Semi-Finals"
+          },
+          "closestMatch": {
+            "opponentName": "N/A",
+            "setScore": "0-0",
+            "deciderScore": "0-0",
+            "roundName": "N/A"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "_id": "69627cd9cc7f9aadc8666e74",
+    "name": "Wing Smashers",
+    "format": "knockout",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-01-10T18:30:00.000Z",
+    "status": "in_progress",
+    "participants": [
+      "695f55c7f59b23c7fa422cf0",
+      "695f5bb9de13e9ad5cb9d0b4",
+      "695f5bb9de13e9ad5cb9d0c3",
+      "695f55c5f59b23c7fa422cb1",
+      "695f55c5f59b23c7fa422ca8",
+      "695f55c4f59b23c7fa422c8d",
+      "695f55c6f59b23c7fa422cde",
+      "695f55c7f59b23c7fa422cf9",
+      "695f55c4f59b23c7fa422c7e",
+      "695f55c4f59b23c7fa422c96",
+      "695f55c4f59b23c7fa422c84",
+      "695f5bb8de13e9ad5cb9d0ad",
+      "695f55c8f59b23c7fa422d23",
+      "695f582954b88ae318124596",
+      "695f55c8f59b23c7fa422d32"
+    ],
+    "organizer": "695e3a7a1686be7fcec7fd26",
+    "scorers": [
+      "695f55c7f59b23c7fa422cf0",
+      "695f55c6f59b23c7fa422ccc",
+      "695e40d7221f767c4219bea6"
+    ],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f55c7f59b23c7fa422cf0",
+        "seedNumber": 1,
+        "_id": "69627cd9cc7f9aadc8666e75"
+      },
+      {
+        "participant": "695f5bb9de13e9ad5cb9d0b4",
+        "seedNumber": 2,
+        "_id": "69627cd9cc7f9aadc8666e76"
+      },
+      {
+        "participant": "695f5bb9de13e9ad5cb9d0c3",
+        "seedNumber": 3,
+        "_id": "69627cd9cc7f9aadc8666e77"
+      },
+      {
+        "participant": "695f55c5f59b23c7fa422cb1",
+        "seedNumber": 4,
+        "_id": "69627cd9cc7f9aadc8666e78"
+      },
+      {
+        "participant": "695f55c5f59b23c7fa422ca8",
+        "seedNumber": 5,
+        "_id": "69627cd9cc7f9aadc8666e79"
+      },
+      {
+        "participant": "695f55c4f59b23c7fa422c8d",
+        "seedNumber": 6,
+        "_id": "69627cd9cc7f9aadc8666e7a"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cde",
+        "seedNumber": 7,
+        "_id": "69627cd9cc7f9aadc8666e7b"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422cf9",
+        "seedNumber": 8,
+        "_id": "69627cd9cc7f9aadc8666e7c"
+      },
+      {
+        "participant": "695f55c4f59b23c7fa422c7e",
+        "seedNumber": 9,
+        "_id": "69627cd9cc7f9aadc8666e7d"
+      },
+      {
+        "participant": "695f55c4f59b23c7fa422c96",
+        "seedNumber": 10,
+        "_id": "69627cd9cc7f9aadc8666e7e"
+      },
+      {
+        "participant": "695f55c4f59b23c7fa422c84",
+        "seedNumber": 11,
+        "_id": "69627cd9cc7f9aadc8666e7f"
+      },
+      {
+        "participant": "695f5bb8de13e9ad5cb9d0ad",
+        "seedNumber": 12,
+        "_id": "69627cd9cc7f9aadc8666e80"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d23",
+        "seedNumber": 13,
+        "_id": "69627cd9cc7f9aadc8666e81"
+      },
+      {
+        "participant": "695f582954b88ae318124596",
+        "seedNumber": 14,
+        "_id": "69627cd9cc7f9aadc8666e82"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d32",
+        "seedNumber": 15,
+        "_id": "69627cd9cc7f9aadc8666e83"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": false,
+    "knockoutConfig": {
+      "allowCustomMatching": false,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": true,
+    "allowJoinByCode": false,
+    "venue": "table tennis club",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-10T16:22:49.473Z",
+    "updatedAt": "2026-01-16T16:24:10.293Z",
+    "__v": 1,
+    "doublesPairs": [],
+    "drawGeneratedAt": "2026-01-10T16:23:07.742Z",
+    "drawGeneratedBy": "695e3a7a1686be7fcec7fd26",
+    "bracket": {
+      "size": 16,
+      "rounds": [
+        {
+          "roundNumber": 1,
+          "roundName": "Round of 16",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 1,
+                "nextMatchNumber": 1
+              },
+              "participant1": "695f55c7f59b23c7fa422cf0",
+              "participant2": null,
+              "winner": "695f55c7f59b23c7fa422cf0",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 2,
+                "nextMatchNumber": 1
+              },
+              "matchId": "69627ce9cc7f9aadc8666f09",
+              "participant1": "695f5bb9de13e9ad5cb9d0b4",
+              "participant2": "695f55c8f59b23c7fa422d32",
+              "winner": "695f5bb9de13e9ad5cb9d0b4",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 3,
+                "nextMatchNumber": 2
+              },
+              "matchId": "69627ce9cc7f9aadc8666f0b",
+              "participant1": "695f5bb9de13e9ad5cb9d0c3",
+              "participant2": "695f582954b88ae318124596",
+              "winner": "695f582954b88ae318124596",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 4,
+                "nextMatchNumber": 2
+              },
+              "matchId": "69627ceacc7f9aadc8666f0d",
+              "participant1": "695f55c5f59b23c7fa422cb1",
+              "participant2": "695f55c8f59b23c7fa422d23",
+              "winner": "695f55c8f59b23c7fa422d23",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 5,
+                "nextMatchNumber": 3
+              },
+              "matchId": "69627ceacc7f9aadc8666f0f",
+              "participant1": "695f55c5f59b23c7fa422ca8",
+              "participant2": "695f5bb8de13e9ad5cb9d0ad",
+              "winner": "695f5bb8de13e9ad5cb9d0ad",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 6,
+                "nextMatchNumber": 3
+              },
+              "matchId": "69627ceacc7f9aadc8666f11",
+              "participant1": "695f55c4f59b23c7fa422c8d",
+              "participant2": "695f55c4f59b23c7fa422c84",
+              "winner": "695f55c4f59b23c7fa422c8d",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 7,
+                "nextMatchNumber": 4
+              },
+              "matchId": "69627ceacc7f9aadc8666f13",
+              "participant1": "695f55c6f59b23c7fa422cde",
+              "participant2": "695f55c4f59b23c7fa422c96",
+              "winner": "695f55c4f59b23c7fa422c96",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            },
+            {
+              "bracketPosition": {
+                "round": 1,
+                "matchNumber": 8,
+                "nextMatchNumber": 4
+              },
+              "matchId": "69627ceacc7f9aadc8666f15",
+              "participant1": "695f55c7f59b23c7fa422cf9",
+              "participant2": "695f55c4f59b23c7fa422c7e",
+              "winner": "695f55c7f59b23c7fa422cf9",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Round of 16",
+              "isThirdPlaceMatch": false
+            }
+          ],
+          "completed": true,
+          "scheduledDate": "2026-01-10T18:30:00.000Z"
+        },
+        {
+          "roundNumber": 2,
+          "roundName": "Quarter-Finals",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 1,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R1M1",
+                "match2": "R1M2"
+              },
+              "participant1": "695f55c7f59b23c7fa422cf0",
+              "participant2": "695f5bb9de13e9ad5cb9d0b4",
+              "winner": "695f5bb9de13e9ad5cb9d0b4",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "69635ba94d4670eacb825176"
+            },
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 2,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R1M3",
+                "match2": "R1M4"
+              },
+              "participant1": "695f582954b88ae318124596",
+              "participant2": "695f55c8f59b23c7fa422d23",
+              "winner": "695f582954b88ae318124596",
+              "completed": true,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "69638286f51cf78f1c1b8c6c"
+            },
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 3,
+                "nextMatchNumber": 2
+              },
+              "sourceMatches": {
+                "match1": "R1M5",
+                "match2": "R1M6"
+              },
+              "participant1": "695f5bb8de13e9ad5cb9d0ad",
+              "participant2": "695f55c4f59b23c7fa422c8d",
+              "winner": null,
+              "completed": false,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "696359ac8fb23d1863afa7aa"
+            },
+            {
+              "bracketPosition": {
+                "round": 2,
+                "matchNumber": 4,
+                "nextMatchNumber": 2
+              },
+              "sourceMatches": {
+                "match1": "R1M7",
+                "match2": "R1M8"
+              },
+              "participant1": "695f55c4f59b23c7fa422c96",
+              "participant2": "695f55c7f59b23c7fa422cf9",
+              "winner": null,
+              "completed": false,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Quarter-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "69638087f51cf78f1c1af78c"
+            }
+          ],
+          "completed": false,
+          "scheduledDate": "2026-01-10T18:30:00.000Z"
+        },
+        {
+          "roundNumber": 3,
+          "roundName": "Semi-Finals",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 3,
+                "matchNumber": 1,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R2M1",
+                "match2": "R2M2"
+              },
+              "participant1": "695f5bb9de13e9ad5cb9d0b4",
+              "participant2": "695f582954b88ae318124596",
+              "winner": null,
+              "completed": false,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Semi-Finals",
+              "isThirdPlaceMatch": false,
+              "matchId": "696a6629b29eaca8e2767021"
+            },
+            {
+              "bracketPosition": {
+                "round": 3,
+                "matchNumber": 2,
+                "nextMatchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R2M3",
+                "match2": "R2M4"
+              },
+              "participant1": null,
+              "participant2": null,
+              "winner": null,
+              "completed": false,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Semi-Finals",
+              "isThirdPlaceMatch": false
+            }
+          ],
+          "completed": false,
+          "scheduledDate": "2026-01-10T18:30:00.000Z"
+        },
+        {
+          "roundNumber": 4,
+          "roundName": "Final",
+          "matches": [
+            {
+              "bracketPosition": {
+                "round": 4,
+                "matchNumber": 1
+              },
+              "sourceMatches": {
+                "match1": "R3M1",
+                "match2": "R3M2"
+              },
+              "participant1": null,
+              "participant2": null,
+              "winner": null,
+              "completed": false,
+              "scheduledDate": "2026-01-10T18:30:00.000Z",
+              "roundName": "Final",
+              "isThirdPlaceMatch": false
+            }
+          ],
+          "completed": false,
+          "scheduledDate": "2026-01-10T18:30:00.000Z"
+        }
+      ],
+      "currentRound": 2,
+      "completed": false
+    }
+  },
+  {
+    "_id": "6962c39930cebfb23093a467",
+    "name": "Wing Smashers - Fulgar (doubles),",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "doubles",
+    "startDate": "2026-01-11T18:30:00.000Z",
+    "status": "draft",
+    "participants": [
+      "695f582954b88ae3181245b4",
+      "695f88b9fe3e363514fb9972",
+      "695e6be0cd878bd8be4fced5",
+      "695f55c7f59b23c7fa422d08",
+      "695f55c6f59b23c7fa422cd5",
+      "695f582954b88ae3181245ae",
+      "695f55c8f59b23c7fa422d26",
+      "695f582954b88ae3181245b1",
+      "695f55c7f59b23c7fa422cff",
+      "695f55c7f59b23c7fa422d0b",
+      "695f55c7f59b23c7fa422d02",
+      "695f55c3f59b23c7fa422c75"
+    ],
+    "organizer": "695f55c8f59b23c7fa422d2f",
+    "scorers": [],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f582954b88ae3181245b4",
+        "seedNumber": 1,
+        "_id": "6962c39930cebfb23093a468"
+      },
+      {
+        "participant": "695f88b9fe3e363514fb9972",
+        "seedNumber": 2,
+        "_id": "6962c39930cebfb23093a469"
+      },
+      {
+        "participant": "695e6be0cd878bd8be4fced5",
+        "seedNumber": 3,
+        "_id": "6962c39930cebfb23093a46a"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d08",
+        "seedNumber": 4,
+        "_id": "6962c39930cebfb23093a46b"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cd5",
+        "seedNumber": 5,
+        "_id": "6962c39930cebfb23093a46c"
+      },
+      {
+        "participant": "695f582954b88ae3181245ae",
+        "seedNumber": 6,
+        "_id": "6962c39930cebfb23093a46d"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d26",
+        "seedNumber": 7,
+        "_id": "6962c39930cebfb23093a46e"
+      },
+      {
+        "participant": "695f582954b88ae3181245b1",
+        "seedNumber": 8,
+        "_id": "6962c39930cebfb23093a46f"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422cff",
+        "seedNumber": 9,
+        "_id": "6962c39930cebfb23093a470"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0b",
+        "seedNumber": 10,
+        "_id": "6962c39930cebfb23093a471"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d02",
+        "seedNumber": 11,
+        "_id": "6962c39930cebfb23093a472"
+      },
+      {
+        "participant": "695f55c3f59b23c7fa422c75",
+        "seedNumber": 12,
+        "_id": "6962c39930cebfb23093a473"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": true,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": true,
+      "roundRobinNumberOfGroups": 3,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": false,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "6962c39930cebfb23093a474"
+    },
+    "currentPhase": "round_robin",
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": false,
+    "allowJoinByCode": false,
+    "venue": "IIT Jammu",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [
+      {
+        "groupId": "A",
+        "groupName": "Group A",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "B",
+        "groupName": "Group B",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "C",
+        "groupName": "Group C",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      }
+    ],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-10T21:24:41.576Z",
+    "updatedAt": "2026-02-26T15:39:09.260Z",
+    "__v": 14,
+    "doublesPairs": [
+      {
+        "_id": "6962c3be30cebfb23093a4e2",
+        "player1": "695f582954b88ae3181245b4",
+        "player2": "695e6be0cd878bd8be4fced5"
+      },
+      {
+        "_id": "6962c3be30cebfb23093a4e3",
+        "player1": "695f88b9fe3e363514fb9972",
+        "player2": "695f582954b88ae3181245ae"
+      },
+      {
+        "_id": "6962c3be30cebfb23093a4e4",
+        "player1": "695f55c7f59b23c7fa422d08",
+        "player2": "695f55c6f59b23c7fa422cd5"
+      },
+      {
+        "_id": "6962c3be30cebfb23093a4e5",
+        "player1": "695f55c8f59b23c7fa422d26",
+        "player2": "695f582954b88ae3181245b1"
+      },
+      {
+        "_id": "6962c3be30cebfb23093a4e6",
+        "player1": "695f55c7f59b23c7fa422cff",
+        "player2": "695f55c3f59b23c7fa422c75"
+      },
+      {
+        "_id": "6962c3be30cebfb23093a4e7",
+        "player1": "695f55c7f59b23c7fa422d02",
+        "player2": "695f55c7f59b23c7fa422d0b"
+      }
+    ],
+    "numberOfGroups": 3
+  },
+  {
+    "_id": "6962c54930cebfb23093a662",
+    "name": "Wing Smashers - Fulgar (doubles)",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "doubles",
+    "startDate": "2026-01-11T18:30:00.000Z",
+    "status": "in_progress",
+    "participants": [
+      "695f582954b88ae3181245b4",
+      "695f88b9fe3e363514fb9972",
+      "695e6be0cd878bd8be4fced5",
+      "695f582954b88ae3181245ae",
+      "695f55c7f59b23c7fa422d02",
+      "695f55c7f59b23c7fa422d0b",
+      "695f55c7f59b23c7fa422cff",
+      "695f55c3f59b23c7fa422c75",
+      "695f55c7f59b23c7fa422d08",
+      "695f55c6f59b23c7fa422cd5",
+      "695f55c8f59b23c7fa422d26",
+      "695f582954b88ae3181245b1"
+    ],
+    "organizer": "695f55c8f59b23c7fa422d2f",
+    "scorers": [
+      "695e6be0cd878bd8be4fced5"
+    ],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f582954b88ae3181245b4",
+        "seedNumber": 1,
+        "_id": "6962c54930cebfb23093a663"
+      },
+      {
+        "participant": "695f88b9fe3e363514fb9972",
+        "seedNumber": 2,
+        "_id": "6962c54930cebfb23093a664"
+      },
+      {
+        "participant": "695e6be0cd878bd8be4fced5",
+        "seedNumber": 3,
+        "_id": "6962c54930cebfb23093a665"
+      },
+      {
+        "participant": "695f582954b88ae3181245ae",
+        "seedNumber": 4,
+        "_id": "6962c54930cebfb23093a666"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d02",
+        "seedNumber": 5,
+        "_id": "6962c54930cebfb23093a667"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0b",
+        "seedNumber": 6,
+        "_id": "6962c54930cebfb23093a668"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422cff",
+        "seedNumber": 7,
+        "_id": "6962c54930cebfb23093a669"
+      },
+      {
+        "participant": "695f55c3f59b23c7fa422c75",
+        "seedNumber": 8,
+        "_id": "6962c54930cebfb23093a66a"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d08",
+        "seedNumber": 9,
+        "_id": "6962c54930cebfb23093a66b"
+      },
+      {
+        "participant": "695f55c6f59b23c7fa422cd5",
+        "seedNumber": 10,
+        "_id": "6962c54930cebfb23093a66c"
+      },
+      {
+        "participant": "695f55c8f59b23c7fa422d26",
+        "seedNumber": 11,
+        "_id": "6962c54930cebfb23093a66d"
+      },
+      {
+        "participant": "695f582954b88ae3181245b1",
+        "seedNumber": 12,
+        "_id": "6962c54930cebfb23093a66e"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": true,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": true,
+      "roundRobinNumberOfGroups": 2,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": true,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "6962c54930cebfb23093a66f"
+    },
+    "currentPhase": "knockout",
+    "qualifiedParticipants": [
+      "6962c56130cebfb23093a6be",
+      "6962c56130cebfb23093a6c2",
+      "6962c56130cebfb23093a6bf",
+      "6962c56130cebfb23093a6c0"
+    ],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": true,
+    "allowJoinByCode": false,
+    "venue": "IIT Jammu",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [
+      {
+        "groupId": "A",
+        "groupName": "Group A",
+        "participants": [
+          "6962c56130cebfb23093a6be",
+          "6962c56130cebfb23093a6c1",
+          "6962c56130cebfb23093a6c2"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6962c56930cebfb23093a740"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6962c56930cebfb23093a742"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T19:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6962c56930cebfb23093a744"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T20:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "6962c56130cebfb23093a6be",
+            "played": 2,
+            "won": 2,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 4,
+            "setsLost": 2,
+            "setsDiff": 2,
+            "pointsScored": 59,
+            "pointsConceded": 57,
+            "pointsDiff": 2,
+            "points": 4,
+            "rank": 1,
+            "form": [
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c2": 2,
+              "6962c56130cebfb23093a6c1": 2
+            }
+          },
+          {
+            "participant": "6962c56130cebfb23093a6c2",
+            "played": 2,
+            "won": 1,
+            "lost": 1,
+            "drawn": 0,
+            "setsWon": 3,
+            "setsLost": 2,
+            "setsDiff": 1,
+            "pointsScored": 51,
+            "pointsConceded": 31,
+            "pointsDiff": 20,
+            "points": 2,
+            "rank": 2,
+            "form": [
+              "W",
+              "L"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c1": 2,
+              "6962c56130cebfb23093a6be": 0
+            }
+          },
+          {
+            "participant": "6962c56130cebfb23093a6c1",
+            "played": 2,
+            "won": 0,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 1,
+            "setsLost": 4,
+            "setsDiff": -3,
+            "pointsScored": 32,
+            "pointsConceded": 54,
+            "pointsDiff": -22,
+            "points": 0,
+            "rank": 3,
+            "form": [
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c2": 0,
+              "6962c56130cebfb23093a6be": 0
+            }
+          }
+        ]
+      },
+      {
+        "groupId": "B",
+        "groupName": "Group B",
+        "participants": [
+          "6962c56130cebfb23093a6bf",
+          "6962c56130cebfb23093a6c0",
+          "6962c56130cebfb23093a6c3"
+        ],
+        "rounds": [
+          {
+            "roundNumber": 1,
+            "matches": [
+              "6962c56a30cebfb23093a746"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T18:30:00.000Z"
+          },
+          {
+            "roundNumber": 2,
+            "matches": [
+              "6962c56a30cebfb23093a748"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T19:30:00.000Z"
+          },
+          {
+            "roundNumber": 3,
+            "matches": [
+              "6962c56a30cebfb23093a74b"
+            ],
+            "completed": true,
+            "scheduledDate": "2026-01-11T20:30:00.000Z"
+          }
+        ],
+        "standings": [
+          {
+            "participant": "6962c56130cebfb23093a6bf",
+            "played": 2,
+            "won": 2,
+            "lost": 0,
+            "drawn": 0,
+            "setsWon": 4,
+            "setsLost": 0,
+            "setsDiff": 4,
+            "pointsScored": 44,
+            "pointsConceded": 33,
+            "pointsDiff": 11,
+            "points": 4,
+            "rank": 1,
+            "form": [
+              "W",
+              "W"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c3": 2,
+              "6962c56130cebfb23093a6c0": 2
+            }
+          },
+          {
+            "participant": "6962c56130cebfb23093a6c0",
+            "played": 2,
+            "won": 1,
+            "lost": 1,
+            "drawn": 0,
+            "setsWon": 2,
+            "setsLost": 2,
+            "setsDiff": 0,
+            "pointsScored": 40,
+            "pointsConceded": 37,
+            "pointsDiff": 3,
+            "points": 2,
+            "rank": 2,
+            "form": [
+              "W",
+              "L"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c3": 2,
+              "6962c56130cebfb23093a6bf": 0
+            }
+          },
+          {
+            "participant": "6962c56130cebfb23093a6c3",
+            "played": 2,
+            "won": 0,
+            "lost": 2,
+            "drawn": 0,
+            "setsWon": 0,
+            "setsLost": 4,
+            "setsDiff": -4,
+            "pointsScored": 32,
+            "pointsConceded": 46,
+            "pointsDiff": -14,
+            "points": 0,
+            "rank": 3,
+            "form": [
+              "L",
+              "L"
+            ],
+            "headToHead": {
+              "6962c56130cebfb23093a6c0": 0,
+              "6962c56130cebfb23093a6bf": 0
+            }
+          }
+        ]
+      }
+    ],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-10T21:31:53.990Z",
+    "updatedAt": "2026-01-11T16:47:02.856Z",
+    "__v": 53,
+    "doublesPairs": [
+      {
+        "_id": "6962c56130cebfb23093a6be",
+        "player1": "695f582954b88ae3181245b4",
+        "player2": "695e6be0cd878bd8be4fced5"
+      },
+      {
+        "_id": "6962c56130cebfb23093a6bf",
+        "player1": "695f88b9fe3e363514fb9972",
+        "player2": "695f582954b88ae3181245ae"
+      },
+      {
+        "_id": "6962c56130cebfb23093a6c0",
+        "player1": "695f55c7f59b23c7fa422d02",
+        "player2": "695f55c7f59b23c7fa422d0b"
+      },
+      {
+        "_id": "6962c56130cebfb23093a6c1",
+        "player1": "695f55c7f59b23c7fa422cff",
+        "player2": "695f55c3f59b23c7fa422c75"
+      },
+      {
+        "_id": "6962c56130cebfb23093a6c2",
+        "player1": "695f55c7f59b23c7fa422d08",
+        "player2": "695f55c6f59b23c7fa422cd5"
+      },
+      {
+        "_id": "6962c56130cebfb23093a6c3",
+        "player1": "695f55c8f59b23c7fa422d26",
+        "player2": "695f582954b88ae3181245b1"
+      }
+    ],
+    "numberOfGroups": 2,
+    "drawGeneratedAt": "2026-01-10T21:32:26.872Z",
+    "drawGeneratedBy": "695f55c8f59b23c7fa422d2f",
+    "endDate": "2026-01-11T16:46:35.699Z",
+    "phaseTransitionDate": "2026-01-11T16:47:02.079Z"
+  },
+  {
+    "_id": "6963e267ac544cb4c3929716",
+    "name": "Wing Smashers Egret",
+    "format": "knockout",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-01-11T18:30:00.000Z",
+    "status": "upcoming",
+    "participants": [
+      "695f55c6f59b23c7fa422ccf",
+      "695f55c9f59b23c7fa422d35",
+      "695f55c9f59b23c7fa422d4a",
+      "695f55c7f59b23c7fa422d0e"
+    ],
+    "organizer": "695e3a7a1686be7fcec7fd26",
+    "scorers": [],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "695f55c6f59b23c7fa422ccf",
+        "seedNumber": 1,
+        "_id": "6963e267ac544cb4c3929717"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d35",
+        "seedNumber": 2,
+        "_id": "6963e267ac544cb4c3929718"
+      },
+      {
+        "participant": "695f55c9f59b23c7fa422d4a",
+        "seedNumber": 3,
+        "_id": "6963e267ac544cb4c3929719"
+      },
+      {
+        "participant": "695f55c7f59b23c7fa422d0e",
+        "seedNumber": 4,
+        "_id": "6963e267ac544cb4c392971a"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": false,
+    "knockoutConfig": {
+      "allowCustomMatching": false,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": true,
+      "consolationBracket": false
+    },
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 3,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": true,
+    "allowJoinByCode": false,
+    "venue": "TT club",
+    "city": "Jammu",
+    "minParticipants": 2,
+    "groups": [],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-11T17:48:23.312Z",
+    "updatedAt": "2026-01-11T17:48:40.489Z",
+    "__v": 1,
+    "doublesPairs": [],
+    "drawGeneratedAt": "2026-01-11T17:48:40.300Z",
+    "drawGeneratedBy": "695e3a7a1686be7fcec7fd26"
+  },
+  {
+    "_id": "697b0eca272f8c8308c93552",
+    "name": "Spring championship 2026",
+    "format": "hybrid",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-01-29T18:30:00.000Z",
+    "status": "cancelled",
+    "participants": [
+      "6953e2636f582bbaedde9d69",
+      "6953e2646f582bbaedde9d6f",
+      "6953e2676f582bbaedde9d90",
+      "6953e2656f582bbaedde9d78",
+      "6953e2686f582bbaedde9d9f",
+      "6953e2686f582bbaedde9da2",
+      "6953e2656f582bbaedde9d75",
+      "6953e2666f582bbaedde9d81"
+    ],
+    "organizer": "695f5f222a80744e8c94f2d5",
+    "scorers": [],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "6953e2636f582bbaedde9d69",
+        "seedNumber": 1,
+        "_id": "697b0eca272f8c8308c93553"
+      },
+      {
+        "participant": "6953e2646f582bbaedde9d6f",
+        "seedNumber": 2,
+        "_id": "697b0eca272f8c8308c93554"
+      },
+      {
+        "participant": "6953e2676f582bbaedde9d90",
+        "seedNumber": 3,
+        "_id": "697b0eca272f8c8308c93555"
+      },
+      {
+        "participant": "6953e2656f582bbaedde9d78",
+        "seedNumber": 4,
+        "_id": "697b0eca272f8c8308c93556"
+      },
+      {
+        "participant": "6953e2686f582bbaedde9d9f",
+        "seedNumber": 5,
+        "_id": "697b0eca272f8c8308c93557"
+      },
+      {
+        "participant": "6953e2686f582bbaedde9da2",
+        "seedNumber": 6,
+        "_id": "697b0eca272f8c8308c93558"
+      },
+      {
+        "participant": "6953e2656f582bbaedde9d75",
+        "seedNumber": 7,
+        "_id": "697b0eca272f8c8308c93559"
+      },
+      {
+        "participant": "6953e2666f582bbaedde9d81",
+        "seedNumber": 8,
+        "_id": "697b0eca272f8c8308c9355a"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": true,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "hybridConfig": {
+      "roundRobinUseGroups": true,
+      "roundRobinNumberOfGroups": 4,
+      "qualificationMethod": "top_n_per_group",
+      "qualifyingPerGroup": 2,
+      "knockoutAllowCustomMatching": true,
+      "knockoutThirdPlaceMatch": false,
+      "_id": "697b0eca272f8c8308c9355b"
+    },
+    "currentPhase": "round_robin",
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 1,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": false,
+    "allowJoinByCode": false,
+    "venue": "Sports center",
+    "city": "Chandigarh",
+    "minParticipants": 2,
+    "groups": [
+      {
+        "groupId": "A",
+        "groupName": "Group A",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "B",
+        "groupName": "Group B",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "C",
+        "groupName": "Group C",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      },
+      {
+        "groupId": "D",
+        "groupName": "Group D",
+        "participants": [],
+        "rounds": [],
+        "standings": []
+      }
+    ],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-01-29T07:39:54.986Z",
+    "updatedAt": "2026-04-07T11:46:45.936Z",
+    "__v": 24,
+    "doublesPairs": [],
+    "numberOfGroups": 4
+  },
+  {
+    "_id": "69d5007172dd5c40e6602d1f",
+    "name": "Dummy Tournament",
+    "format": "knockout",
+    "category": "individual",
+    "matchType": "singles",
+    "startDate": "2026-04-07T18:30:00.000Z",
+    "status": "draft",
+    "participants": [
+      "6953e2636f582bbaedde9d69",
+      "6953e2646f582bbaedde9d6f",
+      "6953e2656f582bbaedde9d78",
+      "6953e2676f582bbaedde9d90",
+      "6953e2666f582bbaedde9d84",
+      "6953e2656f582bbaedde9d7e",
+      "6953e2676f582bbaedde9d93",
+      "6953e2666f582bbaedde9d87"
+    ],
+    "organizer": "695f5f222a80744e8c94f2d5",
+    "scorers": [],
+    "createdWithTier": "free",
+    "maxScorersAllowed": 0,
+    "seeding": [
+      {
+        "participant": "6953e2636f582bbaedde9d69",
+        "seedNumber": 1,
+        "_id": "69d5007172dd5c40e6602d20"
+      },
+      {
+        "participant": "6953e2646f582bbaedde9d6f",
+        "seedNumber": 2,
+        "_id": "69d5007172dd5c40e6602d21"
+      },
+      {
+        "participant": "6953e2656f582bbaedde9d78",
+        "seedNumber": 3,
+        "_id": "69d5007172dd5c40e6602d22"
+      },
+      {
+        "participant": "6953e2676f582bbaedde9d90",
+        "seedNumber": 4,
+        "_id": "69d5007172dd5c40e6602d23"
+      },
+      {
+        "participant": "6953e2666f582bbaedde9d84",
+        "seedNumber": 5,
+        "_id": "69d5007172dd5c40e6602d24"
+      },
+      {
+        "participant": "6953e2656f582bbaedde9d7e",
+        "seedNumber": 6,
+        "_id": "69d5007172dd5c40e6602d25"
+      },
+      {
+        "participant": "6953e2676f582bbaedde9d93",
+        "seedNumber": 7,
+        "_id": "69d5007172dd5c40e6602d26"
+      },
+      {
+        "participant": "6953e2666f582bbaedde9d87",
+        "seedNumber": 8,
+        "_id": "69d5007172dd5c40e6602d27"
+      }
+    ],
+    "seedingMethod": "none",
+    "useGroups": false,
+    "knockoutConfig": {
+      "allowCustomMatching": true,
+      "autoGenerateBracket": true,
+      "thirdPlaceMatch": false,
+      "consolationBracket": false
+    },
+    "qualifiedParticipants": [],
+    "rules": {
+      "pointsForWin": 2,
+      "pointsForLoss": 0,
+      "setsPerMatch": 1,
+      "pointsPerSet": 11,
+      "advanceTop": 0,
+      "deuceSetting": "standard",
+      "tiebreakRules": [
+        "points",
+        "head_to_head",
+        "sets_ratio",
+        "points_ratio",
+        "sets_won"
+      ]
+    },
+    "drawGenerated": false,
+    "allowJoinByCode": false,
+    "venue": "fake venue",
+    "city": "fake city",
+    "minParticipants": 2,
+    "groups": [],
+    "rounds": [],
+    "standings": [],
+    "createdAt": "2026-04-07T13:02:41.373Z",
+    "updatedAt": "2026-04-07T13:02:41.373Z",
+    "__v": 0
+  }
+]

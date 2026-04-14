@@ -7,6 +7,10 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import Team from "@/models/Team";
 import { IndividualMatch, TeamInfo, TeamMatch } from "@/types/match.type";
+import {
+  mergeShotsIntoIndividualGames,
+  mergeShotsIntoTeamMatch,
+} from "@/services/match/matchPointService";
 
 class StatsService {
   async updateIndividualMatchStats(matchId: string) {
@@ -16,15 +20,24 @@ class StatsService {
       .populate("participants", "username fullName profileImage")
       .lean<IndividualMatch | null>();
 
-    if (!match || match.status !== "completed" || !match.winnerSide) {
+    if (
+      !match ||
+      match.status !== "completed" ||
+      (!match.winnerId && !match.winner && !match.winnerSide)
+    ) {
       return;
     }
+
+    await mergeShotsIntoIndividualGames(match as unknown as Record<string, unknown>);
 
     // Determine match type
     const matchType = match.matchType;
 
     // Determine winners and losers
     const { winners, losers } = this.determineIndividualMatchResult(match);
+    if (winners.length === 0) {
+      return;
+    }
 
     // Update each winner's stats
     for (const player of winners) {
@@ -69,6 +82,8 @@ class StatsService {
     if (!match || match.status !== "completed") {
       return;
     }
+
+    await mergeShotsIntoTeamMatch(match as unknown as Record<string, unknown>);
 
     // Determine result (win, loss, or tie)
     const result = this.determineTeamMatchResult(match);
@@ -142,14 +157,9 @@ class StatsService {
     stats.winRate = (stats.wins / stats.totalMatches) * 100;
 
     // Update sets/points from match data
-    const userSide = this.getUserSide(matchData.match, userId);
-    if (matchData.match.finalScore) {
-      const userSets = userSide === "side1"
-        ? matchData.match.finalScore.side1Sets || 0
-        : matchData.match.finalScore.side2Sets || 0;
-      const opponentSets = userSide === "side1"
-        ? matchData.match.finalScore.side2Sets || 0
-        : matchData.match.finalScore.side1Sets || 0;
+    const userSetsAndOpp = this.getIndividualUserSets(matchData.match, userId);
+    if (userSetsAndOpp) {
+      const { userSets, opponentSets } = userSetsAndOpp;
 
       stats.setsWon += userSets;
       stats.setsLost += opponentSets;
@@ -398,8 +408,20 @@ class StatsService {
       ? [participants[1]].filter(Boolean)
       : [participants[2], participants[3]].filter(Boolean);
 
-    const winners = match.winnerSide === "side1" ? side1Players : side2Players;
-    const losers = match.winnerSide === "side1" ? side2Players : side1Players;
+    const winnerId =
+      (match.winnerId as { _id?: unknown })?._id?.toString?.() ||
+      match.winnerId?.toString?.() ||
+      (match.winner as { _id?: unknown })?._id?.toString?.() ||
+      match.winner?.toString?.();
+    if (!winnerId) {
+      // Legacy fallback
+      if (match.winnerSide === "side1") return { winners: side1Players, losers: side2Players };
+      if (match.winnerSide === "side2") return { winners: side2Players, losers: side1Players };
+      return { winners: [], losers: [] };
+    }
+    const side1Ids = new Set(side1Players.map((p: any) => p?._id?.toString?.() || String(p)));
+    const winners = side1Ids.has(String(winnerId)) ? side1Players : side2Players;
+    const losers = side1Ids.has(String(winnerId)) ? side2Players : side1Players;
 
     return { winners, losers };
   }
@@ -411,8 +433,14 @@ class StatsService {
     team1Result: "win" | "loss" | "tie";
     team2Result: "win" | "loss" | "tie";
   } {
-    const team1Matches = match.finalScore?.team1Matches || 0;
-    const team2Matches = match.finalScore?.team2Matches || 0;
+    const t1Id = match.team1?._id?.toString?.() || String(match.team1?._id || "");
+    const t2Id = match.team2?._id?.toString?.() || String(match.team2?._id || "");
+    const byId =
+      match.finalScore?.matchesByTeamId instanceof Map
+        ? Object.fromEntries(match.finalScore.matchesByTeamId)
+        : match.finalScore?.matchesByTeamId || {};
+    const team1Matches = Number(byId[t1Id] ?? match.finalScore?.team1Matches ?? 0);
+    const team2Matches = Number(byId[t2Id] ?? match.finalScore?.team2Matches ?? 0);
 
     if (team1Matches > team2Matches) {
       return { team1Result: "win", team2Result: "loss" };
@@ -440,6 +468,34 @@ class StatsService {
     }
   }
 
+  private getIndividualUserSets(
+    match: any,
+    userId: string
+  ): { userSets: number; opponentSets: number } | null {
+    const byId =
+      match.finalScore?.setsById instanceof Map
+        ? Object.fromEntries(match.finalScore.setsById)
+        : match.finalScore?.setsById || {};
+    if (byId && Object.keys(byId).length > 0) {
+      const userSets = Number(byId[userId] ?? 0);
+      const total = Object.values(byId).reduce(
+        (sum: number, v: any) => sum + Number(v || 0),
+        0
+      );
+      return { userSets, opponentSets: Math.max(0, total - userSets) };
+    }
+    const userSide = this.getUserSide(match, userId);
+    const userSets =
+      userSide === "side1"
+        ? match.finalScore?.side1Sets || 0
+        : match.finalScore?.side2Sets || 0;
+    const opponentSets =
+      userSide === "side1"
+        ? match.finalScore?.side2Sets || 0
+        : match.finalScore?.side1Sets || 0;
+    return { userSets, opponentSets };
+  }
+
   /**
    * Extract shot statistics for a player from a match
    */
@@ -462,7 +518,11 @@ class StatsService {
       if (!game.shots) return;
 
       game.shots.forEach((shot: any) => {
-        if (shot.player?.toString() !== userId.toString()) return;
+        const shotPlayerId =
+          typeof shot.player === "object" && shot.player?._id
+            ? shot.player._id.toString()
+            : shot.player?.toString?.();
+        if (!shotPlayerId || shotPlayerId !== userId.toString()) return;
 
         if (!shot.stroke) return;
 
@@ -566,6 +626,14 @@ class StatsService {
    * Format match score string
    */
   private formatIndividualMatchScore(match: any): string {
+    const byId =
+      match.finalScore?.setsById instanceof Map
+        ? Object.fromEntries(match.finalScore.setsById)
+        : match.finalScore?.setsById || {};
+    if (byId && Object.keys(byId).length >= 2) {
+      const vals = Object.values(byId).map((n: any) => Number(n || 0));
+      return `${vals[0] ?? 0}-${vals[1] ?? 0}`;
+    }
     const side1Sets = match.finalScore?.side1Sets || 0;
     const side2Sets = match.finalScore?.side2Sets || 0;
     return `${side1Sets}-${side2Sets}`;

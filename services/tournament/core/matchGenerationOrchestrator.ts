@@ -19,6 +19,7 @@ import {
   tournamentRepository,
   Tournament,
 } from "../repositories/TournamentRepository";
+import { tournamentProjectionRepository } from "../repositories/TournamentProjectionRepository";
 import { matchRepository } from "../repositories/MatchRepository";
 import {
   generateKnockoutBracket,
@@ -444,8 +445,15 @@ export class MatchGenerationOrchestrator {
       String(tournament._id),
       {
         rounds,
-        standings: this.initializeStandings(standingsParticipantIds),
       } as any,
+      session
+    );
+    await tournamentProjectionRepository.upsertStandings(
+      String(tournament._id),
+      (tournament as any).category === "team" ? "team" : "individual",
+      (tournament as any).currentPhase,
+      this.initializeStandings(standingsParticipantIds),
+      undefined,
       session
     );
 

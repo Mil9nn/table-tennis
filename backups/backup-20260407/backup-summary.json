@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-04-07T13:10:25.335Z",
+  "totalCollections": 11,
+  "totalDocuments": 336,
+  "collections": [
+    "tournaments",
+    "playerstats",
+    "subscriptions",
+    "teamstats",
+    "teams",
+    "verificationtokens",
+    "leaderboardcaches",
+    "payments",
+    "users",
+    "bracketstates",
+    "matches"
+  ],
+  "location": "C:\\dev\\table-tennis\\backups\\backup-20260407"
+}

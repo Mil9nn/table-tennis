@@ -13,7 +13,8 @@ import { Participant, InitialServerConfig } from "@/types/match.type";
 interface ShotFeedProps {
   games: {
     gameNumber: number;
-    shots: Shot[];
+    /** Populated from matchpoints merge on read; may be absent before hydration */
+    shots?: Shot[];
     side1Score?: number;
     side2Score?: number;
     winnerSide?: string | null;
@@ -65,6 +66,28 @@ export default function ShotFeed({
     ? getParticipantName(participants[1])
     : "Player 2";
   const [expandedGames, setExpandedGames] = useState<number[]>([currentGame]);
+  const side1Ids = new Set(
+    (isDoubles ? [participants?.[0], participants?.[1]] : [participants?.[0]])
+      .map((p) => (typeof p === "string" ? p : p?._id?.toString()))
+      .filter(Boolean) as string[]
+  );
+  const side2Ids = new Set(
+    (isDoubles ? [participants?.[2], participants?.[3]] : [participants?.[1]])
+      .map((p) => (typeof p === "string" ? p : p?._id?.toString()))
+      .filter(Boolean) as string[]
+  );
+
+  const resolveShotSide = (shot: Shot): "side1" | "side2" | null => {
+    const scorerId =
+      (typeof shot.side === "string" ? shot.side : "") ||
+      (typeof shot.player === "string" ? shot.player : shot.player?._id?.toString() || "");
+    if (!scorerId) return null;
+    if (side1Ids.has(scorerId)) return "side1";
+    if (side2Ids.has(scorerId)) return "side2";
+    if (shot.side === "side1" || shot.side === "team1") return "side1";
+    if (shot.side === "side2" || shot.side === "team2") return "side2";
+    return null;
+  };
 
   const toggleGame = (gameNumber: number) => {
     setExpandedGames((prev) =>
@@ -162,13 +185,10 @@ export default function ShotFeed({
                       let gameScoreSide1 = 0;
                       let gameScoreSide2 = 0;
                       for (let j = 0; j <= originalIndex; j++) {
-                        const shotSide = shots[j].side;
-                        if (shotSide === "side1" || shotSide === "team1") {
+                        const shotSide = resolveShotSide(shots[j]);
+                        if (shotSide === "side1") {
                           gameScoreSide1++;
-                        } else if (
-                          shotSide === "side2" ||
-                          shotSide === "team2"
-                        ) {
+                        } else if (shotSide === "side2") {
                           gameScoreSide2++;
                         }
                       }
@@ -235,7 +255,7 @@ export default function ShotFeed({
                             {/* Color accent bar - support both side1/side2 and team1/team2 */}
                             <div
                               className={`w-1 rounded-full flex-shrink-0 ${
-                                shot.side === "side1" || shot.side === "team1"
+                                resolveShotSide(shot) === "side1"
                                   ? "bg-gradient-to-b from-[#3c6e71] to-[#2a5056] dark:from-[#3c6e71] dark:to-[#2a5056]"
                                   : "bg-gradient-to-b from-[#284b63] to-[#1a3547] dark:from-[#284b63] dark:to-[#1a3547]"
                               }`}
@@ -265,8 +285,7 @@ export default function ShotFeed({
                                   →{" "}
                                   <span
                                     className={`font-medium ${
-                                      shot.side === "side1" ||
-                                      shot.side === "team1"
+                                      resolveShotSide(shot) === "side1"
                                         ? "text-[#3c6e71] dark:text-[#3c6e71]"
                                         : "text-[#284b63] dark:text-[#284b63]"
                                     }`}

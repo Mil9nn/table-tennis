@@ -1,9 +1,8 @@
 import mongoose, { Document } from "mongoose";
 import Match, { IMatchBase } from "./MatchBase";
 import {
-  createShotSchema,
-  createTeamGameSchema,
-  createServerConfigSchema,
+  createIdBasedGameSchema,
+  createIdServerConfigSchema,
   playerStatsSchema,
   teamInfoSchema,
 } from "./shared/matchSchemas";
@@ -27,10 +26,15 @@ export interface ITeamMatch extends IMatchBase {
   team2: any; // teamInfoSchema
   subMatches: mongoose.Types.DocumentArray<any>;
   finalScore: {
-    team1Matches: number;
-    team2Matches: number;
+    matchesByTeamId: Map<string, number>;
+    /** @deprecated transitional compatibility */
+    team1Matches?: number;
+    /** @deprecated transitional compatibility */
+    team2Matches?: number;
   };
-  winnerTeam: 'team1' | 'team2' | null;
+  winnerTeamId: mongoose.Types.ObjectId | null;
+  /** @deprecated transitional compatibility */
+  winnerTeam?: 'team1' | 'team2' | null;
   serverConfig: any;
   statistics?: {
     longestStreak: number;
@@ -40,13 +44,8 @@ export interface ITeamMatch extends IMatchBase {
   scheduledDate?: Date;
 }
 
-// Create schemas with team match enums (team1/team2)
-const shotSchema = createShotSchema(["team1", "team2"]);
-const gameSchema = createTeamGameSchema(shotSchema, ["team1", "team2"]);
-const serverConfigSchema = createServerConfigSchema(
-  ["team1", "team2"],
-  ["team1_main", "team1_partner", "team2_main", "team2_partner"]
-);
+const gameSchema = createIdBasedGameSchema();
+const serverConfigSchema = createIdServerConfigSchema();
 
 const subMatchSchema = new mongoose.Schema({
   matchNumber: { type: Number, required: true },
@@ -63,35 +62,25 @@ const subMatchSchema = new mongoose.Schema({
     default: null,
   },
 
-  currentServer: {
-    type: String,
-    enum: [
-      "team1",
-      "team2",
-      "team1_main",
-      "team1_partner",
-      "team2_main",
-      "team2_partner",
-    ],
+  currentServerPlayerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     default: null,
   },
 
   games: [gameSchema],
 
   finalScore: {
-    team1Games: { type: Number, default: 0 },
-    team2Games: { type: Number, default: 0 },
+    scoresByTeamId: { type: Map, of: Number, default: {} },
   },
 
-  winnerSide: { type: String, enum: ["team1", "team2"], default: null },
+  winnerTeamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
 
   status: {
     type: String,
     enum: ["scheduled", "in_progress", "completed", "cancelled"],
     default: "scheduled",
   },
-
-  completed: { type: Boolean, default: false },
 
   startedAt: Date,
   completedAt: Date,
@@ -129,11 +118,10 @@ const TeamMatchSchema = new mongoose.Schema(
 
     // final team-level score (matches won)
     finalScore: {
-      team1Matches: { type: Number, default: 0 },
-      team2Matches: { type: Number, default: 0 },
+      matchesByTeamId: { type: Map, of: Number, default: {} },
     },
 
-    winnerTeam: { type: String, enum: ["team1", "team2"], default: null },
+    winnerTeamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
 
     // match-level server config
     serverConfig: {

@@ -32,7 +32,27 @@ interface IndividualMatch {
   matchType?: "singles" | "doubles";
   participants: Participant[];
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
-  finalScore?: { side1Sets: number; side2Sets: number };
+  finalScore?: {
+    side1Sets?: number;
+    side2Sets?: number;
+    setsById?: Record<string, number>;
+    setsByPlayerId?: Record<string, number>;
+    sets?: Record<string, number>;
+  };
+  games?: Array<{
+    winnerId?: string;
+    winnerPlayerId?: string;
+    winner?: string;
+    winnerSide?: "side1" | "side2";
+    side1Score?: number;
+    side2Score?: number;
+    scoresById?: Record<string, number>;
+    scoresByPlayerId?: Record<string, number>;
+    scores?: Record<string, number>;
+  }>;
+  winnerId?: string;
+  winnerPlayerId?: string;
+  winner?: string;
   winnerSide?: "side1" | "side2";
   date?: string;
   time?: string;
@@ -126,10 +146,28 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
         (match.winnerTeam === "team2" && index === 1)
       );
     } else {
-      if (!match.winnerSide) return false;
+      const winnerId = String(
+        (match as IndividualMatch).winnerId ||
+          (match as IndividualMatch).winnerPlayerId ||
+          (match as IndividualMatch).winner ||
+          ""
+      );
+      if (winnerId) {
+        if (isDoubles(match as IndividualMatch)) {
+          const ids = index === 0
+            ? [(match as IndividualMatch).participants?.[0]?._id, (match as IndividualMatch).participants?.[1]?._id]
+            : [(match as IndividualMatch).participants?.[2]?._id, (match as IndividualMatch).participants?.[3]?._id];
+          return ids.filter(Boolean).map(String).includes(winnerId);
+        }
+        const id = index === 0
+          ? (match as IndividualMatch).participants?.[0]?._id
+          : (match as IndividualMatch).participants?.[1]?._id;
+        return String(id || "") === winnerId;
+      }
+      if (!(match as IndividualMatch).winnerSide) return false;
       return (
-        (match.winnerSide === "side1" && index === 0) ||
-        (match.winnerSide === "side2" && index === 1)
+        ((match as IndividualMatch).winnerSide === "side1" && index === 0) ||
+        ((match as IndividualMatch).winnerSide === "side2" && index === 1)
       );
     }
   };
@@ -140,7 +178,62 @@ const TournamentSchedule: FC<TournamentScheduleProps> = ({
     if (isTeamMatch(match) && match.finalScore) {
       return `${match.finalScore.team1Matches}-${match.finalScore.team2Matches}`;
     } else if (!isTeamMatch(match) && match.finalScore) {
-      return `${match.finalScore.side1Sets}-${match.finalScore.side2Sets}`;
+      const byId =
+        match.finalScore.setsById ||
+        match.finalScore.setsByPlayerId ||
+        match.finalScore.sets ||
+        {};
+
+      const side1Ids = isDoubles(match)
+        ? [match.participants?.[0]?._id, match.participants?.[1]?._id]
+        : [match.participants?.[0]?._id];
+      const side2Ids = isDoubles(match)
+        ? [match.participants?.[2]?._id, match.participants?.[3]?._id]
+        : [match.participants?.[1]?._id];
+
+      const readSideScore = (ids: Array<string | undefined>, fallback: number) => {
+        const values = ids
+          .map((id) => (id ? byId[String(id)] : undefined))
+          .filter((value): value is number => value !== undefined && value !== null)
+          .map((value) => Number(value));
+
+        if (values.length === 0) return fallback;
+        return Math.max(...values);
+      };
+
+      const s1 = readSideScore(side1Ids, Number(match.finalScore.side1Sets ?? 0));
+      const s2 = readSideScore(side2Ids, Number(match.finalScore.side2Sets ?? 0));
+
+      // Fallback for stale embedded tournament matches where finalScore is not synced
+      if (s1 === 0 && s2 === 0 && Array.isArray(match.games) && match.games.length > 0) {
+        let side1SetsFromGames = 0;
+        let side2SetsFromGames = 0;
+
+        for (const game of match.games) {
+          const winnerId = String(game.winnerId || game.winnerPlayerId || game.winner || "");
+          if (winnerId) {
+            const side1Won = side1Ids.filter(Boolean).map(String).includes(winnerId);
+            const side2Won = side2Ids.filter(Boolean).map(String).includes(winnerId);
+            if (side1Won) side1SetsFromGames += 1;
+            if (side2Won) side2SetsFromGames += 1;
+            continue;
+          }
+
+          if (game.winnerSide === "side1") {
+            side1SetsFromGames += 1;
+            continue;
+          }
+          if (game.winnerSide === "side2") {
+            side2SetsFromGames += 1;
+          }
+        }
+
+        if (side1SetsFromGames > 0 || side2SetsFromGames > 0) {
+          return `${side1SetsFromGames}-${side2SetsFromGames}`;
+        }
+      }
+
+      return `${s1}-${s2}`;
     }
     return null;
   };

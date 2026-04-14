@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { buildDoublesRotationForTeamMatch } from "@/components/live-scorer/individual/helpers";
 import { withAuth } from "@/lib/api-utils";
 import { canScoreTournamentMatch } from "@/lib/tournament-permissions";
+import { applyShotsToLoadedMatch } from "@/services/match/matchPointService";
 
 export async function POST(
   req: NextRequest,
@@ -71,8 +72,10 @@ export async function POST(
       { path: "subMatches.playerTeam1 subMatches.playerTeam2", select: "username fullName profileImage" },
     ]);
 
+    const matchJson = await applyShotsToLoadedMatch(match, "team", true);
+
     return NextResponse.json({
-      match,
+      match: matchJson,
       message: "Server configuration saved",
     });
   } catch (err: any) {

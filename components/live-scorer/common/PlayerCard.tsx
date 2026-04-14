@@ -53,8 +53,10 @@ export default function PlayerCard({
   };
 
   const isPlayerServing = (player: PlayerInfo) => {
-    if (!currentServer || !player.serverKey) return false;
-    return currentServer === player.serverKey;
+    if (!currentServer) return false;
+    if (player.playerId) return currentServer === player.playerId;
+    if (player.serverKey) return currentServer === player.serverKey;
+    return false;
   };
 
   const handleClick = () => {

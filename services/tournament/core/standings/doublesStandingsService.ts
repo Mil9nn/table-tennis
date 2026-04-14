@@ -109,8 +109,9 @@ export class DoublesStandingsService implements IStandingsService {
       team2Stats.played += 1;
 
       // Calculate sets and points
-      const team1Sets = match.finalScore.side1Sets;
-      const team2Sets = match.finalScore.side2Sets;
+      const setsById = match.finalScore?.setsById || {};
+      const team1Sets = Number(setsById[team1Id] ?? match.finalScore.side1Sets ?? 0);
+      const team2Sets = Number(setsById[team2Id] ?? match.finalScore.side2Sets ?? 0);
 
       team1Stats.setsWon += team1Sets;
       team1Stats.setsLost += team2Sets;
@@ -122,8 +123,9 @@ export class DoublesStandingsService implements IStandingsService {
       let team2Points = 0;
 
       match.games.forEach((game) => {
-        team1Points += game.side1Score;
-        team2Points += game.side2Score;
+        const scoresById = game.scoresById || {};
+        team1Points += Number(scoresById[team1Id] ?? game.side1Score ?? 0);
+        team2Points += Number(scoresById[team2Id] ?? game.side2Score ?? 0);
       });
 
       team1Stats.pointsScored += team1Points;
@@ -132,7 +134,15 @@ export class DoublesStandingsService implements IStandingsService {
       team2Stats.pointsConceded += team1Points;
 
       // Update match result (win/loss/draw)
-      if (match.winnerSide === "side1") {
+      const winnerId =
+        match.winnerId ||
+        (match.winnerSide === "side1"
+          ? team1Id
+          : match.winnerSide === "side2"
+            ? team2Id
+            : null);
+
+      if (winnerId === team1Id) {
         team1Stats.won += 1;
         team2Stats.lost += 1;
         team1Stats.points += rules.pointsForWin;
@@ -143,7 +153,7 @@ export class DoublesStandingsService implements IStandingsService {
         // Head-to-head
         team1Stats.headToHead.set(team2Id, rules.pointsForWin);
         team2Stats.headToHead.set(team1Id, rules.pointsForLoss);
-      } else if (match.winnerSide === "side2") {
+      } else if (winnerId === team2Id) {
         team2Stats.won += 1;
         team1Stats.lost += 1;
         team2Stats.points += rules.pointsForWin;

@@ -64,7 +64,7 @@ const nextConfig: NextConfig = {
           // Control which browser features can be used
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
           // Content Security Policy - Prevents XSS and data injection attacks
           // This is a strict policy - adjust as needed for your use case
