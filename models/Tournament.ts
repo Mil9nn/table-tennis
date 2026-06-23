@@ -1,0 +1,361 @@
+// models/Tournament.ts
+import mongoose, { Schema, Document } from "mongoose";
+import { attachTournamentProjectionHooks } from "./utils/tournamentProjectionSync";
+
+const roundSchema = new Schema({
+  roundNumber: { type: Number, required: true },
+  matches: [{ type: Schema.Types.ObjectId, ref: "Match" }],
+  completed: { type: Boolean, default: false },
+  scheduledDate: { type: Date },
+  scheduledTime: { type: String },
+}, { _id: false });
+
+// Interfaces (needed for TypeScript typing in other files)
+export interface ISeeding {
+  participant: mongoose.Types.ObjectId;
+  seedNumber: number;
+  seedingRank?: number; // ITTF ranking or custom ranking
+  seedingPoints?: number;
+}
+
+export interface IStanding {
+  participant: mongoose.Types.ObjectId;
+  played: number;
+  won: number;
+  lost: number;
+  drawn: number;
+  setsWon: number;
+  setsLost: number;
+  setsDiff: number;
+  pointsScored: number;
+  pointsConceded: number;
+  pointsDiff: number;
+  points: number;
+  rank: number;
+  form: string[]; // Last 5 results
+  headToHead?: Map<string, number>; // opponent ID -> points in H2H
+}
+
+
+export interface IGroup {
+  groupId: string; // e.g., "A", "B", "C"
+  groupName: string; // e.g., "Group A"
+  participants: mongoose.Types.ObjectId[];
+  rounds: Array<{
+    roundNumber: number;
+    matches: mongoose.Types.ObjectId[];
+    completed: boolean;
+    scheduledDate?: Date;
+  }>;
+  standings: IStanding[]; // Last 5 results: "W", "L", "D"
+}
+
+export interface ITournament extends Document {
+  name: string;
+  format: "round_robin" | "knockout" | "hybrid";
+  category: "individual" | "team";
+  matchType: "singles" | "doubles";
+  startDate: Date;
+  endDate?: Date;
+  status: "draft" | "upcoming" | "in_progress" | "completed" | "cancelled";
+  participants: mongoose.Types.ObjectId[];
+  organizer: mongoose.Types.ObjectId;
+  scorers: mongoose.Types.ObjectId[]; // Users who can score matches (max 10)
+
+  // Subscription tracking
+  createdWithTier: "free" | "pro";
+  customBranding?: {
+    logo?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+  };
+  maxScorersAllowed: number; // Computed from organizer's tier at creation
+
+  // Seeding system
+  seeding: ISeeding[];
+  seedingMethod: "manual" | "ranking" | "random" | "none";
+
+  // Groups/Pools (for larger tournaments)
+  useGroups: boolean;
+  numberOfGroups?: number;
+  groups?: IGroup[]; // Projection-hydrated (tournament_groups)
+  advancePerGroup?: number; // How many from each group advance
+
+  // Knockout specific
+  knockoutConfig?: {
+    allowCustomMatching: boolean;
+    autoGenerateBracket: boolean;
+    thirdPlaceMatch: boolean;
+    consolationBracket: boolean;
+  };
+  bracket?: any; // Will store the bracket structure
+
+  // Team tournament config
+  teamConfig?: {
+    matchFormat: "five_singles" | "single_double_single" | "custom";
+    setsPerSubMatch: number;
+    customSubMatches?: Array<{
+      matchNumber: number;
+      matchType: "singles" | "doubles";
+    }>;
+  };
+
+  // Hybrid format specific (round-robin -> knockout)
+  hybridConfig?: {
+    // Round-robin phase settings
+    roundRobinUseGroups: boolean;
+    roundRobinNumberOfGroups?: number;
+
+    // Qualification settings
+    qualificationMethod: "top_n_per_group";
+    qualifyingPerGroup?: number; // For group-based qualification
+
+    // Knockout phase settings
+    knockoutAllowCustomMatching: boolean;
+    knockoutThirdPlaceMatch: boolean;
+  };
+
+
+  // Phase tracking for hybrid tournaments
+  currentPhase?: "round_robin" | "knockout" | "transition";
+  phaseTransitionDate?: Date;
+  qualifiedParticipants?: mongoose.Types.ObjectId[];
+
+  // Round Robin specific
+  rounds: Array<{
+    roundNumber: number;
+    matches: mongoose.Types.ObjectId[];
+    completed: boolean;
+    scheduledDate?: Date;
+    scheduledTime?: string;
+  }>;
+
+  standings: IStanding[]; // Projection-hydrated (tournament_standings)
+
+  // Tournament rules (ITTF-compliant)
+  rules: {
+    pointsForWin: number; // ITTF: 2 points
+    pointsForLoss: number; // ITTF: 0 points
+    setsPerMatch: number; // Best of 3, 5, or 7
+    pointsPerSet: number; // Usually 11
+    advanceTop: number; // How many advance to next stage
+    deuceSetting: "standard" | "no_deuce"; // Standard: win by 2
+    tiebreakRules: string[]; // Order of tiebreakers
+  };
+
+  // Draw management
+  drawGenerated: boolean;
+  drawGeneratedAt?: Date;
+  drawGeneratedBy?: mongoose.Types.ObjectId;
+
+  // Participant registration
+  joinCode?: string; // Unique 6-character code for joining
+  allowJoinByCode: boolean; // Allow participants to self-register
+  registrationDeadline?: Date; // Deadline for joining
+
+  venue: string;
+  city: string;
+  maxParticipants?: number;
+  minParticipants?: number;
+
+  // Doubles pairs (for individual doubles tournaments)
+  doublesPairs?: Array<{
+    _id: mongoose.Types.ObjectId;
+    player1: mongoose.Types.ObjectId;
+    player2: mongoose.Types.ObjectId;
+  }>;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const tournamentSchema = new Schema<ITournament>(
+  {
+    name: { type: String, required: true },
+    format: {
+      type: String,
+      enum: ["round_robin", "knockout", "hybrid"],
+      required: true,
+    },
+    category: {
+      type: String,
+      enum: ["individual", "team"],
+      required: true,
+    },
+    matchType: {
+      type: String,
+      enum: ["singles", "doubles"],
+      required: true,
+    },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date },
+    status: {
+      type: String,
+      enum: ["draft", "upcoming", "in_progress", "completed", "cancelled"],
+      default: "draft",
+    },
+
+    // Participants can be Users (individual) or Teams (team category)
+    // We don't use ref here to allow both types, population is handled manually based on category
+    participants: [{ type: Schema.Types.ObjectId }],
+    organizer: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    
+    // Scorers - users who can score matches in this tournament (max 10)
+    // Organizer is implicitly a scorer and doesn't need to be in this array
+    scorers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+
+    customBranding: {
+      logo: { type: String },
+      primaryColor: { type: String },
+      secondaryColor: { type: String },
+    },
+    maxScorersAllowed: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    // Seeding
+    seeding: [
+      {
+        participant: { type: Schema.Types.ObjectId, ref: "User" },
+        seedNumber: { type: Number, required: true },
+        seedingRank: { type: Number },
+        seedingPoints: { type: Number },
+      },
+    ],
+    seedingMethod: {
+      type: String,
+      enum: ["manual", "ranking", "random", "none"],
+      default: "none",
+    },
+
+    // Groups/Pools
+    useGroups: { type: Boolean, default: false },
+    numberOfGroups: { type: Number },
+    // groups removed from persisted schema; loaded from TournamentGroups projection
+    advancePerGroup: { type: Number },
+
+    // Knockout specific
+    knockoutConfig: {
+      allowCustomMatching: { type: Boolean, default: true },
+      autoGenerateBracket: { type: Boolean, default: true },
+      thirdPlaceMatch: { type: Boolean, default: false },
+      consolationBracket: { type: Boolean, default: false },
+    },
+    bracket: { type: Schema.Types.Mixed }, // Will store the bracket structure
+
+    // Hybrid format specific
+    hybridConfig: {
+      type: {
+        // Round-robin phase settings
+        roundRobinUseGroups: { type: Boolean, default: false },
+        roundRobinNumberOfGroups: { type: Number },
+
+        // Qualification settings
+        qualificationMethod: {
+          type: String,
+          enum: ["top_n_per_group"],
+          default: "top_n_per_group",
+        },
+        qualifyingPerGroup: { type: Number },
+
+        // Knockout phase settings
+        knockoutAllowCustomMatching: { type: Boolean, default: false },
+        knockoutThirdPlaceMatch: { type: Boolean, default: false },
+      },
+      required: false,
+    },
+
+    // Team tournament config (for category: "team")
+    teamConfig: {
+      type: {
+        matchFormat: {
+          type: String,
+          enum: ["five_singles", "single_double_single", "custom"],
+          default: "five_singles",
+        },
+        setsPerSubMatch: { type: Number, default: 3 },
+        customSubMatches: [
+          {
+            matchNumber: { type: Number },
+            matchType: { type: String, enum: ["singles", "doubles"] },
+          },
+        ],
+      },
+      required: false,
+    },
+
+    // Phase tracking for hybrid tournaments
+    currentPhase: {
+      type: String,
+      enum: ["round_robin", "knockout", "transition"],
+    },
+    phaseTransitionDate: { type: Date },
+    qualifiedParticipants: [{ type: Schema.Types.ObjectId, ref: "User" }],
+
+    // Rounds
+    rounds: [roundSchema],
+
+    // Standings
+    // standings removed from persisted schema; loaded from TournamentStandings projection
+
+    // Rules (ITTF-compliant defaults)
+    rules: {
+      pointsForWin: { type: Number, default: 1 },
+      pointsForLoss: { type: Number, default: 0 },
+      setsPerMatch: { type: Number, default: 3 },
+      pointsPerSet: { type: Number, default: 11 },
+      advanceTop: { type: Number, default: 0 },
+      deuceSetting: {
+        type: String,
+        enum: ["standard", "no_deuce"],
+        default: "standard",
+      },
+      tiebreakRules: {
+        type: [String],
+        default: [
+          "points",
+          "head_to_head",
+          "sets_ratio",
+          "points_ratio",
+          "sets_won",
+        ],
+      },
+    },
+
+    // Draw management
+    drawGenerated: { type: Boolean, default: false },
+    drawGeneratedAt: { type: Date },
+    drawGeneratedBy: { type: Schema.Types.ObjectId, ref: "User" },
+
+    // Participant registration
+    joinCode: { type: String, unique: true, sparse: true },
+    allowJoinByCode: { type: Boolean, default: false },
+    registrationDeadline: { type: Date },
+
+    venue: { type: String, required: true },
+    city: { type: String, required: true },
+    maxParticipants: { type: Number },
+    minParticipants: { type: Number, default: 2 },
+
+    // Doubles pairs (for individual doubles tournaments)
+    // Using Mixed type to allow flexible handling across different tournament types
+    doublesPairs: { type: Schema.Types.Mixed },
+  },
+  { timestamps: true }
+);
+
+// Core filter/sort paths used by tournament list and dashboard queries
+tournamentSchema.index({ status: 1, startDate: -1 });
+tournamentSchema.index({ category: 1, format: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ organizer: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ participants: 1, status: 1, startDate: -1 });
+tournamentSchema.index({ city: 1, startDate: -1 });
+
+attachTournamentProjectionHooks(tournamentSchema);
+
+const Tournament = mongoose.models.Tournament ||
+  mongoose.model<ITournament>("Tournament", tournamentSchema);
+
+export default Tournament;

@@ -1,0 +1,1436 @@
+import IndividualMatch from "@/models/IndividualMatch";
+import TeamMatch from "@/models/TeamMatch";
+import Team from "@/models/Team";
+import mongoose from "mongoose";
+import { ITournament, ISeeding } from "@/models/Tournament";
+import { Tournament } from "@/services/tournament/repositories/TournamentRepository";
+import { tournamentProjectionRepository } from "@/services/tournament/repositories/TournamentProjectionRepository";
+import {
+  generateRoundRobinSchedule,
+  generateSeededRoundRobinSchedule,
+} from "./schedulingService";
+import { allocateGroups } from "../utils/groupAllocator";
+import { generateRandomSeeding } from "./seedingService";
+import { generateKnockoutBracket } from "./bracketGenerationService";
+import { scheduleBracketMatches } from "./bracketSchedulingService";
+import { KnockoutBracket, BracketMatch } from "@/types/tournamentDraw";
+
+/**
+ * Match generation service
+ * Handles all tournament draw generation logic
+ */
+
+interface MatchGenerationOptions {
+  courtsAvailable?: number;
+  matchDuration?: number; // in minutes
+  session?: mongoose.ClientSession;
+}
+
+interface MatchGenerationResult {
+  tournament: Tournament;
+  stats: {
+    totalMatches: number;
+    totalRounds: number;
+    groups?: number;
+    format: string;
+  };
+}
+
+/**
+ * Get match participants for singles or doubles matches
+ * For doubles, uses tournament.doublesPairs if available, falls back to consecutive indexing
+ */
+export interface MatchParticipantsResult {
+  participants: mongoose.Types.ObjectId[];
+  teams?: { players: mongoose.Types.ObjectId[] }[];
+}
+
+export function getMatchParticipants(
+  pairing: any,
+  isDoubles: boolean,
+  participantIds: string[],
+  doublesPairs?: any[]
+): mongoose.Types.ObjectId[] {
+  const result = getMatchParticipantsWithTeams(pairing, isDoubles, participantIds, doublesPairs);
+  return result.participants;
+}
+
+export function getMatchParticipantsWithTeams(
+  pairing: any,
+  isDoubles: boolean,
+  participantIds: string[],
+  doublesPairs?: any[]
+): MatchParticipantsResult {
+  if (!isDoubles) {
+    const p1 = new mongoose.Types.ObjectId(pairing.player1.toString());
+    const p2 = new mongoose.Types.ObjectId(pairing.player2.toString());
+    return {
+      participants: [p1, p2],
+      teams: [{ players: [p1] }, { players: [p2] }],
+    };
+  }
+
+  if (doublesPairs && doublesPairs.length > 0) {
+    const pair1 = doublesPairs.find(
+      (p: any) => p._id.toString() === pairing.player1.toString()
+    );
+    const pair2 = doublesPairs.find(
+      (p: any) => p._id.toString() === pairing.player2.toString()
+    );
+
+    if (pair1 && pair2) {
+      const t0p1 = new mongoose.Types.ObjectId(pair1.player1.toString());
+      const t0p2 = new mongoose.Types.ObjectId(pair1.player2.toString());
+      const t1p1 = new mongoose.Types.ObjectId(pair2.player1.toString());
+      const t1p2 = new mongoose.Types.ObjectId(pair2.player2.toString());
+      return {
+        participants: [t0p1, t0p2, t1p1, t1p2],
+        teams: [{ players: [t0p1, t0p2] }, { players: [t1p1, t1p2] }],
+      };
+    }
+  }
+
+  const team1Idx = participantIds.findIndex(
+    (id: any) => id === pairing.player1.toString()
+  );
+  const team2Idx = participantIds.findIndex(
+    (id: any) => id === pairing.player2.toString()
+  );
+
+  const t0p1 = new mongoose.Types.ObjectId(participantIds[team1Idx]);
+  const t0p2 = new mongoose.Types.ObjectId(participantIds[team1Idx + 1]);
+  const t1p1 = new mongoose.Types.ObjectId(participantIds[team2Idx]);
+  const t1p2 = new mongoose.Types.ObjectId(participantIds[team2Idx + 1]);
+  return {
+    participants: [t0p1, t0p2, t1p1, t1p2],
+    teams: [{ players: [t0p1, t0p2] }, { players: [t1p1, t1p2] }],
+  };
+}
+
+/**
+ * Create and save a scheduled match
+ */
+export async function createScheduledMatch(
+  matchParticipants: mongoose.Types.ObjectId[],
+  tournament: Tournament,
+  scorerId: string,
+  groupId?: string,
+  matchTeams?: { players: mongoose.Types.ObjectId[] }[],
+  session?: mongoose.ClientSession
+): Promise<any> {
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  // Build teams if not explicitly provided
+  const teams = matchTeams ?? (isDoubles && matchParticipants.length === 4
+    ? [
+        { players: [matchParticipants[0], matchParticipants[1]] },
+        { players: [matchParticipants[2], matchParticipants[3]] },
+      ]
+    : matchParticipants.length >= 2
+      ? [{ players: [matchParticipants[0]] }, { players: [matchParticipants[1]] }]
+      : undefined);
+
+  const match = new IndividualMatch({
+    matchType: (tournament as any).matchType,
+    matchCategory: "individual",
+    numberOfSets: tournament.rules.setsPerMatch,
+    city: tournament.city,
+    venue: tournament.venue,
+    participants: matchParticipants,
+    teams,
+    scorer: scorerId,
+    status: "scheduled",
+    tournament: tournament._id,
+    groupId: groupId || undefined,
+  });
+
+  await match.save(session ? { session } : undefined);
+  return match;
+}
+
+/**
+ * Create and save a scheduled team match (round-robin)
+ */
+export async function createScheduledTeamMatch(
+  pairing: any,
+  tournament: Tournament,
+  scorerId: string,
+  groupId?: string,
+  session?: mongoose.ClientSession
+): Promise<any> {
+  // Fetch team docs
+  const team1 = await Team.findById(pairing.player1).lean();
+  const team2 = await Team.findById(pairing.player2).lean();
+
+  if (!team1 || !team2) {
+    throw new Error("Invalid team IDs in pairing");
+  }
+
+  // Prepare submatches according to teamConfig (optional: if assignments exist)
+  const matchFormat =
+    (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const rawSetsValue = (tournament as any).teamConfig?.setsPerSubMatch;
+  const setsPerSubMatch = rawSetsValue 
+    ? Number(rawSetsValue)
+    : 3;
+
+  const subMatches: any[] = [];
+  
+  // Convert Map to object if needed (MongoDB stores Map as object)
+  const getAssignmentsObject = (assignments: any): Record<string, string> => {
+    if (!assignments) return {};
+    if (assignments instanceof Map) {
+      return Object.fromEntries(assignments);
+    }
+    if (typeof assignments === 'object') {
+      return assignments;
+    }
+    return {};
+  };
+
+  const team1Assignments = getAssignmentsObject((team1 as any).assignments);
+  const team2Assignments = getAssignmentsObject((team2 as any).assignments);
+
+  function findByPos(assignments: Record<string, string>, pos: string) {
+    const entries = Object.entries(assignments || {});
+    const found = entries.find(([, p]) => p === pos);
+    return found ? found[0] : null;
+  }
+
+  // Validate team assignments based on format
+  const team1Positions = Object.values(team1Assignments);
+  const team2Positions = Object.values(team2Assignments);
+
+  if (matchFormat === "five_singles") {
+    // five_singles requires A, B, C for team1 and X, Y, Z for team2
+    const requiredTeam1 = ["A", "B", "C"];
+    const requiredTeam2 = ["X", "Y", "Z"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign all player positions (A, B, C for home team; X, Y, Z for away team) before generating the draw.`);
+    }
+
+    const order = [
+      ["A", "X"],
+      ["B", "Y"],
+      ["C", "Z"],
+      ["A", "Y"],
+      ["B", "X"],
+    ];
+    order.forEach((pair, idx) => {
+      const p1 = findByPos(team1Assignments, pair[0]);
+      const p2 = findByPos(team2Assignments, pair[1]);
+      if (p1 && p2) {
+        subMatches.push({
+          matchNumber: idx + 1,
+          matchType: "singles",
+          playerTeam1: [p1],
+          playerTeam2: [p2],
+          numberOfGames: setsPerSubMatch,
+          games: [],
+          status: "scheduled",
+          completed: false,
+        });
+      }
+    });
+  } else if (matchFormat === "single_double_single") {
+    // single_double_single requires A, B for team1 and X, Y for team2
+    const requiredTeam1 = ["A", "B"];
+    const requiredTeam2 = ["X", "Y"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign player positions (A, B for home team; X, Y for away team) before generating the draw.`);
+    }
+
+    const A = findByPos(team1Assignments, "A");
+    const B = findByPos(team1Assignments, "B");
+    const X = findByPos(team2Assignments, "X");
+    const Y = findByPos(team2Assignments, "Y");
+    if (A && X) {
+      subMatches.push({
+        matchNumber: 1,
+        matchType: "singles",
+        playerTeam1: [A],
+        playerTeam2: [X],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (A && B && X && Y) {
+      subMatches.push({
+        matchNumber: 2,
+        matchType: "doubles",
+        playerTeam1: [A, B],
+        playerTeam2: [X, Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (B && Y) {
+      subMatches.push({
+        matchNumber: 3,
+        matchType: "singles",
+        playerTeam1: [B],
+        playerTeam2: [Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  }
+
+  const teamMatch = new TeamMatch({
+    matchCategory: "team",
+    matchFormat: matchFormat,
+    numberOfGamesPerRubber: setsPerSubMatch,
+    numberOfSubMatches:
+      subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    city: tournament.city,
+    venue: tournament.venue,
+    scorer: scorerId,
+    status: "scheduled",
+    team1: {
+      name: (team1 as any).name,
+      captain: (team1 as any).captain,
+      players: (team1 as any).players,
+      city: (team1 as any).city,
+      assignments: (team1 as any).assignments || {},
+    },
+    team2: {
+      name: (team2 as any).name,
+      captain: (team2 as any).captain,
+      players: (team2 as any).players,
+      city: (team2 as any).city,
+      assignments: (team2 as any).assignments || {},
+    },
+    subMatches,
+  });
+
+  await teamMatch.save(session ? { session } : undefined);
+
+  return teamMatch;
+}
+
+/**
+ * Create a team match for a bracket position with bracket metadata
+ */
+export async function createBracketTeamMatch(
+  bracketMatch: BracketMatch,
+  tournament: Tournament,
+  scorerId: string
+): Promise<any> {
+  // Only create matches that have both participants (not TBD)
+  if (!bracketMatch.participant1 || !bracketMatch.participant2) {
+    return null;
+  }
+
+  // Fetch team docs
+  const team1 = await Team.findById(bracketMatch.participant1).lean();
+  const team2 = await Team.findById(bracketMatch.participant2).lean();
+
+  if (!team1 || !team2) {
+    throw new Error("Invalid team IDs in bracket match");
+  }
+
+  // Prepare submatches according to teamConfig (optional: if assignments exist)
+  const matchFormat =
+    (tournament as any).teamConfig?.matchFormat || "five_singles";
+  const setsPerSubMatch = (tournament as any).teamConfig?.setsPerSubMatch 
+    ? Number((tournament as any).teamConfig.setsPerSubMatch)
+    : 3;
+
+  const subMatches: any[] = [];
+  
+  // Convert Map to object if needed (MongoDB stores Map as object)
+  const getAssignmentsObj = (assignments: any): Record<string, string> => {
+    if (!assignments) return {};
+    if (assignments instanceof Map) {
+      return Object.fromEntries(assignments);
+    }
+    if (typeof assignments === 'object') {
+      return assignments;
+    }
+    return {};
+  };
+
+  const team1Assignments = getAssignmentsObj((team1 as any).assignments);
+  const team2Assignments = getAssignmentsObj((team2 as any).assignments);
+
+  function findByPos(assignments: Record<string, string>, pos: string) {
+    const entries = Object.entries(assignments || {});
+    const found = entries.find(([, p]) => p === pos);
+    return found ? found[0] : null;
+  }
+
+  // Validate team assignments based on format
+  const team1Positions = Object.values(team1Assignments);
+  const team2Positions = Object.values(team2Assignments);
+
+  if (matchFormat === "five_singles") {
+    // five_singles requires A, B, C for team1 and X, Y, Z for team2
+    const requiredTeam1 = ["A", "B", "C"];
+    const requiredTeam2 = ["X", "Y", "Z"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign all player positions (A, B, C for home team; X, Y, Z for away team) before generating the draw.`);
+    }
+
+    const order = [
+      ["A", "X"],
+      ["B", "Y"],
+      ["C", "Z"],
+      ["A", "Y"],
+      ["B", "X"],
+    ];
+    order.forEach((pair, idx) => {
+      const p1 = findByPos(team1Assignments, pair[0]);
+      const p2 = findByPos(team2Assignments, pair[1]);
+      if (p1 && p2) {
+        subMatches.push({
+          matchNumber: idx + 1,
+          matchType: "singles",
+          playerTeam1: [p1],
+          playerTeam2: [p2],
+          numberOfGames: setsPerSubMatch,
+          games: [],
+          status: "scheduled",
+          completed: false,
+        });
+      }
+    });
+  } else if (matchFormat === "single_double_single") {
+    // single_double_single requires A, B for team1 and X, Y for team2
+    const requiredTeam1 = ["A", "B"];
+    const requiredTeam2 = ["X", "Y"];
+    
+    const missingTeam1 = requiredTeam1.filter(pos => !team1Positions.includes(pos));
+    const missingTeam2 = requiredTeam2.filter(pos => !team2Positions.includes(pos));
+    
+    if (missingTeam1.length > 0 || missingTeam2.length > 0) {
+      const errors: string[] = [];
+      if (missingTeam1.length > 0) {
+        errors.push(`Team "${(team1 as any).name}" is missing positions: ${missingTeam1.join(", ")}`);
+      }
+      if (missingTeam2.length > 0) {
+        errors.push(`Team "${(team2 as any).name}" is missing positions: ${missingTeam2.join(", ")}`);
+      }
+      throw new Error(`Cannot generate team match: ${errors.join(". ")}. Please assign player positions (A, B for home team; X, Y for away team) before generating the draw.`);
+    }
+
+    const A = findByPos(team1Assignments, "A");
+    const B = findByPos(team1Assignments, "B");
+    const X = findByPos(team2Assignments, "X");
+    const Y = findByPos(team2Assignments, "Y");
+    if (A && X) {
+      subMatches.push({
+        matchNumber: 1,
+        matchType: "singles",
+        playerTeam1: [A],
+        playerTeam2: [X],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (A && B && X && Y) {
+      subMatches.push({
+        matchNumber: 2,
+        matchType: "doubles",
+        playerTeam1: [A, B],
+        playerTeam2: [X, Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+    if (B && Y) {
+      subMatches.push({
+        matchNumber: 3,
+        matchType: "singles",
+        playerTeam1: [B],
+        playerTeam2: [Y],
+        numberOfSets: setsPerSubMatch,
+        games: [],
+        status: "scheduled",
+        completed: false,
+      });
+    }
+  }
+
+  const teamMatch = new TeamMatch({
+    matchCategory: "team",
+    matchFormat: matchFormat,
+    numberOfGamesPerRubber: setsPerSubMatch,
+    numberOfSubMatches:
+      subMatches.length || (matchFormat === "five_singles" ? 5 : 3),
+    city: tournament.city,
+    venue: tournament.venue,
+    scorer: scorerId,
+    status: "scheduled",
+    tournament: tournament._id,
+    bracketPosition: bracketMatch.bracketPosition,
+    roundName: bracketMatch.roundName,
+    scheduledDate: bracketMatch.scheduledDate,
+    courtNumber: bracketMatch.courtNumber,
+    team1: {
+      name: (team1 as any).name,
+      captain: (team1 as any).captain,
+      players: (team1 as any).players,
+      city: (team1 as any).city,
+      assignments: (team1 as any).assignments || {},
+    },
+    team2: {
+      name: (team2 as any).name,
+      captain: (team2 as any).captain,
+      players: (team2 as any).players,
+      city: (team2 as any).city,
+      assignments: (team2 as any).assignments || {},
+    },
+    subMatches,
+  });
+
+  await teamMatch.save();
+  return teamMatch;
+}
+
+/**
+ * Create a match for a bracket position with bracket metadata
+ */
+export async function createBracketMatch(
+  bracketMatch: BracketMatch,
+  tournament: Tournament,
+  scorerId: string
+): Promise<any> {
+  // Only create matches that have both participants (not TBD)
+  if (!bracketMatch.participant1 || !bracketMatch.participant2) {
+    return null;
+  }
+
+  // Check if this is a doubles match
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  // Get match participants - for doubles, we need 4 participants
+  let matchParticipants: mongoose.Types.ObjectId[];
+
+  if (isDoubles) {
+    // For doubles, we need to get all 4 players from the pairs
+    // The bracket stores pair IDs (from tournament.doublesPairs)
+    
+    // First, try to get pairs from tournament.doublesPairs (new approach)
+    const doublesPairs = (tournament as any).doublesPairs;
+    
+    if (doublesPairs && doublesPairs.length > 0) {
+      // Find pairs by ID
+      const pair1 = doublesPairs.find((p: any) => 
+        p._id.toString() === bracketMatch.participant1
+      );
+      const pair2 = doublesPairs.find((p: any) => 
+        p._id.toString() === bracketMatch.participant2
+      );
+      
+      if (pair1 && pair2) {
+        matchParticipants = [
+          new mongoose.Types.ObjectId(pair1.player1.toString()),
+          new mongoose.Types.ObjectId(pair1.player2.toString()),
+          new mongoose.Types.ObjectId(pair2.player1.toString()),
+          new mongoose.Types.ObjectId(pair2.player2.toString()),
+        ];
+      } else {
+        // Fallback to legacy behavior if pairs not found
+        console.warn("[createBracketMatch] Pairs not found in doublesPairs, using legacy method");
+        const participantIds = tournament.participants.map((p: any) => p.toString());
+        const pairing = {
+          player1: bracketMatch.participant1,
+          player2: bracketMatch.participant2,
+        };
+        matchParticipants = getMatchParticipants(pairing, true, participantIds);
+      }
+    } else {
+      // Fallback to legacy consecutive array indexing
+      const participantIds = tournament.participants.map((p: any) => p.toString());
+      const pairing = {
+        player1: bracketMatch.participant1,
+        player2: bracketMatch.participant2,
+      };
+      matchParticipants = getMatchParticipants(pairing, true, participantIds);
+    }
+  } else {
+    // Singles - just 2 participants
+    matchParticipants = [
+      new mongoose.Types.ObjectId(bracketMatch.participant1),
+      new mongoose.Types.ObjectId(bracketMatch.participant2),
+    ];
+  }
+
+  const match = new IndividualMatch({
+    matchType: (tournament as any).matchType,
+    matchCategory: "individual",
+    numberOfSets: tournament.rules.setsPerMatch,
+    city: tournament.city,
+    venue: tournament.venue,
+    participants: matchParticipants,
+    scorer: scorerId,
+    status: "scheduled",
+    tournament: tournament._id,
+    bracketPosition: bracketMatch.bracketPosition,
+    roundName: bracketMatch.roundName,
+    scheduledDate: bracketMatch.scheduledDate,
+    courtNumber: bracketMatch.courtNumber,
+  });
+
+  await match.save();
+  return match;
+}
+
+/**
+ * Initialize standings for participants
+ * CRITICAL: Deduplicates participant IDs to ensure unique standings entries
+ */
+export function initializeStandings(participantIds: string[]) {
+  // Deduplicate participant IDs to prevent duplicate standings
+  const uniqueParticipantIds = Array.from(new Set(participantIds));
+  
+  return uniqueParticipantIds.map((pId: string) => ({
+    participant: pId,
+    played: 0,
+    won: 0,
+    lost: 0,
+    drawn: 0,
+    setsWon: 0,
+    setsLost: 0,
+    setsDiff: 0,
+    pointsScored: 0,
+    pointsConceded: 0,
+    pointsDiff: 0,
+    points: 0,
+    rank: 0,
+    form: [],
+    headToHead: new Map(),
+  }));
+}
+
+/**
+ * Generate or initialize seeding for tournament
+ */
+export function prepareSeeding(
+  tournament: any,
+  participantIds: string[]
+): ISeeding[] {
+  // Use existing seeding if available
+  if (tournament.seeding && tournament.seeding.length > 0) {
+    return tournament.seeding;
+  }
+
+  // Generate seeding based on method
+  if (tournament.seedingMethod === "random") {
+    return generateRandomSeeding(participantIds);
+  }
+
+  // Default: use registration order
+  return participantIds.map((pId: string, index: number) => ({
+    participant: new mongoose.Types.ObjectId(pId),
+    seedNumber: index + 1,
+  }));
+}
+
+/**
+ * Validate round-robin schedule completeness
+ */
+function validateScheduleCompleteness(
+  participantCount: number,
+  actualMatches: number,
+  context: string
+): void {
+  const expectedMatches = (participantCount * (participantCount - 1)) / 2;
+  if (actualMatches !== expectedMatches) {
+    console.warn(
+      `${context} schedule validation: Expected ${expectedMatches} matches, got ${actualMatches}`
+    );
+  }
+}
+
+/**
+ * Generate matches for tournament with groups
+ */
+export async function generateGroupMatches(
+  tournament: Tournament,
+  participantIds: string[],
+  seeding: ISeeding[],
+  scorerId: string,
+  options: MatchGenerationOptions
+): Promise<void> {
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  const doublesPairs = (tournament as any).doublesPairs || [];
+
+  // For doubles with pairs, use pair IDs as participants for group allocation
+  let allocationParticipants = participantIds;
+  if (isDoubles && doublesPairs.length > 0) {
+    // Check if participantIds already contains pair IDs (from hybrid service)
+    // by verifying if they exist in doublesPairs
+    const validPairIds = new Set(
+      doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean)
+    );
+    
+    // Check if participantIds are already pair IDs
+    const participantIdsArePairIds = participantIds.length > 0 && 
+      participantIds.every((id: string) => {
+        const normalizedId = id.toString();
+        return validPairIds.has(normalizedId);
+      });
+    
+    if (participantIdsArePairIds) {
+      // participantIds already contains pair IDs (e.g., from hybrid service)
+      // Use them directly after deduplication
+      allocationParticipants = Array.from(new Set(
+        participantIds.map((p: any) => p.toString())
+      ));
+    } else {
+      // participantIds contains player IDs, extract pair IDs from doublesPairs
+      // CRITICAL: Deduplicate by canonical player combination (ROOT FIX)
+      // This ensures we only use unique pairs even if duplicates exist in database
+      const uniquePairsMap = new Map<string, { pairId: string; pair: any }>(); // Map: canonicalKey -> {pairId, pair}
+      
+      for (const pair of doublesPairs) {
+        if (!pair || !pair._id) {
+          console.warn(`[generateGroupMatches] Skipping invalid pair (missing _id)`);
+          continue;
+        }
+        
+        const pairId = pair._id.toString();
+        const player1Id = pair.player1?.toString() || '';
+        const player2Id = pair.player2?.toString() || '';
+        
+        if (!player1Id || !player2Id) {
+          console.warn(`[generateGroupMatches] Skipping invalid pair (missing players): ${pairId}`);
+          continue;
+        }
+        
+        // Create canonical key (order-independent player combination)
+        const canonicalKey = player1Id < player2Id 
+          ? `${player1Id}:${player2Id}` 
+          : `${player2Id}:${player1Id}`;
+        
+        // Only keep the first occurrence of each canonical pair
+        if (!uniquePairsMap.has(canonicalKey)) {
+          uniquePairsMap.set(canonicalKey, { pairId, pair });
+        } else {
+          const existing = uniquePairsMap.get(canonicalKey);
+          console.warn(`[generateGroupMatches] Duplicate pair detected: players ${canonicalKey}. Existing ID: ${existing?.pairId}, Duplicate ID: ${pairId}. Keeping first occurrence.`);
+        }
+      }
+      
+      allocationParticipants = Array.from(uniquePairsMap.values()).map(p => p.pairId);
+      
+      // CRITICAL VALIDATION: Ensure we have exactly the expected number of pairs
+      const expectedPairs = tournament.participants.length / 2;
+      if (allocationParticipants.length !== expectedPairs) {
+        throw new Error(
+          `Pair count mismatch: expected ${expectedPairs} unique pairs for ${tournament.participants.length} participants, ` +
+          `but found ${allocationParticipants.length} after deduplication. ` +
+          `Original doublesPairs array had ${doublesPairs.length} entries. ` +
+          `This suggests duplicate pairs exist in the database. Please reconfigure pairs.`
+        );
+      }
+      
+      if (doublesPairs.length !== allocationParticipants.length) {
+        console.warn(`[generateGroupMatches] Deduplication removed ${doublesPairs.length - allocationParticipants.length} duplicate pairs from database`);
+      }
+    }
+  }
+
+  // CRITICAL: Ensure participant IDs are deduplicated before allocation
+  allocationParticipants = Array.from(new Set(
+    allocationParticipants.map((p: any) => typeof p === 'string' ? p : String(p))
+  ));
+  
+  // CRITICAL: Determine numberOfGroups - for hybrid tournaments, use hybridConfig if numberOfGroups is not set
+  const numberOfGroups = tournament.numberOfGroups ?? 
+    (tournament as any).hybridConfig?.roundRobinNumberOfGroups ?? 
+    1;
+  
+  // Final validation: log allocation details
+  
+  
+
+  const groupAllocations = allocateGroups(
+    allocationParticipants,
+    numberOfGroups,
+    seeding.length > 0 ? seeding : undefined
+  );
+  
+  // Validate group allocations
+  const totalAllocated = groupAllocations.reduce((sum, g) => sum + g.participants.length, 0);
+  
+  
+  
+  
+  if (totalAllocated !== allocationParticipants.length) {
+    console.error(`[generateGroupMatches] WARNING: Allocation mismatch! Expected ${allocationParticipants.length} participants, got ${totalAllocated} in groups`);
+    throw new Error(`Group allocation failed: expected ${allocationParticipants.length} participants but allocated ${totalAllocated}`);
+  }
+  
+  // Additional validation for doubles: ensure pairs per group is correct
+  if (isDoubles) {
+    const expectedPairsPerGroup = allocationParticipants.length / numberOfGroups;
+    const hasImbalance = groupAllocations.some(g => g.participants.length !== expectedPairsPerGroup);
+    if (hasImbalance) {
+      console.warn(`[generateGroupMatches] WARNING: Group size imbalance detected for doubles. Expected ${expectedPairsPerGroup} pairs per group.`);
+      groupAllocations.forEach((group) => {
+        if (group.participants.length !== expectedPairsPerGroup) {
+          console.warn(`[generateGroupMatches] Group ${group.groupName} has ${group.participants.length} pairs instead of ${expectedPairsPerGroup}`);
+        }
+      });
+    }
+  }
+
+  const groups = [];
+
+  for (const groupAlloc of groupAllocations) {
+    // Generate round-robin schedule for this group
+    const schedule =
+      seeding.length > 0 && !isDoubles // Don't use seeded schedule for doubles (pairs don't have seeding yet)
+        ? generateSeededRoundRobinSchedule(
+            groupAlloc.participants,
+            seeding,
+            options.courtsAvailable || 1,
+            tournament.startDate,
+            options.matchDuration || 60
+          )
+        : generateRoundRobinSchedule(
+            groupAlloc.participants,
+            options.courtsAvailable || 1,
+            tournament.startDate,
+            options.matchDuration || 60
+          );
+
+    const groupRounds = [];
+
+    for (const round of schedule) {
+      const roundMatches = [];
+
+      for (const pairing of round.matches) {
+        if ((tournament as any).category === "team") {
+          const match = await createScheduledTeamMatch(
+            pairing,
+            tournament,
+            scorerId,
+            groupAlloc.groupId,
+            options.session
+          );
+          roundMatches.push(match._id);
+        } else {
+          const matchParticipants = getMatchParticipants(
+            pairing,
+            isDoubles,
+            participantIds,
+            doublesPairs
+          );
+          const match = await createScheduledMatch(
+            matchParticipants,
+            tournament,
+            scorerId,
+            groupAlloc.groupId,
+            undefined,
+            options.session
+          );
+          roundMatches.push(match._id);
+        }
+      }
+
+      groupRounds.push({
+        roundNumber: round.roundNumber,
+        matches: roundMatches,
+        matchModel:
+          (tournament as any).category === "team"
+            ? "TeamMatch"
+            : "IndividualMatch",
+        completed: false,
+        scheduledDate: round.scheduledDate,
+      });
+    }
+
+    // Initialize group standings
+    // For doubles, use pair IDs for standings
+    const standingsParticipants = groupAlloc.participants;
+    const groupStandings = initializeStandings(standingsParticipants);
+
+    // Validate schedule completeness
+    const groupSize = groupAlloc.participants.length;
+    const actualGroupMatches = groupRounds.reduce(
+      (sum, r) => sum + r.matches.length,
+      0
+    );
+    validateScheduleCompleteness(
+      groupSize,
+      actualGroupMatches,
+      `Group ${groupAlloc.groupName}`
+    );
+
+    // Log group creation details
+   
+    
+    groups.push({
+      groupId: groupAlloc.groupId,
+      groupName: groupAlloc.groupName,
+      participants: groupAlloc.participants,
+      rounds: groupRounds,
+      standings: groupStandings,
+    });
+  }
+
+  // Final validation: verify allocation is correct (after groups are fully constructed)
+  const finalTotalAllocated = groups.reduce((sum, g) => sum + g.participants.length, 0);
+  const expectedTotal = allocationParticipants.length;
+  
+  
+  
+  if (finalTotalAllocated !== expectedTotal) {
+    console.error(`[generateGroupMatches] CRITICAL: Allocation mismatch! Expected ${expectedTotal} participants, got ${finalTotalAllocated} in groups`);
+    throw new Error(`Group allocation failed: expected ${expectedTotal} participants but allocated ${finalTotalAllocated}`);
+  }
+  
+  // Additional validation: ensure no duplicate participants across groups
+  const allParticipantIds = new Set<string>();
+  for (const group of groups) {
+    for (const participantId of group.participants) {
+      const normalizedId = participantId.toString();
+      if (allParticipantIds.has(normalizedId)) {
+        console.error(`[generateGroupMatches] CRITICAL: Duplicate participant ${normalizedId} found in multiple groups!`);
+        throw new Error(`Duplicate participant ${normalizedId} found in multiple groups - allocation logic error`);
+      }
+      allParticipantIds.add(normalizedId);
+    }
+  }
+  
+  
+
+  tournament.groups = groups as any;
+  tournament.rounds = []; // No overall rounds, only group rounds
+  tournament.standings = []; // Will be filled after group stage
+
+  const tournamentId = String((tournament as any)._id);
+  const category = (tournament as any).category === "team" ? "team" : "individual";
+  const phase = (tournament as any).currentPhase;
+  await tournamentProjectionRepository.upsertGroups(
+    tournamentId,
+    category,
+    groups,
+    options.session
+  );
+  await tournamentProjectionRepository.upsertStandings(
+    tournamentId,
+    category,
+    phase,
+    [],
+    groups,
+    options.session
+  );
+}
+
+/**
+ * Generate matches for single round-robin tournament (no groups)
+ */
+export async function generateSingleRoundRobinMatches(
+  tournament: Tournament,
+  participantIds: string[],
+  seeding: ISeeding[],
+  scorerId: string,
+  options: MatchGenerationOptions
+): Promise<void> {
+  const isDoubles = (tournament as any).matchType === "doubles";
+
+  const doublesPairs = (tournament as any).doublesPairs || [];
+
+  // For doubles with pairs, use pair IDs as participants for scheduling
+  let scheduleParticipants = participantIds;
+  let scheduleSeeding = seeding;
+
+  if (isDoubles && doublesPairs.length > 0) {
+    // Check if participantIds already contains pair IDs (from hybrid service)
+    // by verifying if they exist in doublesPairs
+    const validPairIds = new Set(
+      doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean)
+    );
+    
+    // Check if participantIds are already pair IDs
+    const participantIdsArePairIds = participantIds.length > 0 && 
+      participantIds.every((id: string) => {
+        const normalizedId = id.toString();
+        return validPairIds.has(normalizedId);
+      });
+    
+    if (participantIdsArePairIds) {
+      // participantIds already contains pair IDs (e.g., from hybrid service)
+      // Use them directly after deduplication
+      scheduleParticipants = Array.from(new Set(
+        participantIds.map((p: any) => p.toString())
+      ));
+    } else {
+      // participantIds contains player IDs, extract pair IDs from doublesPairs
+      scheduleParticipants = doublesPairs.map((pair: any) => pair._id?.toString()).filter(Boolean);
+    }
+    
+    // Map seeding to pairs (if seeding exists)
+    // For now, we'll use pair order as seeding
+    scheduleSeeding = scheduleParticipants.map((pairId: any, index: number) => ({
+      participant: new mongoose.Types.ObjectId(pairId),
+      seedNumber: index + 1,
+    })) as ISeeding[];
+  }
+
+  const schedule =
+    scheduleSeeding.length > 0 && !isDoubles // Don't use seeded schedule for doubles (we created custom seeding above)
+      ? generateSeededRoundRobinSchedule(
+          scheduleParticipants,
+          scheduleSeeding,
+          options.courtsAvailable || 1,
+          tournament.startDate,
+          options.matchDuration || 60
+        )
+      : generateRoundRobinSchedule(
+          scheduleParticipants,
+          options.courtsAvailable || 1,
+          tournament.startDate,
+          options.matchDuration || 60
+        );
+
+  const rounds = [] as any[];
+
+  for (const round of schedule) {
+    const roundMatches = [];
+
+    for (const pairing of round.matches) {
+      if ((tournament as any).category === "team") {
+        const match = await createScheduledTeamMatch(
+          pairing,
+          tournament,
+          scorerId,
+          undefined,
+          options.session
+        );
+        roundMatches.push(match._id);
+      } else {
+        const matchParticipants = getMatchParticipants(
+          pairing,
+          isDoubles,
+          participantIds,
+          doublesPairs
+        );
+        const match = await createScheduledMatch(
+          matchParticipants,
+          tournament,
+          scorerId,
+          undefined,
+          undefined,
+          options.session
+        );
+        roundMatches.push(match._id);
+      }
+    }
+
+    rounds.push({
+      roundNumber: round.roundNumber,
+      matches: roundMatches,
+      matchModel:
+        (tournament as any).category === "team"
+          ? "TeamMatch"
+          : "IndividualMatch",
+      completed: false,
+      scheduledDate: round.scheduledDate,
+    });
+  }
+
+  // Initialize standings
+  // For doubles, use pair IDs for standings
+  const standingsParticipants = isDoubles && doublesPairs.length > 0 
+    ? scheduleParticipants 
+    : participantIds;
+  
+  tournament.rounds = rounds as any;
+  tournament.standings = initializeStandings(standingsParticipants) as any;
+  
+  // CRITICAL: Mark standings as modified so Mongoose saves the changes
+  tournament.markModified("standings");
+
+  // Validate schedule completeness
+  const actualMatches = rounds.reduce((sum, r) => sum + r.matches.length, 0);
+  validateScheduleCompleteness(
+    scheduleParticipants.length,
+    actualMatches,
+    "Round-robin"
+  );
+
+  const tournamentId = String((tournament as any)._id);
+  const category = (tournament as any).category === "team" ? "team" : "individual";
+  const phase = (tournament as any).currentPhase;
+  await tournamentProjectionRepository.upsertStandings(
+    tournamentId,
+    category,
+    phase,
+    tournament.standings as any[],
+    undefined,
+    options.session
+  );
+}
+
+/**
+ * Generate matches for knockout tournament
+ */
+export async function generateKnockoutMatches(
+  tournament: Tournament,
+  participantIds: string[],
+  seeding: ISeeding[],
+  scorerId: string,
+  options: MatchGenerationOptions
+): Promise<KnockoutBracket> {
+  // Check if custom matching is enabled
+  const allowCustomMatching =
+    (tournament as any).knockoutConfig?.allowCustomMatching === true;
+
+  
+
+  // Generate the knockout bracket
+  let bracket;
+  try {
+    bracket = generateKnockoutBracket(
+      participantIds,
+      seeding.map((s) => ({
+        participant: s.participant.toString(),
+        seedNumber: s.seedNumber,
+      })),
+      {
+        thirdPlaceMatch:
+          (tournament as any).knockoutConfig?.thirdPlaceMatch || false,
+        scheduledDate: tournament.startDate,
+        skipByeAdvancement: allowCustomMatching, // Don't auto-advance byes if custom matching
+      }
+    );
+    
+  } catch (bracketGenError: any) {
+    console.error("[generateKnockoutMatches] Error generating bracket structure:", bracketGenError);
+    throw new Error(`Failed to generate bracket structure: ${bracketGenError.message}`);
+  }
+
+  // Schedule the bracket matches
+  try {
+    scheduleBracketMatches(
+      bracket,
+      tournament.startDate,
+      options.courtsAvailable || 1,
+      options.matchDuration || 60
+    );
+    
+  } catch (scheduleError: any) {
+    console.error("[generateKnockoutMatches] Error scheduling bracket matches:", scheduleError);
+    throw new Error(`Failed to schedule bracket matches: ${scheduleError.message}`);
+  }
+
+  // If custom matching is enabled, SKIP all automatic match document creation
+  // The organizer will manually configure ALL matches starting from Round 1
+  if (!allowCustomMatching) {
+    
+    // Normal mode: Create match documents for ALL rounds where both participants are known
+    // This includes first round real matches AND matches in later rounds where
+    // both participants have been determined via byes
+    const isTeamCategory = (tournament as any).category === "team";
+
+    for (const round of bracket.rounds) {
+      for (const bracketMatch of round.matches) {
+        // Only create matches for non-bye matches (both participants present and not completed)
+        if (
+          bracketMatch.participant1 &&
+          bracketMatch.participant2 &&
+          !bracketMatch.completed
+        ) {
+          const match = isTeamCategory
+            ? await createBracketTeamMatch(bracketMatch, tournament, scorerId)
+            : await createBracketMatch(bracketMatch, tournament, scorerId);
+          if (match) {
+            bracketMatch.matchId = match._id.toString();
+          }
+        }
+      }
+    }
+  } else {
+    // Custom matching mode: Create EMPTY bracket structure only
+    // Organizer will manually configure ALL matches (including Round 1) via custom matcher
+    
+  }
+
+  // Validate bracket structure before storing
+  if (!bracket || !bracket.rounds || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
+    console.error("[generateKnockoutMatches] Invalid bracket structure", {
+      hasBracket: !!bracket,
+      hasRounds: !!bracket?.rounds,
+      roundsType: Array.isArray(bracket?.rounds) ? 'array' : typeof bracket?.rounds,
+      roundsLength: bracket?.rounds?.length || 0,
+    });
+    throw new Error(
+      `Invalid bracket structure generated: bracket=${!!bracket}, rounds=${bracket?.rounds ? 'exists' : 'missing'}, roundsLength=${bracket?.rounds?.length || 0}`
+    );
+  }
+
+  // Store bracket structure in tournament
+  // Note: This requires the bracket field to be added to the Tournament model
+  (tournament as any).bracket = bracket;
+
+  // CRITICAL: Mark bracket as modified since it's Schema.Types.Mixed
+  // Without this, Mongoose won't save the bracket changes to database
+  // Must be called after all bracket modifications are complete
+  tournament.markModified("bracket");
+ 
+
+  return bracket;
+}
+
+/**
+ * Calculate tournament statistics
+ */
+function calculateTournamentStats(tournament: Tournament): {
+  totalMatches: number;
+  totalRounds: number;
+  groups?: number;
+  format: string;
+} {
+  // Handle knockout format
+  if (tournament.format === "knockout" && (tournament as any).bracket) {
+    const bracket = (tournament as any).bracket as KnockoutBracket;
+    const totalMatches = bracket.rounds.reduce(
+      (sum, r) =>
+        sum + r.matches.filter((m) => m.participant1 && m.participant2).length,
+      0
+    );
+    return {
+      totalMatches,
+      totalRounds: bracket.rounds.length,
+      format: "knockout",
+    };
+  }
+
+  if (tournament.useGroups && tournament.groups) {
+    return {
+      totalMatches:
+        tournament.groups.reduce(
+          (sum, g: any) =>
+            sum +
+            g.rounds.reduce((s: number, r: any) => s + r.matches.length, 0),
+          0
+        ) || 0,
+      totalRounds: tournament.groups[0]?.rounds.length || 0,
+      groups: tournament.numberOfGroups,
+      format: "round_robin_groups",
+    };
+  }
+
+  return {
+    totalMatches: tournament.rounds.reduce(
+      (sum, r: any) => sum + r.matches.length,
+      0
+    ),
+    totalRounds: tournament.rounds.length,
+    format: "round_robin",
+  };
+}
+
+/**
+ * Main function: Generate tournament draw
+ */
+export async function generateTournamentDraw(
+  tournament: Tournament,
+  scorerId: string,
+  options: MatchGenerationOptions = {}
+): Promise<MatchGenerationResult> {
+  const participantIds = tournament.participants.map((p: any) => p.toString());
+
+  // Prepare seeding
+  const seeding = prepareSeeding(tournament, participantIds);
+  tournament.seeding = seeding;
+
+  // Generate matches based on tournament structure
+  if (tournament.format === "hybrid") {
+    // For hybrid tournaments, only generate round-robin phase initially
+    // Import hybrid service dynamically to avoid circular dependencies
+    const { generateHybridRoundRobinPhase } = await import(
+      "./hybridMatchGenerationService"
+    );
+    await generateHybridRoundRobinPhase(tournament, {
+      scorerId: new mongoose.Types.ObjectId(scorerId),
+      ...options,
+    });
+  } else if (tournament.format === "round_robin") {
+    // CRITICAL: Groups are not allowed for pure round-robin format
+    // Groups only make sense when there's a next phase (use hybrid format instead)
+    if (tournament.useGroups) {
+      throw new Error(
+        "Groups cannot be used with round-robin format. Groups are only meaningful when there's a next phase. Use 'hybrid' format for round-robin → knockout tournaments."
+      );
+    }
+    await generateSingleRoundRobinMatches(
+      tournament,
+      participantIds,
+      seeding,
+      scorerId,
+      options
+    );
+  } else if (tournament.useGroups && tournament.numberOfGroups) {
+    // Groups for knockout format (if supported in future)
+    await generateGroupMatches(
+      tournament,
+      participantIds,
+      seeding,
+      scorerId,
+      options
+    );
+  } else if (tournament.format === "knockout") {
+    await generateKnockoutMatches(
+      tournament,
+      participantIds,
+      seeding,
+      scorerId,
+      options
+    );
+  } else {
+    throw new Error(
+      `Unsupported tournament format: ${tournament.format}. Supported formats: round_robin, knockout, hybrid.`
+    );
+  }
+
+  // Update tournament metadata
+  tournament.drawGenerated = true;
+  tournament.drawGeneratedAt = new Date();
+  tournament.drawGeneratedBy = new mongoose.Types.ObjectId(scorerId);
+  tournament.status = "upcoming";
+
+  await tournament.save();
+
+  // Populate tournament data based on category
+  const isTeamTournament = (tournament as any).category === "team";
+
+  if (isTeamTournament) {
+    // Team tournament population
+    await (tournament as any).populate([
+      {
+        path: "organizer",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "participants",
+        model: Team,
+        select: "name logo city captain players",
+        populate: [
+          { path: "captain", select: "username fullName profileImage" },
+          { path: "players.user", select: "username fullName profileImage" },
+        ],
+      },
+      {
+        path: "seeding.participant",
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "standings.participant",
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "groups.standings.participant",
+        model: Team,
+        select: "name logo city captain",
+      },
+      {
+        path: "groups.participants",
+        model: Team,
+        select: "name logo city captain players",
+        populate: [
+          { path: "captain", select: "username fullName profileImage" },
+          { path: "players.user", select: "username fullName profileImage" },
+        ],
+      },
+    ]);
+
+    // For team tournaments, rounds.matches are TeamMatch documents
+    // They don't have a "participants" field, they have team1/team2
+    // So we don't populate via the same mechanism
+  } else {
+    // Individual tournament population
+    await (tournament as any).populate([
+      {
+        path: "organizer participants",
+        select: "username fullName profileImage",
+      },
+      { path: "seeding.participant", select: "username fullName profileImage" },
+      {
+        path: "standings.participant",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "groups.standings.participant",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "rounds.matches",
+        populate: {
+          path: "participants",
+          select: "username fullName profileImage",
+        },
+      },
+      {
+        path: "groups.participants",
+        select: "username fullName profileImage",
+      },
+      {
+        path: "groups.rounds.matches",
+        populate: {
+          path: "participants",
+          select: "username fullName profileImage",
+        },
+      },
+    ]);
+  }
+
+  // Calculate stats
+  const stats = calculateTournamentStats(tournament);
+
+  return {
+    tournament,
+    stats,
+  };
+}
