@@ -1,0 +1,208 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { axiosInstance } from "@/lib/axiosInstance";
+import {
+  History as HistoryIcon,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import { EmptyState } from "../components/EmptyState";
+
+interface MatchHistoryPageProps {
+  userId?: string;
+}
+
+const MatchHistoryPage = ({ userId }: MatchHistoryPageProps) => {
+  const router = useRouter();
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMatchHistory = async () => {
+      setLoading(true);
+      try {
+        // Use userId prop if provided, otherwise use current user's profile
+        const apiPath = userId ? `/profile/${userId}/detailed-stats` : `/profile/detailed-stats`;
+        const response = await axiosInstance.get(apiPath);
+        setMatches(response.data.stats.recentMatches || []);
+      } catch (error) {
+        console.error("Failed to fetch match history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatchHistory();
+  }, [userId]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays < 7) return `${diffDays} days ago`;
+
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return "Unknown date";
+    }
+  };
+
+  const wins = matches.filter((m) => m.result === "win").length;
+  const losses = matches.filter((m) => m.result === "loss").length;
+
+  return (
+    <div className="min-h-screen bg-[#ffffff]">
+      <div className="max-w-6xl mx-auto py-4">
+        {/* Page Title */}
+        <div className="px-4">
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+            Match History
+          </h1>
+          <div className="h-[1px] bg-[#d9d9d9] w-24"></div>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex items-center justify-center w-full h-[calc(100vh-70px)]">
+            <Loader2 className="animate-spin text-[#3c6e71]" />
+          </div>
+        ) : matches.length === 0 ? (
+          <EmptyState
+            icon={HistoryIcon}
+            title="No match history available."
+            description="Your recent matches will appear here once you start playing!"
+          />
+        ) : (
+          <div className="space-y-4">
+            {/* Key Stats Cards */}
+            <div className="px-4">
+              <div className="p-2">
+                <div className="">
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Total Matches</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{matches.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                    <span className="text-xs font-medium text-[#353535]">Wins</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{wins}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs font-medium text-[#353535]">Losses</span>
+                    <span className="text-base font-semibold text-[#3c6e71]">{losses}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Match List */}
+            <div className="space-y-3">
+              <div className="px-4">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#353535] mb-1">
+                  Recent Matches
+                </h2>
+              </div>
+
+              <section className="space-y-1 px-4">
+                {matches.map((match, index) => (
+                  <div
+                    key={index}
+                    onClick={() => router.push(`/matches/${match._id}`)}
+                    className="group block p-2.5 transition-colors hover:bg-[#f5f5f5] cursor-pointer"
+                  >
+                    {/* Line 1: Opponent, Score, Result */}
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
+                      {/* Opponent Avatar + Name */}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="relative w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] flex items-center justify-center text-white flex-shrink-0">
+                          {match.type === "individual" ? (
+                            match.opponentImage ? (
+                              <Image
+                                src={match.opponentImage}
+                                alt={match.opponent || "Opponent"}
+                                width={40}
+                                height={40}
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#3c6e71] to-[#5a9fa5] text-white font-bold text-sm">
+                                {(match.opponent?.[0] || "?").toUpperCase()}
+                              </div>
+                            )
+                          ) : match.teamLogo ? (
+                            <Image
+                              src={match.teamLogo}
+                              alt={match.teams || "Team"}
+                              width={40}
+                              height={40}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <GroupWorkIcon
+                              className="w-5 h-5"
+                              style={{
+                                fontSize: "inherit",
+                                width: "inherit",
+                                height: "inherit",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className="font-medium text-sm text-gray-800 transition-colors group-hover:text-[#ffffff]"
+                        >
+                          {match.type === "individual"
+                            ? `${match.opponent || "Unknown"}`
+                            : match.teams || "Team Match"}
+                        </span>
+                      </div>
+
+                      {/* Score */}
+                      <span className="text-xs font-bold text-gray-700 px-1.5 py-0.5 rounded transition-colors group-hover:text-[#ffffff] shrink-0">
+                        {match.score}
+                      </span>
+                    </div>
+
+                    {/* Line 2: Meta info */}
+                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+                      <span className="capitalize">
+                        {match.matchType?.replace(/_/g, " ")}
+                      </span>
+                      <span>•</span>
+                      <span>{formatDate(match.date)}</span>
+                      {match.city && (
+                        <>
+                          <span>•</span>
+                          <span>{match.city}</span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span className={`font-medium ${
+                        match.result === "win" ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {match.result === "win" ? "Win" : "Loss"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MatchHistoryPage;

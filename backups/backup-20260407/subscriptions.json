@@ -1,0 +1,188 @@
+[
+  {
+    "_id": "6953d092bbc60fae2d3f7ca3",
+    "user": "6953ce4ebbc60fae2d3f7c93",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2025-12-30T13:16:02.322Z",
+    "endDate": "2125-12-30T13:16:02.322Z",
+    "currentPeriodStart": "2025-12-30T13:16:02.322Z",
+    "currentPeriodEnd": "2125-12-30T13:16:02.322Z",
+    "tournamentsCreatedThisPeriod": 6,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2025-12-30T13:16:02.331Z",
+    "updatedAt": "2026-01-07T10:44:30.895Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953d1949576cb34865a15c1",
+    "user": "6953d12e9576cb34865a15ab",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2025-12-30T13:20:20.893Z",
+    "endDate": "2125-12-30T13:20:20.893Z",
+    "currentPeriodStart": "2025-12-30T13:20:20.893Z",
+    "currentPeriodEnd": "2125-12-30T13:20:20.893Z",
+    "tournamentsCreatedThisPeriod": 0,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2025-12-30T13:20:20.899Z",
+    "updatedAt": "2025-12-30T13:20:20.899Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953d1fed72b4aa8d155ab22",
+    "user": "6953d1ddd72b4aa8d155ab0c",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2025-12-30T13:22:06.177Z",
+    "endDate": "2125-12-30T13:22:06.177Z",
+    "currentPeriodStart": "2025-12-30T13:22:06.177Z",
+    "currentPeriodEnd": "2125-12-30T13:22:06.177Z",
+    "tournamentsCreatedThisPeriod": 0,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2025-12-30T13:22:06.183Z",
+    "updatedAt": "2025-12-30T13:22:06.183Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953d997e804a6e9ce9ed6e5",
+    "user": "6953d94fd72b4aa8d155acaa",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2025-12-30T13:54:31.416Z",
+    "endDate": "2125-12-30T13:54:31.416Z",
+    "currentPeriodStart": "2025-12-30T13:54:31.416Z",
+    "currentPeriodEnd": "2125-12-30T13:54:31.416Z",
+    "tournamentsCreatedThisPeriod": 0,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2025-12-30T13:54:31.423Z",
+    "updatedAt": "2025-12-30T13:54:31.423Z",
+    "__v": 0
+  },
+  {
+    "_id": "695e3c831686be7fcec800c8",
+    "user": "6956a292fa7e50b5b2d3c907",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2026-01-07T10:59:15.461Z",
+    "endDate": "2126-01-07T10:59:15.461Z",
+    "currentPeriodStart": "2026-01-07T10:59:15.461Z",
+    "currentPeriodEnd": "2126-01-07T10:59:15.461Z",
+    "tournamentsCreatedThisPeriod": 5,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2026-01-07T10:59:15.464Z",
+    "updatedAt": "2026-01-07T11:49:40.482Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e614742607de3e07a2425",
+    "user": "695f5f222a80744e8c94f2d5",
+    "tier": "free",
+    "status": "active",
+    "startDate": "2026-01-19T16:52:23.601Z",
+    "endDate": "2126-01-19T16:52:23.601Z",
+    "currentPeriodStart": "2026-01-19T16:52:23.601Z",
+    "currentPeriodEnd": "2126-01-19T16:52:23.601Z",
+    "tournamentsCreatedThisPeriod": 0,
+    "features": {
+      "maxTournaments": -1,
+      "maxParticipants": 16,
+      "maxScorers": 0,
+      "advancedAnalytics": false,
+      "exportData": false,
+      "customBranding": false,
+      "tournamentFormats": [
+        "round_robin",
+        "knockout",
+        "hybrid"
+      ],
+      "statsPageAccess": "free",
+      "profileInsightsAccess": false,
+      "shotAnalysisAccess": false,
+      "aiInsights": false
+    },
+    "createdAt": "2026-01-19T16:52:23.605Z",
+    "updatedAt": "2026-01-19T16:52:23.605Z",
+    "__v": 0
+  }
+]

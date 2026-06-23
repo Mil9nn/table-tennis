@@ -1,0 +1,106 @@
+// components/tournaments/GroupsView.tsx
+"use client";
+
+import React, { useState } from "react";
+import { Group } from "@/types/tournament.type";
+import { EnhancedStandingsTable } from "./EnhancedStandingsTable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import GroupsIcon from '@mui/icons-material/Groups';
+
+interface GroupsViewProps {
+  groups: Group[];
+  participants?: any[];
+  advancePerGroup?: number;
+  showDetailedStats?: boolean;
+  category?: "individual" | "team";
+  matchType?: "singles" | "doubles";
+}
+
+export function GroupsView({
+  groups,
+  participants = [],
+  advancePerGroup = 2,
+  showDetailedStats = false,
+  category = "individual",
+  matchType = "singles",
+}: GroupsViewProps) {
+  const [selectedGroup, setSelectedGroup] = useState(groups[0]?.groupId || "");
+
+  if (!groups || groups.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card text-card-foreground shadow">
+        <div className="p-12">
+          <div className="text-center text-muted-foreground">
+            <GroupsIcon className="size-20 mx-auto mb-4 opacity-50" />
+            <p className="text-sm font-medium">No groups yet</p>
+            <p className="text-sm mt-2">Create groups to start Round Robin matches and standings.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const getGroupStatus = (group: Group) => {
+    const totalMatches = group.rounds.reduce(
+      (sum, round) => sum + round.matches.length,
+      0
+    );
+
+    const completedRounds = group.rounds.filter((r) => r.completed).length;
+    const allCompleted = group.rounds.every((r) => r.completed);
+
+    return {
+      totalRounds: group.rounds.length,
+      completedRounds,
+      allCompleted,
+      totalMatches,
+    };
+  };
+
+  return (
+    <div className="">
+      {/* Tabs */}
+      <Tabs value={selectedGroup} onValueChange={setSelectedGroup}>
+        <TabsList className="w-full justify-start p-0 rounded-none overflow-x-auto">
+          {groups.map((group) => {
+            const status = getGroupStatus(group);
+            return (
+              <TabsTrigger 
+                key={group.groupId} 
+                className="rounded-none" 
+                value={group.groupId}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={status.allCompleted ? "text-green-500" : ""}>
+                    {group.groupName}
+                  </span>
+                </div>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {groups.map((group) => (
+          <TabsContent key={group.groupId} value={group.groupId}>
+            <div className="space-y-6">
+              {/* Standings */}
+              <EnhancedStandingsTable
+                standings={group.standings}
+                participants={
+                  Array.isArray(group.participants) && group.participants.length > 0
+                    ? [...participants, ...group.participants]
+                    : participants
+                }
+                showDetailedStats={showDetailedStats}
+                highlightTop={advancePerGroup}
+                category={category}
+                matchType={matchType}
+              />
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
+  );
+}

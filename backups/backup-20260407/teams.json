@@ -1,0 +1,237 @@
+[
+  {
+    "_id": "6953e2696f582bbaedde9dad",
+    "name": "Thunder Smashers",
+    "captain": "6953e2636f582bbaedde9d63",
+    "players": [
+      {
+        "user": "6953e2636f582bbaedde9d63",
+        "role": "captain",
+        "joinedDate": "2025-12-30T14:32:09.540Z",
+        "_id": "6953e2696f582bbaedde9dae"
+      },
+      {
+        "user": "6953e2636f582bbaedde9d66",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.540Z",
+        "_id": "6953e2696f582bbaedde9daf"
+      },
+      {
+        "user": "6953e2636f582bbaedde9d69",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.540Z",
+        "_id": "6953e2696f582bbaedde9db0"
+      },
+      {
+        "user": "6953e2646f582bbaedde9d6c",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.540Z",
+        "_id": "6953e2696f582bbaedde9db1"
+      },
+      {
+        "user": "6953e2646f582bbaedde9d6f",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.540Z",
+        "_id": "6953e2696f582bbaedde9db2"
+      }
+    ],
+    "city": "New York",
+    "logo": "https://api.dicebear.com/7.x/initials/svg?seed=Thunder+Smashers&backgroundColor=ffd700&textColor=000000",
+    "assignments": {
+      "6953e2636f582bbaedde9d63": "X",
+      "6953e2636f582bbaedde9d69": "Y",
+      "6953e2646f582bbaedde9d6f": "Z"
+    },
+    "createdAt": "2025-12-30T14:32:09.567Z",
+    "updatedAt": "2026-01-05T06:48:41.136Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953e2696f582bbaedde9db4",
+    "name": "Ping Pong Panthers",
+    "captain": "6953e2646f582bbaedde9d72",
+    "players": [
+      {
+        "user": "6953e2646f582bbaedde9d72",
+        "role": "captain",
+        "joinedDate": "2025-12-30T14:32:09.746Z",
+        "_id": "6953e2696f582bbaedde9db5"
+      },
+      {
+        "user": "6953e2656f582bbaedde9d75",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.746Z",
+        "_id": "6953e2696f582bbaedde9db6"
+      },
+      {
+        "user": "6953e2656f582bbaedde9d78",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.746Z",
+        "_id": "6953e2696f582bbaedde9db7"
+      },
+      {
+        "user": "6953e2656f582bbaedde9d7b",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.746Z",
+        "_id": "6953e2696f582bbaedde9db8"
+      },
+      {
+        "user": "6953e2656f582bbaedde9d7e",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.746Z",
+        "_id": "6953e2696f582bbaedde9db9"
+      }
+    ],
+    "city": "Los Angeles",
+    "logo": "https://api.dicebear.com/7.x/initials/svg?seed=Ping+Pong+Panthers&backgroundColor=ff6b6b&textColor=ffffff",
+    "assignments": {
+      "6953e2646f582bbaedde9d72": "X",
+      "6953e2656f582bbaedde9d78": "Y",
+      "6953e2656f582bbaedde9d7e": "Z"
+    },
+    "createdAt": "2025-12-30T14:32:09.752Z",
+    "updatedAt": "2026-01-03T05:39:41.412Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953e2696f582bbaedde9dbb",
+    "name": "Table Titans",
+    "captain": "6953e2666f582bbaedde9d81",
+    "players": [
+      {
+        "user": "6953e2666f582bbaedde9d81",
+        "role": "captain",
+        "joinedDate": "2025-12-30T14:32:09.847Z",
+        "_id": "6953e2696f582bbaedde9dbc"
+      },
+      {
+        "user": "6953e2666f582bbaedde9d84",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.847Z",
+        "_id": "6953e2696f582bbaedde9dbd"
+      },
+      {
+        "user": "6953e2666f582bbaedde9d87",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.847Z",
+        "_id": "6953e2696f582bbaedde9dbe"
+      },
+      {
+        "user": "6953e2666f582bbaedde9d8a",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.847Z",
+        "_id": "6953e2696f582bbaedde9dbf"
+      },
+      {
+        "user": "6953e2666f582bbaedde9d8d",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.847Z",
+        "_id": "6953e2696f582bbaedde9dc0"
+      }
+    ],
+    "city": "Chicago",
+    "logo": "https://api.dicebear.com/7.x/initials/svg?seed=Table+Titans&backgroundColor=4ecdc4&textColor=ffffff",
+    "assignments": {
+      "6953e2666f582bbaedde9d81": "A",
+      "6953e2666f582bbaedde9d87": "B",
+      "6953e2666f582bbaedde9d8d": "C"
+    },
+    "createdAt": "2025-12-30T14:32:09.855Z",
+    "updatedAt": "2026-01-05T06:48:40.985Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953e2696f582bbaedde9dc2",
+    "name": "Paddle Warriors",
+    "captain": "6953e2676f582bbaedde9d90",
+    "players": [
+      {
+        "user": "6953e2676f582bbaedde9d90",
+        "role": "captain",
+        "joinedDate": "2025-12-30T14:32:09.953Z",
+        "_id": "6953e2696f582bbaedde9dc3"
+      },
+      {
+        "user": "6953e2676f582bbaedde9d93",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.953Z",
+        "_id": "6953e2696f582bbaedde9dc4"
+      },
+      {
+        "user": "6953e2676f582bbaedde9d96",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.953Z",
+        "_id": "6953e2696f582bbaedde9dc5"
+      },
+      {
+        "user": "6953e2676f582bbaedde9d99",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.953Z",
+        "_id": "6953e2696f582bbaedde9dc6"
+      },
+      {
+        "user": "6953e2686f582bbaedde9d9c",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:09.953Z",
+        "_id": "6953e2696f582bbaedde9dc7"
+      }
+    ],
+    "city": "Houston",
+    "logo": "https://api.dicebear.com/7.x/initials/svg?seed=Paddle+Warriors&backgroundColor=95e1d3&textColor=000000",
+    "assignments": {
+      "6953e2676f582bbaedde9d90": "A",
+      "6953e2676f582bbaedde9d93": "B",
+      "6953e2676f582bbaedde9d96": "C"
+    },
+    "createdAt": "2025-12-30T14:32:09.958Z",
+    "updatedAt": "2025-12-30T14:32:09.958Z",
+    "__v": 0
+  },
+  {
+    "_id": "6953e26a6f582bbaedde9dc9",
+    "name": "Spin Masters",
+    "captain": "6953e2686f582bbaedde9d9f",
+    "players": [
+      {
+        "user": "6953e2686f582bbaedde9d9f",
+        "role": "captain",
+        "joinedDate": "2025-12-30T14:32:10.154Z",
+        "_id": "6953e26a6f582bbaedde9dca"
+      },
+      {
+        "user": "6953e2686f582bbaedde9da2",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:10.154Z",
+        "_id": "6953e26a6f582bbaedde9dcb"
+      },
+      {
+        "user": "6953e2696f582bbaedde9da5",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:10.154Z",
+        "_id": "6953e26a6f582bbaedde9dcc"
+      },
+      {
+        "user": "6953e2696f582bbaedde9da8",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:10.154Z",
+        "_id": "6953e26a6f582bbaedde9dcd"
+      },
+      {
+        "user": "6953e2696f582bbaedde9dab",
+        "role": "player",
+        "joinedDate": "2025-12-30T14:32:10.154Z",
+        "_id": "6953e26a6f582bbaedde9dce"
+      }
+    ],
+    "city": "Phoenix",
+    "logo": "https://api.dicebear.com/7.x/initials/svg?seed=Spin+Masters&backgroundColor=f38181&textColor=ffffff",
+    "assignments": {
+      "6953e2686f582bbaedde9d9f": "A",
+      "6953e2686f582bbaedde9da2": "B",
+      "6953e2696f582bbaedde9da5": "C"
+    },
+    "createdAt": "2025-12-30T14:32:10.158Z",
+    "updatedAt": "2025-12-30T14:32:10.158Z",
+    "__v": 0
+  }
+]
