@@ -13,8 +13,12 @@ export function getTeamParticipantIds(
 ): [string[], string[]] | null {
   if (match.teams && match.teams.length === 2) {
     return [
-      match.teams[0].players.map((p) => String(p._id)),
-      match.teams[1].players.map((p) => String(p._id)),
+      match.teams[0].players.map((p) =>
+        String(typeof p === "string" ? p : p._id)
+      ),
+      match.teams[1].players.map((p) =>
+        String(typeof p === "string" ? p : p._id)
+      ),
     ];
   }
   const ps = match.participants;

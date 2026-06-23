@@ -123,14 +123,14 @@ export async function deleteLastIndividualPointForSide(
   side: string,
   session?: ClientSession | null
 ): Promise<void> {
-  const match = await IndividualMatch.findById(matchId).session(session ?? undefined);
+  const match = await IndividualMatch.findById(matchId).session(session ?? null);
   if (!match) return;
 
-  const game = match.games.find(g => g.gameNumber === gameNumber);
+  const game = match.games.find((g: { gameNumber: number }) => g.gameNumber === gameNumber);
   if (!game || !game.shots) return;
 
   // Find the last shot for this side
-  const sideShots = game.shots.filter(shot => shot.side === side);
+  const sideShots = game.shots.filter((shot: EmbeddedShot) => shot.side === side);
   if (sideShots.length === 0) return;
 
   const lastShot = sideShots[sideShots.length - 1];
@@ -195,14 +195,16 @@ export async function listIndividualPoints(
   let shots: EmbeddedShot[] = [];
   
   if (typeof gameNumber === "number") {
-    const game = match.games.find(g => g.gameNumber === gameNumber);
+    const game = match.games.find((g: { gameNumber: number }) => g.gameNumber === gameNumber);
     shots = game?.shots || [];
   } else {
     // Get shots from all games, sorted by gameNumber and shotNumber
-    shots = match.games.flatMap(g => 
-      (g.shots || []).map(shot => ({ ...shot, gameNumber: g.gameNumber }))
-    ).sort((a, b) => {
-      if (a.gameNumber !== b.gameNumber) return a.gameNumber - b.gameNumber;
+    shots = match.games.flatMap((g: { gameNumber: number; shots?: EmbeddedShot[] }) =>
+      (g.shots || []).map((shot: EmbeddedShot) => ({ ...shot, gameNumber: g.gameNumber }))
+    ).sort((a: EmbeddedShot & { gameNumber?: number }, b: EmbeddedShot & { gameNumber?: number }) => {
+      if ((a.gameNumber ?? 0) !== (b.gameNumber ?? 0)) {
+        return (a.gameNumber ?? 0) - (b.gameNumber ?? 0);
+      }
       return a.shotNumber - b.shotNumber;
     });
   }
@@ -369,16 +371,16 @@ export async function deleteLastTeamPointForSide(
   side: string,
   session?: ClientSession | null
 ): Promise<void> {
-  const match = await TeamMatch.findById(matchId).session(session ?? undefined);
+  const match = await TeamMatch.findById(matchId).session(session ?? null);
   if (!match) return;
 
   const subMatch = match.subMatches.find(
     (sm) => String(sm._id) === String(teamSubMatchId)
   );
-  const game = subMatch?.games?.find((g) => g.gameNumber === gameNumber);
+  const game = subMatch?.games?.find((g: { gameNumber: number }) => g.gameNumber === gameNumber);
   if (!game?.shots?.length) return;
 
-  const sideShots = game.shots.filter((s) => s.side === side);
+  const sideShots = game.shots.filter((s: EmbeddedShot) => s.side === side);
   if (sideShots.length === 0) return;
   const lastShot = sideShots[sideShots.length - 1];
 
@@ -456,17 +458,17 @@ export async function listTeamSubMatchPoints(
 
   let shots: EmbeddedShot[] = [];
   if (typeof gameNumber === "number") {
-    const game = subMatch.games?.find((g) => g.gameNumber === gameNumber);
+    const game = subMatch.games?.find((g: { gameNumber: number }) => g.gameNumber === gameNumber);
     shots = (game?.shots as EmbeddedShot[]) || [];
   } else {
     shots = (subMatch.games || [])
-      .flatMap((g) =>
-        ((g.shots as EmbeddedShot[]) || []).map((shot) => ({
+      .flatMap((g: { gameNumber: number; shots?: EmbeddedShot[] }) =>
+        ((g.shots as EmbeddedShot[]) || []).map((shot: EmbeddedShot) => ({
           ...shot,
           gameNumber: g.gameNumber,
         }))
       )
-      .sort((a, b) => {
+      .sort((a: EmbeddedShot & { gameNumber?: number }, b: EmbeddedShot & { gameNumber?: number }) => {
         const aGn = (a as EmbeddedShot & { gameNumber?: number }).gameNumber ?? 0;
         const bGn = (b as EmbeddedShot & { gameNumber?: number }).gameNumber ?? 0;
         if (aGn !== bGn) return aGn - bGn;

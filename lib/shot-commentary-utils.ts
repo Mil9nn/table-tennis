@@ -735,7 +735,7 @@ function getReceiverInfo(
     // Find server in rotation
     const serverPlayerId = serverId;
     const serverRotationIndex = serverConfig.serverOrderPlayerIds.findIndex(
-      id => id.toString() === serverPlayerId
+      (id: string) => id.toString() === serverPlayerId
     );
     
     if (serverRotationIndex !== -1) {

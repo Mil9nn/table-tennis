@@ -46,37 +46,32 @@ const teamCreateCoreSchema = z.object({
     .max(20, "Team cannot have more than 20 players"),
 });
 
-const teamCreateRefinements = <T extends z.ZodTypeAny>(schema: T) =>
-  schema
-    .strict()
-    .refine(
-      (data: { captain: string; players: string[] }) =>
-        data.players.includes(data.captain),
-      {
-        message: "Captain must be one of the team players",
-        path: ["captain"],
-      }
-    )
-    .refine(
-      (data: { players: string[] }) => {
-        const uniquePlayers = new Set(data.players);
-        return uniquePlayers.size === data.players.length;
-      },
-      {
-        message: "Duplicate players are not allowed",
-        path: ["players"],
-      }
-    );
+const teamCreateRefinedCore = teamCreateCoreSchema.strict()
+  .refine(
+    (data) => data.players.includes(data.captain),
+    {
+      message: "Captain must be one of the team players",
+      path: ["captain"],
+    }
+  )
+  .refine(
+    (data) => {
+      const uniquePlayers = new Set(data.players);
+      return uniquePlayers.size === data.players.length;
+    },
+    {
+      message: "Duplicate players are not allowed",
+      path: ["players"],
+    }
+  );
 
 /** JSON `POST /api/teams` (no file upload). */
-export const createTeamJsonBodySchema = teamCreateRefinements(teamCreateCoreSchema);
+export const createTeamJsonBodySchema = teamCreateRefinedCore;
 
 // Create team schema (multipart: optional image)
-export const createTeamSchema = teamCreateRefinements(
-  teamCreateCoreSchema.extend({
-    teamImage: z.instanceof(Blob).optional(),
-  })
-);
+export const createTeamSchema = teamCreateRefinedCore.extend({
+  teamImage: z.instanceof(Blob).optional(),
+});
 
 // Update team schema
 export const updateTeamSchema = z.object({

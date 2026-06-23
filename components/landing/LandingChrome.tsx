@@ -99,29 +99,49 @@ export function LandingHeader() {
           </div>
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center rounded-lg border border-[var(--lp-border)] text-[var(--lp-text)] lg:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-[var(--lp-border)] text-[var(--lp-text)] transition-colors duration-200 lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
           >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            {open ? (
+              <X className="size-5 transition-transform duration-200 motion-reduce:transition-none" />
+            ) : (
+              <Menu className="size-5 transition-transform duration-200 motion-reduce:transition-none" />
+            )}
           </button>
         </div>
       </div>
 
-      {open && (
+      <div
+        className={cn(
+          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none lg:hidden",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
         <nav
           id="mobile-nav"
-          className="border-t border-[var(--lp-border)] bg-[var(--lp-bg)]/95 px-5 py-6 backdrop-blur-xl lg:hidden"
+          inert={!open}
+          aria-hidden={!open}
+          className={cn(
+            "min-h-0 overflow-hidden border-t border-[var(--lp-border)] bg-[var(--lp-bg)]/95 px-5 backdrop-blur-xl transition-[opacity,padding] duration-300 ease-in-out motion-reduce:transition-none",
+            open ? "py-6 opacity-100" : "py-0 opacity-0"
+          )}
           aria-label="Mobile navigation"
         >
-          <ul className="space-y-1">
+          <ul
+            className={cn(
+              "space-y-1 transition-opacity duration-300 ease-in-out motion-reduce:transition-none",
+              !open && "pointer-events-none"
+            )}
+          >
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="block rounded-lg px-3 py-3 text-sm text-[var(--lp-text-muted)] transition hover:bg-[var(--lp-hover)] hover:text-[var(--lp-text)]"
+                  tabIndex={open ? undefined : -1}
+                  className="block rounded-lg px-3 py-3 text-sm text-[var(--lp-text-muted)] transition-colors hover:bg-[var(--lp-hover)] hover:text-[var(--lp-text)]"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
@@ -129,27 +149,8 @@ export function LandingHeader() {
               </li>
             ))}
           </ul>
-          <div className="mt-6 flex flex-col gap-3">
-            <Button
-              variant="outline"
-              asChild
-              className="w-full rounded-full border-[var(--lp-border)] bg-transparent text-[var(--lp-text)]"
-            >
-              <Link href={CTA_LINKS.runTournament} onClick={() => setOpen(false)}>
-                Run a Tournament
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className="w-full rounded-full bg-[var(--lp-accent)] font-semibold text-[var(--lp-on-accent)]"
-            >
-              <Link href={CTA_LINKS.startScoring} onClick={() => setOpen(false)}>
-                Start Scoring
-              </Link>
-            </Button>
-          </div>
         </nav>
-      )}
+      </div>
     </header>
   );
 }

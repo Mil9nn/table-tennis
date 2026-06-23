@@ -44,7 +44,30 @@ export type InitialServerConfig = {
   firstServer?: ServerKey | null;
   firstReceiver?: DoublesPlayerKey | null;
   serverOrder?: DoublesPlayerKey[];
+  /** ID-based doubles config (canonical on persisted matches). */
+  firstReceiverPlayerId?: string | null;
+  serverOrderPlayerIds?: string[];
 };
+
+export interface MatchTeam {
+  players: Array<{ _id: string } | string>;
+}
+
+export interface EmbeddedShot {
+  shotNumber: number;
+  /** Scoring player id or legacy side label. */
+  side: string;
+  player: Participant | Types.ObjectId | string;
+  stroke?: string | null;
+  serveType?: string | null;
+  server?: Participant | Types.ObjectId | string | null;
+  originX?: number;
+  originY?: number;
+  landingX?: number;
+  landingY?: number;
+  timestamp?: Date | string;
+  gameNumber?: number;
+}
 
 // ============================================
 // INDIVIDUAL MATCH TYPES
@@ -77,6 +100,7 @@ export interface IndividualMatch {
   matchCategory: "individual";
   matchType: IndividualMatchType;
   numberOfSets: number;
+  teams?: MatchTeam[];
   participants: Participant[];
   scorer?: Participant | string; // Can be Participant object (populated) or string ID (not populated)
   city?: string;

@@ -5,7 +5,8 @@ export interface Participant {
   profileImage?: string;
 }
 
-export type Side = "side1" | "side2";
+/** Canonical sides plus legacy team labels used in team rubbers. */
+export type Side = "side1" | "side2" | "team1" | "team2";
 
 export type ServeType =
   | "side_spin"

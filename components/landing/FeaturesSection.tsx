@@ -2,12 +2,10 @@ import {
   BarChart3,
   Globe,
   Radio,
-  Swords,
   Trophy,
   UserCircle,
   Users,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { SectionHeading, SectionLabel, SectionLead, SectionShell } from "./Section";
 import { FadeIn, StaggerContainer, StaggerItem } from "./motion";
 
@@ -124,101 +122,6 @@ export function FeaturesSection() {
           </StaggerItem>
         ))}
       </StaggerContainer>
-    </SectionShell>
-  );
-}
-
-const TEAM_FORMATS = [
-  {
-    name: "Swaythling Cup",
-    tag: "5 singles",
-    description:
-      "The classic international team format. Five singles rubbers with lineup rules enforced automatically—each player plays once or twice across the tie.",
-    details: ["5 singles rubbers", "Lineup validation", "Automatic tie totals"],
-  },
-  {
-    name: "SDS",
-    tag: "Single-Double-Single",
-    description:
-      "Single-Double-Single: three rubbers that test depth and pairing chemistry. TTPro tracks rubber order, pairings, and aggregate team score in real time.",
-    details: ["3-rubber format", "Doubles pairing", "Live team totals"],
-  },
-  {
-    name: "Custom Formats",
-    tag: "Your rules",
-    description:
-      "Build bespoke team structures for league nights and club championships. Configure rubber count, player limits, and scoring rules to match your competition.",
-    details: ["Configurable rubbers", "Flexible lineups", "Custom scoring"],
-  },
-] as const;
-
-export function TeamFormatsSection() {
-  return (
-    <SectionShell
-      id="team-formats"
-      ariaLabelledBy="team-formats-heading"
-      className="bg-[var(--lp-surface)]/40"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,var(--lp-glow-section),transparent)]" />
-
-      <FadeIn className="relative mx-auto max-w-3xl text-center">
-        <SectionLabel>Team match formats</SectionLabel>
-        <SectionHeading id="team-formats-heading" className="mt-3">
-          Table tennis team match software that speaks your format
-        </SectionHeading>
-        <SectionLead className="mx-auto mt-4">
-          From Swaythling Cup to SDS and custom league structures—score team ties
-          with the precision of a singles match. No other ping pong score tracker
-          handles competitive team formats at this level.
-        </SectionLead>
-      </FadeIn>
-
-      <div className="relative mt-14 grid gap-6 lg:grid-cols-3">
-        {TEAM_FORMATS.map((format, i) => (
-          <FadeIn key={format.name} delay={i * 0.08}>
-            <article
-              className={cn(
-                "relative overflow-hidden rounded-2xl border p-6 lg:p-7",
-                i === 0
-                  ? "border-[var(--lp-accent)]/40 bg-gradient-to-b from-[var(--lp-accent)]/10 to-[var(--lp-surface)] shadow-[0_0_40px_var(--lp-glow-featured)]"
-                  : "border-[var(--lp-border)] bg-[var(--lp-surface)]"
-              )}
-            >
-              {i === 0 && (
-                <span className="absolute right-4 top-4 rounded-full bg-[var(--lp-accent)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--lp-on-accent)]">
-                  Featured
-                </span>
-              )}
-              <div className="mb-4 inline-flex items-center gap-2">
-                <Swords className="size-5 text-[var(--lp-accent)]" aria-hidden="true" />
-                <span className="rounded-md bg-[var(--lp-chip)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--lp-text-muted)]">
-                  {format.tag}
-                </span>
-              </div>
-              <h3 className="font-[family-name:var(--font-syne)] text-xl font-bold text-[var(--lp-text)]">
-                {format.name}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--lp-text-muted)]">
-                {format.description}
-              </p>
-              <ul className="mt-5 space-y-2">
-                {format.details.map((d) => (
-                  <li
-                    key={d}
-                    className="flex items-center gap-2 text-sm text-[var(--lp-text)]"
-                  >
-                    <span
-                      className="size-1.5 shrink-0 rounded-full bg-[var(--lp-accent)]"
-                      aria-hidden="true"
-                    />
-                    {d}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          </FadeIn>
-        ))}
-      </div>
     </SectionShell>
   );
 }

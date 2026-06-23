@@ -11,7 +11,6 @@ export const SITE_URL =
 
 export const NAV_LINKS = [
   { href: "#features", label: "Features" },
-  { href: "#team-formats", label: "Team formats" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#for-who", label: "Who it's for" },
   { href: "#compare", label: "Compare" },

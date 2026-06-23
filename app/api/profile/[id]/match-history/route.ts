@@ -40,13 +40,18 @@ export async function GET(
       .sort({ createdAt: -1 })
       .lean(),
       
-      User.findById(id).select("username fullName profileImage").lean(),
+      User.findById(id).select("username fullName profileImage").lean() as Promise<{
+        username?: string;
+        fullName?: string;
+        profileImage?: string;
+      } | null>,
     ]);
 
     const normalizeIndividualMatch = (match: Record<string, unknown>) => ({
       ...match,
       matchCategory: "individual" as const,
       _id: toIdString(match._id),
+      createdAt: match.createdAt,
       winnerId: match.winnerId ? toIdString(match.winnerId) : null,
       status: match.status ?? "completed",
       participants: Array.isArray(match.participants)
@@ -69,6 +74,7 @@ export async function GET(
       ...match,
       matchCategory: "team" as const,
       _id: toIdString(match._id),
+      createdAt: match.createdAt,
       status: match.status ?? "completed",
       winnerTeamId: match.winnerTeamId
         ? toIdString(match.winnerTeamId)

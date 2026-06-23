@@ -109,6 +109,7 @@ export interface CreateTeamMatchDTO {
   tournament?: string;
   matchFormat: TeamMatchFormat;
   numberOfGamesPerRubber: number;
+  numberOfSubMatches?: number;
   team1: TeamMatchSnapshot;
   team2: TeamMatchSnapshot;
   subMatches: TeamSubMatchBase[];

@@ -1,4 +1,5 @@
 import { subDays, startOfDay } from "date-fns";
+import type { Model } from "mongoose";
 import { User } from "@/models/User";
 import Tournament from "@/models/Tournament";
 import Match from "@/models/MatchBase";
@@ -50,11 +51,11 @@ function fillDailyTrend(
 }
 
 async function groupCount(
-  model: { aggregate: (pipeline: object[]) => Promise<{ _id: string | null; count: number }[]> },
+  model: Model<unknown>,
   field: string,
   match: object = {}
 ): Promise<CountByKey[]> {
-  const rows = await model.aggregate([
+  const rows = await model.aggregate<{ _id: string | null; count: number }>([
     { $match: match },
     { $group: { _id: `$${field}`, count: { $sum: 1 } } },
   ]);
@@ -62,12 +63,12 @@ async function groupCount(
 }
 
 async function dailyTrend(
-  model: { aggregate: (pipeline: object[]) => Promise<{ _id: string; count: number }[]> },
+  model: Model<unknown>,
   since: Date,
   match: object = {},
   dateField = "createdAt"
 ): Promise<DailyCount[]> {
-  const rows = await model.aggregate([
+  const rows = await model.aggregate<{ _id: string; count: number }>([
     { $match: { ...match, [dateField]: { $gte: since } } },
     {
       $group: {

@@ -112,9 +112,9 @@ export async function GET(
 
     // Process individual matches
     individualMatches.forEach((match: any, index: number) => {
-      const participantIds = (match.participants || []).map((p: any) => toIdString(p));
-      const userParticipantId = participantIds.find((id) => id === userId) || userId;
-      const opponentParticipantId = participantIds.find((id) => id !== userParticipantId) || "";
+      const participantIds = (match.participants || []).map((p: { _id?: unknown }) => toIdString(p));
+      const userParticipantId = participantIds.find((id: string) => id === userId) || userId;
+      const opponentParticipantId = participantIds.find((id: string) => id !== userParticipantId) || "";
       const isWin = toIdString(match.winnerId) === userParticipantId;
       const matchType = match.matchType;
 

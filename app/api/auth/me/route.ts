@@ -34,11 +34,12 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ user }, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : null;
     console.error("[Auth/Me] Detailed error information:");
-    console.error("Error type:", error?.constructor?.name);
-    console.error("Error message:", error?.message);
-    console.error("Error stack:", error?.stack);
+    console.error("Error type:", err?.constructor?.name);
+    console.error("Error message:", err?.message);
+    console.error("Error stack:", err?.stack);
     console.error("Full error object:", JSON.stringify(error, null, 2));
     
     return NextResponse.json(

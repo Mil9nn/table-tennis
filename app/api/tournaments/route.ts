@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
     const isTeamTournament = category === "team";
     
     if (isTeamTournament) {
-      await tournament.populate([
+      await (tournament as mongoose.Document).populate([
         { path: "organizer", select: "username fullName profileImage" },
         { 
           path: "participants", 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         { path: "seeding.participant", model: Team, select: "name logo city captain" },
       ]);
     } else {
-      await tournament.populate([
+      await (tournament as mongoose.Document).populate([
         { path: "organizer", select: "username fullName profileImage" },
         { path: "participants", select: "username fullName profileImage" },
         { path: "seeding.participant", select: "username fullName profileImage" },

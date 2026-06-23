@@ -281,7 +281,7 @@ export class MatchGenerationOrchestrator {
     seeding: any[],
     scorerId: string,
     options: MatchGenerationOptions,
-    session: ClientSession
+    session?: ClientSession
   ): Promise<{ totalMatches: number; totalRounds: number }> {
     const isDoubles =
       (tournament as any).matchType === "doubles" ||
@@ -320,7 +320,7 @@ export class MatchGenerationOrchestrator {
     seeding: any[],
     scorerId: string,
     options: MatchGenerationOptions,
-    session: ClientSession
+    session?: ClientSession
   ): Promise<{ totalMatches: number; totalRounds: number }> {
     const isTeamCategory = (tournament as any).category === "team";
     const isDoubles =
@@ -736,7 +736,7 @@ export class MatchGenerationOrchestrator {
     seeding: any[],
     scorerId: string,
     options: MatchGenerationOptions,
-    session: ClientSession
+    session?: ClientSession
   ): Promise<void> {
     // Implementation similar to generateSingleRoundRobin but with groups
     // This is a simplified version - full implementation would handle groups
@@ -754,7 +754,7 @@ export class MatchGenerationOrchestrator {
     seeding: any[],
     scorerId: string,
     options: MatchGenerationOptions,
-    session: ClientSession
+    session?: ClientSession
   ): Promise<KnockoutBracket> {
     const allowCustomMatching =
       (tournament as any).knockoutConfig?.allowCustomMatching === true;

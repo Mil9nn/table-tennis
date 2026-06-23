@@ -138,7 +138,11 @@ export function createIdBasedGameSchema() {
   return new mongoose.Schema({
     gameNumber: { type: Number, required: true },
     scoresById: { type: Map, of: Number, default: {} },
+    /** @deprecated transitional — derived into scoresById on save */
+    scoresByTeam: { type: [Number], default: undefined },
     winnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    /** @deprecated transitional — derived into winnerId on save */
+    winnerTeamIndex: { type: Number, enum: [0, 1], default: null },
     status: {
       type: String,
       enum: ["scheduled", "in_progress", "completed"],

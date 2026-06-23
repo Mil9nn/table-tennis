@@ -84,8 +84,9 @@ export default function ShotFeed({
     if (!scorerId) return null;
     if (side1Ids.has(scorerId)) return "side1";
     if (side2Ids.has(scorerId)) return "side2";
-    if (shot.side === "side1" || shot.side === "team1") return "side1";
-    if (shot.side === "side2" || shot.side === "team2") return "side2";
+    const sideLabel = String(shot.side);
+    if (sideLabel === "side1" || sideLabel === "team1") return "side1";
+    if (sideLabel === "side2" || sideLabel === "team2") return "side2";
     return null;
   };
 

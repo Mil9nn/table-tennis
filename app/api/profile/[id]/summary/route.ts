@@ -18,7 +18,18 @@ export async function GET(
       .select(
         "username fullName profileImage bio location handedness createdAt gender dateOfBirth",
       )
-      .lean();
+      .lean() as {
+        _id: unknown;
+        username: string;
+        fullName?: string;
+        profileImage?: string;
+        bio?: string;
+        location?: string;
+        handedness?: string;
+        createdAt?: Date;
+        gender?: string;
+        dateOfBirth?: Date;
+      } | null;
 
     if (!user) {
       return NextResponse.json(

@@ -42,7 +42,10 @@ export async function requirePlatformAdmin(
 
   const { userId } = await requireAuth(request);
 
-  const user = await User.findById(userId).select("email username").lean();
+  const user = await User.findById(userId).select("email username").lean() as {
+    email?: string;
+    username?: string;
+  } | null;
   if (!user?.email) {
     throw ApiError.notFound("User");
   }
@@ -54,6 +57,6 @@ export async function requirePlatformAdmin(
   return {
     userId,
     email: user.email,
-    username: user.username,
+    username: user.username ?? "",
   };
 }

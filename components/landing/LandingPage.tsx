@@ -1,7 +1,7 @@
 import { LandingFooter, LandingHeader } from "./LandingChrome";
 import { ComparisonSection } from "./ComparisonSection";
 import { FAQSection } from "./FAQSection";
-import { FeaturesSection, TeamFormatsSection } from "./FeaturesSection";
+import { FeaturesSection } from "./FeaturesSection";
 import { FinalCTASection } from "./FinalCTASection";
 import { HeroSection } from "./HeroSection";
 import { HowItWorksSection } from "./HowItWorksSection";
@@ -25,7 +25,6 @@ export function LandingPage() {
         <HeroSection />
         <TrustBar />
         <FeaturesSection />
-        <TeamFormatsSection />
         <HowItWorksSection />
         <WhoItsForSection />
         <ComparisonSection />
