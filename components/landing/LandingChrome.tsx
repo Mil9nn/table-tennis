@@ -8,14 +8,13 @@ import { cn } from "@/lib/utils";
 import { SocialLinks } from "@/components/landing/SocialLinks";
 import {
   BRAND_NAME,
-  CTA_LINKS,
   LEGAL_LINKS,
   LOGO_SRC,
   NAV_LINKS,
   SUPPORT_EMAIL,
   TAGLINE,
 } from "@/lib/landing/site";
-import { Button } from "@/components/ui/button";
+import { DownloadButton } from "./DownloadButton";
 import { LandingThemeToggle } from "./LandingTheme";
 
 export function LandingHeader() {
@@ -46,21 +45,21 @@ export function LandingHeader() {
       )}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-6 lg:px-8">
-        <a href="#" className="group flex items-center gap-3" aria-label={`${BRAND_NAME} home`}>
+        <a href="#" className="group flex min-w-0 items-center gap-2.5 sm:gap-3" aria-label={`${BRAND_NAME} home`}>
           <Image
             src={LOGO_SRC}
             alt=""
-            width={40}
-            height={40}
-            className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-105"
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105"
             priority
           />
-          <div className="hidden sm:block">
-            <p className="font-[family-name:var(--font-syne)] text-lg font-bold tracking-tight text-[var(--lp-text)]">
+          <div className="min-w-0">
+            <p className="truncate font-[family-name:var(--font-syne)] text-base font-bold tracking-tight text-[var(--lp-text)] sm:text-lg">
               {BRAND_NAME}
             </p>
-            <p className="max-w-[12rem] truncate text-[11px] leading-tight text-[var(--lp-text-muted)]">
-              Competition OS
+            <p className="hidden max-w-[12rem] truncate text-[11px] leading-tight text-[var(--lp-text-muted)] sm:block">
+              {TAGLINE}
             </p>
           </div>
         </a>
@@ -82,20 +81,8 @@ export function LandingHeader() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <LandingThemeToggle />
-          <div className="hidden items-center gap-3 lg:flex">
-            <Button
-              variant="ghost"
-              asChild
-              className="text-[var(--lp-text-muted)] hover:bg-[var(--lp-hover)] hover:text-[var(--lp-text)]"
-            >
-              <Link href={CTA_LINKS.runTournament}>Run a Tournament</Link>
-            </Button>
-            <Button
-              asChild
-              className="rounded-full bg-[var(--lp-accent)] px-5 font-semibold text-[var(--lp-on-accent)] hover:bg-[var(--lp-accent-hover)]"
-            >
-              <Link href={CTA_LINKS.startScoring}>Start Scoring</Link>
-            </Button>
+          <div className="hidden lg:flex">
+            <DownloadButton />
           </div>
           <button
             type="button"
@@ -148,6 +135,9 @@ export function LandingHeader() {
                 </a>
               </li>
             ))}
+            <li className="pt-3 lg:hidden">
+              <DownloadButton className="w-full" />
+            </li>
           </ul>
         </nav>
       </div>
@@ -158,74 +148,35 @@ export function LandingHeader() {
 export function LandingFooter() {
   return (
     <footer className="border-t border-[var(--lp-border)] bg-[var(--lp-surface)]">
-      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Image
-                src={LOGO_SRC}
-                alt=""
-                width={36}
-                height={36}
-                className="h-9 w-9 object-contain"
-                loading="lazy"
-              />
-              <div>
-                <p className="font-[family-name:var(--font-syne)] font-bold text-[var(--lp-text)]">
-                  {BRAND_NAME}
-                </p>
-                <p className="text-xs text-[var(--lp-text-muted)]">{TAGLINE}</p>
-              </div>
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-3">
+            <Image
+              src={LOGO_SRC}
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+              loading="lazy"
+            />
+            <div>
+              <p className="font-[family-name:var(--font-syne)] font-bold text-[var(--lp-text)]">
+                {BRAND_NAME}
+              </p>
+              <p className="text-xs text-[var(--lp-text-muted)]">{TAGLINE}</p>
             </div>
-            <p className="mt-5 max-w-md text-sm leading-7 text-[var(--lp-text-muted)]">
-              The table tennis tournament manager, live scoring app, and team match
-              platform built for players, coaches, clubs, and organizers who demand
-              more than a basic ping pong score tracker.
-            </p>
-            <SocialLinks className="mt-5" />
           </div>
-
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--lp-text-muted)]">
-              Product
-            </h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              {NAV_LINKS.slice(0, 4).map((link) => (
-                <li key={link.href}>
-                  <a
-                    href={link.href}
-                    className="text-[var(--lp-text-muted)] transition hover:text-[var(--lp-text)]"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--lp-text-muted)]">
-              Legal
-            </h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              {LEGAL_LINKS.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-[var(--lp-text-muted)] transition hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-surface)]"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="mt-5 inline-block text-sm text-[var(--lp-text-muted)] transition hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-surface)]"
-            >
-              {SUPPORT_EMAIL}
-            </a>
-          </div>
+          <p className="mt-5 text-sm leading-6 text-[var(--lp-text-muted)]">
+            Live scoring, tournaments, and team matches for table tennis clubs and
+            organizers.
+          </p>
+          <SocialLinks className="mt-5" />
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="mt-4 inline-block text-sm text-[var(--lp-text-muted)] transition hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-surface)]"
+          >
+            {SUPPORT_EMAIL}
+          </a>
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-[var(--lp-border)] pt-8 text-sm text-[var(--lp-text-muted)] sm:flex-row">

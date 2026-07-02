@@ -69,7 +69,7 @@ const teamCreateRefinedCore = teamCreateCoreSchema.strict()
 export const createTeamJsonBodySchema = teamCreateRefinedCore;
 
 // Create team schema (multipart: optional image)
-export const createTeamSchema = teamCreateRefinedCore.extend({
+export const createTeamSchema = teamCreateRefinedCore.safeExtend({
   teamImage: z.instanceof(Blob).optional(),
 });
 

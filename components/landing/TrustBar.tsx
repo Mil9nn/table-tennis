@@ -2,17 +2,13 @@ import {
   BarChart3,
   Building2,
   Radio,
-  ShieldCheck,
-  Users,
 } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "./motion";
 
 const TRUST_ITEMS = [
-  { icon: Building2, label: "Built for clubs" },
-  { icon: ShieldCheck, label: "Tournament-ready" },
-  { icon: Users, label: "Team-match compatible" },
-  { icon: Radio, label: "Live synchronized" },
-  { icon: BarChart3, label: "Advanced statistics" },
+  { icon: Building2, label: "Club-ready" },
+  { icon: Radio, label: "Live sync" },
+  { icon: BarChart3, label: "Stats & standings" },
 ] as const;
 
 export function TrustBar() {

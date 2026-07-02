@@ -61,7 +61,7 @@ export function SectionShell({
     <section
       id={id}
       aria-labelledby={ariaLabelledBy}
-      className={cn("relative scroll-mt-24 py-20 sm:py-24 lg:py-28", className)}
+      className={cn("relative scroll-mt-24 py-14 sm:py-16 lg:py-20", className)}
     >
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">{children}</div>
     </section>

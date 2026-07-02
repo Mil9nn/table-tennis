@@ -16,15 +16,14 @@ export function FAQSection() {
       <FadeIn className="mx-auto max-w-3xl text-center">
         <SectionLabel>FAQ</SectionLabel>
         <SectionHeading id="faq-heading" className="mt-3">
-          Table tennis scoring & tournament questions
+          Common questions
         </SectionHeading>
         <SectionLead className="mx-auto mt-4">
-          Everything you need to know about TTPro—the table tennis scoring app,
-          tournament manager, and team match platform.
+          Quick answers about scoring, tournaments, and team formats.
         </SectionLead>
       </FadeIn>
 
-      <FadeIn className="mx-auto mt-12 max-w-3xl">
+      <FadeIn className="mx-auto mt-8 max-w-3xl">
         <Accordion type="single" collapsible className="w-full">
           {FAQ_ITEMS.map((item, i) => (
             <AccordionItem

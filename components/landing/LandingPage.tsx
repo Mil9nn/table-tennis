@@ -1,12 +1,11 @@
+import { AppShowcaseSection } from "./AppShowcaseSection";
 import { LandingFooter, LandingHeader } from "./LandingChrome";
 import { ComparisonSection } from "./ComparisonSection";
 import { FAQSection } from "./FAQSection";
 import { FeaturesSection } from "./FeaturesSection";
 import { FinalCTASection } from "./FinalCTASection";
 import { HeroSection } from "./HeroSection";
-import { HowItWorksSection } from "./HowItWorksSection";
 import { JsonLd } from "./JsonLd";
-import { RoadmapSection } from "./RoadmapSection";
 import { TrustBar } from "./TrustBar";
 import { WhoItsForSection } from "./WhoItsForSection";
 
@@ -24,11 +23,10 @@ export function LandingPage() {
       <main id="main-content">
         <HeroSection />
         <TrustBar />
+        <AppShowcaseSection />
         <FeaturesSection />
-        <HowItWorksSection />
         <WhoItsForSection />
         <ComparisonSection />
-        <RoadmapSection />
         <FAQSection />
         <FinalCTASection />
       </main>

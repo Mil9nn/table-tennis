@@ -69,3 +69,9 @@ storybook-static
 *.pem
 
 .skills/
+.cursor/
+.agents/
+
+# ignore TableTennisScorer folder
+TableTennisScorer/
+socket-server/

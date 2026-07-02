@@ -24,14 +24,20 @@ type LandingThemeContextValue = {
 
 const LandingThemeContext = createContext<LandingThemeContextValue | null>(null);
 
+function getSystemTheme(): LandingTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 function readStoredTheme(): LandingTheme {
   if (typeof window === "undefined") return "light";
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "dark" ? "dark" : "light";
+    if (stored === "dark" || stored === "light") return stored;
   } catch {
-    return "light";
+    /* storage unavailable */
   }
+  return getSystemTheme();
 }
 
 function applyTheme(theme: LandingTheme) {
@@ -42,7 +48,7 @@ export function LandingThemeScript() {
   return (
     <script
       dangerouslySetInnerHTML={{
-        __html: `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");document.documentElement.dataset.lpTheme=t==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.lpTheme="light"}})();`,
+        __html: `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");var s=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.lpTheme=t==="dark"||t==="light"?t:s}catch(e){document.documentElement.dataset.lpTheme=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}})();`,
       }}
     />
   );
@@ -121,10 +127,10 @@ export function LandingThemeToggle({ className }: { className?: string }) {
       />
       <Switch
         id={id}
-        checked={isLight}
-        onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")}
+        checked={!isLight}
+        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
         aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-        className="h-5 w-9 border border-[var(--lp-border)] bg-[var(--lp-bg)] data-[state=checked]:bg-[var(--lp-accent)] data-[state=unchecked]:bg-[var(--lp-bg)] focus-visible:ring-[var(--lp-accent)]/40 [&_[data-slot=switch-thumb]]:size-4 [&_[data-slot=switch-thumb]]:bg-[var(--lp-text)] data-[state=checked]:[&_[data-slot=switch-thumb]]:bg-[var(--lp-on-accent)]"
+        className="h-5 w-9 border border-[var(--lp-border)] bg-[var(--lp-bg)] data-[state=checked]:bg-[var(--lp-accent)] data-[state=unchecked]:bg-[var(--lp-bg)] focus-visible:ring-[var(--lp-accent)]/40 [&_[data-slot=switch-thumb]]:size-4 [&_[data-slot=switch-thumb]]:bg-[var(--lp-text)] [&_[data-slot=switch-thumb]]:data-[state=checked]:translate-x-[calc(1.25rem-4px)] [&_[data-slot=switch-thumb]]:data-[state=unchecked]:translate-x-0.5 data-[state=checked]:[&_[data-slot=switch-thumb]]:bg-[var(--lp-on-accent)]"
       />
       <Moon
         className={cn(

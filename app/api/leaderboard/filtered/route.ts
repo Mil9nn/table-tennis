@@ -5,7 +5,7 @@ import IndividualMatch from "@/models/IndividualMatch";
 import { validateFilters, getDateRange, getPaginationDefaults } from "@/lib/leaderboard/filterUtils";
 import { buildLeaderboardPipeline } from "@/lib/leaderboard/aggregationBuilder";
 import { sortLeaderboardWithITTF, type HeadToHeadMap, type LeaderboardEntry } from "@/lib/leaderboard/ittfSorting";
-import type { PlayerStats } from "@/app/leaderboard/types";
+import type { PlayerStats } from "@/types/leaderboard";
 
 // Streak calculation function (from unified API)
 function updateStreak(playerData: any, won: boolean) {

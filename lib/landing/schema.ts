@@ -3,29 +3,19 @@ import { SEO_DESCRIPTION } from "./seo";
 
 export const FAQ_ITEMS = [
   {
-    question: "What is the best table tennis scoring app?",
+    question: "What makes TTPro different from other scoring apps?",
     answer:
-      "TTPro is built for competitive table tennis—not casual point counting. It combines live singles and doubles scoring, team match formats like Swaythling Cup and SDS, tournament brackets, player profiles, and global leaderboards in one synchronized platform.",
+      "TTPro goes beyond point counting — live singles and doubles scoring, team formats like Swaythling Cup and SDS, tournament brackets, and player stats, all synced in real time.",
   },
   {
-    question: "How do I manage a table tennis tournament?",
+    question: "How do I run a tournament?",
     answer:
-      "Create a tournament in TTPro, add players or import your roster, choose round-robin, knockout, or hybrid format, and let the engine generate brackets and schedules automatically. Score matches live on court—standings and progression update in real time.",
+      "Create a tournament, add players, pick round-robin, knockout, or hybrid, and TTPro generates brackets and schedules. Score live on court — standings update instantly.",
   },
   {
-    question: "What is Swaythling Cup format?",
+    question: "Does it support team matches?",
     answer:
-      "Swaythling Cup is a classic team format with five singles rubbers. Each player may play once or twice across the five matches. TTPro tracks lineup order, rubber results, and team totals automatically—no spreadsheets required.",
-  },
-  {
-    question: "How does round-robin work in table tennis?",
-    answer:
-      "In round-robin, every player or team plays every other participant once (or twice in double round-robin). TTPro generates the full schedule, tracks wins and point differential, and produces standings that feed directly into knockout stages when using hybrid formats.",
-  },
-  {
-    question: "Can I score doubles matches live?",
-    answer:
-      "Yes. TTPro supports live doubles scoring with server rotation tracking, point-by-point updates, and instant sync across devices. Multiple scorers can collaborate on the same match without conflicts.",
+      "Yes. TTPro handles Swaythling Cup, SDS, and custom team formats with lineup tracking, rubber results, and team totals — no spreadsheets needed.",
   },
 ] as const;
 
@@ -110,7 +100,7 @@ export function buildWebPageSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `${BRAND_NAME} — Table Tennis Competition OS`,
+    name: `${BRAND_NAME} — ${TAGLINE}`,
     description: SEO_DESCRIPTION,
     url: SITE_URL,
     isPartOf: {

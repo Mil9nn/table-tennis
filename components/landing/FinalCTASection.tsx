@@ -1,14 +1,11 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { CTA_LINKS } from "@/lib/landing/site";
-import { Button } from "@/components/ui/button";
+import { DownloadButton } from "./DownloadButton";
 import { FadeIn } from "./motion";
 
 export function FinalCTASection() {
   return (
     <section
       aria-labelledby="final-cta-heading"
-      className="relative overflow-hidden py-24 sm:py-28"
+      className="relative overflow-hidden py-16 sm:py-20"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,var(--lp-glow-cta),transparent)]"
@@ -21,23 +18,13 @@ export function FinalCTASection() {
             id="final-cta-heading"
             className="font-[family-name:var(--font-syne)] text-3xl font-bold tracking-tight text-[var(--lp-text)] sm:text-4xl lg:text-5xl"
           >
-            The future of table tennis competition starts here.
+            Ready to score live?
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-base text-[var(--lp-text-muted)] sm:text-lg">
-            Join players, coaches, and organizers who run every match on TTPro—the
-            all-in-one table tennis tournament software and live scoring platform.
+          <p className="mx-auto mt-4 max-w-md text-base text-[var(--lp-text-muted)] sm:text-lg">
+            Download TTPro free on Android and run your next match or tournament.
           </p>
-          <div className="mt-8">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 rounded-full bg-[var(--lp-accent)] px-10 text-base font-semibold text-[var(--lp-on-accent)] hover:bg-[var(--lp-accent-hover)]"
-            >
-              <Link href={CTA_LINKS.startNow}>
-                Start Now
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
+          <div className="mt-6 flex justify-center">
+            <DownloadButton size="lg" className="px-10" />
           </div>
         </FadeIn>
       </div>

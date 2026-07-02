@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import IndividualMatch from "@/models/IndividualMatch";
 import Tournament from "@/models/Tournament";
 import { User } from "@/models/User";
-import type { TournamentHistoryEntry } from "@/app/leaderboard/types";
+import type { TournamentHistoryEntry } from "@/types/leaderboard";
 
 /**
  * GET /api/leaderboard/tournaments/player/[id]
